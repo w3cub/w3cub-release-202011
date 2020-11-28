@@ -1,0 +1,205 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>The Run Loop - Ember.js - W3cubDocs</title>
+  
+  <meta name="description" content="Ember&#39;s internals and most of the code you will write in your applications takes place in a run loop. The run loop is used to batch, and order ( &hellip;">
+  <meta name="keywords" content="run, loop, ember, js">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/ember/applications/run-loop.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/ember.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/ember/" class="_nav-link" title="" style="margin-left:0;">Ember.js</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _ember">
+				
+				
+<h1> The Run Loop  </h1>  <p>Ember's internals and most of the code you will write in your applications takes place in a run loop. The run loop is used to batch, and order (or reorder) work in a way that is most effective and efficient.</p> <p>It does so by scheduling work on specific queues. These queues have a priority, and are processed to completion in priority order.</p> <p>For basic Ember app development scenarios, you don't need to understand the run loop or use it directly. All common paths are paved nicely for you and don't require working with the run loop directly.</p> <p>The most common case for using the run loop is integrating with a non-Ember API that includes some sort of asynchronous callback. For example:</p> <ul> <li>DOM update and event callbacks</li> <li>
+<code>setTimeout</code> and <code>setInterval</code> callbacks</li> <li>
+<code>postMessage</code> and <code>messageChannel</code> event handlers</li> <li>AJAX callbacks</li> <li>Websocket callbacks</li> </ul> <h2 class="anchorable-toc" id="toc_why-is-the-run-loop-useful">Why is the run loop useful?</h2> <p>Very often, batching similar work has benefits. Web browsers do something quite similar by batching changes to the DOM.</p> <p>Consider the following HTML snippet:</p> <pre class="highlight html " data-language="html">&lt;div id="foo"&gt;&lt;/div&gt;
+&lt;div id="bar"&gt;&lt;/div&gt;
+&lt;div id="baz"&gt;&lt;/div&gt;
+</pre> <p>and executing the following code:</p> <pre class="highlight javascript " data-language="javascript">foo.style.height = '500px' // write
+foo.offsetHeight // read (recalculate style, layout, expensive!)
+
+bar.style.height = '400px' // write
+bar.offsetHeight // read (recalculate style, layout, expensive!)
+
+baz.style.height = '200px' // write
+baz.offsetHeight // read (recalculate style, layout, expensive!)
+</pre> <p>In this example, the sequence of code forced the browser to recalculate style, and relayout after each step. However, if we were able to batch similar jobs together, the browser would have only needed to recalculate the style and layout once.</p> <pre class="highlight javascript " data-language="javascript">foo.style.height = '500px' // write
+bar.style.height = '400px' // write
+baz.style.height = '200px' // write
+
+foo.offsetHeight // read (recalculate style, layout, expensive!)
+bar.offsetHeight // read (fast since style and layout are already known)
+baz.offsetHeight // read (fast since style and layout are already known)
+</pre> <p>Interestingly, this pattern holds true for many other types of work. Essentially, batching similar work allows for better pipelining, and further optimization.</p> <p>Let's look at a similar example that is optimized in Ember, starting with a <code>User</code> object:</p> <pre class="highlight javascript " data-language="javascript">let User = Ember.Object.extend({
+  firstName: null,
+  lastName: null,
+  fullName: Ember.computed('firstName', 'lastName', function() {
+    return `${this.get('firstName')} ${this.get('lastName')}`;
+  })
+});
+</pre> <p>and a template to display its attributes:</p> <pre class="highlight handlebars " data-language="html">{{firstName}}
+{{fullName}}
+</pre> <p>If we execute the following code without the run loop:</p> <pre class="highlight javascript " data-language="javascript">let user = User.create({ firstName: 'Tom', lastName: 'Huda' });
+user.set('firstName', 'Yehuda');
+// {{firstName}} and {{fullName}} are updated
+
+user.set('lastName', 'Katz');
+// {{lastName}} and {{fullName}} are updated
+</pre> <p>We see that the browser will rerender the template twice.</p> <p>However, if we have the run loop in the above code, the browser will only rerender the template once the attributes have all been set.</p> <pre class="highlight javascript " data-language="javascript">let user = User.create({ firstName: 'Tom', lastName: 'Huda' });
+user.set('firstName', 'Yehuda');
+user.set('lastName', 'Katz');
+user.set('firstName', 'Tom');
+user.set('lastName', 'Huda');
+</pre> <p>In the above example with the run loop, since the user's attributes end up at the same values as before execution, the template will not even rerender!</p> <p>It is of course possible to optimize these scenarios on a case-by-case basis, but getting them for free is much nicer. Using the run loop, we can apply these classes of optimizations not only for each scenario, but holistically app-wide.</p> <h2 class="anchorable-toc" id="toc_how-does-the-run-loop-work-in-ember">How does the Run Loop work in Ember?</h2> <p>As mentioned earlier, we schedule work (in the form of function invocations) on queues, and these queues are processed to completion in priority order.</p> <p>What are the queues, and what is their priority order?</p> <pre class="highlight javascript " data-language="javascript">Ember.run.queues
+// =&gt; ["sync", "actions", "routerTransitions", "render", "afterRender", "destroy"]
+</pre> <p>Because the priority is first to last, the "sync" queue has higher priority than the "render" or "destroy" queue.</p> <h2 class="anchorable-toc" id="toc_what-happens-in-these-queues">What happens in these queues?</h2> <ul> <li>The <code>sync</code> queue contains binding synchronization jobs.</li> <li>The <code>actions</code> queue is the general work queue and will typically contain scheduled tasks e.g. promises.</li> <li>The <code>routerTransitions</code> queue contains transition jobs in the router.</li> <li>The <code>render</code> queue contains jobs meant for rendering, these will typically update the DOM.</li> <li>The <code>afterRender</code> queue contains jobs meant to be run after all previously scheduled render tasks are complete. This is often good for 3rd-party DOM manipulation libraries, that should only be run after an entire tree of DOM has been updated.</li> <li>The <code>destroy</code> queue contains jobs to finish the teardown of objects other jobs have scheduled to destroy.</li> </ul> <h2 class="anchorable-toc" id="toc_in-what-order-are-jobs-executed-on-the-queues">In what order are jobs executed on the queues?</h2> <p>The algorithm works this way:</p> <ol> <li>Let the highest priority queue with pending jobs be: <code>CURRENT_QUEUE</code>, if there are no queues with pending jobs the run loop is complete</li> <li>Let a new temporary queue be defined as <code>WORK_QUEUE</code>
+</li> <li>Move jobs from <code>CURRENT_QUEUE</code> into <code>WORK_QUEUE</code>
+</li> <li>Process all the jobs sequentially in <code>WORK_QUEUE</code>
+</li> <li>Return to Step 1</li> </ol> <h2 class="anchorable-toc" id="toc_an-example-of-the-internals">An example of the internals</h2> <p>Rather than writing the higher level app code that internally invokes the various run loop scheduling functions, we have stripped away the covers, and shown the raw run-loop interactions.</p> <p>Working with this API directly is not common in most Ember apps, but understanding this example will help you to understand the run-loops algorithm, which will make you a better Ember developer.</p> <iframe src="https://s3.amazonaws.com/emberjs.com/run-loop-guide/index.html" width="678" height="410" style="border:1px solid rgb(170, 170, 170);margin-bottom:1.5em;"></iframe> <h2 class="anchorable-toc" id="toc_how-do-i-tell-ember-to-start-a-run-loop">How do I tell Ember to start a run loop?</h2> <p>You should begin a run loop when the callback fires.</p> <p>The <code>Ember.run</code> method can be used to create a run loop. In this example, jQuery and <code>Ember.run</code> are used to handle a click event and run some Ember code.</p> <p>This example uses the <code>=&gt;</code> function syntax, which is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions">new ES2015 syntax for callback functions</a> that provides a lexical <code>this</code>. If this syntax is new, think of it as a function that has the same <code>this</code> as the context it is defined in.</p> <pre class="highlight javascript " data-language="javascript">$('a').click(() =&gt; {
+  Ember.run(() =&gt; {  // begin loop
+    // Code that results in jobs being scheduled goes here
+  }); // end loop, jobs are flushed and executed
+});
+</pre>
+<h2 class="anchorable-toc" id="toc_what-happens-if-i-forget-to-start-a-run-loop-in-an-async-handler">What happens if I forget to start a run loop in an async handler?</h2> <p>As mentioned above, you should wrap any non-Ember async callbacks in <code>Ember.run</code>. If you don't, Ember will try to approximate a beginning and end for you. Consider the following callback:</p> <pre class="highlight javascript " data-language="javascript">$('a').click(() =&gt; {
+  console.log('Doing things...');
+
+  Ember.run.schedule('actions', () =&gt; {
+    // Do more things
+  });
+});
+</pre> <p>The run loop API calls that <em>schedule</em> work, i.e. <a href="http://emberjs.com/api/classes/Ember.run.html#method_schedule"><code>run.schedule</code></a>, <a href="http://emberjs.com/api/classes/Ember.run.html#method_scheduleOnce"><code>run.scheduleOnce</code></a>, <a href="http://emberjs.com/api/classes/Ember.run.html#method_once"><code>run.once</code></a> have the property that they will approximate a run loop for you if one does not already exist. These automatically created run loops we call <em>autoruns</em>.</p> <p>Here is some pseudocode to describe what happens using the example above:</p> <pre class="highlight javascript " data-language="javascript">$('a').click(() =&gt; {
+  // 1. autoruns do not change the execution of arbitrary code in a callback.
+  //    This code is still run when this callback is executed and will not be
+  //    scheduled on an autorun.
+  console.log('Doing things...');
+
+  Ember.run.schedule('actions', () =&gt; {
+    // 2. schedule notices that there is no currently available run loop so it
+    //    creates one. It schedules it to close and flush queues on the next
+    //    turn of the JS event loop.
+    if (! Ember.run.hasOpenRunLoop()) {
+      Ember.run.begin();
+      nextTick(() =&gt; {
+        Ember.run.end()
+      }, 0);
+    }
+
+    // 3. There is now a run loop available so schedule adds its item to the
+    //    given queue
+    Ember.run.schedule('actions', () =&gt; {
+      // Do more things
+    });
+
+  });
+
+  // 4. This schedule sees the autorun created by schedule above as an available
+  //    run loop and adds its item to the given queue.
+  Ember.run.schedule('afterRender', () =&gt; {
+    // Do yet more things
+  });
+});
+</pre> <p>Although autoruns are convenient, they are suboptimal. The current JS frame is allowed to end before the run loop is flushed, which sometimes means the browser will take the opportunity to do other things, like garbage collection. GC running in between data changing and DOM rerendering can cause visual lag and should be minimized.</p> <p>Relying on autoruns is not a rigorous or efficient way to use the run loop. Wrapping event handlers manually are preferred.</p> <h2 class="anchorable-toc" id="toc_how-is-run-loop-behaviour-different-when-testing">How is run loop behaviour different when testing?</h2> <p>When your application is in <em>testing mode</em> then Ember will throw an error if you try to schedule work without an available run loop.</p> <p>Autoruns are disabled in testing for several reasons:</p> <ol> <li>Autoruns are Embers way of not punishing you in production if you forget to open a run loop before you schedule callbacks on it. While this is useful in production, these are still situations that should be revealed in testing to help you find and fix them.</li> <li>Some of Ember's test helpers are promises that wait for the run loop to empty before resolving. If your application has code that runs <em>outside</em> a run loop, these will resolve too early and give erroneous test failures which are difficult to find. Disabling autoruns help you identify these scenarios and helps both your testing and your application!</li> </ol> <h2 class="anchorable-toc" id="toc_where-can-i-find-more-information">Where can I find more information?</h2> <p>Check out the <a href="http://emberjs.com/api/classes/Ember.run.html">Ember.run</a> API documentation, as well as the <a href="https://github.com/ebryn/backburner.js/">Backburner library</a> that powers the run loop.</p> <div class="_attribution">
+  <p class="_attribution-p">
+    © 2017 Yehuda Katz, Tom Dale and Ember.js contributors<br>Licensed under the MIT License.<br>
+    <a href="https://guides.emberjs.com/v2.15.0/applications/run-loop" class="_attribution-link">https://guides.emberjs.com/v2.15.0/applications/run-loop</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
