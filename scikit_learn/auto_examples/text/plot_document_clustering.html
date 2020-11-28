@@ -1,0 +1,336 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Example&#58; Clustering Text Documents Using K-means - Scikit-learn - W3cubDocs</title>
+  
+  <meta name="description" content=" Note ">
+  <meta name="keywords" content="clustering, text, documents, using, k-means, example, scikit-learn, scikit_learn">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/scikit_learn/auto_examples/text/plot_document_clustering.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/scikit_learn.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/scikit_learn/" class="_nav-link" title="" style="margin-left:0;">scikit-learn</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<div class="sphx-glr-download-link-note admonition note"> <p class="first admonition-title">Note</p> <p class="last">Click <a class="reference internal" href="#sphx-glr-download-auto-examples-text-plot-document-clustering-py"><span class="std std-ref">here</span></a> to download the full example code</p> </div>  <h1 id="sphx-glr-auto-examples-text-plot-document-clustering-py">Clustering text documents using k-means</h1> <p id="clustering-text-documents-using-k-means">This is an example showing how the scikit-learn can be used to cluster documents by topics using a bag-of-words approach. This example uses a scipy.sparse matrix to store the features instead of standard numpy arrays.</p> <p>Two feature extraction methods can be used in this example:</p>  <ul> <li>TfidfVectorizer uses a in-memory vocabulary (a python dict) to map the most frequent words to features indices and hence compute a word occurrence frequency (sparse) matrix. The word frequencies are then reweighted using the Inverse Document Frequency (IDF) vector collected feature-wise over the corpus. </li> <li>
+<p class="first">HashingVectorizer hashes word occurrences to a fixed dimensional space, possibly with collisions. The word count vectors are then normalized to each have l2-norm equal to one (projected to the euclidean unit-ball) which seems to be important for k-means to work in high dimensional space.</p> <p>HashingVectorizer does not provide IDF weighting as this is a stateless model (the fit method does nothing). When IDF weighting is needed it can be added by pipelining its output to a TfidfTransformer instance.</p> </li> </ul>  <p>Two algorithms are demoed: ordinary k-means and its more scalable cousin minibatch k-means.</p> <p>Additionally, latent semantic analysis can also be used to reduce dimensionality and discover latent patterns in the data.</p> <p>It can be noted that k-means (and minibatch k-means) are very sensitive to feature scaling and that in this case the IDF weighting helps improve the quality of the clustering by quite a lot as measured against the “ground truth” provided by the class label assignments of the 20 newsgroups dataset.</p> <p>This improvement is not visible in the Silhouette Coefficient which is small for both as this measure seem to suffer from the phenomenon called “Concentration of Measure” or “Curse of Dimensionality” for high dimensional datasets such as text data. Other measures such as V-measure and Adjusted Rand Index are information theoretic based evaluation scores: as they are only based on cluster assignments rather than distances, hence not affected by the curse of dimensionality.</p> <p>Note: as k-means is optimizing a non-convex objective function, it will likely end up in a local optimum. Several runs with independent random init might be necessary to get a good convergence.</p> <p class="sphx-glr-script-out">Out:</p> <pre data-language="none">Usage: plot_document_clustering.py [options]
+
+Options:
+  -h, --help            show this help message and exit
+  --lsa=N_COMPONENTS    Preprocess documents with latent semantic analysis.
+  --no-minibatch        Use ordinary k-means algorithm (in batch mode).
+  --no-idf              Disable Inverse Document Frequency feature weighting.
+  --use-hashing         Use a hashing feature vectorizer
+  --n-features=N_FEATURES
+                        Maximum number of features (dimensions) to extract
+                        from text.
+  --verbose             Print progress reports inside k-means algorithm.
+Loading 20 newsgroups dataset for categories:
+['alt.atheism', 'talk.religion.misc', 'comp.graphics', 'sci.space']
+3387 documents
+4 categories
+
+Extracting features from the training dataset using a sparse vectorizer
+done in 0.881211s
+n_samples: 3387, n_features: 10000
+
+Clustering sparse data with MiniBatchKMeans(batch_size=1000, compute_labels=True, init='k-means++',
+        init_size=1000, max_iter=100, max_no_improvement=10, n_clusters=4,
+        n_init=1, random_state=None, reassignment_ratio=0.01, tol=0.0,
+        verbose=False)
+done in 0.120s
+
+Homogeneity: 0.359
+Completeness: 0.440
+V-measure: 0.396
+Adjusted Rand-Index: 0.253
+Silhouette Coefficient: 0.007
+
+Top terms per cluster:
+Cluster 0: henry alaska toronto moon zoo spencer aurora space nsmca zoology
+Cluster 1: com graphics university posting host nntp know uk article cs
+Cluster 2: god com sandvik people keith morality sgi kent livesey jesus
+Cluster 3: space nasa access gov digex pat shuttle hst orbit net
+</pre>  <pre data-language="python"># Author: Peter Prettenhofer &lt;peter.prettenhofer@gmail.com&gt;
+#         Lars Buitinck
+# License: BSD 3 clause
+
+from __future__ import print_function
+
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import Normalizer
+from sklearn import metrics
+
+from sklearn.cluster import KMeans, MiniBatchKMeans
+
+import logging
+from optparse import OptionParser
+import sys
+from time import time
+
+import numpy as np
+
+
+# Display progress logs on stdout
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
+# parse commandline arguments
+op = OptionParser()
+op.add_option("--lsa",
+              dest="n_components", type="int",
+              help="Preprocess documents with latent semantic analysis.")
+op.add_option("--no-minibatch",
+              action="store_false", dest="minibatch", default=True,
+              help="Use ordinary k-means algorithm (in batch mode).")
+op.add_option("--no-idf",
+              action="store_false", dest="use_idf", default=True,
+              help="Disable Inverse Document Frequency feature weighting.")
+op.add_option("--use-hashing",
+              action="store_true", default=False,
+              help="Use a hashing feature vectorizer")
+op.add_option("--n-features", type=int, default=10000,
+              help="Maximum number of features (dimensions)"
+                   " to extract from text.")
+op.add_option("--verbose",
+              action="store_true", dest="verbose", default=False,
+              help="Print progress reports inside k-means algorithm.")
+
+print(__doc__)
+op.print_help()
+
+
+def is_interactive():
+    return not hasattr(sys.modules['__main__'], '__file__')
+
+
+# work-around for Jupyter notebook and IPython console
+argv = [] if is_interactive() else sys.argv[1:]
+(opts, args) = op.parse_args(argv)
+if len(args) &gt; 0:
+    op.error("this script takes no arguments.")
+    sys.exit(1)
+
+
+# #############################################################################
+# Load some categories from the training set
+categories = [
+    'alt.atheism',
+    'talk.religion.misc',
+    'comp.graphics',
+    'sci.space',
+]
+# Uncomment the following to do the analysis on all the categories
+# categories = None
+
+print("Loading 20 newsgroups dataset for categories:")
+print(categories)
+
+dataset = fetch_20newsgroups(subset='all', categories=categories,
+                             shuffle=True, random_state=42)
+
+print("%d documents" % len(dataset.data))
+print("%d categories" % len(dataset.target_names))
+print()
+
+labels = dataset.target
+true_k = np.unique(labels).shape[0]
+
+print("Extracting features from the training dataset "
+      "using a sparse vectorizer")
+t0 = time()
+if opts.use_hashing:
+    if opts.use_idf:
+        # Perform an IDF normalization on the output of HashingVectorizer
+        hasher = HashingVectorizer(n_features=opts.n_features,
+                                   stop_words='english', alternate_sign=False,
+                                   norm=None, binary=False)
+        vectorizer = make_pipeline(hasher, TfidfTransformer())
+    else:
+        vectorizer = HashingVectorizer(n_features=opts.n_features,
+                                       stop_words='english',
+                                       alternate_sign=False, norm='l2',
+                                       binary=False)
+else:
+    vectorizer = TfidfVectorizer(max_df=0.5, max_features=opts.n_features,
+                                 min_df=2, stop_words='english',
+                                 use_idf=opts.use_idf)
+X = vectorizer.fit_transform(dataset.data)
+
+print("done in %fs" % (time() - t0))
+print("n_samples: %d, n_features: %d" % X.shape)
+print()
+
+if opts.n_components:
+    print("Performing dimensionality reduction using LSA")
+    t0 = time()
+    # Vectorizer results are normalized, which makes KMeans behave as
+    # spherical k-means for better results. Since LSA/SVD results are
+    # not normalized, we have to redo the normalization.
+    svd = TruncatedSVD(opts.n_components)
+    normalizer = Normalizer(copy=False)
+    lsa = make_pipeline(svd, normalizer)
+
+    X = lsa.fit_transform(X)
+
+    print("done in %fs" % (time() - t0))
+
+    explained_variance = svd.explained_variance_ratio_.sum()
+    print("Explained variance of the SVD step: {}%".format(
+        int(explained_variance * 100)))
+
+    print()
+
+
+# #############################################################################
+# Do the actual clustering
+
+if opts.minibatch:
+    km = MiniBatchKMeans(n_clusters=true_k, init='k-means++', n_init=1,
+                         init_size=1000, batch_size=1000, verbose=opts.verbose)
+else:
+    km = KMeans(n_clusters=true_k, init='k-means++', max_iter=100, n_init=1,
+                verbose=opts.verbose)
+
+print("Clustering sparse data with %s" % km)
+t0 = time()
+km.fit(X)
+print("done in %0.3fs" % (time() - t0))
+print()
+
+print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels, km.labels_))
+print("Completeness: %0.3f" % metrics.completeness_score(labels, km.labels_))
+print("V-measure: %0.3f" % metrics.v_measure_score(labels, km.labels_))
+print("Adjusted Rand-Index: %.3f"
+      % metrics.adjusted_rand_score(labels, km.labels_))
+print("Silhouette Coefficient: %0.3f"
+      % metrics.silhouette_score(X, km.labels_, sample_size=1000))
+
+print()
+
+
+if not opts.use_hashing:
+    print("Top terms per cluster:")
+
+    if opts.n_components:
+        original_space_centroids = svd.inverse_transform(km.cluster_centers_)
+        order_centroids = original_space_centroids.argsort()[:, ::-1]
+    else:
+        order_centroids = km.cluster_centers_.argsort()[:, ::-1]
+
+    terms = vectorizer.get_feature_names()
+    for i in range(true_k):
+        print("Cluster %d:" % i, end='')
+        for ind in order_centroids[i, :10]:
+            print(' %s' % terms[ind], end='')
+        print()
+</pre> <p><strong>Total running time of the script:</strong> ( 0 minutes 1.431 seconds)</p> <div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-text-plot-document-clustering-py"> <div class="sphx-glr-download docutils container"> <a class="reference download internal" href="http://scikit-learn.org/stable/_downloads/plot_document_clustering.py" download=""><code>Download Python source code: plot_document_clustering.py</code></a>
+</div> <div class="sphx-glr-download docutils container"> <a class="reference download internal" href="http://scikit-learn.org/stable/_downloads/plot_document_clustering.ipynb" download=""><code>Download Jupyter notebook: plot_document_clustering.ipynb</code></a>
+</div> </div> <p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.readthedocs.io">Gallery generated by Sphinx-Gallery</a></p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2018 The scikit-learn developers<br>Licensed under the 3-clause BSD License.<br>
+    <a href="http://scikit-learn.org/stable/auto_examples/text/plot_document_clustering.html" class="_attribution-link">http://scikit-learn.org/stable/auto_examples/text/plot_document_clustering.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

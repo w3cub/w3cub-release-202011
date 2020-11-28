@@ -1,0 +1,229 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Tutorial&#58; Model Selection - Scikit-learn - W3cubDocs</title>
+  
+  <meta name="description" content=" As we have seen, every estimator exposes a score method that can judge the quality of the fit (or the prediction) on new data. Bigger is better. ">
+  <meta name="keywords" content="model, selection, choosing, estimators, and, their, parameters, tutorial, scikit-learn, scikit_learn">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/scikit_learn/tutorial/statistical_inference/model_selection.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/scikit_learn.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/scikit_learn/" class="_nav-link" title="" style="margin-left:0;">scikit-learn</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="model-selection-tut">Model selection: choosing estimators and their parameters</h1>  <h2 id="model-selection-choosing-estimators-and-their-parameters">Score, and cross-validated scores</h2> <p>As we have seen, every estimator exposes a <code>score</code> method that can judge the quality of the fit (or the prediction) on new data. <strong>Bigger is better</strong>.</p> <pre data-language="python">&gt;&gt;&gt; from sklearn import datasets, svm
+&gt;&gt;&gt; digits = datasets.load_digits()
+&gt;&gt;&gt; X_digits = digits.data
+&gt;&gt;&gt; y_digits = digits.target
+&gt;&gt;&gt; svc = svm.SVC(C=1, kernel='linear')
+&gt;&gt;&gt; svc.fit(X_digits[:-100], y_digits[:-100]).score(X_digits[-100:], y_digits[-100:])
+0.98
+</pre> <p>To get a better measure of prediction accuracy (which we can use as a proxy for goodness of fit of the model), we can successively split the data in <em>folds</em> that we use for training and testing:</p> <pre data-language="python">&gt;&gt;&gt; import numpy as np
+&gt;&gt;&gt; X_folds = np.array_split(X_digits, 3)
+&gt;&gt;&gt; y_folds = np.array_split(y_digits, 3)
+&gt;&gt;&gt; scores = list()
+&gt;&gt;&gt; for k in range(3):
+...     # We use 'list' to copy, in order to 'pop' later on
+...     X_train = list(X_folds)
+...     X_test  = X_train.pop(k)
+...     X_train = np.concatenate(X_train)
+...     y_train = list(y_folds)
+...     y_test  = y_train.pop(k)
+...     y_train = np.concatenate(y_train)
+...     scores.append(svc.fit(X_train, y_train).score(X_test, y_test))
+&gt;&gt;&gt; print(scores)  
+[0.934..., 0.956..., 0.939...]
+</pre> <p>This is called a <a class="reference internal" href="../../modules/generated/sklearn.model_selection.kfold#sklearn.model_selection.KFold" title="sklearn.model_selection.KFold"><code>KFold</code></a> cross-validation.</p>   <h2 id="cv-generators-tut">Cross-validation generators</h2> <p id="cross-validation-generators">Scikit-learn has a collection of classes which can be used to generate lists of train/test indices for popular cross-validation strategies.</p> <p>They expose a <code>split</code> method which accepts the input dataset to be split and yields the train/test set indices for each iteration of the chosen cross-validation strategy.</p> <p>This example shows an example usage of the <code>split</code> method.</p> <pre data-language="python">&gt;&gt;&gt; from sklearn.model_selection import KFold, cross_val_score
+&gt;&gt;&gt; X = ["a", "a", "a", "b", "b", "c", "c", "c", "c", "c"]
+&gt;&gt;&gt; k_fold = KFold(n_splits=5)
+&gt;&gt;&gt; for train_indices, test_indices in k_fold.split(X):
+...      print('Train: %s | test: %s' % (train_indices, test_indices))
+Train: [2 3 4 5 6 7 8 9] | test: [0 1]
+Train: [0 1 4 5 6 7 8 9] | test: [2 3]
+Train: [0 1 2 3 6 7 8 9] | test: [4 5]
+Train: [0 1 2 3 4 5 8 9] | test: [6 7]
+Train: [0 1 2 3 4 5 6 7] | test: [8 9]
+</pre> <p>The cross-validation can then be performed easily:</p> <pre data-language="python">&gt;&gt;&gt; [svc.fit(X_digits[train], y_digits[train]).score(X_digits[test], y_digits[test])
+...          for train, test in k_fold.split(X_digits)]  
+[0.963..., 0.922..., 0.963..., 0.963..., 0.930...]
+</pre> <p>The cross-validation score can be directly calculated using the <a class="reference internal" href="../../modules/generated/sklearn.model_selection.cross_val_score#sklearn.model_selection.cross_val_score" title="sklearn.model_selection.cross_val_score"><code>cross_val_score</code></a> helper. Given an estimator, the cross-validation object and the input dataset, the <a class="reference internal" href="../../modules/generated/sklearn.model_selection.cross_val_score#sklearn.model_selection.cross_val_score" title="sklearn.model_selection.cross_val_score"><code>cross_val_score</code></a> splits the data repeatedly into a training and a testing set, trains the estimator using the training set and computes the scores based on the testing set for each iteration of cross-validation.</p> <p>By default the estimator’s <code>score</code> method is used to compute the individual scores.</p> <p>Refer the <a class="reference internal" href="../../modules/metrics#metrics"><span class="std std-ref">metrics module</span></a> to learn more on the available scoring methods.</p> <pre data-language="python">&gt;&gt;&gt; cross_val_score(svc, X_digits, y_digits, cv=k_fold, n_jobs=-1)
+array([0.96388889, 0.92222222, 0.9637883 , 0.9637883 , 0.93036212])
+</pre> <p><code>n_jobs=-1</code> means that the computation will be dispatched on all the CPUs of the computer.</p> <p>Alternatively, the <code>scoring</code> argument can be provided to specify an alternative scoring method.</p>  <pre data-language="python">&gt;&gt;&gt; cross_val_score(svc, X_digits, y_digits, cv=k_fold,
+...                 scoring='precision_macro')
+array([0.96578289, 0.92708922, 0.96681476, 0.96362897, 0.93192644])
+</pre> <p><strong>Cross-validation generators</strong></p>  <table class="docutils">   <tr>
+<td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.kfold#sklearn.model_selection.KFold" title="sklearn.model_selection.KFold"><code>KFold</code></a> <strong>(n_splits, shuffle, random_state)</strong>
+</td> <td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.stratifiedkfold#sklearn.model_selection.StratifiedKFold" title="sklearn.model_selection.StratifiedKFold"><code>StratifiedKFold</code></a> <strong>(n_splits, shuffle, random_state)</strong>
+</td> <td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.groupkfold#sklearn.model_selection.GroupKFold" title="sklearn.model_selection.GroupKFold"><code>GroupKFold</code></a> <strong>(n_splits)</strong>
+</td> </tr> <tr>
+<td>Splits it into K folds, trains on K-1 and then tests on the left-out.</td> <td>Same as K-Fold but preserves the class distribution within each fold.</td> <td>Ensures that the same group is not in both testing and training sets.</td> </tr>  </table> <table class="docutils">   <tr>
+<td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.shufflesplit#sklearn.model_selection.ShuffleSplit" title="sklearn.model_selection.ShuffleSplit"><code>ShuffleSplit</code></a> <strong>(n_splits, test_size, train_size, random_state)</strong>
+</td> <td><a class="reference internal" href="../../modules/generated/sklearn.model_selection.stratifiedshufflesplit#sklearn.model_selection.StratifiedShuffleSplit" title="sklearn.model_selection.StratifiedShuffleSplit"><code>StratifiedShuffleSplit</code></a></td> <td><a class="reference internal" href="../../modules/generated/sklearn.model_selection.groupshufflesplit#sklearn.model_selection.GroupShuffleSplit" title="sklearn.model_selection.GroupShuffleSplit"><code>GroupShuffleSplit</code></a></td> </tr> <tr>
+<td>Generates train/test indices based on random permutation.</td> <td>Same as shuffle split but preserves the class distribution within each iteration.</td> <td>Ensures that the same group is not in both testing and training sets.</td> </tr>  </table> <table class="docutils">   <tr>
+<td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.leaveonegroupout#sklearn.model_selection.LeaveOneGroupOut" title="sklearn.model_selection.LeaveOneGroupOut"><code>LeaveOneGroupOut</code></a> <strong>()</strong>
+</td> <td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.leavepgroupsout#sklearn.model_selection.LeavePGroupsOut" title="sklearn.model_selection.LeavePGroupsOut"><code>LeavePGroupsOut</code></a> <strong>(n_groups)</strong>
+</td> <td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.leaveoneout#sklearn.model_selection.LeaveOneOut" title="sklearn.model_selection.LeaveOneOut"><code>LeaveOneOut</code></a> <strong>()</strong>
+</td> </tr> <tr>
+<td>Takes a group array to group observations.</td> <td>Leave P groups out.</td> <td>Leave one observation out.</td> </tr>  </table> <table class="docutils">   <tr>
+<td>
+<a class="reference internal" href="../../modules/generated/sklearn.model_selection.leavepout#sklearn.model_selection.LeavePOut" title="sklearn.model_selection.LeavePOut"><code>LeavePOut</code></a> <strong>(p)</strong>
+</td> <td><a class="reference internal" href="../../modules/generated/sklearn.model_selection.predefinedsplit#sklearn.model_selection.PredefinedSplit" title="sklearn.model_selection.PredefinedSplit"><code>PredefinedSplit</code></a></td> </tr> <tr>
+<td>Leave P observations out.</td> <td>Generates train/test indices based on predefined splits.</td> </tr>  </table> <div class="green topic"> <p class="topic-title first"><strong>Exercise</strong></p> <a class="reference external image-reference" href="../../auto_examples/exercises/plot_cv_digits"><img alt="../../_images/sphx_glr_plot_cv_digits_001.png" class="align-right" src="data:image/png;base64,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XtFsfJ0V9Sq7pd2jLSNq01bbyYG09a3aWKJea2K6y9Niip50M1bud7qqHXUiq3RapJT2E5DsTecwtzeQkds74XA5h9wEJHvTTbt1ibHjoLTi+mubtCKHLSqteA7wjrSillKLtLs1IJ60vajt77SNMFakm1mxyxOmFk/XdH+59unAQm93YMAdyZuzK1qHEBASASEgBISAEBACQkAICAEpBCBryjoQEARA1pZ1ICAIgGSXdSAg2wtkfVkHArKtQDKqCIjn1A/tshWTNivb1gCRlRxIKrJtxZAljpDwj5/+q7Cp/pxseRG3mUBbw1ZN6jkYN1UDcx23PfPpalkHAoJlkZy1MCQgebtItl+z5zYw13HqgSQSiUQikUifSU8slnGFsIpgMFi6TyFwbzD4QOlEtjJoOaES+J33+3zicabSbp8KK4W2e9sVoryKHW1oZ+0lKh39ay6vgBw/wtiR40qh40pf1Kve17ASENaDEshXt8/t2rfB8r7CEg6ffbL5ODEWHFZoj+2tnOpR6SgLB0trVOKQAvn26WG9v//d9620CFlZTeXXzy4rxLFir12lPSs7U1KsEsiYdcqqEteDdcjS+7vRJeIHcypx489U27u9ohj4kbH1A3Gogay776v9YiuCVQpx7PacSnthO7N9bCrYMNBazIotZ1Q6ihrIunL+bOps5YpKXLG3SqW905ZgcJ9K4Ip2nl2j0tH73tJzL/IICL643DeIasjCF5f7BrFN6sjict/gdqh9eXnX5eVDm77vm+u43De4TerRM15Obfq+b67jct8giUQikUgkEolEIpFIn6R/AbjzhSaEr/5EAAAAAElFTkSuQmCC" style="width: 360.0px; height: 270.0px;"></a> <p>On the digits dataset, plot the cross-validation score of a <a class="reference internal" href="../../modules/generated/sklearn.svm.svc#sklearn.svm.SVC" title="sklearn.svm.SVC"><code>SVC</code></a> estimator with an linear kernel as a function of parameter <code>C</code> (use a logarithmic grid of points, from 1 to 10).</p> <pre data-language="python">
+import numpy as np
+from sklearn.model_selection import cross_val_score
+from sklearn import datasets, svm
+
+digits = datasets.load_digits()
+X = digits.data
+y = digits.target
+
+svc = svm.SVC(kernel='linear')
+C_s = np.logspace(-10, 0, 10)
+</pre> <p><strong>Solution:</strong> <a class="reference internal" href="../../auto_examples/exercises/plot_cv_digits#sphx-glr-auto-examples-exercises-plot-cv-digits-py"><span class="std std-ref">Cross-validation on Digits Dataset Exercise</span></a></p> </div>   <h2 id="grid-search-and-cross-validated-estimators">Grid-search and cross-validated estimators</h2>  <h3 id="grid-search">Grid-search</h3> <p>scikit-learn provides an object that, given data, computes the score during the fit of an estimator on a parameter grid and chooses the parameters to maximize the cross-validation score. This object takes an estimator during the construction and exposes an estimator API:</p> <pre data-language="python">&gt;&gt;&gt; from sklearn.model_selection import GridSearchCV, cross_val_score
+&gt;&gt;&gt; Cs = np.logspace(-6, -1, 10)
+&gt;&gt;&gt; clf = GridSearchCV(estimator=svc, param_grid=dict(C=Cs),
+...                    n_jobs=-1)
+&gt;&gt;&gt; clf.fit(X_digits[:1000], y_digits[:1000])        
+GridSearchCV(cv=None,...
+&gt;&gt;&gt; clf.best_score_                                  
+0.925...
+&gt;&gt;&gt; clf.best_estimator_.C                            
+0.0077...
+
+&gt;&gt;&gt; # Prediction performance on test set is not as good as on train set
+&gt;&gt;&gt; clf.score(X_digits[1000:], y_digits[1000:])      
+0.943...
+</pre> <p>By default, the <a class="reference internal" href="../../modules/generated/sklearn.model_selection.gridsearchcv#sklearn.model_selection.GridSearchCV" title="sklearn.model_selection.GridSearchCV"><code>GridSearchCV</code></a> uses a 3-fold cross-validation. However, if it detects that a classifier is passed, rather than a regressor, it uses a stratified 3-fold. The default will change to a 5-fold cross-validation in version 0.22.</p> <div class="topic"> <p class="topic-title first">Nested cross-validation</p> <pre data-language="python">&gt;&gt;&gt; cross_val_score(clf, X_digits, y_digits) 
+array([0.938..., 0.963..., 0.944...])
+</pre> <p>Two cross-validation loops are performed in parallel: one by the <a class="reference internal" href="../../modules/generated/sklearn.model_selection.gridsearchcv#sklearn.model_selection.GridSearchCV" title="sklearn.model_selection.GridSearchCV"><code>GridSearchCV</code></a> estimator to set <code>gamma</code> and the other one by <code>cross_val_score</code> to measure the prediction performance of the estimator. The resulting scores are unbiased estimates of the prediction score on new data.</p> </div> <div class="admonition warning"> <p class="first admonition-title">Warning</p> <p class="last">You cannot nest objects with parallel computing (<code>n_jobs</code> different than 1).</p> </div>   <h3 id="cv-estimators-tut">Cross-validated estimators</h3> <p id="cross-validated-estimators">Cross-validation to set a parameter can be done more efficiently on an algorithm-by-algorithm basis. This is why, for certain estimators, scikit-learn exposes <a class="reference internal" href="../../modules/cross_validation#cross-validation"><span class="std std-ref">Cross-validation: evaluating estimator performance</span></a> estimators that set their parameter automatically by cross-validation:</p> <pre data-language="python">&gt;&gt;&gt; from sklearn import linear_model, datasets
+&gt;&gt;&gt; lasso = linear_model.LassoCV(cv=3)
+&gt;&gt;&gt; diabetes = datasets.load_diabetes()
+&gt;&gt;&gt; X_diabetes = diabetes.data
+&gt;&gt;&gt; y_diabetes = diabetes.target
+&gt;&gt;&gt; lasso.fit(X_diabetes, y_diabetes)
+LassoCV(alphas=None, copy_X=True, cv=3, eps=0.001, fit_intercept=True,
+    max_iter=1000, n_alphas=100, n_jobs=None, normalize=False,
+    positive=False, precompute='auto', random_state=None,
+    selection='cyclic', tol=0.0001, verbose=False)
+&gt;&gt;&gt; # The estimator chose automatically its lambda:
+&gt;&gt;&gt; lasso.alpha_ 
+0.01229...
+</pre> <p>These estimators are called similarly to their counterparts, with ‘CV’ appended to their name.</p> <div class="green topic"> <p class="topic-title first"><strong>Exercise</strong></p> <p>On the diabetes dataset, find the optimal regularization parameter alpha.</p> <p><strong>Bonus</strong>: How much can you trust the selection of alpha?</p> <pre data-language="python">
+from sklearn import datasets
+from sklearn.linear_model import LassoCV
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
+
+diabetes = datasets.load_diabetes()
+</pre> <p><strong>Solution:</strong> <a class="reference internal" href="../../auto_examples/exercises/plot_cv_diabetes#sphx-glr-auto-examples-exercises-plot-cv-diabetes-py"><span class="std std-ref">Cross-validation on diabetes Dataset Exercise</span></a></p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2018 The scikit-learn developers<br>Licensed under the 3-clause BSD License.<br>
+    <a href="http://scikit-learn.org/stable/tutorial/statistical_inference/model_selection.html" class="_attribution-link">http://scikit-learn.org/stable/tutorial/statistical_inference/model_selection.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
