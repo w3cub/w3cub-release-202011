@@ -1,0 +1,270 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>High Availability&#58; DRBD (DEPRECATED) - Chef 12 - W3cubDocs</title>
+  
+  <meta name="description" content=" Warning ">
+  <meta name="keywords" content="high, availability, drbd, deprecated, chef, chef~12">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/chef~12/server_12-8/install_server_ha_drbd.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/chef~12.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/chef~12/" class="_nav-link" title="" style="margin-left:0;">Chef 12</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx_simple">
+				
+				
+<h1 id="high-availability-drbd-deprecated">High Availability: DRBD (DEPRECATED)</h1> <div class="admonition warning"> <p class="first admonition-title">Warning</p> <p class="last">This topic is deprecated as of the 12.9 release of the Chef servver. For the latest information on high availability and how to set up a highly-available server cluster, see High Availability: Backend Cluster .</p> </div> <p>This topic describes how to set up the Chef server for high availability using physical machines and DRBD.</p> <img src="https://docs-archive.chef.io/release/server_12-8/_images/chef_server_ha_drbd.svg" width="600px">   <h2 id="prerequisites">Prerequisites</h2> <p>Before installing the Chef server software, perform the following steps:</p> <ul class="simple"> <li>Backend servers <a class="reference external" href="http://www.drbd.org/users-guide/s-prepare-network.html">should have a dedicated connection</a>. This is required for replication between the two servers.</li> <li>Backend servers will share a virtual IP address that must also be accessible from each frontend server. This virtual IP address is created and managed by the Chef server, but will also need to be added to the DNS so that all servers in the high availability configuration may access it.</li> <li>Persistent data on backend servers of the Chef server is primarily composed of cookbook files and directories. Separate disks should be dedicated entirely to storing this data prior to installing the Chef server.</li> <li>Load-balancing should be used with frontend machines, along with a DNS entry for the virtual IP address used for load balancing. This virtual IP address is added to the chef-server.rb file as the <code class="docutils literal">api_fqdn</code>.</li> <li>All required ports must be open. See the Firewalls section (below) for the list of ports. All connections to and from the Chef server are accomplished via TCP. Refer to the operating system’s manual or your systems administrators for instructions on how to configure to ports, if necessary.</li> <li>The hostname for the Chef server must be an FQDN, including the domain suffix, and must be resolvable by the other backend and frontend servers. See <a class="reference internal" href="install_server_pre#install-server-pre-hostnames">Hostnames, FQDNs</a> for more information.</li> </ul>   <h2 id="disk-configuration">Disk Configuration</h2> <p>Persistent data on a backend Chef server is primarily composed of cookbook files and directories. Separate disks should be dedicated entirely to storing this data prior to installing the Chef server. These disks should:</p> <ul class="simple"> <li>Utilize hardware RAID</li> <li>Be configured in either RAID1 or RAID5</li> <li>Be identical across both of your backend servers</li> </ul> <p>The recommended configuration utilizes the Linux logical volume manager (LVM) as the backing store for DRBD. This assumes that:</p> <ul class="simple"> <li>~300GB of raw, unpartitioned disk space is available</li> <li>The disk space presents as a single device, <code class="docutils literal">/dev/sdb</code>
+</li> <li>The storage is added to a volume group named <code class="docutils literal">opscode</code>
+</li> <li>The storage is added in a logical volume group named <code class="docutils literal">drbd</code>
+</li> <li>The volume group should have adequate space to enable logical volume manager (LVM) snapshots to be used for backups; this amount depends on many factors, including how much changes in-between snapshots, how long the snapshots will be kept, and the (eventual) size of the Chef server database; a decent starting point when sizing logical volume manager (LVM) snapshots is ~10% of the raw, unpartitioned disk space</li> </ul> <p>The following commands would properly set up the backend disk configuration for DRBD:</p> <pre class="highlight-bash" data-language="bash">$ pvcreate /dev/sdb</pre> <p>and:</p> <pre class="highlight-bash" data-language="bash">$ vgcreate opscode /dev/sdb</pre> <p>and:</p> <pre class="highlight-bash" data-language="bash">$ lvcreate -l 80%VG -n drbd opscode</pre> <div class="admonition warning"> <p class="first admonition-title">Warning</p> <p class="last">Talk with your systems administrators about disk configuration if you are at all uncertain of how to configure a new logical volume with logical volume manager (LVM), as the operations can be destructive.</p> </div>   <h2 id="chef-server-rb">chef-server.rb</h2> <p>Each Chef server in a high availabilty configuration must have an identical chef-server.rb file that is located in the <code class="docutils literal">/etc/opscode/</code> directory on each server. This file describes the topology of the high availability configuration. On the primary backend server, create a file named chef-server.rb and save it in the <code class="docutils literal">/etc/opscode/</code> directory.</p> <p>Add the following settings to the chef-server.rb file:</p> <ol class="arabic"> <li>
+<p class="first">Define the topology type:</p> <pre class="highlight-ruby" data-language="ruby">topology "ha"</pre> </li> <li>
+<p class="first">Define the primary backend server:</p> <pre class="highlight-ruby" data-language="ruby">server "FQDN",
+  :ipaddress =&gt; "IP_ADDRESS",
+  :role =&gt; "backend",
+  :bootstrap =&gt; true,
+  :cluster_ipaddress =&gt; "CLUSTER_IPADDRESS"</pre> <p>Replace <code class="docutils literal">FQDN</code> with the FQDN of the server and <code class="docutils literal">IP_ADDRESS</code> with the IP address of the server. The role is a backend server is <code class="docutils literal">"backend"</code>. If the backend server is used to bootstrap the Chef server installation, replace <code class="docutils literal">CLUSTER_IPADDRESS</code> with the IP address of the interface that is used for cluster communications. For example, the same IP address that is used by Keepalived and DRBD. If the Chef server is not used to bootstrap the Chef server installation, exclude the <code class="docutils literal">:cluster_ipaddress</code> entry.</p> </li> <li>
+<p class="first">Define the secondary backend server:</p> <pre class="highlight-ruby" data-language="ruby">server "FQDN",
+  :ipaddress =&gt; "IPADDRESS",
+  :role =&gt; "backend",
+  :cluster_ipaddress =&gt; "CLUSTER_IPADDRESS"</pre> <p>Replace <code class="docutils literal">FQDN</code> with the FQDN of the server, and <code class="docutils literal">IPADDRESS</code> with the IP address of the server. Replace <code class="docutils literal">CLUSTER_IPADDRESS</code> with the IP address of the server’s interface assigned for cluster communications. If no such interface is configured, exclude the <code class="docutils literal">cluster_ipaddress</code> entry.</p> </li> <li>
+<p class="first">Define the backend virtual IP address:</p> <pre class="highlight-ruby" data-language="ruby">backend_vip "FQDN",
+  :ipaddress =&gt; "IP_ADDRESS",
+  :device =&gt; "eth0"</pre> <p>Replace <code class="docutils literal">FQDN</code> with the FQDN of the server. Replace <code class="docutils literal">IP_ADDRESS</code> with the virtual IP address of the server. The <code class="docutils literal">:device</code> parameter should be the ethernet interface to which the floater virtual IP address will bind. This is typically the public interface of the server.</p> </li> <li>
+<p class="first">Define each frontend server:</p> <pre class="highlight-ruby" data-language="ruby">server "FQDN",
+  :ipaddress =&gt; "IP_ADDRESS",
+  :role =&gt; "frontend"</pre> <p>Replace <code class="docutils literal">FQDN</code> with the FQDN of the frontend server. Replace <code class="docutils literal">IP_ADDRESS</code> with the IP address of the frontend server. Set <code class="docutils literal">:role</code> to <code class="docutils literal">"frontend"</code>.</p> <p>Add separate entry in the chef-server.rb file for each frontend server.</p> </li> <li>
+<p class="first">Define the API FQDN:</p> <pre class="highlight-ruby" data-language="ruby">api_fqdn "FQDN"</pre> <p>Replace <code class="docutils literal">FQDN</code> with the FQDN of the load balanced virtual IP address, which should be equal to the FQDN for the service URI that is used by the Chef server.</p> </li> <li>
+<dl class="docutils"> <dt>Reconfigure the Chef server and the Chef management console (standalone and frontend group members</dt> <dd>
+<p class="first last">of a High Availabilty installation):</p> </dd> </dl> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure
+$ sudo chef-manage-ctl reconfigure</pre> </li> </ol>   <h2 id="primary-backend">Primary Backend</h2> <p>Use the following steps to set up the primary backend Chef server:</p> <ol class="arabic"> <li>
+<p class="first">Download the packages from <a class="reference external" href="http://downloads.chef.io/chef-server/">http://downloads.chef.io/chef-server/</a>. For Red Hat and CentOS 6:</p> <pre class="highlight-bash" data-language="bash">$ rpm -Uvh /tmp/chef-server-core-&lt;version&gt;.rpm</pre> <p>For Ubuntu:</p> <pre class="highlight-bash" data-language="bash">$ dpkg -i /tmp/chef-server-core-&lt;version&gt;.deb</pre> <p>After a few minutes, the Chef server will be installed.</p> </li> <li>
+<p class="first">Create a file named chef-server.rb that is located in the <code class="docutils literal">/etc/opscode/</code> directory. See the chef-server.rb section below for an example of the settings and values that are required.</p> </li> <li>
+<p class="first">Install DRBD. These steps vary, depending on the platform.</p> <p><strong>For Ubuntu</strong>:</p> <pre class="highlight-bash" data-language="bash">$ apt-get install drbd8-utils</pre> <p><strong>For RedHat and CentOS (all versions)</strong>, first check for the <code class="docutils literal">xen</code> kernel:</p> <pre class="highlight-bash" data-language="bash">$ rpm -qa kernel\* | grep -ci xen</pre> <p>If anything other than <code class="docutils literal">0</code> is returned, the machine is running the <code class="docutils literal">xen</code> kernel.</p> <p><strong>For RedHat and CentOS 6.6</strong>, install ELRepo:</p> <pre class="highlight-bash" data-language="bash">$ rpm --import http://elrepo.org/RPM-GPG-KEY-elrepo.org</pre> <p>and then:</p> <pre class="highlight-bash" data-language="bash">$ rpm -Uvh http://elrepo.org/elrepo-release-6-5.el6.elrepo.noarch.rpm</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">The ELRepo provides updated drivers for the Linux family of enterprise distributions (based on Red Hat Enterprise Linux.) With the introduction of Red Hat Enterprise Linux 6, Red Hat no longer distributes DRBD within the kernel. These modules provide properly built, community tested releases of the required kernel and DRBD userland.</p> </div> <p>If the server returned <code class="docutils literal">0</code> for the <code class="docutils literal">xen</code> kernel, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84</pre> <p>If the server returned something other than <code class="docutils literal">0</code>, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84-xen</pre> <p><strong>For RedHat and CentOS 6.5</strong>, install ELRepo:</p> <pre class="highlight-bash" data-language="bash">$ rpm --import http://elrepo.org/RPM-GPG-KEY-elrepo.org</pre> <p>and then:</p> <pre class="highlight-bash" data-language="bash">$ rpm -Uvh http://elrepo.org/elrepo-release-6-5.el6.elrepo.noarch.rpm</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">The ELRepo provides updated drivers for the Linux family of enterprise distributions (based on Red Hat Enterprise Linux.) With the introduction of Red Hat Enterprise Linux 6, Red Hat no longer distributes DRBD within the kernel. These modules provide properly built, community tested releases of the required kernel and DRBD userland.</p> </div> <p>If the server returned <code class="docutils literal">0</code> for the <code class="docutils literal">xen</code> kernel, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84-8.4.5-1.el6.elrepo</pre> <p>If the server returned something other than <code class="docutils literal">0</code>, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84-xen-8.4.5-1.el6.elrepo</pre> <p><strong>For RedHat and CentOS 5.11</strong>, install ELRepo:</p> <pre class="highlight-bash" data-language="bash">$ rpm --import http://elrepo.org/RPM-GPG-KEY-elrepo.org</pre> <p>and then:</p> <pre class="highlight-bash" data-language="bash">$ rpm -Uvh http://www.elrepo.org/elrepo-release-5-5.el5.elrepo.noarch.rpm</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">The ELRepo provides updated drivers for the Linux family of enterprise distributions (based on Red Hat Enterprise Linux.) With the introduction of Red Hat Enterprise Linux 6, Red Hat no longer distributes DRBD within the kernel. These modules provide properly built, community tested releases of the required kernel and DRBD userland.</p> </div> <p>If the server returned <code class="docutils literal">0</code> for the <code class="docutils literal">xen</code> kernel, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84</pre> <p>If the server returned something other than <code class="docutils literal">0</code>, run:</p> <pre class="highlight-bash" data-language="bash">$ yum install -y drbd84-utils kmod-drbd84-xen</pre> </li> <li>
+<dl class="docutils"> <dt>Reconfigure the Chef server and the Chef management console (standalone and frontend group members</dt> <dd>
+<p class="first last">of a High Availabilty installation):</p> </dd> </dl> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure
+$ sudo chef-manage-ctl reconfigure</pre> <p>This will configure DRBD. The installer will pause and ask for confirmation that DRBD has been set up. Confirm (<code class="docutils literal">CTRL-C</code>), and then run the following commands:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm create-md pc0</pre> <p>then:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm up pc0</pre> </li> </ol>   <h2 id="secondary-backend">Secondary Backend</h2> <p>Use the following steps to set up the secondary backend Chef server:</p> <ol class="arabic"> <li>
+<p class="first">Repeat the same steps as described for the primary backend server.</p> </li> <li>
+<p class="first">Create the <code class="docutils literal">/etc/opscode/</code> directory, and then copy the entire contents of the <code class="docutils literal">/etc/opscode</code> directory from the primary backend server, including all certificates and the chef-server.rb file.</p> </li> <li>
+<dl class="docutils"> <dt>Reconfigure the Chef server and the Chef management console (standalone and frontend group members</dt> <dd>
+<p class="first last">of a High Availabilty installation):</p> </dd> </dl> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure
+$ sudo chef-manage-ctl reconfigure</pre> <p>This will configure DRBD. The installer will pause and ask for confirmation that DRBD has been set up. Confirm (<code class="docutils literal">CTRL-C</code>), and then run the following commands:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm create-md pc0</pre> <p>then:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm up pc0</pre> </li> </ol>   <h2 id="establish-failover">Establish Failover</h2> <p>To establish failover between the two backend servers, do the following:</p> <ol class="arabic"> <li>
+<p class="first">On the primary backend server, define it as the primary shared device. For Red Hat and CentOS 6:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm primary --force pc0</pre> <p>For Ubuntu:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm -- --overwrite-data-of-peer primary pc0</pre> </li> <li>
+<p class="first">On the primary backend server, mount the file system. For example, a file system named <code class="docutils literal">ext4</code>:</p> <pre class="highlight-bash" data-language="bash">$ mkfs.ext4 /dev/drbd0</pre> <p>then:</p> <pre class="highlight-bash" data-language="bash">$ mkdir -p /var/opt/opscode/drbd/data</pre> <p>and then:</p> <pre class="highlight-bash" data-language="bash">$ mount /dev/drbd0 /var/opt/opscode/drbd/data</pre> </li> <li>
+<p class="first">Synchronize DRBD. This process <strong>MUST</strong> be allowed to complete to ensure that DRBD is synchronized with all devices.</p> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">Under normal operation, DRBD dedicates only a portion of the available disk bandwidth to initial/complete re-synchronization. This ensures that new data written to the shared device is also synchronized.</p> </div> <p>DRBD can be configured to utilize more bandwidth during the initial synchronization. For Red Hat and CentOS 6:</p> <pre class="highlight-bash" data-language="bash">$ drbdadm disk-options --resync-rate=1100M pc0</pre> <p>For Ubuntu:</p> <pre class="highlight-bash" data-language="bash">$ drbdsetup /dev/drbd0 syncer -r 1100M</pre> <p>To observe the synchronization process, run the following:</p> <pre class="highlight-bash" data-language="bash">$ watch -n1 cat /proc/drbd</pre> <p>Output similar to the following will be shown:</p> <pre class="highlight-none" data-language="none">cat /proc/drbd output
+
+version: 8.4.1 (api:1/proto:86[STRIKEOUT:100)
+GIT-hash: 91b4c048c1a0e06777b5f65d312b38d47abaea80 build by
+dag@Build64R6, 2011]12[STRIKEOUT:21 06:08:50
+  0: cs:SyncSource ro:Primary/Secondary ds:UpToDate/Inconsistent C r]—-
+  ns:3071368 nr:0 dw:0 dr:3075736 al:0 bm:187 lo:0 pe:13 ua:4 ap:0 ep:1
+  wo:b oos:12685660
+  [==&gt;……………..] sync'ed: 19.5% (12388/15372)M
+  finish: 0:11:00 speed: 19,188 (24,468) K/sec</pre> <p>Synchronization is complete hen the <code class="docutils literal">ds:</code> section reads <code class="docutils literal">UpToDate/UpToDate</code>.</p> </li> <li>
+<p class="first">When synchronization is complete, run the following command on the primary backend server:</p> <pre class="highlight-bash" data-language="bash">$ touch /var/opt/opscode/drbd/drbd_ready</pre> </li> <li>
+<p class="first">Reconfigure the primary Chef server:</p> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure</pre> </li> <li>
+<p class="first">Run the following command on the secondary backend server:</p> <pre class="highlight-bash" data-language="bash">$ touch /var/opt/opscode/drbd/drbd_ready</pre> </li> <li>
+<p class="first">Reconfigure the secondary Chef server:</p> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure</pre> </li> </ol>   <h2 id="frontend">Frontend</h2> <p>For each frontend server, use the following steps to set up the Chef server:</p> <ol class="arabic"> <li>
+<p class="first">Install the Chef server package. For Red Hat and CentOS 6:</p> <pre class="highlight-bash" data-language="bash">$ rpm -Uvh /tmp/chef-server-core-&lt;version&gt;.rpm</pre> <p>For Ubuntu:</p> <pre class="highlight-bash" data-language="bash">$ dpkg -i /tmp/chef-server-core-&lt;version&gt;.deb</pre> <p>After a few minutes, the Chef server will be installed.</p> </li> <li>
+<p class="first">Create the <code class="docutils literal">/etc/opscode/</code> directory, and then copy the entire contents of the <code class="docutils literal">/etc/opscode</code> directory from the primary backend server, including all certificates and the chef-server.rb file.</p> </li> <li>
+<dl class="docutils"> <dt>Reconfigure the Chef server and the Chef management console (standalone and frontend group members</dt> <dd>
+<p class="first last">of a High Availabilty installation):</p> </dd> </dl> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure
+$ sudo chef-manage-ctl reconfigure</pre> </li> <li>
+<p>Start the Chef server:</p> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl start</pre> </li> <li>
+<p>Run the following command to create an administrator:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl user-create USER_NAME FIRST_NAME LAST_NAME EMAIL 'PASSWORD' --filename FILE_NAME</pre> <p>An RSA private key is generated automatically. This is the user’s private key and should be saved to a safe location. The <code class="docutils literal">--filename</code> option will save the RSA private key to a specified path.</p> <p>For example:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl user-create stevedanno Steve Danno steved@chef.io 'abc123' --filename /path/to/stevedanno.pem</pre> </li> <li>
+<p>Run the following command to create an organization:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl org-create short_name 'full_organization_name' --association_user user_name --filename ORGANIZATION-validator.pem</pre> <p>The name must begin with a lower-case letter or digit, may only contain lower-case letters, digits, hyphens, and underscores, and must be between 1 and 255 characters. For example: <code class="docutils literal">4thcoffee</code>.</p> <p>The full name must begin with a non-white space character and must be between 1 and 1023 characters. For example: <code class="docutils literal">'Fourth Coffee, Inc.'</code>.</p> <p>The <code class="docutils literal">--association_user</code> option will associate the <code class="docutils literal">user_name</code> with the <code class="docutils literal">admins</code> security group on the Chef server.</p> <p>An RSA private key is generated automatically. This is the chef-validator key and should be saved to a safe location. The <code class="docutils literal">--filename</code> option will save the RSA private key to a specified path.</p> <p>For example:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl org-create 4thcoffee 'Fourth Coffee, Inc.' --association_user stevedanno --filename /path/to/4thcoffee-validator.pem</pre> </li> <li>
+<dl class="docutils"> <dt>Reconfigure the Chef server and the Chef management console (standalone and frontend group members</dt> <dd>
+<p class="first last">of a High Availabilty installation):</p> </dd> </dl> <pre class="highlight-bash" data-language="bash">$ sudo chef-server-ctl reconfigure
+$ sudo chef-manage-ctl reconfigure</pre> </li> </ol>   <h2 id="enable-features">Enable Features</h2> <p>Enable additional features of the Chef server! The packages may be downloaded directly as part of the installation process or they may be first downloaded to a local directory, and then installed.</p> <p><strong>Use Downloads</strong></p> <p>The <code class="docutils literal">install</code> subcommand downloads packages from <a class="reference external" href="https://packages.chef.io/">https://packages.chef.io/</a> by default. For systems that are not behind a firewall (and have connectivity to <a class="reference external" href="https://packages.chef.io/">https://packages.chef.io/</a>), the Chef management console package can be installed as described below:</p> <dl class="docutils"> <dt>Chef Manage</dt> <dd>
+<p class="first">Use Chef management console to manage data bags, attributes, run-lists, roles, environments, and cookbooks from a web user interface.</p> <p>On each front end server in the Chef server configuration, run:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl install chef-manage</pre> <p>then:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl reconfigure</pre> <p>and then:</p> <pre class="highlight-bash" data-language="bash">$ chef-manage-ctl reconfigure</pre> <p>This updates the Chef server and creates the <code class="docutils literal">/etc/opscode-manage/secrets.rb</code> file. When running the Chef management console 1.11 (or higher), copy the <code class="docutils literal">secrets.rb</code> file in the <code class="docutils literal">/etc/opscode-manage</code> directory on one of the frontend servers to the same directory on each of the other frontend servers, and then rerun <code class="docutils literal">chef-manage-ctl reconfigure</code> so the copied <code class="docutils literal">/etc/opscode-manage/secrets.rb</code> file gets used correctly.</p> <div class="last admonition note"> <p class="first admonition-title">Note</p> <p class="last">Starting with the Chef management console 2.3.0, the Chef MLSA must be accepted when reconfiguring the product. If the Chef MLSA has not already been accepted, the reconfigure process will prompt for a <code class="docutils literal">yes</code> to accept it. Or run <code class="docutils literal">chef-manage-ctl reconfigure --accept-license</code> to automatically accept the license.</p> </div> </dd> </dl> <p><strong>Use Local Packages</strong></p> <p>The <code class="docutils literal">install</code> subcommand downloads packages from <a class="reference external" href="https://packages.chef.io/">https://packages.chef.io/</a> by default. For systems that are behind a firewall (and may not have connectivity to packages.chef.io), these packages can be downloaded from <a class="reference external" href="https://downloads.chef.io/chef-manage/">https://downloads.chef.io/chef-manage/</a>, and then installed manually. First download the package that is appropriate for the platform, save it to a local path, and then run the <code class="docutils literal">install</code> command using the <code class="docutils literal">--path</code> option to specify the directory in which the package is located:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl install PACKAGE_NAME --path /path/to/package/directory</pre> <p>For example:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl install chef-manage --path /root/packages</pre> <p>The <code class="docutils literal">chef-server-ctl</code> command will install the first <code class="docutils literal">chef-manage</code> package found in the <code class="docutils literal">/root/packages</code> directory.</p> <p><strong>Install Reporting</strong></p> <p>To set up the Reporting server:</p> <ol class="arabic"> <li>
+<p class="first">Install the package on each frontend and backend Chef server:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl install opscode-reporting</pre> </li> <li>
+<p class="first">Reconfigure the Chef server on the backend primary server (bootstrap):</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl reconfigure</pre> </li> <li>
+<p class="first">Reconfigure the Reporting server on the backend primary server (bootstrap):</p> <pre class="highlight-bash" data-language="bash">$ opscode-reporting-ctl reconfigure</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">Starting with Reporting 1.6.0, the Chef MLSA must be accepted when reconfiguring the product. If the Chef MLSA has not already been accepted, the reconfigure process will prompt for a <code class="docutils literal">yes</code> to accept it. Or run <code class="docutils literal">opscode-reporting-ctl reconfigure --accept-license</code> to automatically accept the license.</p> </div> </li> <li>
+<p class="first">Copy the entire <code class="docutils literal">/etc/opscode-reporting</code> directory from the backend primary server to all frontend and backend servers. For example, from each server run:</p> <pre class="highlight-bash" data-language="bash">$ scp -r &lt;Bootstrap server IP&gt;:/etc/opscode-reporting /etc</pre> <p>or from the backend primary server:</p> <pre class="highlight-bash" data-language="bash">$ scp -r /etc/opscode-reporting &lt;each servers IP&gt;:/etc</pre> </li> <li>
+<p class="first">Reconfigure any Chef server on which Reporting services have been installed:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl reconfigure</pre> </li> <li>
+<p class="first">Reconfigure Reporting services on each server:</p> <pre class="highlight-bash" data-language="bash">$ opscode-reporting-ctl reconfigure</pre> </li> <li>
+<p class="first">Verify the installation:</p> <pre class="highlight-bash" data-language="bash">$ opscode-reporting-ctl test</pre> </li> </ol> <p><strong>Install Push Jobs</strong></p> <p>To set up the Chef push jobs server for a high availability configuration:</p> <ol class="arabic"> <li>
+<p class="first">Install the package on all servers that are running the Chef server. For example on Ubuntu:</p> <pre class="highlight-bash" data-language="bash">$ sudo dpkg -i opscode-push-jobs-server_2.1.0-1_amd64.deb</pre> </li> <li>
+<p class="first">Reconfigure the primary backend Chef push jobs server:</p> <pre class="highlight-bash" data-language="bash">$ opscode-push-jobs-server-ctl reconfigure</pre> </li> <li>
+<p class="first">Copy the entire <code class="docutils literal">/etc/opscode-push-jobs-server</code> directory from the backend primary to all frontend and backend servers. For example, from each server run:</p> <pre class="highlight-bash" data-language="bash">$ scp -r &lt;Bootstrap server IP&gt;:/etc/opscode-push-jobs-server /etc</pre> <p>or from the backend primary server:</p> <pre class="highlight-bash" data-language="bash">$ scp -r /etc/opscode-push-jobs-server &lt;each servers IP&gt;:/etc</pre> </li> <li>
+<p class="first">TCP protocol ports 10000 and 10003 must be open. These are the heartbeat and command ports respectively. They allow the Chef push jobs server to communicate with the Chef push jobs clients. In a configuration with both frontend and backend servers, these ports only need to be open on the backend servers. The Chef push jobs server waits for connections from the Chef push jobs client (and never makes a connection to a Chef push jobs client).</p> </li> <li>
+<p class="first">Reconfigure the remaining Chef push jobs servers:</p> <pre class="highlight-bash" data-language="bash">$ opscode-push-jobs-server-ctl reconfigure</pre> </li> <li>
+<p class="first">Run the following command on each of the backend servers:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl reconfigure</pre> <p>This ensures that the Keepalived scripts are regenerated so they are aware of Chef push jobs.</p> </li> <li>
+<p class="first">Restart all servers on which Chef push jobs will run:</p> <pre class="highlight-bash" data-language="bash">$ chef-server-ctl restart opscode-pushy-server</pre> </li> <li>
+<p class="first">Verify the installation:</p> <pre class="highlight-bash" data-language="bash">$ opscode-push-jobs-server-ctl test</pre> </li> </ol>   <h2 id="reference">Reference</h2> <p>The following sections show an example chef-server.rb file and a list of the ports that are required by the Chef server.</p>  <h3 id="id1">chef-server.rb</h3> <p>A completed chef-server.rb configuration file for a four server tiered Chef server cluster, consisting of:</p> <table class="docutils"> <colgroup> <col width="20%"> <col width="30%"> <col width="30%"> <col width="20%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">FQDN</th> <th class="head">Real IP Address</th> <th class="head">Cluster IP Address</th> <th class="head">Role</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>be1.example.com</td> <td>192.168.4.1</td> <td>10.1.2.10</td> <td>backend</td> </tr> <tr class="row-odd">
+<td>be2.example.com</td> <td>192.168.4.6</td> <td>10.1.2.12</td> <td>backend</td> </tr> <tr class="row-even">
+<td>fe1.example.com</td> <td>192.168.4.2</td> <td> </td> <td>frontend</td> </tr> <tr class="row-odd">
+<td>fe2.example.com</td> <td>192.168.4.3</td> <td> </td> <td>frontend</td> </tr> <tr class="row-even">
+<td>fe3.example.com</td> <td>192.168.4.4</td> <td> </td> <td>frontend</td> </tr> <tr class="row-odd">
+<td>chef.example.com</td> <td>192.168.4.5</td> <td> </td> <td>load balanced frontend VIP</td> </tr> <tr class="row-even">
+<td>be.example.com</td> <td>192.168.4.7</td> <td> </td> <td>load balanced backend VIP</td> </tr> </tbody> </table> <p>Looks like this:</p> <pre class="highlight-ruby" data-language="ruby">topology "ha"
+
+server "be1.example.com",
+  :ipaddress =&gt; "192.168.4.1",
+  :role =&gt; "backend",
+  :bootstrap =&gt; true,
+  :cluster_ipaddress =&gt; "10.1.2.10"
+
+server "be2.example.com",
+  :ipaddress =&gt; "192.168.4.6",
+  :role =&gt; "backend",
+  :cluster_ipaddress =&gt; "10.1.2.12"
+
+backend_vip "be.example.com",
+  :ipaddress =&gt; "192.168.4.7",
+  :device =&gt; "eth0"
+
+server "fe1.example.com",
+  :ipaddress =&gt; "192.168.4.2",
+  :role =&gt; "frontend"
+
+server "fe2.example.com",
+  :ipaddress =&gt; "192.168.4.3",
+  :role =&gt; "frontend"
+
+server "fe3.example.com",
+  :ipaddress =&gt; "192.168.4.4",
+  :role =&gt; "frontend"
+
+api_fqdn "chef.example.com"</pre>   <h3 id="firewalls-and-ports">Firewalls and Ports</h3> <p>All of the ports used by the Chef server are TCP ports. Refer to the operating system’s manual or site systems administrators for instructions on how to enable changes to ports, if necessary.</p> <p>All services must be listening on the appropriate ports. Most monitoring systems provide a means of testing whether a given port is accepting connections and service-specific tools may also be available. In addition, the generic system tool Telnet can also be used to initiate the connection:</p> <pre class="highlight-bash" data-language="bash">$ telnet HOST_NAME PORT</pre> <p>A single loopback interface should be configured using the <code class="docutils literal">127.0.0.1</code> address. This ensures that all of the services are available to the Chef server, in the event that the Chef server attempts to contact itself from within a front or back end machine. All ports should be accessible through the loopback interface of their respective hosts.</p>  <h4 id="backend">Backend</h4> <p>For back-end servers, ensure that ports marked as external (marked as <code class="docutils literal">yes</code> in the <strong>External</strong> column) are open and accessible via any firewalls that are in use:</p> <table class="docutils"> <colgroup> <col width="11%"> <col width="78%"> <col width="11%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">Port</th> <th class="head">Service Name, Description</th> <th class="head">External</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>4321</td> <td>
+<p class="first"><strong>bookshelf</strong></p> <p class="last">The <strong>bookshelf</strong> service is an Amazon Simple Storage Service (S3)-compatible service that is used to store cookbooks, including all of the files—recipes, templates, and so on—that are associated with each cookbook.</p> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>112</td> <td>
+<p class="first"><strong>keepalived</strong></p> <p class="last">The <strong>keepalived</strong> service manages the virtual IP address (VIP) between the backend machines in a high availability topology that uses DRBD.</p> </td> <td>yes</td> </tr> <tr class="row-even">
+<td>80, 443, 9683</td> <td>
+<p class="first"><strong>nginx</strong></p> <p>The <strong>nginx</strong> service is used to manage traffic to the Chef server, including virtual hosts for internal and external API request/response routing, external add-on request routing, and routing between front- and back-end components.</p> <div class="last admonition note"> <p class="first admonition-title">Note</p> <p class="last">Port 9683 is used to internally load balance the <strong>oc_bifrost</strong> service.</p> </div> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>9683</td> <td>
+<p class="first"><strong>oc_bifrost</strong></p> <p class="last">The <strong>oc_bifrost</strong> service ensures that every request to view or manage objects stored on the Chef server is authorized.</p> </td> <td>yes</td> </tr> <tr class="row-even">
+<td>9090</td> <td>
+<p class="first"><strong>oc-id</strong></p> <p class="last">The <strong>oc-id</strong> service enables OAuth 2.0 authentication to the Chef server by external applications, including Chef Supermarket and Chef Analytics. OAuth 2.0 uses token-based authentication, where external applications use tokens that are issued by the <strong>oc-id</strong> provider. No special credentials—<code class="docutils literal">webui_priv.pem</code> or privileged keys—are stored on the external application.</p> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>8000</td> <td>
+<p class="first"><strong>opscode-erchef</strong></p> <p>The <strong>opscode-erchef</strong> service is an Erlang-based service that is used to handle Chef server API requests to the following areas within the Chef server:</p> <ul class="last simple"> <li>Cookbooks</li> <li>Data bags</li> <li>Environments</li> <li>Nodes</li> <li>Roles</li> <li>Sandboxes</li> <li>Search</li> </ul> </td> <td>yes</td> </tr> <tr class="row-even">
+<td> </td> <td>
+<p class="first"><strong>opscode-expander</strong></p> <p class="last">The <strong>opscode-expander</strong> service is used to process data (pulled from the <strong>rabbitmq</strong> service’s message queue) so that it can be properly indexed by the <strong>opscode-solr4</strong> service.</p> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>8983</td> <td>
+<p class="first"><strong>opscode-solr4</strong></p> <p class="last">The <strong>opscode-solr4</strong> service is used to create the search indexes used for searching objects like nodes, data bags, and cookbooks. (This service ensures timely search results via the Chef server API; data that is used by the Chef platform is stored in PostgreSQL.)</p> </td> <td> </td> </tr> <tr class="row-even">
+<td>5432</td> <td>
+<p class="first"><strong>postgresql</strong></p> <p class="last">The <strong>postgresql</strong> service is used to store node, object, and user data.</p> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>5672, 15672</td> <td>
+<p class="first"><strong>rabbitmq</strong></p> <p class="last">The <strong>rabbitmq</strong> service is used to provide the message queue that is used by the Chef server to get search data to Apache Solr so that it can be indexed for search. When Chef Analytics is confiugred, the <strong>rabbitmq</strong> service is also used to send data from the Chef server to the Chef Analytics server.</p> </td> <td>yes</td> </tr> <tr class="row-even">
+<td>16379</td> <td>
+<p class="first"><strong>redis_lb</strong></p> <p class="last">Key-value store used in conjunction with Nginx to route requests and populate request data used by the Chef server.</p> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>7788-7799</td> <td>DRBD This port range must be open between all back end servers in a high availability configuration that uses DRBD.</td> <td> </td> </tr> </tbody> </table>   <h4 id="id2">Frontend</h4> <p>For front-end servers, ensure that ports marked as external (marked as <code class="docutils literal">yes</code> in the <strong>External</strong> column) are open and accessible via any firewalls that are in use:</p> <table class="docutils"> <colgroup> <col width="11%"> <col width="78%"> <col width="11%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">Port</th> <th class="head">Service Name, Description</th> <th class="head">External</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>80, 443, 9683</td> <td>
+<p class="first"><strong>nginx</strong></p> <p>The <strong>nginx</strong> service is used to manage traffic to the Chef server, including virtual hosts for internal and external API request/response routing, external add-on request routing, and routing between front- and back-end components.</p> <div class="last admonition note"> <p class="first admonition-title">Note</p> <p class="last">Port 9683 is used to internally load balance the <strong>oc_bifrost</strong> service.</p> </div> </td> <td>yes</td> </tr> <tr class="row-odd">
+<td>9463</td> <td>
+<p class="first"><strong>oc_bifrost</strong></p> <p class="last">The <strong>oc_bifrost</strong> service ensures that every request to view or manage objects stored on the Chef server is authorized.</p> </td> <td> </td> </tr> <tr class="row-even">
+<td>9090</td> <td>
+<p class="first"><strong>oc-id</strong></p> <p class="last">The <strong>oc-id</strong> service enables OAuth 2.0 authentication to the Chef server by external applications, including Chef Supermarket and Chef Analytics. OAuth 2.0 uses token-based authentication, where external applications use tokens that are issued by the <strong>oc-id</strong> provider. No special credentials—<code class="docutils literal">webui_priv.pem</code> or privileged keys—are stored on the external application.</p> </td> <td> </td> </tr> <tr class="row-odd">
+<td>8000</td> <td>
+<p class="first"><strong>opscode-erchef</strong></p> <p>The <strong>opscode-erchef</strong> service is an Erlang-based service that is used to handle Chef server API requests to the following areas within the Chef server:</p> <ul class="last simple"> <li>Cookbooks</li> <li>Data bags</li> <li>Environments</li> <li>Nodes</li> <li>Roles</li> <li>Sandboxes</li> <li>Search</li> </ul> </td> <td> </td> </tr> </tbody> </table>    <h3 id="gre-tunnels">GRE Tunnels</h3> <div class="admonition warning"> <p class="first admonition-title">Warning</p> <p class="last">This option is sometimes necessary when the Chef server is configured for high availability using DRBD.</p> </div> <p>Occasionally, a GRE tunnel will be required to handle the VRRP traffic. To accomplish this, set the following in <code class="docutils literal">/var/opt/opscode/keepalived/bin/tunnel.sh</code> on the back-end server that will be used for bootstrapping:</p> <pre class="highlight-bash" data-language="bash">#!/bin/sh
+ip tunnel add pc mode gre remote VRRP_IP_OF_PEER local MY_IP ttl 25
+ip link set pc up
+ip addr add 172.18.16.1 dev pc
+ip route add 172.18.16.0/24 dev pc</pre> <p>Replace <code class="docutils literal">VRRP_IP_OF_PEER</code> with the IP address of the server on the other end of the tunnel, and <code class="docutils literal">MY_IP</code> with the IP address of the server on which the script will be located.</p> <p>The <code class="docutils literal">172.17.16.**</code> network addresses used in the previous examples could be any unused reserved IP address space.</p> <p>Set the following in <code class="docutils literal">/etc/opscode/chef-server.rb</code>:</p> <pre class="highlight-ruby" data-language="ruby">backend_vip "192.168.141.108",
+  :ipaddress =&gt; "192.168.141.108",
+  :device =&gt; "eth0"</pre> <p>And set the Keepalived unicast addresses to the GRE tunnel addresses.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © Chef Software, Inc.<br>Licensed under the Creative Commons Attribution 3.0 Unported License.<br>The Chef™ Mark and Chef Logo are either registered trademarks/service marks or trademarks/servicemarks of Chef, in the United States and other countries and are used with Chef Inc's permission.<br>We are not affiliated with, endorsed or sponsored by Chef Inc.<br>
+    <a href="https://docs-archive.chef.io/release/server_12-8/install_server_ha_drbd.html" class="_attribution-link">https://docs-archive.chef.io/release/server_12-8/install_server_ha_drbd.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
