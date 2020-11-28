@@ -1,0 +1,132 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Cassandra - OpenTSDB - W3cubDocs</title>
+  
+  <meta name="description" content="Cassandra is an eventually consistent key value store similar to HBase and Google`s Bigtable. It implements a distributed hash map with column &hellip;">
+  <meta name="keywords" content="cassandra, opentsdb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/opentsdb/user_guide/backends/cassandra.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/opentsdb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/opentsdb/" class="_nav-link" title="" style="margin-left:0;">OpenTSDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx_simple">
+				
+				
+<h1>Cassandra</h1> <p>Cassandra is an eventually consistent key value store similar to HBase and Google`s Bigtable. It implements a distributed hash map with column families originally it supported a Thrift based API very close to HBase`s. Lately Cassandra has moved towards a SQL like query language with much more flexibility around data types, joints and filters. Thankfully the Thrift interface is still there so it`s easy to convert the OpenTSDB HBase schema and calls to Cassandra at a low level through the AsyncHBase <code class="docutils literal"><span class="pre">HBaseClient</span></code> API. <a class="reference external" href="https://github.com/OpenTSDB/asynccassandra">AsyncCassandra</a> is a shim between OpenTSDB and Cassandra for trying out TSDB with an alternate backend.</p>  <h2>Setup</h2> <ol class="arabic simple"> <li>Setup a Cassandra cluster using the <code class="docutils literal"><span class="pre">ByteOrderedPartitioner</span></code>. This is critical as we require the row keys to be sorted. Because this setting affects the entire node, you may need to setup a cluster dedicated to OpenTSDB.</li> <li>Create the proper keyspsaces and column families by using the <cite>cassandra-cli</cite> script:</li> </ol> <pre data-language="python">create keyspace tsdb;
+use tsdb;
+create column family t with comparator = BytesType;
+
+create keyspace tsdbuid;
+use tsdbuid;
+create column family id with comparator = BytesType;
+create column family name with comparator = BytesType;
+</pre>
+ <ol class="arabic simple" start="3"> <li>Build TSDB by executing <cite>sh build-cassandra.sh</cite> (or if you prefer Maven, <cite>sh build-cassandra.sh pom.xml</cite>)</li> <li>Modify your <cite>opentsdb.conf</cite> file with the <cite>asynccassandra.seeds</cite> parameter, e.g. <cite>asynccassandra.seeds=127.0.0.1:9160</cite>.</li> <li>In the config file, set <cite>tsd.storage.hbase.uid_table=tsdbuid</cite>
+</li> <li>Run the tsd via <cite>build/tsdb tsd --config=&lt;path&gt;/opentsdb.conf</cite>
+</li> </ol> <p>If you intend to use meta data or tree features, repeat the keyspace creation with the proper table name.</p>   <h2>Configuration</h2> <p>The following is a table with required and optional parameters to run OpenTSDB with Cassandra. These are in addition to the standard TSD configuration parameters from <a class="reference internal" href="../configuration"><em>Configuration</em></a></p> <table class="docutils"> <colgroup> <col width="20%"> <col width="5%"> <col width="5%"> <col width="60%"> <col width="10%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">Property</th> <th class="head">Type</th> <th class="head">Required</th> <th class="head">Description</th> <th class="head">Default</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>asynccassandra.seeds</td> <td>String</td> <td>Required</td> <td>The list of nodes in your Cassandra cluster. These can be formatted <cite>&lt;hostname&gt;:&lt;port&gt;</cite>
+</td> <td> </td> </tr> <tr class="row-odd">
+<td>asynccassandra.port</td> <td>Integer</td> <td>Optional</td> <td>An optional port to use for all nodes if not configured in the seeds setting.</td> <td>9160</td> </tr> </tbody> </table>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2016 The OpenTSDB Authors<br>Licensed under the GNU LGPLv2.1+ and GPLv3+ licenses.<br>
+    <a href="http://opentsdb.net/docs/build/html/user_guide/backends/cassandra.html" class="_attribution-link">http://opentsdb.net/docs/build/html/user_guide/backends/cassandra.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

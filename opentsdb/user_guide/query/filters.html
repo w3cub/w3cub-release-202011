@@ -1,0 +1,117 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Filters - OpenTSDB - W3cubDocs</title>
+  
+  <meta name="description" content="In OpenTSDB 2.2 tag key and value filters were introduced. This makes it easier to extract only the data that you want from storage. The filter &hellip;">
+  <meta name="keywords" content="filters, opentsdb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/opentsdb/user_guide/query/filters.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/opentsdb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/opentsdb/" class="_nav-link" title="" style="margin-left:0;">OpenTSDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx_simple">
+				
+				
+<h1>Filters</h1> <p>In OpenTSDB 2.2 tag key and value filters were introduced. This makes it easier to extract only the data that you want from storage. The filter framework is plugable to allow for tying into external systems such as asset management or provisioning systems.</p> <p>Multiple filters on the same tag key are allowed and when processed, they are <em>ANDed</em> together e.g. if we have two filters <code class="docutils literal"><span class="pre">host=literal_or(web01)</span></code> and <code class="docutils literal"><span class="pre">host=literal_or(web02)</span></code> the query will always return empty. If two or more filters are included for the same tag key and one has group by enabled but another does not, then group by will effectively be true for all filters on that tag key.</p> <p>Note that some type of filters may cause queries to execute slower than others, e.g. the regex and wildcard filters. Before fetching data from storage, the filters are processed to create a database filter based on UIDs so using the case sensitive "literal or" filter is always faster than regex because we can resolve the strings to UIDs and send those to the storage system for filtering. Instead if you ask for regex or wildcards with pre, post or infix filtering the TSD must retrieve all of the rows from storage with the tag key UID, then for each unique row, resolve the UIDs back to strings and then run the filter over the results. Also, filter sets with a large list of literals will be processed post storage to avoid creating a massive filter for the backing store to process. This limit defaults to <code class="docutils literal"><span class="pre">4096</span></code> and can be configured via the <code class="docutils literal"><span class="pre">tsd.query.filter.expansion_limit</span></code> parameter.</p>  <h2>Built-in Filters</h2> <div class="section" id="literal-or"> <h3>literal_or</h3> <p>Takes a single literal value or a pipe delimited list of values and returns any time series matching the results on a case sensitive bases. This is a very efficient filter as it can resolve the strings to UIDs and send that to the storage layer for pre-filtering.</p> <p><em>Examples</em></p> <p><code class="docutils literal"><span class="pre">literal_or(web01|web02|web03)</span></code> <code class="docutils literal"><span class="pre">literal_or(web01)</span></code></p> </div> <div class="section" id="ilteral-or"> <h3>ilteral_or</h3> <p>The same as a <code class="docutils literal"><span class="pre">literal_or</span></code> but is case insensitive. Note that this is not efficient like the literal or as it must post-process all rows from storage.</p> </div> <div class="section" id="not-literal-or"> <h3>not_literal_or</h3> <p>Case sensitive <code class="docutils literal"><span class="pre">literal_or</span></code> that will return series that do <strong>NOT</strong> match the given list of values. Efficient as it can be pre-processed by storage.</p> </div> <div class="section" id="not-iliteral-or"> <h3>not_iliteral_or</h3> <p>Case insensitive <code class="docutils literal"><span class="pre">not_literal_or</span></code>.</p> </div> <div class="section" id="wildcard"> <h3>wildcard</h3> <p>Provides case sensitive postfix, prefix, infix and multi-infix filtering. The wildcard character is an asterisk (star) <code class="docutils literal"><span class="pre">*</span></code>. Multiple wildcards can be used. If only the asterisk is given, the filter effectively returns any time series that include the tag key (and is an efficient filter that can be pre-processed).</p> <p><em>Examples</em> <code class="docutils literal"><span class="pre">wildcard(*mysite.com)</span></code> <code class="docutils literal"><span class="pre">wildcard(web*)</span></code> <code class="docutils literal"><span class="pre">wildcard(web*mysite.com)</span></code> <code class="docutils literal"><span class="pre">wildcard(web*mysite*)</span></code> <code class="docutils literal"><span class="pre">wildcard(*)</span></code></p> </div> <div class="section" id="iwildcard"> <h3>iwildcard</h3> <p>The same as <code class="docutils literal"><span class="pre">wildcard</span></code> but case insensitive.</p> </div> <div class="section" id="regexp"> <h3>regexp</h3> <p>Filters using POSIX compliant regular expressions post fetching from storage. The filter uses Java's built-in regular expression operation. Be careful to escape special characters depending on the query method used.</p> <p><em>Examples</em> <code class="docutils literal"><span class="pre">regexp(web.*)</span></code> <code class="docutils literal"><span class="pre">regexp(web[0-9].mysite.com)</span></code></p> </div>   <h2>Plugins</h2> <p>As developers add plugins we will list them here.</p> <p>To develop a plugin, simply extend the <code class="docutils literal"><span class="pre">net.opentsdb.query.filter.TagVFilter</span></code> class, create JAR per the <a class="reference internal" href="../../development/plugins"><em>Plugins</em></a> documentation and drop it in your plugins directory. On start, the TSD will search for the plugin and load it. If there was an error with the implementation the TSD will not start up and will log the exception.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2016 The OpenTSDB Authors<br>Licensed under the GNU LGPLv2.1+ and GPLv3+ licenses.<br>
+    <a href="http://opentsdb.net/docs/build/html/user_guide/query/filters.html" class="_attribution-link">http://opentsdb.net/docs/build/html/user_guide/query/filters.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
