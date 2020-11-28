@@ -1,0 +1,162 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Drain a Node on the Swarm - Docker 19 - W3cubDocs</title>
+  
+  <meta name="description" content="In earlier steps of the tutorial, all the nodes have been running with ACTIVE availability. The swarm manager can assign tasks to any ACTIVE node, &hellip;">
+  <meta name="keywords" content="drain, node, on, swarm, docker, docker~19">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/docker~19/engine/swarm/swarm-tutorial/drain-node/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/docker~19.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/docker~19/" class="_nav-link" title="" style="margin-left:0;">Docker 19</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Drain a node on the swarm</h1>  <p>In earlier steps of the tutorial, all the nodes have been running with <code class="highlighter-rouge">ACTIVE</code> availability. The swarm manager can assign tasks to any <code class="highlighter-rouge">ACTIVE</code> node, so up to now all nodes have been available to receive tasks.</p> <p>Sometimes, such as planned maintenance times, you need to set a node to <code class="highlighter-rouge">DRAIN</code> availability. <code class="highlighter-rouge">DRAIN</code> availability prevents a node from receiving new tasks from the swarm manager. It also means the manager stops tasks running on the node and launches replica tasks on a node with <code class="highlighter-rouge">ACTIVE</code> availability.</p> <blockquote class="important"> <p><strong>Important</strong>: Setting a node to <code class="highlighter-rouge">DRAIN</code> does not remove standalone containers from that node, such as those created with <code class="highlighter-rouge">docker run</code>, <code class="highlighter-rouge">docker-compose up</code>, or the Docker Engine API. A node’s status, including <code class="highlighter-rouge">DRAIN</code>, only affects the node’s ability to schedule swarm service workloads.</p> </blockquote> <ol> <li> <p>If you haven’t already, open a terminal and ssh into the machine where you run your manager node. For example, the tutorial uses a machine named <code class="highlighter-rouge">manager1</code>.</p> </li> <li> <p>Verify that all your nodes are actively available.</p> <div class="highlight"><pre class="highlight" data-language="">$ docker node ls
+
+ID                           HOSTNAME  STATUS  AVAILABILITY  MANAGER STATUS
+1bcef6utixb0l0ca7gxuivsj0    worker2   Ready   Active
+38ciaotwjuritcdtn9npbnkuz    worker1   Ready   Active
+e216jshn25ckzbvmwlnh5jr3g *  manager1  Ready   Active        Leader
+</pre></div>  </li> <li> <p>If you aren’t still running the <code class="highlighter-rouge">redis</code> service from the <a href="../rolling-update/index">rolling update</a> tutorial, start it now:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker service create --replicas 3 --name redis --update-delay 10s redis:3.0.6
+
+c5uo6kdmzpon37mgj9mwglcfw
+</pre></div>  </li> <li> <p>Run <code class="highlighter-rouge">docker service ps redis</code> to see how the swarm manager assigned the tasks to different nodes:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker service ps redis
+
+NAME                               IMAGE        NODE     DESIRED STATE  CURRENT STATE
+redis.1.7q92v0nr1hcgts2amcjyqg3pq  redis:3.0.6  manager1 Running        Running 26 seconds
+redis.2.7h2l8h3q3wqy5f66hlv9ddmi6  redis:3.0.6  worker1  Running        Running 26 seconds
+redis.3.9bg7cezvedmkgg6c8yzvbhwsd  redis:3.0.6  worker2  Running        Running 26 seconds
+</pre></div>  <p>In this case the swarm manager distributed one task to each node. You may see the tasks distributed differently among the nodes in your environment.</p> </li> <li> <p>Run <code class="highlighter-rouge">docker node update --availability drain &lt;NODE-ID&gt;</code> to drain a node that had a task assigned to it:</p> <div class="highlight"><pre class="highlight" data-language="">docker node update --availability drain worker1
+
+worker1
+</pre></div>  </li> <li> <p>Inspect the node to check its availability:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker node inspect --pretty worker1
+
+ID:			38ciaotwjuritcdtn9npbnkuz
+Hostname:		worker1
+Status:
+ State:			Ready
+ Availability:		Drain
+...snip...
+</pre></div>  <p>The drained node shows <code class="highlighter-rouge">Drain</code> for <code class="highlighter-rouge">AVAILABILITY</code>.</p> </li> <li> <p>Run <code class="highlighter-rouge">docker service ps redis</code> to see how the swarm manager updated the task assignments for the <code class="highlighter-rouge">redis</code> service:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker service ps redis
+
+NAME                                    IMAGE        NODE      DESIRED STATE  CURRENT STATE           ERROR
+redis.1.7q92v0nr1hcgts2amcjyqg3pq       redis:3.0.6  manager1  Running        Running 4 minutes
+redis.2.b4hovzed7id8irg1to42egue8       redis:3.0.6  worker2   Running        Running About a minute
+ \_ redis.2.7h2l8h3q3wqy5f66hlv9ddmi6   redis:3.0.6  worker1   Shutdown       Shutdown 2 minutes ago
+redis.3.9bg7cezvedmkgg6c8yzvbhwsd       redis:3.0.6  worker2   Running        Running 4 minutes
+</pre></div>  <p>The swarm manager maintains the desired state by ending the task on a node with <code class="highlighter-rouge">Drain</code> availability and creating a new task on a node with <code class="highlighter-rouge">Active</code> availability.</p> </li> <li> <p>Run <code class="highlighter-rouge">docker node update --availability active &lt;NODE-ID&gt;</code> to return the drained node to an active state:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker node update --availability active worker1
+
+worker1
+</pre></div>  </li> <li> <p>Inspect the node to see the updated state:</p> <div class="highlight"><pre class="highlight" data-language="">$ docker node inspect --pretty worker1
+
+ID:			38ciaotwjuritcdtn9npbnkuz
+Hostname:		worker1
+Status:
+ State:			Ready
+ Availability:		Active
+...snip...
+</pre></div>  <p>When you set the node back to <code class="highlighter-rouge">Active</code> availability, it can receive new tasks:</p> <ul> <li>during a service update to scale up</li> <li>during a rolling update</li> <li>when you set another node to <code class="highlighter-rouge">Drain</code> availability</li> <li>when a task fails on another active node</li> </ul> </li> </ol> <h2 id="whats-next">What’s next?</h2> <p>Learn how to <a href="../../ingress/index">use a swarm mode routing mesh</a>.</p>  
+<p><a href="https://docs.docker.com/glossary/?term=tutorial">tutorial</a>, <a href="https://docs.docker.com/glossary/?term=cluster%20management">cluster management</a>, <a href="https://docs.docker.com/glossary/?term=swarm">swarm</a>, <a href="https://docs.docker.com/glossary/?term=service">service</a>, <a href="https://docs.docker.com/glossary/?term=drain">drain</a></p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 Docker, Inc.<br>Licensed under the Apache License, Version 2.0.<br>Docker and the Docker logo are trademarks or registered trademarks of Docker, Inc. in the United States and/or other countries.<br>Docker, Inc. and other parties may also have trademark rights in other terms used herein.<br>
+    <a href="https://docs.docker.com/engine/swarm/swarm-tutorial/drain-node/" class="_attribution-link">https://docs.docker.com/engine/swarm/swarm-tutorial/drain-node/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
