@@ -1,0 +1,268 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Server Rendering - Redux - W3cubDocs</title>
+  
+  <meta name="description" content="The most common use case for server-side rendering is to handle the initial render when a user (or search engine crawler) first requests our app. &hellip;">
+  <meta name="keywords" content="server, rendering, redux">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux/recipes/serverrendering.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/redux.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux/" class="_nav-link" title="" style="margin-left:0;">Redux</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="server-rendering">Server Rendering</h1> <p>The most common use case for server-side rendering is to handle the <em>initial render</em> when a user (or search engine crawler) first requests our app. When the server receives the request, it renders the required component(s) into an HTML string, and then sends it as a response to the client. From that point on, the client takes over rendering duties.</p> <p>We will use React in the examples below, but the same techniques can be used with other view frameworks that can render on the server.</p> <h3 id="redux-on-the-server">Redux on the Server</h3> <p>When using Redux with server rendering, we must also send the state of our app along in our response, so the client can use it as the initial state. This is important because, if we preload any data before generating the HTML, we want the client to also have access to this data. Otherwise, the markup generated on the client won't match the server markup, and the client would have to load the data again.</p> <p>To send the data down to the client, we need to:</p> <ul> <li>create a fresh, new Redux store instance on every request;</li> <li>optionally dispatch some actions;</li> <li>pull the state out of store;</li> <li>and then pass the state along to the client.</li> </ul> <p>On the client side, a new Redux store will be created and initialized with the state provided from the server.<br>Redux's <strong><em>only</em></strong> job on the server side is to provide the <strong>initial state</strong> of our app.</p> <h2 id="setting-up">Setting Up</h2> <p>In the following recipe, we are going to look at how to set up server-side rendering. We'll use the simplistic <a href="https://github.com/reactjs/redux/tree/master/examples/counter" target="_blank">Counter app</a> as a guide and show how the server can render state ahead of time based on the request.</p> <h3 id="install-packages">Install Packages</h3> <p>For this example, we'll be using <a href="http://expressjs.com/" target="_blank">Express</a> as a simple web server. We also need to install the React bindings for Redux, since they are not included in Redux by default.</p> <pre class="language-">npm install --save express react-redux
+</pre>
+<h2 id="the-server-side">The Server Side</h2> <p>The following is the outline for what our server side is going to look like. We are going to set up an <a href="http://expressjs.com/guide/using-middleware.html" target="_blank">Express middleware</a> using <a href="http://expressjs.com/api.html#app.use" target="_blank">app.use</a> to handle all requests that come in to our server. If you're unfamiliar with Express or middleware, just know that our handleRender function will be called every time the server receives a request.</p> <p>Additionally, as we are using ES6 and JSX syntax, we will need to compile with <a href="https://babeljs.io/" target="_blank">Babel</a> (see <a href="https://github.com/babel/example-node-server" target="_blank">this example of a Node Server with Babel</a>) and the <a href="https://babeljs.io/docs/plugins/preset-react/" target="_blank">React preset</a>.</p> <h5 id="serverjs"><code>server.js</code></h5> <pre class="language-" data-language="js">import path from 'path'
+import Express from 'express'
+import React from 'react'
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import counterApp from './reducers'
+import App from './containers/App'
+
+const app = Express()
+const port = 3000
+
+//Serve static files
+app.use('/static', Express.static('static'))
+
+// This is fired every time the server side receives a request
+app.use(handleRender)
+
+// We are going to fill these out in the sections to follow
+function handleRender(req, res) { /* ... */ }
+function renderFullPage(html, preloadedState) { /* ... */ }
+
+app.listen(port)
+</pre> <h3 id="handling-the-request">Handling the Request</h3> <p>The first thing that we need to do on every request is create a new Redux store instance. The only purpose of this store instance is to provide the initial state of our application.</p> <p>When rendering, we will wrap <code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>App</span> <span class="token punctuation">/&gt;</span></span></code>, our root component, inside a <code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Provider</span><span class="token punctuation">&gt;</span></span></code> to make the store available to all components in the component tree, as we saw in <a href="../basics/usagewithreact">Usage with React</a>.</p> <p>The key step in server side rendering is to render the initial HTML of our component <em><strong>before</strong></em> we send it to the client side. To do this, we use <a href="https://facebook.github.io/react/docs/react-dom-server.html#rendertostring" target="_blank">ReactDOMServer.renderToString()</a>.</p> <p>We then get the initial state from our Redux store using <a href="../api/store#getState"><code>store.getState()</code></a>. We will see how this is passed along in our <code>renderFullPage</code> function.</p> <pre class="language-" data-language="js">import { renderToString } from 'react-dom/server'
+
+function handleRender(req, res) {
+  // Create a new Redux store instance
+  const store = createStore(counterApp)
+
+  // Render the component to a string
+  const html = renderToString(
+    &lt;Provider store={store}&gt;
+      &lt;App /&gt;
+    &lt;/Provider&gt;
+  )
+
+  // Grab the initial state from our Redux store
+  const preloadedState = store.getState()
+
+  // Send the rendered page back to the client
+  res.send(renderFullPage(html, preloadedState))
+}
+</pre> <h3 id="inject-initial-component-html-and-state">Inject Initial Component HTML and State</h3> <p>The final step on the server side is to inject our initial component HTML and initial state into a template to be rendered on the client side. To pass along the state, we add a <code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span><span class="token punctuation">&gt;</span></span></code> tag that will attach <code>preloadedState</code> to <code>window.__PRELOADED_STATE__</code>.</p> <p>The <code>preloadedState</code> will then be available on the client side by accessing <code>window.__PRELOADED_STATE__</code>.</p> <p>We also include our bundle file for the client-side application via a script tag. This is whatever output your bundling tool provides for your client entry point. It may be a static file or a URL to a hot reloading development server.</p> <pre class="language-" data-language="js">function renderFullPage(html, preloadedState) {
+  return `
+    &lt;!doctype html&gt;
+    &lt;html&gt;
+      &lt;head&gt;
+        &lt;title&gt;Redux Universal Example&lt;/title&gt;
+      &lt;/head&gt;
+      &lt;body&gt;
+        &lt;div id="root"&gt;${html}&lt;/div&gt;
+        &lt;script&gt;
+          // WARNING: See the following for security issues around embedding JSON in HTML:
+          // http://redux.js.org/docs/recipes/ServerRendering.html#security-considerations
+          window.__PRELOADED_STATE__ = ${JSON.stringify(preloadedState).replace(/&lt;/g, '\\u003c')}
+        &lt;/script&gt;
+        &lt;script src="/static/bundle.js"&gt;&lt;/script&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+    `
+}
+</pre> <h2 id="the-client-side">The Client Side</h2> <p>The client side is very straightforward. All we need to do is grab the initial state from <code>window.__PRELOADED_STATE__</code>, and pass it to our <a href="../api/createstore"><code>createStore()</code></a> function as the initial state.</p> <p>Let's take a look at our new client file:</p> <h4 id="clientjs"><code>client.js</code></h4> <pre class="language-" data-language="js">import React from 'react'
+import { render } from 'react-dom'
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import App from './containers/App'
+import counterApp from './reducers'
+
+// Grab the state from a global variable injected into the server-generated HTML
+const preloadedState = window.__PRELOADED_STATE__
+
+// Allow the passed state to be garbage-collected
+delete window.__PRELOADED_STATE__
+
+// Create Redux store with initial state
+const store = createStore(counterApp, preloadedState)
+
+render(
+  &lt;Provider store={store}&gt;
+    &lt;App /&gt;
+  &lt;/Provider&gt;,
+  document.getElementById('root')
+)
+</pre> <p>You can set up your build tool of choice (Webpack, Browserify, etc.) to compile a bundle file into <code>static/bundle.js</code>.</p> <p>When the page loads, the bundle file will be started up and <a href="https://facebook.github.io/react/docs/top-level-api.html#reactdom.render" target="_blank"><code>ReactDOM.render()</code></a> will hook into the <code>data-react-id</code> attributes from the server-rendered HTML. This will connect our newly-started React instance to the virtual DOM used on the server. Since we have the same initial state for our Redux store and used the same code for all our view components, the result will be the same real DOM.</p> <p>And that's it! That is all we need to do to implement server side rendering.</p> <p>But the result is pretty vanilla. It essentially renders a static view from dynamic code. What we need to do next is build an initial state dynamically to allow that rendered view to be dynamic.</p> <h2 id="preparing-the-initial-state">Preparing the Initial State</h2> <p>Because the client side executes ongoing code, it can start with an empty initial state and obtain any necessary state on demand and over time. On the server side, rendering is synchronous and we only get one shot to render our view. We need to be able to compile our initial state during the request, which will have to react to input and obtain external state (such as that from an API or database).</p> <h3 id="processing-request-parameters">Processing Request Parameters</h3> <p>The only input for server side code is the request made when loading up a page in your app in your browser. You may choose to configure the server during its boot (such as when you are running in a development vs. production environment), but that configuration is static.</p> <p>The request contains information about the URL requested, including any query parameters, which will be useful when using something like <a href="https://github.com/reactjs/react-router" target="_blank">React Router</a>. It can also contain headers with inputs like cookies or authorization, or POST body data. Let's see how we can set the initial counter state based on a query parameter.</p> <h4 id="serverjs"><code>server.js</code></h4> <pre class="language-" data-language="js">import qs from 'qs' // Add this at the top of the file
+import { renderToString } from 'react-dom/server'
+
+function handleRender(req, res) {
+  // Read the counter from the request, if provided
+  const params = qs.parse(req.query)
+  const counter = parseInt(params.counter, 10) || 0
+
+  // Compile an initial state
+  let preloadedState = { counter }
+
+  // Create a new Redux store instance
+  const store = createStore(counterApp, preloadedState)
+
+  // Render the component to a string
+  const html = renderToString(
+    &lt;Provider store={store}&gt;
+      &lt;App /&gt;
+    &lt;/Provider&gt;
+  )
+
+  // Grab the initial state from our Redux store
+  const finalState = store.getState()
+
+  // Send the rendered page back to the client
+  res.send(renderFullPage(html, finalState))
+}
+</pre> <p>The code reads from the Express <code>Request</code> object passed into our server middleware. The parameter is parsed into a number and then set in the initial state. If you visit <a href="http://localhost:3000/?counter=100" target="_blank">http://localhost:3000/?counter=100</a> in your browser, you'll see the counter starts at 100. In the rendered HTML, you'll see the counter output as 100 and the <code>__PRELOADED_STATE__</code> variable has the counter set in it.</p> <h3 id="async-state-fetching">Async State Fetching</h3> <p>The most common issue with server side rendering is dealing with state that comes in asynchronously. Rendering on the server is synchronous by nature, so it's necessary to map any asynchronous fetches into a synchronous operation.</p> <p>The easiest way to do this is to pass through some callback back to your synchronous code. In this case, that will be a function that will reference the response object and send back our rendered HTML to the client. Don't worry, it's not as hard as it may sound.</p> <p>For our example, we'll imagine there is an external datastore that contains the counter's initial value (Counter As A Service, or CaaS). We'll make a mock call over to them and build our initial state from the result. We'll start by building out our API call:</p> <h4 id="apicounterjs"><code>api/counter.js</code></h4> <pre class="language-" data-language="js">function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min
+}
+
+export function fetchCounter(callback) {
+  setTimeout(() =&gt; {
+    callback(getRandomInt(1, 100))
+  }, 500)
+}
+</pre> <p>Again, this is just a mock API, so we use <code>setTimeout</code> to simulate a network request that takes 500 milliseconds to respond (this should be much faster with a real world API). We pass in a callback that returns a random number asynchronously. If you're using a Promise-based API client, then you would issue this callback in your <code>then</code> handler.</p> <p>On the server side, we simply wrap our existing code in the <code>fetchCounter</code> and receive the result in the callback:</p> <h4 id="serverjs"><code>server.js</code></h4> <pre class="language-" data-language="js">// Add this to our imports
+import { fetchCounter } from './api/counter'
+import { renderToString } from 'react-dom/server'
+
+function handleRender(req, res) {
+  // Query our mock API asynchronously
+  fetchCounter(apiResult =&gt; {
+    // Read the counter from the request, if provided
+    const params = qs.parse(req.query)
+    const counter = parseInt(params.counter, 10) || apiResult || 0
+
+    // Compile an initial state
+    let preloadedState = { counter }
+
+    // Create a new Redux store instance
+    const store = createStore(counterApp, preloadedState)
+
+    // Render the component to a string
+    const html = renderToString(
+      &lt;Provider store={store}&gt;
+        &lt;App /&gt;
+      &lt;/Provider&gt;
+    )
+
+    // Grab the initial state from our Redux store
+    const finalState = store.getState()
+
+    // Send the rendered page back to the client
+    res.send(renderFullPage(html, finalState))
+  })
+}
+</pre> <p>Because we call <code>res.send()</code> inside of the callback, the server will hold open the connection and won't send any data until that callback executes. You'll notice a 500ms delay is now added to each server request as a result of our new API call. A more advanced usage would handle errors in the API gracefully, such as a bad response or timeout.</p> <h3 id="security-considerations">Security Considerations</h3> <p>Because we have introduced more code that relies on user generated content (UGC) and input, we have increased our attack surface area for our application. It is important for any application that you ensure your input is properly sanitized to prevent things like cross-site scripting (XSS) attacks or code injections.</p> <p>In our example, we take a rudimentary approach to security. When we obtain the parameters from the request, we use <code>parseInt</code> on the <code>counter</code> parameter to ensure this value is a number. If we did not do this, you could easily get dangerous data into the rendered HTML by providing a script tag in the request. That might look like this: <code>?counter=<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span><span class="token punctuation">&gt;</span></span>doSomethingBad();<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span></code></p> <p>For our simplistic example, coercing our input into a number is sufficiently secure. If you're handling more complex input, such as freeform text, then you should run that input through an appropriate sanitization function, such as <a href="https://www.npmjs.com/package/validator" target="_blank">validator.js</a>.</p> <p>Furthermore, you can add additional layers of security by sanitizing your state output. <code>JSON.stringify</code> can be subject to script injections. To counter this, you can scrub the JSON string of HTML tags and other dangerous characters. This can be done with either a simple text replacement on the string, e.g. <code>JSON.stringify(state).replace(/&lt;/g, '\\u003c')</code>, or via more sophisticated libraries such as <a href="https://github.com/yahoo/serialize-javascript" target="_blank">serialize-javascript</a>.</p> <h2 id="next-steps">Next Steps</h2> <p>You may want to read <a href="../advanced/asyncactions">Async Actions</a> to learn more about expressing asynchronous flow in Redux with async primitives such as Promises and thunks. Keep in mind that anything you learn there can also be applied to universal rendering.</p> <p>If you use something like <a href="https://github.com/reactjs/react-router" target="_blank">React Router</a>, you might also want to express your data fetching dependencies as static <code>fetchData()</code> methods on your route handler components. They may return <a href="../advanced/asyncactions">async actions</a>, so that your <code>handleRender</code> function can match the route to the route handler component classes, dispatch <code>fetchData()</code> result for each of them, and render only after the Promises have resolved. This way the specific API calls required for different routes are colocated with the route handler component definitions. You can also use the same technique on the client side to prevent the router from switching the page until its data has been loaded.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/recipes/ServerRendering.html" class="_attribution-link">http://redux.js.org/docs/recipes/ServerRendering.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

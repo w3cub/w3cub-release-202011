@@ -1,0 +1,329 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Computing Derived Data - Redux - W3cubDocs</title>
+  
+  <meta name="description" content="Reselect is a simple library for creating memoized, composable selector functions. Reselect selectors can be used to efficiently compute derived &hellip;">
+  <meta name="keywords" content="computing, derived, data, redux">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux/recipes/computingderiveddata.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/redux.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux/" class="_nav-link" title="" style="margin-left:0;">Redux</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="computing-derived-data">Computing Derived Data</h1> <p><a href="https://github.com/reactjs/reselect" target="_blank">Reselect</a> is a simple library for creating memoized, composable <strong>selector</strong> functions. Reselect selectors can be used to efficiently compute derived data from the Redux store.</p> <h3 id="motivation-for-memoized-selectors">Motivation for Memoized Selectors</h3> <p>Let's revisit the <a href="../basics/usagewithreact">Todos List example</a>:</p> <h4 id="containersvisibletodolistjs"><code>containers/VisibleTodoList.js</code></h4> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+import { toggleTodo } from '../actions'
+import TodoList from '../components/TodoList'
+
+const getVisibleTodos = (todos, filter) =&gt; {
+  switch (filter) {
+    case 'SHOW_ALL':
+      return todos
+    case 'SHOW_COMPLETED':
+      return todos.filter(t =&gt; t.completed)
+    case 'SHOW_ACTIVE':
+      return todos.filter(t =&gt; !t.completed)
+  }
+}
+
+const mapStateToProps = state =&gt; {
+  return {
+    todos: getVisibleTodos(state.todos, state.visibilityFilter)
+  }
+}
+
+const mapDispatchToProps = dispatch =&gt; {
+  return {
+    onTodoClick: id =&gt; {
+      dispatch(toggleTodo(id))
+    }
+  }
+}
+
+const VisibleTodoList = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TodoList)
+
+export default VisibleTodoList
+</pre> <p>In the above example, <code>mapStateToProps</code> calls <code>getVisibleTodos</code> to calculate <code>todos</code>. This works great, but there is a drawback: <code>todos</code> is calculated every time the component is updated. If the state tree is large, or the calculation expensive, repeating the calculation on every update may cause performance problems. Reselect can help to avoid these unnecessary recalculations.</p> <h3 id="creating-a-memoized-selector">Creating a Memoized Selector</h3> <p>We would like to replace <code>getVisibleTodos</code> with a memoized selector that recalculates <code>todos</code> when the value of <code>state.todos</code> or <code>state.visibilityFilter</code> changes, but not when changes occur in other (unrelated) parts of the state tree.</p> <p>Reselect provides a function <code>createSelector</code> for creating memoized selectors. <code>createSelector</code> takes an array of input-selectors and a transform function as its arguments. If the Redux state tree is mutated in a way that causes the value of an input-selector to change, the selector will call its transform function with the values of the input-selectors as arguments and return the result. If the values of the input-selectors are the same as the previous call to the selector, it will return the previously computed value instead of calling the transform function.</p> <p>Let's define a memoized selector named <code>getVisibleTodos</code> to replace the non-memoized version above:</p> <h4 id="selectorsindexjs"><code>selectors/index.js</code></h4> <pre class="language-" data-language="js">import { createSelector } from 'reselect'
+
+const getVisibilityFilter = state =&gt; state.visibilityFilter
+const getTodos = state =&gt; state.todos
+
+export const getVisibleTodos = createSelector(
+  [getVisibilityFilter, getTodos],
+  (visibilityFilter, todos) =&gt; {
+    switch (visibilityFilter) {
+      case 'SHOW_ALL':
+        return todos
+      case 'SHOW_COMPLETED':
+        return todos.filter(t =&gt; t.completed)
+      case 'SHOW_ACTIVE':
+        return todos.filter(t =&gt; !t.completed)
+    }
+  }
+)
+</pre> <p>In the example above, <code>getVisibilityFilter</code> and <code>getTodos</code> are input-selectors. They are created as ordinary non-memoized selector functions because they do not transform the data they select. <code>getVisibleTodos</code> on the other hand is a memoized selector. It takes <code>getVisibilityFilter</code> and <code>getTodos</code> as input-selectors, and a transform function that calculates the filtered todos list.</p> <h3 id="composing-selectors">Composing Selectors</h3> <p>A memoized selector can itself be an input-selector to another memoized selector. Here is <code>getVisibleTodos</code> being used as an input-selector to a selector that further filters the todos by keyword:</p> <pre class="language-" data-language="js">const getKeyword = state =&gt; state.keyword
+
+const getVisibleTodosFilteredByKeyword = createSelector(
+  [getVisibleTodos, getKeyword],
+  (visibleTodos, keyword) =&gt;
+    visibleTodos.filter(todo =&gt; todo.text.indexOf(keyword) &gt; -1)
+)
+</pre> <h3 id="connecting-a-selector-to-the-redux-store">Connecting a Selector to the Redux Store</h3> <p>If you are using <a href="https://github.com/reactjs/react-redux" target="_blank">React Redux</a>, you can call selectors as regular functions inside <code>mapStateToProps()</code>:</p> <h4 id="containersvisibletodolistjs"><code>containers/VisibleTodoList.js</code></h4> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+import { toggleTodo } from '../actions'
+import TodoList from '../components/TodoList'
+import { getVisibleTodos } from '../selectors'
+
+const mapStateToProps = state =&gt; {
+  return {
+    todos: getVisibleTodos(state)
+  }
+}
+
+const mapDispatchToProps = dispatch =&gt; {
+  return {
+    onTodoClick: id =&gt; {
+      dispatch(toggleTodo(id))
+    }
+  }
+}
+
+const VisibleTodoList = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TodoList)
+
+export default VisibleTodoList
+</pre> <h3 id="accessing-react-props-in-selectors">Accessing React Props in Selectors</h3> <blockquote> <p>This section introduces a hypothetical extension to our app that allows it to support multiple Todo Lists. Please note that a full implementation of this extension requires changes to the reducers, components, actions etc. that aren't directly relevant to the topics discussed and have been omitted for brevity.</p> </blockquote> <p>So far we have only seen selectors receive the Redux store state as an argument, but a selector can receive props too.</p> <p>Here is an <code>App</code> component that renders three <code>VisibleTodoList</code> components, each of which has a <code>listId</code> prop:</p> <h4 id="componentsappjs"><code>components/App.js</code></h4> <pre class="language-" data-language="js">import React from 'react'
+import Footer from './Footer'
+import AddTodo from '../containers/AddTodo'
+import VisibleTodoList from '../containers/VisibleTodoList'
+
+const App = () =&gt; (
+  &lt;div&gt;
+    &lt;VisibleTodoList listId="1" /&gt;
+    &lt;VisibleTodoList listId="2" /&gt;
+    &lt;VisibleTodoList listId="3" /&gt;
+  &lt;/div&gt;
+)
+</pre> <p>Each <code>VisibleTodoList</code> container should select a different slice of the state depending on the value of the <code>listId</code> prop, so let's modify <code>getVisibilityFilter</code> and <code>getTodos</code> to accept a props argument:</p> <h4 id="selectorstodoselectorsjs"><code>selectors/todoSelectors.js</code></h4> <pre class="language-" data-language="js">import { createSelector } from 'reselect'
+
+const getVisibilityFilter = (state, props) =&gt;
+  state.todoLists[props.listId].visibilityFilter
+
+const getTodos = (state, props) =&gt; state.todoLists[props.listId].todos
+
+const getVisibleTodos = createSelector(
+  [getVisibilityFilter, getTodos],
+  (visibilityFilter, todos) =&gt; {
+    switch (visibilityFilter) {
+      case 'SHOW_COMPLETED':
+        return todos.filter(todo =&gt; todo.completed)
+      case 'SHOW_ACTIVE':
+        return todos.filter(todo =&gt; !todo.completed)
+      default:
+        return todos
+    }
+  }
+)
+
+export default getVisibleTodos
+</pre> <p><code>props</code> can be passed to <code>getVisibleTodos</code> from <code>mapStateToProps</code>:</p> <pre class="language-" data-language="js">const mapStateToProps = (state, props) =&gt; {
+  return {
+    todos: getVisibleTodos(state, props)
+  }
+}
+</pre> <p>So now <code>getVisibleTodos</code> has access to <code>props</code>, and everything seems to be working fine.</p> <p><strong>But there is a problem!</strong></p> <p>Using the <code>getVisibleTodos</code> selector with multiple instances of the <code>visibleTodoList</code> container will not correctly memoize:</p> <h4 id="containersvisibletodolistjs"><code>containers/VisibleTodoList.js</code></h4> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+import { toggleTodo } from '../actions'
+import TodoList from '../components/TodoList'
+import { getVisibleTodos } from '../selectors'
+
+const mapStateToProps = (state, props) =&gt; {
+  return {
+    // WARNING: THE FOLLOWING SELECTOR DOES NOT CORRECTLY MEMOIZE
+    todos: getVisibleTodos(state, props)
+  }
+}
+
+const mapDispatchToProps = dispatch =&gt; {
+  return {
+    onTodoClick: id =&gt; {
+      dispatch(toggleTodo(id))
+    }
+  }
+}
+
+const VisibleTodoList = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(TodoList)
+
+export default VisibleTodoList
+</pre> <p>A selector created with <code>createSelector</code> only returns the cached value when its set of arguments is the same as its previous set of arguments. If we alternate between rendering <code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>VisibleTodoList</span> <span class="token attr-name">listId</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>1<span class="token punctuation">"</span></span> <span class="token punctuation">/&gt;</span></span></code> and <code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>VisibleTodoList</span> <span class="token attr-name">listId</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">"</span>2<span class="token punctuation">"</span></span> <span class="token punctuation">/&gt;</span></span></code>, the shared selector will alternate between receiving <code>{listId: 1}</code> and <code>{listId: 2}</code> as its <code>props</code> argument. This will cause the arguments to be different on each call, so the selector will always recompute instead of returning the cached value. We'll see how to overcome this limitation in the next section.</p> <h3 id="sharing-selectors-across-multiple-components">Sharing Selectors Across Multiple Components</h3> <blockquote> <p>The examples in this section require React Redux v4.3.0 or greater</p> </blockquote> <p>In order to share a selector across multiple <code>VisibleTodoList</code> components <strong>and</strong> retain memoization, each instance of the component needs its own private copy of the selector.</p> <p>Let's create a function named <code>makeGetVisibleTodos</code> that returns a new copy of the <code>getVisibleTodos</code> selector each time it is called:</p> <h4 id="selectorstodoselectorsjs"><code>selectors/todoSelectors.js</code></h4> <pre class="language-" data-language="js">import { createSelector } from 'reselect'
+
+const getVisibilityFilter = (state, props) =&gt;
+  state.todoLists[props.listId].visibilityFilter
+
+const getTodos = (state, props) =&gt; state.todoLists[props.listId].todos
+
+const makeGetVisibleTodos = () =&gt; {
+  return createSelector(
+    [getVisibilityFilter, getTodos],
+    (visibilityFilter, todos) =&gt; {
+      switch (visibilityFilter) {
+        case 'SHOW_COMPLETED':
+          return todos.filter(todo =&gt; todo.completed)
+        case 'SHOW_ACTIVE':
+          return todos.filter(todo =&gt; !todo.completed)
+        default:
+          return todos
+      }
+    }
+  )
+}
+
+export default makeGetVisibleTodos
+</pre> <p>We also need a way to give each instance of a container access to its own private selector. The <code>mapStateToProps</code> argument of <code>connect</code> can help with this.</p> <p><strong>If the <code>mapStateToProps</code> argument supplied to <code>connect</code> returns a function instead of an object, it will be used to create an individual <code>mapStateToProps</code> function for each instance of the container.</strong></p> <p>In the example below <code>makeMapStateToProps</code> creates a new <code>getVisibleTodos</code> selector, and returns a <code>mapStateToProps</code> function that has exclusive access to the new selector:</p> <pre class="language-" data-language="js">const makeMapStateToProps = () =&gt; {
+  const getVisibleTodos = makeGetVisibleTodos()
+  const mapStateToProps = (state, props) =&gt; {
+    return {
+      todos: getVisibleTodos(state, props)
+    }
+  }
+  return mapStateToProps
+}
+</pre> <p>If we pass <code>makeMapStateToProps</code> to <code>connect</code>, each instance of the <code>VisibleTodosList</code> container will get its own <code>mapStateToProps</code> function with a private <code>getVisibleTodos</code> selector. Memoization will now work correctly regardless of the render order of the <code>VisibleTodoList</code> containers.</p> <h4 id="containersvisibletodolistjs"><code>containers/VisibleTodoList.js</code></h4> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+import { toggleTodo } from '../actions'
+import TodoList from '../components/TodoList'
+import { makeGetVisibleTodos } from '../selectors'
+
+const makeMapStateToProps = () =&gt; {
+  const getVisibleTodos = makeGetVisibleTodos()
+  const mapStateToProps = (state, props) =&gt; {
+    return {
+      todos: getVisibleTodos(state, props)
+    }
+  }
+  return mapStateToProps
+}
+
+const mapDispatchToProps = dispatch =&gt; {
+  return {
+    onTodoClick: id =&gt; {
+      dispatch(toggleTodo(id))
+    }
+  }
+}
+
+const VisibleTodoList = connect(
+  makeMapStateToProps,
+  mapDispatchToProps
+)(TodoList)
+
+export default VisibleTodoList
+</pre> <h2 id="next-steps">Next Steps</h2> <p>Check out the <a href="https://github.com/reactjs/reselect" target="_blank">official documentation</a> of Reselect as well as its <a href="https://github.com/reactjs/reselect#faq" target="_blank">FAQ</a>. Most Redux projects start using Reselect when they have performance problems because of too many derived computations and wasted re-renders, so make sure you are familiar with it before you build something big. It can also be useful to study <a href="https://github.com/reactjs/reselect/blob/master/src/index.js" target="_blank">its source code</a> so you don't think it's magic.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/recipes/ComputingDerivedData.html" class="_attribution-link">http://redux.js.org/docs/recipes/ComputingDerivedData.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
