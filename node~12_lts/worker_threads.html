@@ -1,0 +1,375 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Worker_threads - Node.js 12 LTS - W3cubDocs</title>
+  
+  <meta name="description" content=" Source Code&#58; lib&#47;worker_threads.js ">
+  <meta name="keywords" content="worker, threads, node, js, lts, node~12_lts">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/node~12_lts/worker_threads.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/node~12_lts.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/node~12_lts/" class="_nav-link" title="" style="margin-left:0;">Node.js 12 LTS</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _node">
+				
+				
+<h1 id="worker_threads_worker_threads">Worker threads</h1> 
+<div class="api_stability api_stability_2">
+<a href="https://nodejs.org/dist/latest-v12.x/docs/api/documentation.html#documentation_stability_index">Stability: 2</a> - Stable</div>
+ <p><strong>Source Code:</strong> <a href="https://github.com/nodejs/node/blob/v12.19.0/lib/worker_threads.js">lib/worker_threads.js</a></p> <p>The <code>worker_threads</code> module enables the use of threads that execute JavaScript in parallel. To access it:</p> <pre data-language="js">const worker = require('worker_threads');</pre> <p>Workers (threads) are useful for performing CPU-intensive JavaScript operations. They will not help much with I/O-intensive work. Node.js’s built-in asynchronous I/O operations are more efficient than Workers can be.</p> <p>Unlike <code>child_process</code> or <code>cluster</code>, <code>worker_threads</code> can share memory. They do so by transferring <code>ArrayBuffer</code> instances or sharing <code>SharedArrayBuffer</code> instances.</p> <pre data-language="js">const {
+  Worker, isMainThread, parentPort, workerData
+} = require('worker_threads');
+
+if (isMainThread) {
+  module.exports = function parseJSAsync(script) {
+    return new Promise((resolve, reject) =&gt; {
+      const worker = new Worker(__filename, {
+        workerData: script
+      });
+      worker.on('message', resolve);
+      worker.on('error', reject);
+      worker.on('exit', (code) =&gt; {
+        if (code !== 0)
+          reject(new Error(`Worker stopped with exit code ${code}`));
+      });
+    });
+  };
+} else {
+  const { parse } = require('some-js-parsing-library');
+  const script = workerData;
+  parentPort.postMessage(parse(script));
+}</pre> <p>The above example spawns a Worker thread for each <code>parse()</code> call. In actual practice, use a pool of Workers instead for these kinds of tasks. Otherwise, the overhead of creating Workers would likely exceed their benefit.</p> <p>When implementing a worker pool, use the <a href="async_hooks#async_hooks_class_asyncresource"><code>AsyncResource</code></a> API to inform diagnostic tools (e.g. in order to provide asynchronous stack traces) about the correlation between tasks and their outcomes. See <a href="async_hooks#async-resource-worker-pool">"Using <code>AsyncResource</code> for a <code>Worker</code> thread pool"</a> in the <code>async_hooks</code> documentation for an example implementation.</p> <p>Worker threads inherit non-process-specific options by default. Refer to <a href="#worker_threads_new_worker_filename_options"><code>Worker constructor options</code></a> to know how to customize worker thread options, specifically <code>argv</code> and <code>execArgv</code> options.</p> <h2 id="worker_threads_worker_ismainthread"><code>worker.isMainThread</code></h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a></li> </ul> <p>Is <code>true</code> if this code is not running inside of a <a href="#worker_threads_class_worker"><code>Worker</code></a> thread.</p> <pre data-language="js">const { Worker, isMainThread } = require('worker_threads');
+
+if (isMainThread) {
+  // This re-loads the current file inside a Worker instance.
+  new Worker(__filename);
+} else {
+  console.log('Inside Worker!');
+  console.log(isMainThread);  // Prints 'false'.
+}</pre> <h2 id="worker_threads_worker_markasuntransferable_object"><code>worker.markAsUntransferable(object)</code></h2> <div class="api_metadata"> <span>Added in: v12.19.0</span> </div> <p>Mark an object as not transferable. If <code>object</code> occurs in the transfer list of a <a href="#worker_threads_port_postmessage_value_transferlist"><code>port.postMessage()</code></a> call, it will be ignored.</p> <p>In particular, this makes sense for objects that can be cloned, rather than transferred, and which are used by other objects on the sending side. For example, Node.js marks the <code>ArrayBuffer</code>s it uses for its <a href="buffer#buffer_static_method_buffer_allocunsafe_size"><code>Buffer</code> pool</a> with this.</p> <p>This operation cannot be undone.</p> <pre data-language="js">const { MessageChannel, markAsUntransferable } = require('worker_threads');
+
+const pooledBuffer = new ArrayBuffer(8);
+const typedArray1 = new Uint8Array(pooledBuffer);
+const typedArray2 = new Float64Array(pooledBuffer);
+
+markAsUntransferable(pooledBuffer);
+
+const { port1 } = new MessageChannel();
+port1.postMessage(typedArray1, [ typedArray1.buffer ]);
+
+// The following line prints the contents of typedArray1 -- it still owns its
+// memory and has been cloned, not transfered. Without `markAsUntransferable()`,
+// this would print an empty Uint8Array. typedArray2 is intact as well.
+console.log(typedArray1);
+console.log(typedArray2);</pre> <p>There is no equivalent to this API in browsers.</p> <h2 id="worker_threads_worker_movemessageporttocontext_port_contextifiedsandbox"><code>worker.moveMessagePortToContext(port, contextifiedSandbox)</code></h2> <div class="api_metadata"> <span>Added in: v11.13.0</span> </div> <ul> <li> <p><code>port</code> <a href="worker_threads#worker_threads_class_messageport" class="type">&lt;MessagePort&gt;</a> The message port which will be transferred.</p> </li> <li> <p><code>contextifiedSandbox</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> A <a href="vm#vm_what_does_it_mean_to_contextify_an_object">contextified</a> object as returned by the <code>vm.createContext()</code> method.</p> </li> <li> <p>Returns: <a href="worker_threads#worker_threads_class_messageport" class="type">&lt;MessagePort&gt;</a></p> </li> </ul> <p>Transfer a <code>MessagePort</code> to a different <a href="vm"><code>vm</code></a> Context. The original <code>port</code> object will be rendered unusable, and the returned <code>MessagePort</code> instance will take its place.</p> <p>The returned <code>MessagePort</code> will be an object in the target context, and will inherit from its global <code>Object</code> class. Objects passed to the <a href="https://developer.mozilla.org/en-US/docs/Web/API/MessagePort/onmessage"><code>port.onmessage()</code></a> listener will also be created in the target context and inherit from its global <code>Object</code> class.</p> <p>However, the created <code>MessagePort</code> will no longer inherit from <a href="events"><code>EventEmitter</code></a>, and only <a href="https://developer.mozilla.org/en-US/docs/Web/API/MessagePort/onmessage"><code>port.onmessage()</code></a> can be used to receive events using it.</p> <h2 id="worker_threads_worker_parentport"><code>worker.parentPort</code></h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="worker_threads#worker_threads_class_messageport" class="type">&lt;MessagePort&gt;</a>
+</li> </ul> <p>If this thread was spawned as a <a href="#worker_threads_class_worker"><code>Worker</code></a>, this will be a <a href="#worker_threads_class_messageport"><code>MessagePort</code></a> allowing communication with the parent thread. Messages sent using <code>parentPort.postMessage()</code> will be available in the parent thread using <code>worker.on('message')</code>, and messages sent from the parent thread using <code>worker.postMessage()</code> will be available in this thread using <code>parentPort.on('message')</code>.</p> <pre data-language="js">const { Worker, isMainThread, parentPort } = require('worker_threads');
+
+if (isMainThread) {
+  const worker = new Worker(__filename);
+  worker.once('message', (message) =&gt; {
+    console.log(message);  // Prints 'Hello, world!'.
+  });
+  worker.postMessage('Hello, world!');
+} else {
+  // When a message from the parent thread is received, send it back:
+  parentPort.once('message', (message) =&gt; {
+    parentPort.postMessage(message);
+  });
+}</pre> <h2 id="worker_threads_worker_receivemessageonport_port"><code>worker.receiveMessageOnPort(port)</code></h2> <div class="api_metadata"> <span>Added in: v12.3.0</span> </div> <ul> <li> <p><code>port</code> <a href="worker_threads#worker_threads_class_messageport" class="type">&lt;MessagePort&gt;</a></p> </li> <li> <p>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a></p> </li> </ul> <p>Receive a single message from a given <code>MessagePort</code>. If no message is available, <code>undefined</code> is returned, otherwise an object with a single <code>message</code> property that contains the message payload, corresponding to the oldest message in the <code>MessagePort</code>’s queue.</p> <pre data-language="js">const { MessageChannel, receiveMessageOnPort } = require('worker_threads');
+const { port1, port2 } = new MessageChannel();
+port1.postMessage({ hello: 'world' });
+
+console.log(receiveMessageOnPort(port2));
+// Prints: { message: { hello: 'world' } }
+console.log(receiveMessageOnPort(port2));
+// Prints: undefined</pre> <p>When this function is used, no <code>'message'</code> event will be emitted and the <code>onmessage</code> listener will not be invoked.</p> <h2 id="worker_threads_worker_resourcelimits"><code>worker.resourceLimits</code></h2> <div class="api_metadata"> <span>Added in: v12.16.0</span> </div> <ul> <li> <p><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a></p> <ul> <li>
+<code>maxYoungGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>maxOldGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>codeRangeSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>stackSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> </ul> </li> </ul> <p>Provides the set of JS engine resource constraints inside this Worker thread. If the <code>resourceLimits</code> option was passed to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, this matches its values.</p> <p>If this is used in the main thread, its value is an empty object.</p> <h2 id="worker_threads_worker_share_env"><code>worker.SHARE_ENV</code></h2> <div class="api_metadata"> <span>Added in: v11.14.0</span> </div> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Symbol_type" class="type">&lt;symbol&gt;</a></li> </ul> <p>A special value that can be passed as the <code>env</code> option of the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, to indicate that the current thread and the Worker thread should share read and write access to the same set of environment variables.</p> <pre data-language="js">const { Worker, SHARE_ENV } = require('worker_threads');
+new Worker('process.env.SET_IN_WORKER = "foo"', { eval: true, env: SHARE_ENV })
+  .on('exit', () =&gt; {
+    console.log(process.env.SET_IN_WORKER);  // Prints 'foo'.
+  });</pre> <h2 id="worker_threads_worker_threadid"><code>worker.threadId</code></h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;integer&gt;</a></li> </ul> <p>An integer identifier for the current thread. On the corresponding worker object (if there is any), it is available as <a href="#worker_threads_worker_threadid_1"><code>worker.threadId</code></a>. This value is unique for each <a href="#worker_threads_class_worker"><code>Worker</code></a> instance inside a single process.</p> <h2 id="worker_threads_worker_workerdata"><code>worker.workerData</code></h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>An arbitrary JavaScript value that contains a clone of the data passed to this thread’s <code>Worker</code> constructor.</p> <p>The data is cloned as if using <a href="#worker_threads_port_postmessage_value_transferlist"><code>postMessage()</code></a>, according to the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm">HTML structured clone algorithm</a>.</p> <pre data-language="js">const { Worker, isMainThread, workerData } = require('worker_threads');
+
+if (isMainThread) {
+  const worker = new Worker(__filename, { workerData: 'Hello, world!' });
+} else {
+  console.log(workerData);  // Prints 'Hello, world!'.
+}</pre> <h2 id="worker_threads_class_messagechannel">Class: <code>MessageChannel</code>
+</h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Instances of the <code>worker.MessageChannel</code> class represent an asynchronous, two-way communications channel. The <code>MessageChannel</code> has no methods of its own. <code>new MessageChannel()</code> yields an object with <code>port1</code> and <code>port2</code> properties, which refer to linked <a href="#worker_threads_class_messageport"><code>MessagePort</code></a> instances.</p> <pre data-language="js">const { MessageChannel } = require('worker_threads');
+
+const { port1, port2 } = new MessageChannel();
+port1.on('message', (message) =&gt; console.log('received', message));
+port2.postMessage({ foo: 'bar' });
+// Prints: received { foo: 'bar' } from the `port1.on('message')` listener</pre> <h2 id="worker_threads_class_messageport">Class: <code>MessagePort</code>
+</h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>Extends: <a href="events#events_class_eventemitter" class="type">&lt;EventEmitter&gt;</a>
+</li> </ul> <p>Instances of the <code>worker.MessagePort</code> class represent one end of an asynchronous, two-way communications channel. It can be used to transfer structured data, memory regions and other <code>MessagePort</code>s between different <a href="#worker_threads_class_worker"><code>Worker</code></a>s.</p> <p>With the exception of <code>MessagePort</code>s being <a href="events"><code>EventEmitter</code></a>s rather than <a href="https://developer.mozilla.org/en-US/docs/Web/API/EventTarget"><code>EventTarget</code></a>s, this implementation matches <a href="https://developer.mozilla.org/en-US/docs/Web/API/MessagePort">browser <code>MessagePort</code></a>s.</p> <h3 id="worker_threads_event_close">Event: <code>'close'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>The <code>'close'</code> event is emitted once either side of the channel has been disconnected.</p> <pre data-language="js">const { MessageChannel } = require('worker_threads');
+const { port1, port2 } = new MessageChannel();
+
+// Prints:
+//   foobar
+//   closed!
+port2.on('message', (message) =&gt; console.log(message));
+port2.on('close', () =&gt; console.log('closed!'));
+
+port1.postMessage('foobar');
+port1.close();</pre> <h3 id="worker_threads_event_message">Event: <code>'message'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<code>value</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any&gt;</a> The transmitted value</li> </ul> <p>The <code>'message'</code> event is emitted for any incoming message, containing the cloned input of <a href="#worker_threads_port_postmessage_value_transferlist"><code>port.postMessage()</code></a>.</p> <p>Listeners on this event will receive a clone of the <code>value</code> parameter as passed to <code>postMessage()</code> and no further arguments.</p> <h3 id="worker_threads_event_messageerror">Event: <code>'messageerror'</code>
+</h3> <div class="api_metadata"> <span>Added in: v12.19.0</span> </div> <ul> <li>
+<code>error</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error" class="type">&lt;Error&gt;</a> An Error object</li> </ul> <p>The <code>'messageerror'</code> event is emitted when deserializing a message failed.</p> <h3 id="worker_threads_port_close"><code>port.close()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Disables further sending of messages on either side of the connection. This method can be called when no further communication will happen over this <code>MessagePort</code>.</p> <p>The <a href="#worker_threads_event_close"><code>'close'</code> event</a> will be emitted on both <code>MessagePort</code> instances that are part of the channel.</p> <h3 id="worker_threads_port_postmessage_value_transferlist"><code>port.postMessage(value[, transferList])</code></h3> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v12.19.0</td> <td><p>Added <code>KeyObject</code> to the list of cloneable types.</p></td>
+</tr> <tr>
+<td>v12.19.0</td> <td><p>Added <code>FileHandle</code> to the list of transferable types.</p></td>
+</tr> <tr>
+<td>v10.5.0</td> <td><p><span>Added in: v10.5.0</span></p></td>
+</tr> </tbody>
+</table> </details> </div> <ul> <li>
+<code>value</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any&gt;</a>
+</li> <li>
+<code>transferList</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object[]&gt;</a>
+</li> </ul> <p>Sends a JavaScript value to the receiving side of this channel. <code>value</code> will be transferred in a way which is compatible with the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm">HTML structured clone algorithm</a>.</p> <p>In particular, the significant differences to <code>JSON</code> are:</p> <ul> <li>
+<code>value</code> may contain circular references.</li> <li>
+<code>value</code> may contain instances of builtin JS types such as <code>RegExp</code>s, <code>BigInt</code>s, <code>Map</code>s, <code>Set</code>s, etc.</li> <li>
+<code>value</code> may contain typed arrays, both using <code>ArrayBuffer</code>s and <code>SharedArrayBuffer</code>s.</li> <li>
+<code>value</code> may contain <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module"><code>WebAssembly.Module</code></a> instances.</li> <li>
+<code>value</code> may not contain native (C++-backed) objects other than <code>MessagePort</code>s, <a href="fs#fs_class_filehandle"><code>FileHandle</code></a>s, and <a href="crypto#crypto_class_keyobject"><code>KeyObject</code></a>s.</li> </ul> <pre data-language="js">const { MessageChannel } = require('worker_threads');
+const { port1, port2 } = new MessageChannel();
+
+port1.on('message', (message) =&gt; console.log(message));
+
+const circularData = {};
+circularData.foo = circularData;
+// Prints: { foo: [Circular] }
+port2.postMessage(circularData);</pre> <p><code>transferList</code> may be a list of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer"><code>ArrayBuffer</code></a>, <a href="#worker_threads_class_messageport"><code>MessagePort</code></a> and <a href="fs#fs_class_filehandle"><code>FileHandle</code></a> objects. After transferring, they will not be usable on the sending side of the channel anymore (even if they are not contained in <code>value</code>). Unlike with <a href="child_process">child processes</a>, transferring handles such as network sockets is currently not supported.</p> <p>If <code>value</code> contains <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer"><code>SharedArrayBuffer</code></a> instances, those will be accessible from either thread. They cannot be listed in <code>transferList</code>.</p> <p><code>value</code> may still contain <code>ArrayBuffer</code> instances that are not in <code>transferList</code>; in that case, the underlying memory is copied rather than moved.</p> <pre data-language="js">const { MessageChannel } = require('worker_threads');
+const { port1, port2 } = new MessageChannel();
+
+port1.on('message', (message) =&gt; console.log(message));
+
+const uint8Array = new Uint8Array([ 1, 2, 3, 4 ]);
+// This posts a copy of `uint8Array`:
+port2.postMessage(uint8Array);
+// This does not copy data, but renders `uint8Array` unusable:
+port2.postMessage(uint8Array, [ uint8Array.buffer ]);
+
+// The memory for the `sharedUint8Array` will be accessible from both the
+// original and the copy received by `.on('message')`:
+const sharedUint8Array = new Uint8Array(new SharedArrayBuffer(4));
+port2.postMessage(sharedUint8Array);
+
+// This transfers a freshly created message port to the receiver.
+// This can be used, for example, to create communication channels between
+// multiple `Worker` threads that are children of the same parent thread.
+const otherChannel = new MessageChannel();
+port2.postMessage({ port: otherChannel.port1 }, [ otherChannel.port1 ]);</pre> <p>Because the object cloning uses the structured clone algorithm, non-enumerable properties, property accessors, and object prototypes are not preserved. In particular, <a href="buffer"><code>Buffer</code></a> objects will be read as plain <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array"><code>Uint8Array</code></a>s on the receiving side.</p> <p>The message object will be cloned immediately, and can be modified after posting without having side effects.</p> <p>For more information on the serialization and deserialization mechanisms behind this API, see the <a href="v8#v8_serialization_api">serialization API of the <code>v8</code> module</a>.</p> <h4 id="worker_threads_considerations_when_transferring_typedarrays_and_buffers">Considerations when transferring TypedArrays and Buffers</h4> <p>All <code>TypedArray</code> and <code>Buffer</code> instances are views over an underlying <code>ArrayBuffer</code>. That is, it is the <code>ArrayBuffer</code> that actually stores the raw data while the <code>TypedArray</code> and <code>Buffer</code> objects provide a way of viewing and manipulating the data. It is possible and common for multiple views to be created over the same <code>ArrayBuffer</code> instance. Great care must be taken when using a transfer list to transfer an <code>ArrayBuffer</code> as doing so will cause all <code>TypedArray</code> and <code>Buffer</code> instances that share that same <code>ArrayBuffer</code> to become unusable.</p> <pre data-language="js">const ab = new ArrayBuffer(10);
+
+const u1 = new Uint8Array(ab);
+const u2 = new Uint16Array(ab);
+
+console.log(u2.length);  // prints 5
+
+port.postMessage(u1, [u1.buffer]);
+
+console.log(u2.length);  // prints 0</pre> <p>For <code>Buffer</code> instances, specifically, whether the underlying <code>ArrayBuffer</code> can be transferred or cloned depends entirely on how instances were created, which often cannot be reliably determined.</p> <p>An <code>ArrayBuffer</code> can be marked with <a href="#worker_threads_worker_markasuntransferable_object"><code>markAsUntransferable()</code></a> to indicate that it should always be cloned and never transferred.</p> <p>Depending on how a <code>Buffer</code> instance was created, it may or may not own its underlying <code>ArrayBuffer</code>. An <code>ArrayBuffer</code> must not be transferred unless it is known that the <code>Buffer</code> instance owns it. In particular, for <code>Buffer</code>s created from the internal <code>Buffer</code> pool (using, for instance <code>Buffer.from()</code> or <code>Buffer.alloc()</code>), transferring them is not possible and they will always be cloned, which sends a copy of the entire <code>Buffer</code> pool. This behavior may come with unintended higher memory usage and possible security concerns.</p> <p>See <a href="buffer#buffer_static_method_buffer_allocunsafe_size"><code>Buffer.allocUnsafe()</code></a> for more details on <code>Buffer</code> pooling.</p> <p>The <code>ArrayBuffer</code>s for <code>Buffer</code> instances created using <code>Buffer.alloc()</code> or <code>Buffer.allocUnsafeSlow()</code> can always be transferred but doing so will render all other existing views of those <code>ArrayBuffer</code>s unusable.</p> <h3 id="worker_threads_port_ref"><code>port.ref()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Opposite of <code>unref()</code>. Calling <code>ref()</code> on a previously <code>unref()</code>ed port will <em>not</em> let the program exit if it's the only active handle left (the default behavior). If the port is <code>ref()</code>ed, calling <code>ref()</code> again will have no effect.</p> <p>If listeners are attached or removed using <code>.on('message')</code>, the port will be <code>ref()</code>ed and <code>unref()</code>ed automatically depending on whether listeners for the event exist.</p> <h3 id="worker_threads_port_start"><code>port.start()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Starts receiving messages on this <code>MessagePort</code>. When using this port as an event emitter, this will be called automatically once <code>'message'</code> listeners are attached.</p> <p>This method exists for parity with the Web <code>MessagePort</code> API. In Node.js, it is only useful for ignoring messages when no event listener is present. Node.js also diverges in its handling of <code>.onmessage</code>. Setting it will automatically call <code>.start()</code>, but unsetting it will let messages queue up until a new handler is set or the port is discarded.</p> <h3 id="worker_threads_port_unref"><code>port.unref()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Calling <code>unref()</code> on a port will allow the thread to exit if this is the only active handle in the event system. If the port is already <code>unref()</code>ed calling <code>unref()</code> again will have no effect.</p> <p>If listeners are attached or removed using <code>.on('message')</code>, the port will be <code>ref()</code>ed and <code>unref()</code>ed automatically depending on whether listeners for the event exist.</p> <h2 id="worker_threads_class_worker">Class: <code>Worker</code>
+</h2> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>Extends: <a href="events#events_class_eventemitter" class="type">&lt;EventEmitter&gt;</a>
+</li> </ul> <p>The <code>Worker</code> class represents an independent JavaScript execution thread. Most Node.js APIs are available inside of it.</p> <p>Notable differences inside a Worker environment are:</p> <ul> <li>The <a href="process#process_process_stdin"><code>process.stdin</code></a>, <a href="process#process_process_stdout"><code>process.stdout</code></a> and <a href="process#process_process_stderr"><code>process.stderr</code></a> may be redirected by the parent thread.</li> <li>The <a href="#worker_threads_worker_ismainthread"><code>require('worker_threads').isMainThread</code></a> property is set to <code>false</code>.</li> <li>The <a href="#worker_threads_worker_parentport"><code>require('worker_threads').parentPort</code></a> message port is available.</li> <li>
+<a href="process#process_process_exit_code"><code>process.exit()</code></a> does not stop the whole program, just the single thread, and <a href="process#process_process_abort"><code>process.abort()</code></a> is not available.</li> <li>
+<a href="process#process_process_chdir_directory"><code>process.chdir()</code></a> and <code>process</code> methods that set group or user ids are not available.</li> <li>
+<a href="process#process_process_env"><code>process.env</code></a> is a copy of the parent thread's environment variables, unless otherwise specified. Changes to one copy will not be visible in other threads, and will not be visible to native add-ons (unless <a href="#worker_threads_worker_share_env"><code>worker.SHARE_ENV</code></a> has been passed as the <code>env</code> option to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor).</li> <li>
+<a href="process#process_process_title"><code>process.title</code></a> cannot be modified.</li> <li>Signals will not be delivered through <a href="process#process_signal_events"><code>process.on('...')</code></a>.</li> <li>Execution may stop at any point as a result of <a href="#worker_threads_worker_terminate"><code>worker.terminate()</code></a> being invoked.</li> <li>IPC channels from parent processes are not accessible.</li> <li>The <a href="tracing"><code>trace_events</code></a> module is not supported.</li> <li>Native add-ons can only be loaded from multiple threads if they fulfill <a href="addons#addons_worker_support">certain conditions</a>.</li> </ul> <p>Creating <code>Worker</code> instances inside of other <code>Worker</code>s is possible.</p> <p>Like <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API">Web Workers</a> and the <a href="cluster"><code>cluster</code> module</a>, two-way communication can be achieved through inter-thread message passing. Internally, a <code>Worker</code> has a built-in pair of <a href="#worker_threads_class_messageport"><code>MessagePort</code></a>s that are already associated with each other when the <code>Worker</code> is created. While the <code>MessagePort</code> object on the parent side is not directly exposed, its functionalities are exposed through <a href="#worker_threads_worker_postmessage_value_transferlist"><code>worker.postMessage()</code></a> and the <a href="#worker_threads_event_message_1"><code>worker.on('message')</code></a> event on the <code>Worker</code> object for the parent thread.</p> <p>To create custom messaging channels (which is encouraged over using the default global channel because it facilitates separation of concerns), users can create a <code>MessageChannel</code> object on either thread and pass one of the <code>MessagePort</code>s on that <code>MessageChannel</code> to the other thread through a pre-existing channel, such as the global one.</p> <p>See <a href="#worker_threads_port_postmessage_value_transferlist"><code>port.postMessage()</code></a> for more information on how messages are passed, and what kind of JavaScript values can be successfully transported through the thread barrier.</p> <pre data-language="js">const assert = require('assert');
+const {
+  Worker, MessageChannel, MessagePort, isMainThread, parentPort
+} = require('worker_threads');
+if (isMainThread) {
+  const worker = new Worker(__filename);
+  const subChannel = new MessageChannel();
+  worker.postMessage({ hereIsYourPort: subChannel.port1 }, [subChannel.port1]);
+  subChannel.port2.on('message', (value) =&gt; {
+    console.log('received:', value);
+  });
+} else {
+  parentPort.once('message', (value) =&gt; {
+    assert(value.hereIsYourPort instanceof MessagePort);
+    value.hereIsYourPort.postMessage('the worker is sending this');
+    value.hereIsYourPort.close();
+  });
+}</pre> <h3 id="worker_threads_new_worker_filename_options"><code>new Worker(filename[, options])</code></h3> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v12.19.0</td> <td><p>The <code>trackUnmanagedFds</code> option was introduced.</p></td>
+</tr> <tr>
+<td>v12.17.0</td> <td><p>The <code>transferList</code> option was introduced.</p></td>
+</tr> <tr>
+<td>v12.17.0</td> <td><p>The <code>filename</code> parameter can be a WHATWG <code>URL</code> object using <code>file:</code> protocol.</p></td>
+</tr> <tr>
+<td>v12.16.0</td> <td><p>The <code>resourceLimits</code> option was introduced.</p></td>
+</tr> <tr>
+<td>v12.16.0</td> <td><p>The <code>argv</code> option was introduced.</p></td>
+</tr> <tr>
+<td>v10.5.0</td> <td><p><span>Added in: v10.5.0</span></p></td>
+</tr> </tbody>
+</table> </details> </div> <ul> <li>
+<code>filename</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="url#url_the_whatwg_url_api" class="type">&lt;URL&gt;</a> The path to the Worker’s main script or module. Must be either an absolute path or a relative path (i.e. relative to the current working directory) starting with <code>./</code> or <code>../</code>, or a WHATWG <code>URL</code> object using <code>file:</code> protocol. If <code>options.eval</code> is <code>true</code>, this is a string containing JavaScript code rather than a path.</li> <li> <p><code>options</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a></p> <ul> <li>
+<code>argv</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any[]&gt;</a> List of arguments which would be stringified and appended to <code>process.argv</code> in the worker. This is mostly similar to the <code>workerData</code> but the values will be available on the global <code>process.argv</code> as if they were passed as CLI options to the script.</li> <li>
+<code>env</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> If set, specifies the initial value of <code>process.env</code> inside the Worker thread. As a special value, <a href="#worker_threads_worker_share_env"><code>worker.SHARE_ENV</code></a> may be used to specify that the parent thread and the child thread should share their environment variables; in that case, changes to one thread’s <code>process.env</code> object will affect the other thread as well. <strong>Default:</strong> <code>process.env</code>.</li> <li>
+<code>eval</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> If <code>true</code> and the first argument is a <code>string</code>, interpret the first argument to the constructor as a script that is executed once the worker is online.</li> <li>
+<code>execArgv</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string[]&gt;</a> List of node CLI options passed to the worker. V8 options (such as <code>--max-old-space-size</code>) and options that affect the process (such as <code>--title</code>) are not supported. If set, this will be provided as <a href="process#process_process_execargv"><code>process.execArgv</code></a> inside the worker. By default, options will be inherited from the parent thread.</li> <li>
+<code>stdin</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> If this is set to <code>true</code>, then <code>worker.stdin</code> will provide a writable stream whose contents will appear as <code>process.stdin</code> inside the Worker. By default, no data is provided.</li> <li>
+<code>stdout</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> If this is set to <code>true</code>, then <code>worker.stdout</code> will not automatically be piped through to <code>process.stdout</code> in the parent.</li> <li>
+<code>stderr</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> If this is set to <code>true</code>, then <code>worker.stderr</code> will not automatically be piped through to <code>process.stderr</code> in the parent.</li> <li>
+<code>workerData</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any&gt;</a> Any JavaScript value that will be cloned and made available as <a href="#worker_threads_worker_workerdata"><code>require('worker_threads').workerData</code></a>. The cloning will occur as described in the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm">HTML structured clone algorithm</a>, and an error will be thrown if the object cannot be cloned (e.g. because it contains <code>function</code>s).</li> <li>
+<code>trackUnmanagedFds</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> If this is set to <code>true</code>, then the Worker will track raw file descriptors managed through <a href="fs#fs_fs_open_path_flags_mode_callback"><code>fs.open()</code></a> and <a href="fs#fs_fs_close_fd_callback"><code>fs.close()</code></a>, and close them when the Worker exits, similar to other resources like network sockets or file descriptors managed through the <a href="fs#fs_class_filehandle"><code>FileHandle</code></a> API. This option is automatically inherited by all nested <code>Worker</code>s. <strong>Default</strong>: <code>false</code>.</li> <li>
+<code>transferList</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object[]&gt;</a> If one or more <code>MessagePort</code>-like objects are passed in <code>workerData</code>, a <code>transferList</code> is required for those items or <a href="errors#errors_err_missing_message_port_in_transfer_list"><code>ERR_MISSING_MESSAGE_PORT_IN_TRANSFER_LIST</code></a> will be thrown. See <a href="#worker_threads_port_postmessage_value_transferlist"><code>port.postMessage()</code></a> for more information.</li> <li> <p><code>resourceLimits</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> An optional set of resource limits for the new JS engine instance. Reaching these limits will lead to termination of the <code>Worker</code> instance. These limits only affect the JS engine, and no external data, including no <code>ArrayBuffer</code>s. Even if these limits are set, the process may still abort if it encounters a global out-of-memory situation.</p> <ul> <li>
+<code>maxOldGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a> The maximum size of the main heap in MB.</li> <li>
+<code>maxYoungGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a> The maximum size of a heap space for recently created objects.</li> <li>
+<code>codeRangeSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a> The size of a pre-allocated memory range used for generated code.</li> <li>
+<code>stackSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a> The default maximum stack size for the thread. Small values may lead to unusable Worker instances. <strong>Default:</strong> <code>4</code>.</li> </ul> </li> </ul> </li> </ul> <h3 id="worker_threads_event_error">Event: <code>'error'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<code>err</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error" class="type">&lt;Error&gt;</a>
+</li> </ul> <p>The <code>'error'</code> event is emitted if the worker thread throws an uncaught exception. In that case, the worker will be terminated.</p> <h3 id="worker_threads_event_exit">Event: <code>'exit'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<code>exitCode</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;integer&gt;</a>
+</li> </ul> <p>The <code>'exit'</code> event is emitted once the worker has stopped. If the worker exited by calling <a href="process#process_process_exit_code"><code>process.exit()</code></a>, the <code>exitCode</code> parameter will be the passed exit code. If the worker was terminated, the <code>exitCode</code> parameter will be <code>1</code>.</p> <p>This is the final event emitted by any <code>Worker</code> instance.</p> <h3 id="worker_threads_event_message_1">Event: <code>'message'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<code>value</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any&gt;</a> The transmitted value</li> </ul> <p>The <code>'message'</code> event is emitted when the worker thread has invoked <a href="#worker_threads_worker_postmessage_value_transferlist"><code>require('worker_threads').parentPort.postMessage()</code></a>. See the <a href="#worker_threads_event_message"><code>port.on('message')</code></a> event for more details.</p> <p>All messages sent from the worker thread will be emitted before the <a href="#worker_threads_event_exit"><code>'exit'</code> event</a> is emitted on the <code>Worker</code> object.</p> <h3 id="worker_threads_event_messageerror_1">Event: <code>'messageerror'</code>
+</h3> <div class="api_metadata"> <span>Added in: v12.19.0</span> </div> <ul> <li>
+<code>error</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error" class="type">&lt;Error&gt;</a> An Error object</li> </ul> <p>The <code>'messageerror'</code> event is emitted when deserializing a message failed.</p> <h3 id="worker_threads_event_online">Event: <code>'online'</code>
+</h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>The <code>'online'</code> event is emitted when the worker thread has started executing JavaScript code.</p> <h3 id="worker_threads_worker_getheapsnapshot"><code>worker.getHeapSnapshot()</code></h3> <div class="api_metadata"> <span>Added in: v12.17.0</span> </div> <ul> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" class="type">&lt;Promise&gt;</a> A promise for a Readable Stream containing a V8 heap snapshot</li> </ul> <p>Returns a readable stream for a V8 snapshot of the current state of the Worker. See <a href="v8#v8_v8_getheapsnapshot"><code>v8.getHeapSnapshot()</code></a> for more details.</p> <p>If the Worker thread is no longer running, which may occur before the <a href="#worker_threads_event_exit"><code>'exit'</code> event</a> is emitted, the returned <code>Promise</code> will be rejected immediately with an <a href="errors#ERR_WORKER_NOT_RUNNING"><code>ERR_WORKER_NOT_RUNNING</code></a> error.</p> <h3 id="worker_threads_worker_postmessage_value_transferlist"><code>worker.postMessage(value[, transferList])</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<code>value</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Data_types" class="type">&lt;any&gt;</a>
+</li> <li>
+<code>transferList</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object[]&gt;</a>
+</li> </ul> <p>Send a message to the worker that will be received via <a href="#worker_threads_event_message"><code>require('worker_threads').parentPort.on('message')</code></a>. See <a href="#worker_threads_port_postmessage_value_transferlist"><code>port.postMessage()</code></a> for more details.</p> <h3 id="worker_threads_worker_ref"><code>worker.ref()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Opposite of <code>unref()</code>, calling <code>ref()</code> on a previously <code>unref()</code>ed worker will <em>not</em> let the program exit if it's the only active handle left (the default behavior). If the worker is <code>ref()</code>ed, calling <code>ref()</code> again will have no effect.</p> <h3 id="worker_threads_worker_resourcelimits_1"><code>worker.resourceLimits</code></h3> <div class="api_metadata"> <span>Added in: v12.16.0</span> </div> <ul> <li> <p><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a></p> <ul> <li>
+<code>maxYoungGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>maxOldGenerationSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>codeRangeSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> <li>
+<code>stackSizeMb</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a>
+</li> </ul> </li> </ul> <p>Provides the set of JS engine resource constraints for this Worker thread. If the <code>resourceLimits</code> option was passed to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, this matches its values.</p> <p>If the worker has stopped, the return value is an empty object.</p> <h3 id="worker_threads_worker_stderr"><code>worker.stderr</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li><a href="stream#stream_class_stream_readable" class="type">&lt;stream.Readable&gt;</a></li> </ul> <p>This is a readable stream which contains data written to <a href="process#process_process_stderr"><code>process.stderr</code></a> inside the worker thread. If <code>stderr: true</code> was not passed to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, then data will be piped to the parent thread's <a href="process#process_process_stderr"><code>process.stderr</code></a> stream.</p> <h3 id="worker_threads_worker_stdin"><code>worker.stdin</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li>
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="stream#stream_class_stream_writable" class="type">&lt;stream.Writable&gt;</a>
+</li> </ul> <p>If <code>stdin: true</code> was passed to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, this is a writable stream. The data written to this stream will be made available in the worker thread as <a href="process#process_process_stdin"><code>process.stdin</code></a>.</p> <h3 id="worker_threads_worker_stdout"><code>worker.stdout</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li><a href="stream#stream_class_stream_readable" class="type">&lt;stream.Readable&gt;</a></li> </ul> <p>This is a readable stream which contains data written to <a href="process#process_process_stdout"><code>process.stdout</code></a> inside the worker thread. If <code>stdout: true</code> was not passed to the <a href="#worker_threads_class_worker"><code>Worker</code></a> constructor, then data will be piped to the parent thread's <a href="process#process_process_stdout"><code>process.stdout</code></a> stream.</p> <h3 id="worker_threads_worker_terminate"><code>worker.terminate()</code></h3> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v12.5.0</td> <td><p>This function now returns a Promise. Passing a callback is deprecated, and was useless up to this version, as the Worker was actually terminated synchronously. Terminating is now a fully asynchronous operation.</p></td>
+</tr> <tr>
+<td>v10.5.0</td> <td><p><span>Added in: v10.5.0</span></p></td>
+</tr> </tbody>
+</table> </details> </div> <ul> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" class="type">&lt;Promise&gt;</a>
+</li> </ul> <p>Stop all JavaScript execution in the worker thread as soon as possible. Returns a Promise for the exit code that is fulfilled when the <a href="#worker_threads_event_exit"><code>'exit'</code> event</a> is emitted.</p> <h3 id="worker_threads_worker_threadid_1"><code>worker.threadId</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;integer&gt;</a></li> </ul> <p>An integer identifier for the referenced thread. Inside the worker thread, it is available as <a href="#worker_threads_worker_threadid"><code>require('worker_threads').threadId</code></a>. This value is unique for each <code>Worker</code> instance inside a single process.</p> <h3 id="worker_threads_worker_unref"><code>worker.unref()</code></h3> <div class="api_metadata"> <span>Added in: v10.5.0</span> </div> <p>Calling <code>unref()</code> on a worker will allow the thread to exit if this is the only active handle in the event system. If the worker is already <code>unref()</code>ed calling <code>unref()</code> again will have no effect.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © Joyent, Inc. and other Node contributors<br>Licensed under the MIT License.<br>Node.js is a trademark of Joyent, Inc. and is used with its permission.<br>We are not endorsed by or affiliated with Joyent.<br>
+    <a href="https://nodejs.org/dist/latest-v12.x/docs/api/worker_threads.html" class="_attribution-link">https://nodejs.org/dist/latest-v12.x/docs/api/worker_threads.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
