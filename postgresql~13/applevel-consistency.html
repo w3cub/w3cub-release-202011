@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Data Consistency Checks at the Application Level - PostgreSQL 13 - W3cubDocs</title>
+  
+  <meta name="description" content="It is very difficult to enforce business rules regarding data integrity using Read Committed transactions because the view of the data is shifting &hellip;">
+  <meta name="keywords" content="data, consistency, checks, at, application, level, postgresql, postgresql~13">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~13/applevel-consistency.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/postgresql~13.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~13/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 13</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>13.4. Data Consistency Checks at the Application Level</h1>    <div class="toc"> <dl class="toc"> <dt><a href="applevel-consistency#SERIALIZABLE-CONSISTENCY">13.4.1. Enforcing Consistency with Serializable Transactions</a></dt> <dt><a href="applevel-consistency#NON-SERIALIZABLE-CONSISTENCY">13.4.2. Enforcing Consistency with Explicit Blocking Locks</a></dt> </dl> </div> <p>It is very difficult to enforce business rules regarding data integrity using Read Committed transactions because the view of the data is shifting with each statement, and even a single statement may not restrict itself to the statement's snapshot if a write conflict occurs.</p> <p>While a Repeatable Read transaction has a stable view of the data throughout its execution, there is a subtle issue with using MVCC snapshots for data consistency checks, involving something known as <em class="firstterm">read/write conflicts</em>. If one transaction writes data and a concurrent transaction attempts to read the same data (whether before or after the write), it cannot see the work of the other transaction. The reader then appears to have executed first regardless of which started first or which committed first. If that is as far as it goes, there is no problem, but if the reader also writes data which is read by a concurrent transaction there is now a transaction which appears to have run before either of the previously mentioned transactions. If the transaction which appears to have executed last actually commits first, it is very easy for a cycle to appear in a graph of the order of execution of the transactions. When such a cycle appears, integrity checks will not work correctly without some help.</p> <p>As mentioned in <a class="xref" href="transaction-iso#XACT-SERIALIZABLE" title="13.2.3. Serializable Isolation Level">Section 13.2.3</a>, Serializable transactions are just Repeatable Read transactions which add nonblocking monitoring for dangerous patterns of read/write conflicts. When a pattern is detected which could cause a cycle in the apparent order of execution, one of the transactions involved is rolled back to break the cycle.</p> <div class="sect2" id="SERIALIZABLE-CONSISTENCY">    <h2 class="title">13.4.1. Enforcing Consistency with Serializable Transactions</h2>    <p>If the Serializable transaction isolation level is used for all writes and for all reads which need a consistent view of the data, no other effort is required to ensure consistency. Software from other environments which is written to use serializable transactions to ensure consistency should <span class="quote">“<span class="quote">just work</span>”</span> in this regard in PostgreSQL.</p> <p>When using this technique, it will avoid creating an unnecessary burden for application programmers if the application software goes through a framework which automatically retries transactions which are rolled back with a serialization failure. It may be a good idea to set <code class="literal">default_transaction_isolation</code> to <code class="literal">serializable</code>. It would also be wise to take some action to ensure that no other transaction isolation level is used, either inadvertently or to subvert integrity checks, through checks of the transaction isolation level in triggers.</p> <p>See <a class="xref" href="transaction-iso#XACT-SERIALIZABLE" title="13.2.3. Serializable Isolation Level">Section 13.2.3</a> for performance suggestions.</p> <div class="warning"> <h3 class="title">Warning</h3> <p>This level of integrity protection using Serializable transactions does not yet extend to hot standby mode (<a class="xref" href="hot-standby" title="26.5. Hot Standby">Section 26.5</a>). Because of that, those using hot standby may want to use Repeatable Read and explicit locking on the master.</p> </div> </div> <div class="sect2" id="NON-SERIALIZABLE-CONSISTENCY">    <h2 class="title">13.4.2. Enforcing Consistency with Explicit Blocking Locks</h2>    <p>When non-serializable writes are possible, to ensure the current validity of a row and protect it against concurrent updates one must use <code class="command">SELECT FOR UPDATE</code>, <code class="command">SELECT FOR SHARE</code>, or an appropriate <code class="command">LOCK TABLE</code> statement. (<code class="command">SELECT FOR UPDATE</code> and <code class="command">SELECT FOR SHARE</code> lock just the returned rows against concurrent updates, while <code class="command">LOCK TABLE</code> locks the whole table.) This should be taken into account when porting applications to PostgreSQL from other environments.</p> <p>Also of note to those converting from other environments is the fact that <code class="command">SELECT FOR UPDATE</code> does not ensure that a concurrent transaction will not update or delete a selected row. To do that in PostgreSQL you must actually update the row, even if no values need to be changed. <code class="command">SELECT FOR UPDATE</code> <span class="emphasis"><em>temporarily blocks</em></span> other transactions from acquiring the same lock or executing an <code class="command">UPDATE</code> or <code class="command">DELETE</code> which would affect the locked row, but once the transaction holding this lock commits or rolls back, a blocked transaction will proceed with the conflicting operation unless an actual <code class="command">UPDATE</code> of the row was performed while the lock was held.</p> <p>Global validity checks require extra thought under non-serializable MVCC. For example, a banking application might wish to check that the sum of all credits in one table equals the sum of debits in another table, when both tables are being actively updated. Comparing the results of two successive <code class="literal">SELECT sum(...)</code> commands will not work reliably in Read Committed mode, since the second query will likely include the results of transactions not counted by the first. Doing the two sums in a single repeatable read transaction will give an accurate picture of only the effects of transactions that committed before the repeatable read transaction started — but one might legitimately wonder whether the answer is still relevant by the time it is delivered. If the repeatable read transaction itself applied some changes before trying to make the consistency check, the usefulness of the check becomes even more debatable, since now it includes some but not all post-transaction-start changes. In such cases a careful person might wish to lock all tables needed for the check, in order to get an indisputable picture of current reality. A <code class="literal">SHARE</code> mode (or higher) lock guarantees that there are no uncommitted changes in the locked table, other than those of the current transaction.</p> <p>Note also that if one is relying on explicit locking to prevent concurrent changes, one should either use Read Committed mode, or in Repeatable Read mode be careful to obtain locks before performing queries. A lock obtained by a repeatable read transaction guarantees that no other transactions modifying the table are still running, but if the snapshot seen by the transaction predates obtaining the lock, it might predate some now-committed changes in the table. A repeatable read transaction's snapshot is actually frozen at the start of its first query or data-modification command (<code class="literal">SELECT</code>, <code class="literal">INSERT</code>, <code class="literal">UPDATE</code>, or <code class="literal">DELETE</code>), so it is possible to obtain locks explicitly before the snapshot is frozen.</p> </div>  <div xmlns="http://www.w3.org/TR/xhtml1/transitional" class="navfooter">  <table summary="Navigation footer"> <tr> <td width="40%" align="left">
+<a accesskey="p" href="explicit-locking" title="13.3. Explicit Locking">Prev</a> </td> <td width="20%" align="center"><a accesskey="u" href="https://www.postgresql.org/docs/13/mvcc.html" title="Chapter 13. Concurrency Control">Up</a></td> <td width="40%" align="right"> <a accesskey="n" href="mvcc-caveats" title="13.5. Caveats">Next</a>
+</td> </tr> <tr> <td width="40%" align="left">13.3. Explicit Locking </td> <td width="20%" align="center"><a accesskey="h" href="https://www.postgresql.org/docs/13/index.html" title="PostgreSQL 13.1 Documentation">Home</a></td> <td width="40%" align="right"> 13.5. Caveats</td> </tr> </table> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2020 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/13/applevel-consistency.html" class="_attribution-link">https://www.postgresql.org/docs/13/applevel-consistency.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

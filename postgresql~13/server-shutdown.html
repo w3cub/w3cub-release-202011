@@ -1,0 +1,121 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Shutting Down the Server - PostgreSQL 13 - W3cubDocs</title>
+  
+  <meta name="description" content=" There are several ways to shut down the database server. Under the hood, they all reduce to sending a signal to the supervisor postgres process. ">
+  <meta name="keywords" content="shutting, down, server, postgresql, postgresql~13">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~13/server-shutdown.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/postgresql~13.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~13/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 13</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>18.5. Shutting Down the Server</h1>    <p>There are several ways to shut down the database server. Under the hood, they all reduce to sending a signal to the supervisor <code class="command">postgres</code> process.</p> <p>If you are using a pre-packaged version of PostgreSQL, and you used its provisions for starting the server, then you should also use its provisions for stopping the server. Consult the package-level documentation for details.</p> <p>When managing the server directly, you can control the type of shutdown by sending different signals to the <code class="command">postgres</code> process:</p> <div class="variablelist"> <dl class="variablelist"> <dt><span class="systemitem">SIGTERM</span></dt> <dd> <p>This is the <em class="firstterm">Smart Shutdown</em> mode. After receiving <span class="systemitem">SIGTERM</span>, the server disallows new connections, but lets existing sessions end their work normally. It shuts down only after all of the sessions terminate. If the server is in online backup mode, it additionally waits until online backup mode is no longer active. While backup mode is active, new connections will still be allowed, but only to superusers (this exception allows a superuser to connect to terminate online backup mode). If the server is in recovery when a smart shutdown is requested, recovery and streaming replication will be stopped only after all regular sessions have terminated.</p> </dd> <dt><span class="systemitem">SIGINT</span></dt> <dd> <p>This is the <em class="firstterm">Fast Shutdown</em> mode. The server disallows new connections and sends all existing server processes <span class="systemitem">SIGTERM</span>, which will cause them to abort their current transactions and exit promptly. It then waits for all server processes to exit and finally shuts down. If the server is in online backup mode, backup mode will be terminated, rendering the backup useless.</p> </dd> <dt><span class="systemitem">SIGQUIT</span></dt> <dd> <p>This is the <em class="firstterm">Immediate Shutdown</em> mode. The server will send <span class="systemitem">SIGQUIT</span> to all child processes and wait for them to terminate. If any do not terminate within 5 seconds, they will be sent <span class="systemitem">SIGKILL</span>. The master server process exits as soon as all child processes have exited, without doing normal database shutdown processing. This will lead to recovery (by replaying the WAL log) upon next start-up. This is recommended only in emergencies.</p> </dd> </dl> </div> <p>The <a class="xref" href="app-pg-ctl" title="pg_ctl">pg_ctl</a> program provides a convenient interface for sending these signals to shut down the server. Alternatively, you can send the signal directly using <code class="command">kill</code> on non-Windows systems. The PID of the <code class="command">postgres</code> process can be found using the <code class="command">ps</code> program, or from the file <code class="filename">postmaster.pid</code> in the data directory. For example, to do a fast shutdown:</p> <pre>
+$ <strong class="userinput">kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</strong>
+</pre> <blockquote class="important"> <h3 class="title">Important</h3> <p>It is best not to use <span class="systemitem">SIGKILL</span> to shut down the server. Doing so will prevent the server from releasing shared memory and semaphores. Furthermore, <span class="systemitem">SIGKILL</span> kills the <code class="command">postgres</code> process without letting it relay the signal to its subprocesses, so it might be necessary to kill the individual subprocesses by hand as well.</p> </blockquote> <p>To terminate an individual session while allowing other sessions to continue, use <code class="function">pg_terminate_backend()</code> (see <a class="xref" href="functions-admin#FUNCTIONS-ADMIN-SIGNAL-TABLE" title="Table 9.84. Server Signaling Functions">Table 9.84</a>) or send a <span class="systemitem">SIGTERM</span> signal to the child process associated with the session.</p>  <div xmlns="http://www.w3.org/TR/xhtml1/transitional" class="navfooter">  <table summary="Navigation footer"> <tr> <td width="40%" align="left">
+<a accesskey="p" href="kernel-resources" title="18.4. Managing Kernel Resources">Prev</a> </td> <td width="20%" align="center"><a accesskey="u" href="https://www.postgresql.org/docs/13/runtime.html" title="Chapter 18. Server Setup and Operation">Up</a></td> <td width="40%" align="right"> <a accesskey="n" href="upgrading" title="18.6. Upgrading a PostgreSQL Cluster">Next</a>
+</td> </tr> <tr> <td width="40%" align="left">18.4. Managing Kernel Resources </td> <td width="20%" align="center"><a accesskey="h" href="https://www.postgresql.org/docs/13/index.html" title="PostgreSQL 13.1 Documentation">Home</a></td> <td width="40%" align="right"> 18.6. Upgrading a PostgreSQL Cluster</td> </tr> </table> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2020 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/13/server-shutdown.html" class="_attribution-link">https://www.postgresql.org/docs/13/server-shutdown.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

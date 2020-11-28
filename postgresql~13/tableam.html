@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Table Access Method Interface Definition - PostgreSQL 13 - W3cubDocs</title>
+  
+  <meta name="description" content="This chapter explains the interface between the core PostgreSQL system and table access methods, which manage the storage for tables. The core &hellip;">
+  <meta name="keywords" content="chapter, table, access, method, interface, definition, postgresql, postgresql~13">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~13/tableam.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/postgresql~13.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~13/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 13</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>Chapter 60. Table Access Method Interface Definition</h1>    <p>This chapter explains the interface between the core PostgreSQL system and <em class="firstterm">table access methods</em>, which manage the storage for tables. The core system knows little about these access methods beyond what is specified here, so it is possible to develop entirely new access method types by writing add-on code.</p> <p>Each table access method is described by a row in the <a class="link" href="catalog-pg-am" title="51.3. pg_am"><code class="structname">pg_am</code></a> system catalog. The <code class="structname">pg_am</code> entry specifies a name and a <em class="firstterm">handler function</em> for the table access method. These entries can be created and deleted using the <a class="xref" href="sql-create-access-method" title="CREATE ACCESS METHOD">CREATE ACCESS METHOD</a> and <a class="xref" href="sql-drop-access-method" title="DROP ACCESS METHOD">DROP ACCESS METHOD</a> SQL commands.</p> <p>A table access method handler function must be declared to accept a single argument of type <code class="type">internal</code> and to return the pseudo-type <code class="type">table_am_handler</code>. The argument is a dummy value that simply serves to prevent handler functions from being called directly from SQL commands. The result of the function must be a pointer to a struct of type <code class="structname">TableAmRoutine</code>, which contains everything that the core code needs to know to make use of the table access method. The return value needs to be of server lifetime, which is typically achieved by defining it as a <code class="literal">static const</code> variable in global scope. The <code class="structname">TableAmRoutine</code> struct, also called the access method's <em class="firstterm">API struct</em>, defines the behavior of the access method using callbacks. These callbacks are pointers to plain C functions and are not visible or callable at the SQL level. All the callbacks and their behavior is defined in the <code class="structname">TableAmRoutine</code> structure (with comments inside the struct defining the requirements for callbacks). Most callbacks have wrapper functions, which are documented from the point of view of a user (rather than an implementor) of the table access method. For details, please refer to the <a class="ulink" href="https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/access/tableam.h;hb=HEAD" target="_top"><code class="filename">src/include/access/tableam.h</code></a> file.</p> <p>To implement an access method, an implementor will typically need to implement an AM-specific type of tuple table slot (see <a class="ulink" href="https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/include/executor/tuptable.h;hb=HEAD" target="_top"><code class="filename">src/include/executor/tuptable.h</code></a>), which allows code outside the access method to hold references to tuples of the AM, and to access the columns of the tuple.</p> <p>Currently, the way an AM actually stores data is fairly unconstrained. For example, it's possible, but not required, to use postgres' shared buffer cache. In case it is used, it likely makes sense to use PostgreSQL's standard page layout as described in <a class="xref" href="storage-page-layout" title="68.6. Database Page Layout">Section 68.6</a>.</p> <p>One fairly large constraint of the table access method API is that, currently, if the AM wants to support modifications and/or indexes, it is necessary for each tuple to have a tuple identifier (TID) consisting of a block number and an item number (see also <a class="xref" href="storage-page-layout" title="68.6. Database Page Layout">Section 68.6</a>). It is not strictly necessary that the sub-parts of TIDs have the same meaning they e.g., have for <code class="literal">heap</code>, but if bitmap scan support is desired (it is optional), the block number needs to provide locality.</p> <p>For crash safety, an AM can use postgres' <a class="link" href="https://www.postgresql.org/docs/13/wal.html" title="Chapter 29. Reliability and the Write-Ahead Log">WAL</a>, or a custom implementation. If WAL is chosen, either <a class="link" href="generic-wal" title="Chapter 62. Generic WAL Records">Generic WAL Records</a> can be used, or a new type of WAL records can be implemented. Generic WAL Records are easy, but imply higher WAL volume. Implementation of a new type of WAL record currently requires modifications to core code (specifically, <code class="filename">src/include/access/rmgrlist.h</code>).</p> <p>To implement transactional support in a manner that allows different table access methods be accessed within a single transaction, it likely is necessary to closely integrate with the machinery in <code class="filename">src/backend/access/transam/xlog.c</code>.</p> <p>Any developer of a new <code class="literal">table access method</code> can refer to the existing <code class="literal">heap</code> implementation present in <code class="filename">src/backend/access/heap/heapam_handler.c</code> for details of its implementation.</p>  <div xmlns="http://www.w3.org/TR/xhtml1/transitional" class="navfooter">  <table summary="Navigation footer"> <tr> <td width="40%" align="left">
+<a accesskey="p" href="geqo-biblio" title="59.4. Further Reading">Prev</a> </td> <td width="20%" align="center"><a accesskey="u" href="https://www.postgresql.org/docs/13/internals.html" title="Part VII. Internals">Up</a></td> <td width="40%" align="right"> <a accesskey="n" href="https://www.postgresql.org/docs/13/indexam.html" title="Chapter 61. Index Access Method Interface Definition">Next</a>
+</td> </tr> <tr> <td width="40%" align="left">59.4. Further Reading </td> <td width="20%" align="center"><a accesskey="h" href="https://www.postgresql.org/docs/13/index.html" title="PostgreSQL 13.1 Documentation">Home</a></td> <td width="40%" align="right"> Chapter 61. Index Access Method Interface Definition</td> </tr> </table> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2020 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/13/tableam.html" class="_attribution-link">https://www.postgresql.org/docs/13/tableam.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

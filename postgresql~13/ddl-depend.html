@@ -1,0 +1,136 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Dependency Tracking - PostgreSQL 13 - W3cubDocs</title>
+  
+  <meta name="description" content="When you create complex database structures involving many tables with foreign key constraints, views, triggers, functions, etc. you implicitly &hellip;">
+  <meta name="keywords" content="dependency, tracking, postgresql, postgresql~13">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~13/ddl-depend.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/postgresql~13.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~13/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 13</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>5.14. Dependency Tracking</h1>    <p>When you create complex database structures involving many tables with foreign key constraints, views, triggers, functions, etc. you implicitly create a net of dependencies between the objects. For instance, a table with a foreign key constraint depends on the table it references.</p> <p>To ensure the integrity of the entire database structure, PostgreSQL makes sure that you cannot drop objects that other objects still depend on. For example, attempting to drop the products table we considered in <a class="xref" href="ddl-constraints#DDL-CONSTRAINTS-FK" title="5.4.5. Foreign Keys">Section 5.4.5</a>, with the orders table depending on it, would result in an error message like this:</p> <pre>
+DROP TABLE products;
+
+ERROR:  cannot drop table products because other objects depend on it
+DETAIL:  constraint orders_product_no_fkey on table orders depends on table products
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+</pre> <p>The error message contains a useful hint: if you do not want to bother deleting all the dependent objects individually, you can run:</p> <pre>
+DROP TABLE products CASCADE;
+</pre> <p>and all the dependent objects will be removed, as will any objects that depend on them, recursively. In this case, it doesn't remove the orders table, it only removes the foreign key constraint. It stops there because nothing depends on the foreign key constraint. (If you want to check what <code class="command">DROP ... CASCADE</code> will do, run <code class="command">DROP</code> without <code class="literal">CASCADE</code> and read the <code class="literal">DETAIL</code> output.)</p> <p>Almost all <code class="command">DROP</code> commands in PostgreSQL support specifying <code class="literal">CASCADE</code>. Of course, the nature of the possible dependencies varies with the type of the object. You can also write <code class="literal">RESTRICT</code> instead of <code class="literal">CASCADE</code> to get the default behavior, which is to prevent dropping objects that any other objects depend on.</p> <blockquote class="note"> <h3 class="title">Note</h3> <p>According to the SQL standard, specifying either <code class="literal">RESTRICT</code> or <code class="literal">CASCADE</code> is required in a <code class="command">DROP</code> command. No database system actually enforces that rule, but whether the default behavior is <code class="literal">RESTRICT</code> or <code class="literal">CASCADE</code> varies across systems.</p> </blockquote> <p>If a <code class="command">DROP</code> command lists multiple objects, <code class="literal">CASCADE</code> is only required when there are dependencies outside the specified group. For example, when saying <code class="literal">DROP TABLE tab1, tab2</code> the existence of a foreign key referencing <code class="literal">tab1</code> from <code class="literal">tab2</code> would not mean that <code class="literal">CASCADE</code> is needed to succeed.</p> <p>For user-defined functions, PostgreSQL tracks dependencies associated with a function's externally-visible properties, such as its argument and result types, but <span class="emphasis"><em>not</em></span> dependencies that could only be known by examining the function body. As an example, consider this situation:</p> <pre data-language="sql">
+CREATE TYPE rainbow AS ENUM ('red', 'orange', 'yellow',
+                             'green', 'blue', 'purple');
+
+CREATE TABLE my_colors (color rainbow, note text);
+
+CREATE FUNCTION get_color_note (rainbow) RETURNS text AS
+  'SELECT note FROM my_colors WHERE color = $1'
+  LANGUAGE SQL;
+</pre> <p>(See <a class="xref" href="https://www.postgresql.org/docs/13/xfunc-sql.html" title="37.5. Query Language (SQL) Functions">Section 37.5</a> for an explanation of SQL-language functions.) PostgreSQL will be aware that the <code class="function">get_color_note</code> function depends on the <code class="type">rainbow</code> type: dropping the type would force dropping the function, because its argument type would no longer be defined. But PostgreSQL will not consider <code class="function">get_color_note</code> to depend on the <code class="structname">my_colors</code> table, and so will not drop the function if the table is dropped. While there are disadvantages to this approach, there are also benefits. The function is still valid in some sense if the table is missing, though executing it would cause an error; creating a new table of the same name would allow the function to work again.</p>  <div xmlns="http://www.w3.org/TR/xhtml1/transitional" class="navfooter">  <table summary="Navigation footer"> <tr> <td width="40%" align="left">
+<a accesskey="p" href="https://www.postgresql.org/docs/13/ddl-others.html" title="5.13. Other Database Objects">Prev</a> </td> <td width="20%" align="center"><a accesskey="u" href="https://www.postgresql.org/docs/13/ddl.html" title="Chapter 5. Data Definition">Up</a></td> <td width="40%" align="right"> <a accesskey="n" href="https://www.postgresql.org/docs/13/dml.html" title="Chapter 6. Data Manipulation">Next</a>
+</td> </tr> <tr> <td width="40%" align="left">5.13. Other Database Objects </td> <td width="20%" align="center"><a accesskey="h" href="https://www.postgresql.org/docs/13/index.html" title="PostgreSQL 13.1 Documentation">Home</a></td> <td width="40%" align="right"> Chapter 6. Data Manipulation</td> </tr> </table> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2020 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/13/ddl-depend.html" class="_attribution-link">https://www.postgresql.org/docs/13/ddl-depend.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

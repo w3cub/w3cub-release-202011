@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Parallel Plans - PostgreSQL 13 - W3cubDocs</title>
+  
+  <meta name="description" content="Because each worker executes the parallel portion of the plan to completion, it is not possible to simply take an ordinary query plan and run it &hellip;">
+  <meta name="keywords" content="parallel, plans, postgresql, postgresql~13">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~13/parallel-plans.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/postgresql~13.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~13/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 13</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>15.3. Parallel Plans</h1>    <div class="toc"> <dl class="toc"> <dt><a href="parallel-plans#PARALLEL-SCANS">15.3.1. Parallel Scans</a></dt> <dt><a href="parallel-plans#PARALLEL-JOINS">15.3.2. Parallel Joins</a></dt> <dt><a href="parallel-plans#PARALLEL-AGGREGATION">15.3.3. Parallel Aggregation</a></dt> <dt><a href="parallel-plans#PARALLEL-APPEND">15.3.4. Parallel Append</a></dt> <dt><a href="parallel-plans#PARALLEL-PLAN-TIPS">15.3.5. Parallel Plan Tips</a></dt> </dl> </div> <p>Because each worker executes the parallel portion of the plan to completion, it is not possible to simply take an ordinary query plan and run it using multiple workers. Each worker would produce a full copy of the output result set, so the query would not run any faster than normal but would produce incorrect results. Instead, the parallel portion of the plan must be what is known internally to the query optimizer as a <em class="firstterm">partial plan</em>; that is, it must be constructed so that each process which executes the plan will generate only a subset of the output rows in such a way that each required output row is guaranteed to be generated by exactly one of the cooperating processes. Generally, this means that the scan on the driving table of the query must be a parallel-aware scan.</p> <div class="sect2" id="PARALLEL-SCANS">    <h2 class="title">15.3.1. Parallel Scans</h2>    <p>The following types of parallel-aware table scans are currently supported.</p>  <ul> <li> <p>In a <span class="emphasis"><em>parallel sequential scan</em></span>, the table's blocks will be divided among the cooperating processes. Blocks are handed out one at a time, so that access to the table remains sequential.</p> </li> <li> <p>In a <span class="emphasis"><em>parallel bitmap heap scan</em></span>, one process is chosen as the leader. That process performs a scan of one or more indexes and builds a bitmap indicating which table blocks need to be visited. These blocks are then divided among the cooperating processes as in a parallel sequential scan. In other words, the heap scan is performed in parallel, but the underlying index scan is not.</p> </li> <li> <p>In a <span class="emphasis"><em>parallel index scan</em></span> or <span class="emphasis"><em>parallel index-only scan</em></span>, the cooperating processes take turns reading data from the index. Currently, parallel index scans are supported only for btree indexes. Each process will claim a single index block and will scan and return all tuples referenced by that block; other processes can at the same time be returning tuples from a different index block. The results of a parallel btree scan are returned in sorted order within each worker process.</p> </li> </ul>  <p>Other scan types, such as scans of non-btree indexes, may support parallel scans in the future.</p> </div> <div class="sect2" id="PARALLEL-JOINS">    <h2 class="title">15.3.2. Parallel Joins</h2>    <p>Just as in a non-parallel plan, the driving table may be joined to one or more other tables using a nested loop, hash join, or merge join. The inner side of the join may be any kind of non-parallel plan that is otherwise supported by the planner provided that it is safe to run within a parallel worker. Depending on the join type, the inner side may also be a parallel plan.</p>  <ul> <li> <p>In a <span class="emphasis"><em>nested loop join</em></span>, the inner side is always non-parallel. Although it is executed in full, this is efficient if the inner side is an index scan, because the outer tuples and thus the loops that look up values in the index are divided over the cooperating processes.</p> </li> <li> <p>In a <span class="emphasis"><em>merge join</em></span>, the inner side is always a non-parallel plan and therefore executed in full. This may be inefficient, especially if a sort must be performed, because the work and resulting data are duplicated in every cooperating process.</p> </li> <li> <p>In a <span class="emphasis"><em>hash join</em></span> (without the "parallel" prefix), the inner side is executed in full by every cooperating process to build identical copies of the hash table. This may be inefficient if the hash table is large or the plan is expensive. In a <span class="emphasis"><em>parallel hash join</em></span>, the inner side is a <span class="emphasis"><em>parallel hash</em></span> that divides the work of building a shared hash table over the cooperating processes.</p> </li> </ul>  </div> <div class="sect2" id="PARALLEL-AGGREGATION">    <h2 class="title">15.3.3. Parallel Aggregation</h2>    <p>PostgreSQL supports parallel aggregation by aggregating in two stages. First, each process participating in the parallel portion of the query performs an aggregation step, producing a partial result for each group of which that process is aware. This is reflected in the plan as a <code class="literal">Partial Aggregate</code> node. Second, the partial results are transferred to the leader via <code class="literal">Gather</code> or <code class="literal">Gather Merge</code>. Finally, the leader re-aggregates the results across all workers in order to produce the final result. This is reflected in the plan as a <code class="literal">Finalize Aggregate</code> node.</p> <p>Because the <code class="literal">Finalize Aggregate</code> node runs on the leader process, queries which produce a relatively large number of groups in comparison to the number of input rows will appear less favorable to the query planner. For example, in the worst-case scenario the number of groups seen by the <code class="literal">Finalize Aggregate</code> node could be as many as the number of input rows which were seen by all worker processes in the <code class="literal">Partial Aggregate</code> stage. For such cases, there is clearly going to be no performance benefit to using parallel aggregation. The query planner takes this into account during the planning process and is unlikely to choose parallel aggregate in this scenario.</p> <p>Parallel aggregation is not supported in all situations. Each aggregate must be <a class="link" href="parallel-safety" title="15.4. Parallel Safety">safe</a> for parallelism and must have a combine function. If the aggregate has a transition state of type <code class="literal">internal</code>, it must have serialization and deserialization functions. See <a class="xref" href="sql-createaggregate" title="CREATE AGGREGATE">CREATE AGGREGATE</a> for more details. Parallel aggregation is not supported if any aggregate function call contains <code class="literal">DISTINCT</code> or <code class="literal">ORDER BY</code> clause and is also not supported for ordered set aggregates or when the query involves <code class="literal">GROUPING SETS</code>. It can only be used when all joins involved in the query are also part of the parallel portion of the plan.</p> </div> <div class="sect2" id="PARALLEL-APPEND">    <h2 class="title">15.3.4. Parallel Append</h2>    <p>Whenever PostgreSQL needs to combine rows from multiple sources into a single result set, it uses an <code class="literal">Append</code> or <code class="literal">MergeAppend</code> plan node. This commonly happens when implementing <code class="literal">UNION ALL</code> or when scanning a partitioned table. Such nodes can be used in parallel plans just as they can in any other plan. However, in a parallel plan, the planner may instead use a <code class="literal">Parallel Append</code> node.</p> <p>When an <code class="literal">Append</code> node is used in a parallel plan, each process will execute the child plans in the order in which they appear, so that all participating processes cooperate to execute the first child plan until it is complete and then move to the second plan at around the same time. When a <code class="literal">Parallel Append</code> is used instead, the executor will instead spread out the participating processes as evenly as possible across its child plans, so that multiple child plans are executed simultaneously. This avoids contention, and also avoids paying the startup cost of a child plan in those processes that never execute it.</p> <p>Also, unlike a regular <code class="literal">Append</code> node, which can only have partial children when used within a parallel plan, a <code class="literal">Parallel Append</code> node can have both partial and non-partial child plans. Non-partial children will be scanned by only a single process, since scanning them more than once would produce duplicate results. Plans that involve appending multiple results sets can therefore achieve coarse-grained parallelism even when efficient partial plans are not available. For example, consider a query against a partitioned table which can only be implemented efficiently by using an index that does not support parallel scans. The planner might choose a <code class="literal">Parallel Append</code> of regular <code class="literal">Index Scan</code> plans; each individual index scan would have to be executed to completion by a single process, but different scans could be performed at the same time by different processes.</p> <p><a class="xref" href="runtime-config-query#GUC-ENABLE-PARALLEL-APPEND">enable_parallel_append</a> can be used to disable this feature.</p> </div> <div class="sect2" id="PARALLEL-PLAN-TIPS">    <h2 class="title">15.3.5. Parallel Plan Tips</h2>    <p>If a query that is expected to do so does not produce a parallel plan, you can try reducing <a class="xref" href="runtime-config-query#GUC-PARALLEL-SETUP-COST">parallel_setup_cost</a> or <a class="xref" href="runtime-config-query#GUC-PARALLEL-TUPLE-COST">parallel_tuple_cost</a>. Of course, this plan may turn out to be slower than the serial plan which the planner preferred, but this will not always be the case. If you don't get a parallel plan even with very small values of these settings (e.g., after setting them both to zero), there may be some reason why the query planner is unable to generate a parallel plan for your query. See <a class="xref" href="when-can-parallel-query-be-used" title="15.2. When Can Parallel Query Be Used?">Section 15.2</a> and <a class="xref" href="parallel-safety" title="15.4. Parallel Safety">Section 15.4</a> for information on why this may be the case.</p> <p>When executing a parallel plan, you can use <code class="literal">EXPLAIN (ANALYZE, VERBOSE)</code> to display per-worker statistics for each plan node. This may be useful in determining whether the work is being evenly distributed between all plan nodes and more generally in understanding the performance characteristics of the plan.</p> </div>  <div xmlns="http://www.w3.org/TR/xhtml1/transitional" class="navfooter">  <table summary="Navigation footer"> <tr> <td width="40%" align="left">
+<a accesskey="p" href="when-can-parallel-query-be-used" title="15.2. When Can Parallel Query Be Used?">Prev</a> </td> <td width="20%" align="center"><a accesskey="u" href="https://www.postgresql.org/docs/13/parallel-query.html" title="Chapter 15. Parallel Query">Up</a></td> <td width="40%" align="right"> <a accesskey="n" href="parallel-safety" title="15.4. Parallel Safety">Next</a>
+</td> </tr> <tr> <td width="40%" align="left">15.2. When Can Parallel Query Be Used? </td> <td width="20%" align="center"><a accesskey="h" href="https://www.postgresql.org/docs/13/index.html" title="PostgreSQL 13.1 Documentation">Home</a></td> <td width="40%" align="right"> 15.4. Parallel Safety</td> </tr> </table> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2020 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/13/parallel-plans.html" class="_attribution-link">https://www.postgresql.org/docs/13/parallel-plans.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
