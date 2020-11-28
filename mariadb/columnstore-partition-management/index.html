@@ -1,0 +1,260 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>ColumnStore Partition Management - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content="MariaDB ColumnStore automatically creates logical horizontal partitions across every column. For ordered or semi-ordered data fields such as an &hellip;">
+  <meta name="keywords" content="columnstore, partition, managementintroductionmanaging, partitions, numbermanaging, column, valuedropping, data, not, wholly, within, one, management, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/columnstore-partition-management/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>ColumnStore Partition Management</h1> <div> <div class="node creole"> <div class="answer formatted">  <h1 class="anchored_heading" id="introduction">Introduction</h1> <p>MariaDB ColumnStore automatically creates logical horizontal partitions across every column. For ordered or semi-ordered data fields such as an order date this will result in a highly effective partitioning scheme based on that column. This allows for increased performance of queries filtering on that column since partition elimination can be performed. It also allows for data lifecycle management as data can be disabled or dropped by partition cheaply. Caution should be used when disabling or dropping partitions as these commands are destructive.</p> <p>It is important to understand that a Partition in ColumnStore terms is actually 2 extents (16 million rows) and that extents &amp; partitions are created according to the following algorithm in 1.0.x:</p> <ol start="1">
+<li>Create 4 extents in 4 files </li>
+<li>When these are filled up (after 32M rows), create 4 more extents in the 4 files created in step 1. </li>
+<li>When these are filled up (after 64M rows), create a new partition. </li>
+</ol> <h1 class="anchored_heading" id="managing-partitions-by-partition-number">Managing partitions by partition number</h1> <h2 class="anchored_heading" id="displaying-partition-information">Displaying partition information</h2> <p>Information about all partitions for a given column can be retrieved using the <em>calShowPartitions</em> stored procedure which takes either two or three mandatory parameters: [<em>database_name</em>], <em>table_name</em>, and <em>column_name</em>. If two parameters are provided the current database is assumed. For example:</p> <pre class="fixed" data-language="sql">select calShowPartitions('orders','orderdate');
++-----------------------------------------+
+| calShowPartitions('orders','orderdate') |
++-----------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Enabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++-----------------------------------------+
+
+1 row in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="disabling-partitions">Disabling partitions</h2> <p>The <em>calDisablePartitions</em> stored procedure allows for disabling of one or more partitions. A disabled partition still exists on the file system (and can be enabled again at a later time) but will not participate in any query, DML or import activity. The procedure takes either two or three mandatory parameters: [<em>database_name</em>], <em>table_name</em>, and <em>partition_numbers</em> separated by commas. If two parameters are provided the current database is assumed. For example:</p> <pre class="fixed" data-language="sql">select calDisablePartitions('orders','0.0.1');
++----------------------------------------+
+| calDisablePartitions('orders','0.0.1') |
++----------------------------------------+
+| Partitions are disabled successfully.  |
++----------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been disabled:</p> <pre class="fixed" data-language="sql">select calShowPartitions('orders','orderdate');
++-----------------------------------------+
+| calShowPartitions('orders','orderdate') |
++-----------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Disabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++-----------------------------------------+
+1 row in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="enabling-partitions">Enabling partitions</h2> <p>The <em>calEnablePartitions</em> stored procedure allows for enabling of one or more partitions. The procedure takes the same set of parameters as <em>calDisablePartitions</em>. For example: </p> <pre class="fixed" data-language="sql">select calEnablePartitions('orders', '0.0.1');
++----------------------------------------+
+| calEnablePartitions('orders', '0.0.1') |
++----------------------------------------+
+| Partitions are enabled successfully.   |
++----------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been enabled:</p> <pre class="fixed" data-language="sql">select calShowPartitions('orders','orderdate');
++-----------------------------------------+
+| calShowPartitions('orders','orderdate') |
++-----------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Enabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++-----------------------------------------+
+1 rows in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="dropping-partitions">Dropping partitions</h2> <p>The <em>calDropPartitions</em> stored procedure allows for dropping of one or more partitions. Dropping means that the underlying storage is deleted and the partition is completely removed. A partition can be dropped from either enabled or disabled state. The procedure takes the same set of parameters as <em>calDisablePartitions</em>. Extra caution should be used with this procedure since it is destructive and cannot be reversed. For example:</p> <pre class="fixed" data-language="sql">select calDropPartitions('orders', '0.0.1');
++--------------------------------------+
+| calDropPartitions('orders', '0.0.1') |
++--------------------------------------+
+| Partitions are enabled successfully  |
++--------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been dropped:</p> <pre class="fixed" data-language="sql">select calShowPartitions('orders','orderdate');
++-----------------------------------------+
+| calShowPartitions('orders','orderdate') |
++-----------------------------------------+
+| Part# Min        Max        Status
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++-----------------------------------------+
+1 row in set (0.05 sec)
+</pre>
+<h1 class="anchored_heading" id="managing-partitions-by-column-value">Managing partitions by column value</h1> <h2 class="anchored_heading" id="displaying-partition-information">Displaying partition information</h2> <p>Information about a range of parititions for a given column can be retrieved using the <em>calShowPartitionsByValue</em> stored procedure. This procedure takes either four or five mandatory parameters: [<em>database_name</em>], <em>table_name</em>, <em>column_name</em>, <em>start_value</em>, and <em>end_value</em>. If four parameters are provided the current database is assumed. Only casual partition column types (<a href="../int/index">INTEGER</a>, <a href="../decimal/index">DECIMAL</a>, <a href="../date/index">DATE</a>, <a href="../datetime/index">DATETIME</a>, <a href="../char/index">CHAR</a> up to 8 bytes and <a href="../varchar/index">VARCHAR</a> up to 7 bytes) are supported for this function. </p> <p>The function returns a list of partitions whose minimum and maximum values for the column 'col_name' fall completely within the range of 'start_value' and 'end_value'. For example:</p> <pre class="fixed" data-language="sql">select calShowPartitionsByValue('orders','orderdate', '1992-01-01', '2010-07-24');
++----------------------------------------------------------------------------+
+| calShowPartitionsbyvalue('orders','orderdate', '1992-01-02', '2010-07-24') |
++----------------------------------------------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Enabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++----------------------------------------------------------------------------+
+1 row in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="disabling-partitions">Disabling partitions</h2> <p>The <em>calDisablePartitionsByValue</em> stored procedure allows for disabling of one or more partitions by value. A disabled partition still exists on the file system (and can be enabled again at a later time) but will not participate in any query, DML or import activity. The procedure takes the same set of arguments as <em>calShowPartitionsByValue</em>. A good practice is to use <em>calShowPartitionsByValue</em> to identify the partitions to be disabled and then the same argument values used to construct the <em>calDisablePartitionsByValue</em> call. For example:</p> <pre class="fixed" data-language="sql">select calDisablePartitionsByValue('orders','orderdate', '1992-01-01', '1998-08-02');
++---------------------------------------------------------------------------------+
+| caldisablepartitionsbyvalue ('orders', 'o_orderdate','1992-01-01','1998-08-02') |
++---------------------------------------------------------------------------------+
+| Partitions are disabled successfully                                            |
++---------------------------------------------------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been disabled:</p> <pre class="fixed" data-language="sql">select calShowPartitionsByValue('orders','orderdate', '1992-01-01', '2010-07-24');
++----------------------------------------------------------------------------+
+| calShowPartitionsbyvalue('orders','orderdate', '1992-01-02','2010-07-24’ ) |
++----------------------------------------------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Disabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++----------------------------------------------------------------------------+
+1 row in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="enabling-partitions">Enabling partitions</h2> <p>The <em>calEnablePartitionsbyValue</em> stored procedure allows for enabling of one or more partitions by value. The procedure takes the same set of arguments as <em>calShowPartitionsByValue</em>. A good practice is to use <em>calShowPartitionsByValue</em> to identify the partitions to be enabled and then the same argument values used to construct the <em>calEnablePartitionsbyValue</em> call. For example:</p> <pre class="fixed" data-language="sql">select calEnablePartitionsByValue('orders','orderdate', '1992-01-01', '1998-08-02');
++--------------------------------------------------------------------------------+
+| calenablepartitionsbyvalue ('orders', 'o_orderdate','1992-01-01','1998-08-02') |
++--------------------------------------------------------------------------------+
+| Partitions are enabled successfully                                            |
++--------------------------------------------------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been enabled:</p> <pre class="fixed" data-language="sql">select calShowPartitionsByValue('orders','orderdate', '1992-01-01', '2010-07-24');
++----------------------------------------------------------------------------+
+| calShowPartitionsbyvalue('orders','orderdate', '1992-01-02','2010-07-24' ) |
++----------------------------------------------------------------------------+
+| Part# Min        Max        Status
+  0.0.1 1992-01-01 1998-08-02 Enabled
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++----------------------------------------------------------------------------+
+1 rows in set (0.05 sec)
+</pre>
+<h2 class="anchored_heading" id="dropping-partitions">Dropping partitions</h2> <p>The <em>calDropPartitionsByValue</em> stored procedure allows for dropping of one or more partitions by value. Dropping means that the underlying storage is deleted and the partition is completely removed. A partition can be dropped from either enabled or disabled state. The procedure takes the same set of arguments as <em>calShowPartitionsByValue</em>. A good practice is to use <em>calShowPartitionsByValue</em> to identify the partitions to be enabled and then the same argument values used to construct the <em>calDropPartitionsByValue</em> call. Extra caution should be used with this procedure since it is destructive and cannot be reversed. For example:</p> <pre class="fixed" data-language="sql">select calDropPartitionsByValue('orders','orderdate', '1992-01-01', '1998-08-02');
++------------------------------------------------------------------------------+
+| caldroppartitionsbyvalue ('orders', 'o_orderdate','1992-01-01','1998-08-02') |
++------------------------------------------------------------------------------+
+| Partitions are enabled successfully.                                         |
++------------------------------------------------------------------------------+
+1 row in set (0.28 sec)
+</pre>
+<p>The result showing the first partition has been dropped:</p> <pre class="fixed" data-language="sql">select calShowPartitionsByValue('orders','orderdate', '1992-01-01', '2010-07-24');
++----------------------------------------------------------------------------+
+| calShowPartitionsbyvalue('orders','orderdate', '1992-01-02','2010-07-24' ) |
++----------------------------------------------------------------------------+
+| Part# Min        Max        Status
+  0.1.2 1998-08-03 2004-05-15 Enabled
+  0.2.3 2004-05-16 2010-07-24 Enabled |
++----------------------------------------------------------------------------+
+1 row in set (0.05 sec)
+</pre>
+<h1 class="anchored_heading" id="dropping-data-not-wholly-within-one-partition">Dropping data not wholly within one partition</h1> <p>Since the partitioning scheme is system maintained the min and max values are not directly specified but influenced by the order of data loading. If the goal is to drop a specific date range then additional deletes are required to achieve this. The following cases may occur:</p> <ul start="1">
+<li>For semi-ordered data, there may be overlap between min and max values between partitions. </li>
+<li>As in the example above, the partition ranged from 1992-01-01 to 1998-08-02. Potentially it may be desirable to drop the remaining 1998 rows. </li>
+</ul> <p>A bulk delete statement can be used to delete the remaining rows that do not fall exactly within partition ranges. The partition drops will be fastest, however the system optimizes bulk delete statements to delete by block internally so are still relatively fast.</p> <pre class="fixed" data-language="sql">delete from orders where orderdate &lt;= '1998-12-31';
+</pre> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/columnstore-partition-management/" class="_attribution-link">https://mariadb.com/kb/en/columnstore-partition-management/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

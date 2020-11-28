@@ -1,0 +1,335 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Analyzing Queries in ColumnStore - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content=" The MariaDB show processlist command may be used to see a list of active queries on that UM&#58; ">
+  <meta name="keywords" content="analyzing, queries, columnstoredetermining, active, queriesanalysis, individual, queriesquery, plan, tracecache, clearing, enable, cold, testingviewing, extent, map, informationquery, statistics, history, columnstore, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/analyzing-queries-in-columnstore/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Analyzing Queries in ColumnStore</h1> <div> <div class="node creole"> <div class="answer formatted">  <h1 class="anchored_heading" id="determining-active-queries">Determining active queries</h1> <h2 class="anchored_heading" id="show-processlist">show processlist</h2> <p>The MariaDB <strong>show processlist</strong> command may be used to see a list of active queries on that UM:</p> <pre class="fixed" data-language="sql">MariaDB [test]&gt; show processlist;
++----+------+-----------+-------+---------+------+-------+--------------+
+| Id | User | Host | db | Command | Time | State | Info |
++----+------+-----------+-------+---------+------+-------+--------------+
+| 73 | root | localhost | ssb10 | Query | 0 | NULL | show processlist
++----+------+-----------+-------+---------+------+-------+--------------+
+1 row in set (0.01 sec)
+</pre>
+<h2 class="anchored_heading" id="getactivesqlstatements">getActiveSQLStatements</h2> <p><em>getActiveSQLStatements</em> is a mcsadmin command that shows which SQL statements are currently being executed on the database:</p> <pre class="fixed" data-language="sql">mcsadmin&gt; getActiveSQLStatements
+getactivesqlstatements Wed Oct 7 08:38:32 2015
+Get List of Active SQL Statements
+=================================
+Start Time    Time (hh:mm:ss) Session ID SQL Statement
+---------------- ---------------- -------------------- ------------------------------------------------------------
+Oct 7 08:38:30    00:00:03       73 select c_name,sum(lo_revenue) from customer, lineorder where lo_custkey = c_custkey and c_custkey = 6 group by c_name
+</pre>
+<h1 class="anchored_heading" id="analysis-of-individual-queries">Analysis of individual queries</h1> <h2 class="anchored_heading" id="query-statistics">Query statistics</h2> <p>The <em>calGetStats</em> function provides statistics about resources used on the <a href="../columnstore-user-module/index">User Module</a> (UM) node, PM node, and network by the last run query. Example:</p> <pre class="fixed" data-language="sql">MariaDB [test]&gt; select count(*) from wide2;
++----------+                                       
+| count(*) |
++----------+
+|  5000000 |
++----------+
+1 row in set (0.22 sec)
+
+MariaDB [test]&gt; select calGetStats();
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| calGetStats()                                                                                                                                                                                     |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Query Stats: MaxMemPct-0; NumTempFiles-0; TempFileSpace-0B; ApproxPhyI/O-1931; CacheI/O-2446; BlocksTouched-2443; PartitionBlocksEliminated-0; MsgBytesIn-73KB; MsgBytesOut-1KB; Mode-Distributed |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.01 sec)
+</pre>
+<p>The output contains information on:</p> <ul start="1">
+<li>
+<strong>MaxMemPct</strong> - Peak memory utilization on the <a href="../columnstore-user-module/index">User Module</a>, likely in support of a large (User Module) based hash join operation. </li>
+<li>
+<strong>NumTempFiles</strong> - Report on any temporary files created in support of query operations larger than available memory, typically for unusual join operations where the smaller table join cardinality exceeds some configurable threshold. </li>
+<li>
+<strong>TempFileSpace</strong> - Report on space used by temporary files created in support of query operations larger than available memory, typically for unusual join operations where the smaller table join cardinality exceeds some configurable threshold. </li>
+<li>
+<strong>PhyI/O</strong> - Number of 8k blocks read from disk, SSD, or other persistent storage. </li>
+<li>
+<strong>CacheI/O</strong> - Approximate number of 8k blocks processed in memory, adjusted down by the number of discrete PhyI/O calls required. </li>
+<li>
+<strong>BlocksTouched</strong> - Approximate number of 8k blocks processed in memory. </li>
+<li>
+<strong>PartitionBlocksEliminated</strong> - The number of block touches eliminated via the Extent Map elimination behavior. </li>
+<li>
+<strong>MsgBytesIn, MsgByteOut</strong> - Message size in MB sent between nodes in support of the query. </li>
+</ul> <p>The output is useful to determine how much physical I/O was required, how much data was cached, and how many partition blocks were eliminated through use of extent map elimination. The system maintains min / max values for each extent and uses these to help implement where clause filters to completely bypass extents where the value is outside of the min/max range. When a column is ordered (or semi-ordered) during load such as a time column this offer very large performance gains as the system can avoid scanning many extents for the column. </p> <h1 class="anchored_heading" id="query-plan-trace">Query plan / trace</h1> <p>While the MariaDB Server's <a href="../explain/index">EXPLAIN</a> utility can be used to look at the query plan, it is somewhat less helpful for ColumnStore tables as ColumnStore does not use indexes or make use of MariaDB I/O functionality. The execution plan for a query on a ColumnStore table is made up of multiple steps. Each step in the query plan performs a set of operations that are issued from the <a href="../columnstore-user-module/index">User Module</a> to the set of <a href="../columnstore-performance-module/index">Performance Modules</a> in support of a given step in a query.</p> <ul start="1">
+<li>Full Column Scan - an operation that scans each entry in a column using all available threads on the Performance Modules. Speed of operation is generally related to the size of the data type and the total number of rows in the column. The closest analogy for a traditional system is an index scan operation. </li>
+<li>Partitioned Column Scan - an operation that uses the Extent Map to identify that certain portions of the column do not contain any matching values for a given set of filters. The closest analogy for a traditional row-based DBMS is a partitioned index scan, or partitioned table scan operation. </li>
+<li>Column lookup by row offset - once the set of matching filters have been applied and the minimal set of rows have been identified, additional blocks are requested using a calculation that determines exactly which block is required. The closest analogy for a traditional system is a lookup by rowid. </li>
+</ul> <p>These operations are automatically executed together in order to execute appropriate filters and column lookup by row offset.</p> <h2 class="anchored_heading" id="viewing-the-columnstore-query-plan">Viewing the ColumnStore query plan</h2> <p>In MariaDB ColumnStore there is a set of SQL tracing stored functions provided to see the distributed query execution plan between the <a href="../columnstore-user-module/index">UM</a> and the <a href="../columnstore-performance-module/index">PM</a>.</p> <p>The basic steps to using these SQL tracing stored functions are:</p> <ol start="1">
+<li>Start the trace for the particular session. </li>
+<li>Execute the SQL statement in question. </li>
+<li>Review the trace collected for the statement. As an example, the following session starts a trace, issues a query against a 6 million row fact table and 300,000 row dimension table, and then reviews the output from the trace: </li>
+</ol> <pre class="fixed" data-language="sql">
+MariaDB [test]&gt; select calSetTrace(1);
++----------------+
+| calSetTrace(1) |
++----------------+
+|              0 |
++----------------+
+1 row in set (0.00 sec)
+
+MariaDB [test]&gt; select c_name, sum(o_totalprice)
+    -&gt; from customer, orders
+    -&gt; where o_custkey = c_custkey
+    -&gt; and c_custkey = 5
+    -&gt; group by c_name;
++--------------------+-------------------+
+| c_name             | sum(o_totalprice) |
++--------------------+-------------------+
+| Customer#000000005 |         684965.28 |
++--------------------+-------------------+
+1 row in set, 1 warning (0.34 sec)
+
+MariaDB [test]&gt; select calGetTrace();
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    --------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    ----------------------------------------------------------------------------------------------------------+
+| calGetTrace()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    --------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    ----------------------------------------------------------------------------------------------------------+
+|
+Desc Mode Table           TableOID ReferencedColumns        PIO LIO PBE Elapsed Rows
+BPS  PM   customer        3024     (c_custkey,c_name)       0   43  36  0.006   1
+BPS  PM   orders          3038     (o_custkey,o_totalprice) 0   766 0   0.032   3
+HJS  PM   orders-customer 3038     -                        -   -   -   -----   -
+TAS  UM   -               -        -                        -   -   -   0.021   1
+ |
++-------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    --------------------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                    ----------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+</pre>
+<p>The columns headings in the output are as follows: </p> <ul start="1">
+<li>
+<strong>Desc</strong> – Operation being executed. Possible values: <ul start="1">
+<li>
+<strong>BPS</strong> - Batch Primitive Step : scanning or projecting the column blocks. </li>
+<li>
+<strong>CES</strong> - Cross Engine Step: Performing Cross engine join </li>
+<li>
+<strong>DSS</strong> - Dictionary Structure Step : a dictionary scan for a particular variable length string value. </li>
+<li>
+<strong>HJS</strong> - Hash Join Step : Performing a hash join between 2 tables </li>
+<li>
+<strong>HVS</strong> - Having Step: Performing the having clause on the result set </li>
+<li>
+<strong>SQS</strong> - Sub Query Step: Performaning a sub query </li>
+<li>
+<strong>TAS</strong> - Tuple Aggregation step : the process of receiving intermediate aggregation results at the UM from the PM nodes. </li>
+<li>
+<strong>TNS</strong> - Tuple Annexation Step : Query result finishing, e.g. filling in constant columns, limit, order by and final distinct cases. </li>
+<li>
+<strong>TUS</strong> = Tuple Union step : Performing a SQL union of 2 sub queries. </li>
+<li>
+<strong>TCS</strong> = Tuple Constant Step: Process Constant Value Columns </li>
+<li>
+<strong>WFS</strong> = Window Function Step: Performing a window function. </li>
+</ul> </li>
+<li>
+<strong>Mode</strong> – Where the operation was performed: UM or PM </li>
+<li>
+<strong>Table</strong> – Table for which columns may be scanned/projected. </li>
+<li>
+<strong>TableOID</strong> – ObjectID for the table being scanned. </li>
+<li>
+<strong>ReferencedOIDs</strong> – ObjectIDs for the columns required by the query. </li>
+<li>
+<strong>PIO</strong> – Physical I/O (reads from storage) executed for the query. </li>
+<li>
+<strong>LIO</strong> – Logical I/O executed for the query, also known as Blocks Touched. </li>
+<li>
+<strong>PBE</strong> – Partition Blocks Eliminated identifies blocks eliminated by Extent Map min/max. </li>
+<li>
+<strong>Elapsed</strong> – Elapsed time for a give step. </li>
+<li>
+<strong>Rows</strong> – Intermediate rows returned </li>
+</ul> <p><strong> Note: The time recorded is the time from PrimProc and ExeMgr. Execution time from withing mysqld is not tracked here. There could be extra processing time in mysqld due to a number of factors such as ORDER BY.</strong></p> <h1 class="anchored_heading" id="cache-clearing-to-enable-cold-testing">Cache clearing to enable cold testing</h1> <p>Sometimes it can be useful to clear caches to allow understanding of uncached and cached query access. The calFlushCache() function will clear caches on all servers. This is only really useful for testing query performance:</p> <pre class="fixed" data-language="sql">MariaDB [test]&gt; select calFlushCache();
+</pre>
+<h1 class="anchored_heading" id="viewing-extent-map-information">Viewing extent map information</h1> <p>It can be useful to view details about the extent map for a given column. This can be achieved using the editem process on a PM server. Available arguments can be provided by using the -h flag. The most common use is to provide the column object id with the -o argument which will output details for the column and in this case the -t argument is provided to show min / max values as dates:</p> <pre class="fixed" data-language="sql">/usr/local/mariadb/columnstore/bin/editem -o 3032 -t
+Col OID = 3032, NumExtents = 10, width = 4
+428032 - 432127 (4096) min: 1992-01-01, max: 1993-06-21, seqNum: 1, state: valid, fbo: 0, DBRoot: 1, part#: 0, seg#: 0, HWM: 0; status: avail
+502784 - 506879 (4096) min: 1992-01-01, max: 1993-06-22, seqNum: 1, state: valid, fbo: 0, DBRoot: 2, part#: 0, seg#: 1, HWM: 0; status: unavail
+708608 - 712703 (4096) min: 1993-06-21, max: 1994-12-11, seqNum: 1, state: valid, fbo: 0, DBRoot: 1, part#: 0, seg#: 2, HWM: 0; status: unavail
+766976 - 771071 (4096) min: 1993-06-22, max: 1994-12-12, seqNum: 1, state: valid, fbo: 0, DBRoot: 2, part#: 0, seg#: 3, HWM: 0; status: unavail
+989184 - 993279 (4096) min: 1994-12-11, max: 1996-06-01, seqNum: 1, state: valid, fbo: 4096, DBRoot: 1, part#: 0, seg#: 0, HWM: 8191; status: avail
+1039360 - 1043455 (4096) min: 1994-12-12, max: 1996-06-02, seqNum: 1, state: valid, fbo: 4096, DBRoot: 2, part#: 0, seg#: 1, HWM: 8191; status: avail
+1220608 - 1224703 (4096) min: 1996-06-01, max: 1997-11-22, seqNum: 1, state: valid, fbo: 4096, DBRoot: 1, part#: 0, seg#: 2, HWM: 8191; status: avail
+1270784 - 1274879 (4096) min: 1996-06-02, max: 1997-11-22, seqNum: 1, state: valid, fbo: 4096, DBRoot: 2, part#: 0, seg#: 3, HWM: 8191; status: avail
+1452032 - 1456127 (4096) min: 1997-11-22, max: 1998-08-02, seqNum: 1, state: valid, fbo: 0, DBRoot: 1, part#: 1, seg#: 0, HWM: 1930; status: avail
+1510400 - 1514495 (4096) min: 1997-11-22, max: 1998-08-02, seqNum: 1, state: valid, fbo: 0, DBRoot: 2, part#: 1, seg#: 1, HWM: 1930; status: avail
+</pre>
+<p>Here it can be seen that the extent maps for the o_orderdate (object id 3032) column are well partitioned since the order table source data was sorted by the order_date. This example shows 2 seperate DBRoot values as the environment was a 2 node combined deployment. </p> <p>Column object ids may be found by querying the calpontsys.syscolumn metadata table (deprecated) or information_schema.columnstore_columns table (version 1.0.6+).</p> <h1 class="anchored_heading" id="query-statistics-history">Query statistics history</h1> <p>MariaDB ColumnStore query statistics history can be retrieved for analysis. By default the query stats collection is disabled. To enable the collection of query stats, the &lt;QueryStats&gt;&lt;Enabled&gt; element in the ColumnStore.XML configuration file should be set to Y (default is N).</p> <pre class="fixed" data-language="sql">&lt;QueryStats&gt;
+&lt;Enabled&gt;Y&lt;/Enabled&gt;
+&lt;/QueryStats&gt;
+</pre>
+<p>Cross Engine Support must also be enabled before enabling Query Statistics. See the <a href="../configuring-columnstore-cross-engine-joins/index">Cross Engine Configuration</a> section.</p> <p>When enabled the history of query statistics across all sessions along with execution time, and those stats provided by calgetstats() is stored in a table in the infinidb_querystats schema. Only queries in the following ColumnStore syntax are available for statistics monitoring:</p> <ul start="1">
+<li>SELECT </li>
+<li>INSERT </li>
+<li>UPDATE </li>
+<li>DELETE </li>
+<li>INSERT SELECT </li>
+<li>LOAD DATA INFILE </li>
+</ul> <h2 class="anchored_heading" id="query-statistics-table">Query statistics table</h2> <p>When QueryStats is enabled, the query statistics history is collected in the querystats table in the infinidb_querystats schema.</p> <p>The columns of this table are:</p> <ul start="1">
+<li>
+<strong>queryID</strong> - A unique identifier assigned to the query </li>
+<li>
+<strong>Session ID (sessionID)</strong> - The session number that executed the statement. </li>
+<li>
+<strong>queryType</strong> - The type of the query whether insert, update, delete, select, delete, insert select or load data infile </li>
+<li>
+<strong>query</strong> - The text of the query </li>
+<li>
+<strong>Host (host)</strong> - The host that executed the statement. </li>
+<li>
+<strong>User ID (user)</strong> - The user that executed the statement. </li>
+<li>
+<strong>Priority (priority)</strong> The priority the user has for this statement. </li>
+<li>
+<strong>Query Execution Times (startTime, endTime)</strong> Calculated as end time – start time. <ul start="1">
+<li>
+<strong>start time</strong> - the time that the query gets to ExeMgr, DDLProc, or DMLProc </li>
+<li>
+<strong>end time</strong> - the time that the last result packet exits ExeMgr, DDLProc or DMLProc </li>
+</ul> </li>
+<li>
+<strong>Rows returned or affected (rows)</strong> -The number of rows returned for SELECT queries, or the number of rows affected by DML queries. Not valid for DDL and other query types. </li>
+<li>
+<strong>Error Number (errNo)</strong> - The IDB error number if this query failed, 0 if it succeeded. </li>
+<li>
+<strong>Physical I/O (phyIO)</strong> - The number of blocks that the query accessed from the disk, including the pre-fetch blocks. This statistic is only valid for the queries that are processed by ExeMgr, i.e. SELECT, DML with WHERE clause, and INSERT SELECT. </li>
+<li>
+<strong>Cache I/O (cacheIO)</strong> - The number of blocks that the query accessed from the cache. This statistic is only valid for queries that are processed by ExeMgr, i.e. SELECT, DML with WHERE clause, and INSERT SELECT. </li>
+<li>
+<strong>Blocks Touched (blocksTouched)</strong> - The total number of blocks that the query accessed physically and from the cache. This should be equal or less than the sum of physical I/O and cache I/O. This statistic is only valid for queries that are processed by ExeMgr, i.e. SELECT, DML with WHERE clause, and INSERT SELECT. </li>
+<li>
+<strong>Partition Blocks Eliminated (CPBlocksSkipped)</strong> - The number of blocks being eliminated by the extent map casual partition. This statistic is only valid for queries that are processed by ExeMgr, i.e. SELECT, DML with WHERE clause, and INSERT SELECT. </li>
+<li>
+<strong>Messages from <a href="../columnstore-user-module/index">UM</a> to <a href="columnstore-performance-modulec">PM</a> (msgOutUM)</strong> - The number of messages in bytes that ExeMgr sends to the PrimProc. If a message needs to be distributed to all the PMs, the sum of all the distributed messages will be counted. Only valid for queries that are processed by ExeMgr, i.e. SELECT, DML with WHERE clause, and INSERT SELECT. </li>
+<li>
+<strong>Messages from PM to UM (msgInUM)</strong> - The number of messages in bytes that PrimProc sends to the ExeMgr. Only valid for queries that are processed by ExeMgr, i.e. SELECT, DML with where clause, and INSERT SELECT. </li>
+<li>
+<strong>Memory Utilization (maxMemPct)</strong> - This field shows memory utilization for the <a href="../columnstore-user-module/index">User Module</a> (UM) in support of any UM join, group by, aggregation, distinct, or other operation. </li>
+<li>
+<strong>Blocks Changed (blocksChanged)</strong> - Total number of blocks that queries physically changed on disk. This is only for delete/update statements. </li>
+<li>
+<strong>Temp Files (numTempFiles)</strong> - This field shows any temporary file utilization for the User Module (UM) in support of any UM join, group by, aggregation, distinct, or other operation. </li>
+<li>
+<strong>Temp File Space (tempFileSpace)</strong> - This shows the size of any temporary file utilization for the User Module (UM) in support of any UM join, group by, aggregation, distinct, or other operation. </li>
+</ul> <h2 class="anchored_heading" id="query-statistics-viewing">Query statistics viewing</h2> <p>Users can view the query statistics by selecting the rows from the query stats table in the infinidb_querystats schema. Examples listed below:</p> <ul start="1"><li>Example 1: List execution time, rows returned for all the select queries within the past 12 hours:<br> </li></ul> <pre class="fixed" data-language="sql">MariaDB [infinidb_querystats]&gt; select queryid, query, endtime-starttime, rows from querystats 
+where starttime &gt;= now() - interval 12 hour and querytype = 'SELECT'; 
+</pre>
+<ul start="1"><li>Example 2: List the three slowest running select queries of session 2 within the past 12 hours:<br> </li></ul> <pre class="fixed" data-language="sql">MariaDB [infinidb_querystats]&gt; select a.* from (select endtime-starttime execTime, query from queryStats 
+where sessionid = 2 and querytype = 'SELECT' and starttime &gt;= now()-interval 12 hour
+order by 1 limit 3) a;
+</pre>
+<ul start="1"><li>Example 3: List the average, min and max running time of all the INSERT SELECT queries within the past 12 hours:<br> </li></ul> <pre class="fixed" data-language="sql">MariaDB [infinidb_querystats]&gt; select min(endtime-starttime), max(endtime-starttime), avg(endtime-starttime) from querystats 
+where querytype='INSERT SELECT' and starttime &gt;= now() - interval 12 hour;
+</pre> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/analyzing-queries-in-columnstore/" class="_attribution-link">https://mariadb.com/kb/en/analyzing-queries-in-columnstore/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

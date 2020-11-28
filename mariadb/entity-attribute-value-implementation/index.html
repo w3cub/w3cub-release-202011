@@ -1,0 +1,166 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Entity-Attribute-Value Implementation - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content=" It goes by various names ">
+  <meta name="keywords" content="entity-attribute-value, implementation, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/entity-attribute-value-implementation/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Entity-Attribute-Value Implementation</h1> <div> <div class="node creole"> <div class="answer formatted">  <h2 class="anchored_heading" id="the-desires">The desires</h2> <ul>
+<li>Open-ended set of "attributes" (key=value) for each "entity". That is, the list of attributes is not known at development time, and will grow in the future. (This makes one column per attribute impractical.) </li>
+<li>"ad hoc" queries testing attributes. </li>
+<li>Attribute values come in different types (numbers, strings, dates, etc.) </li>
+<li>Scale to lots of entities, yet perform well. </li>
+</ul> <p>It goes by various names</p> <ul>
+<li>EAV -- Entity - Attribute - Value </li>
+<li>key-value </li>
+<li>RDF -- This is a flavor of EAV </li>
+<li>MariaDB has dynamic columns that look something like the solution below, with the added advantage of being able to index the columns otherwise hidden in the blob. (There are caveats.) </li>
+<li>MySQL 5.7 Has JSON datatype, plus functions to access parts </li>
+<li>MongoDB, CouchDB -- and others -- Not SQL-based. </li>
+</ul> <h2 class="anchored_heading" id="bad-solution">Bad solution</h2> <ul>
+<li>Table with 3 columns: entity_id, key, value </li>
+<li>The "value" is a string, or maybe multiple columns depending on datatype or other kludges. </li>
+<li>a JOIN b ON a.entity=b.entity AND b.key='x' JOIN c ON ... WHERE a.value=... AND b.value=... </li>
+</ul> <h2 class="anchored_heading" id="the-problems">The problems</h2> <ul>
+<li>The SELECTs get messy -- multiple JOINs </li>
+<li>Datatype issues -- It's clumsy to be putting numbers into strings </li>
+<li>Numbers stored in <a href="../varchar/index">VARCHAR</a> do not compare 'correctly', especially for range tests. </li>
+<li>Bulky. </li>
+<li>Dedupping the values is clumsy. </li>
+</ul> <h2 class="anchored_heading" id="a-solution">A solution</h2> <p>Decide which columns need to be searched/sorted by SQL queries. No, you don't need all the columns to be searchable or sortable. Certain columns are frequently used for selection; identify these. You probably won't use all of them in all queries, but you will use some of them in every query.</p> <p>The solution uses one table for all the EAV stuff. The columns include the searchable fields plus one <a href="../blob/index">BLOB</a>. Searchable fields are declared appropriately (<a href="../int/index">INT</a>, <a href="../timestamp/index">TIMESTAMP</a>, etc). The BLOB contains JSON-encoding of all the extra fields.</p> <p>The table should be <a href="../innodb/index">InnoDB</a>, hence it should have a PRIMARY KEY. The entitity_id is the 'natural' PK. Add a small number of other indexes (often 'composite') on the searchable fields. <a href="../managing-mariadb-partitioning/index">PARTITIONing</a> is unlikely to be of any use, unless the Entities should purged after some time. (Example: News Articles)</p> <h2 class="anchored_heading" id="but-what-about-the-ad-hoc-queries">But what about the ad hoc queries?</h2> <p>You have included the most important fields to search on -- date, category, etc. These should filter the data down significantly. When you also need to filter on something more obscure, that will be handled differently. The application code will look at the BLOB for that; more on this later.</p> <h2 class="anchored_heading" id="why-it-works">Why it works</h2> <ul>
+<li>You are not really going to search on more than a few fields. </li>
+<li>The disk footprint is smaller; Smaller --&gt; More cacheable --&gt; Faster </li>
+<li>It needs no JOINs </li>
+<li>The indexes are useful </li>
+<li>The one table has one row per entity, and can grow as needed. (EAV needs many rows per entity.) </li>
+<li>Performance is as good as the indexes you have on the 'searchable fields'. </li>
+<li>Optionally, you can duplicate the indexed fields in the BLOB. </li>
+<li>Values missing from 'searchable fields' would need to be NULL (or whatever), and the code would need to deal with such. </li>
+</ul> <h2 class="anchored_heading" id="details-on-the-blobjson">Details on the BLOB/JSON</h2> <ul>
+<li>Build the extra (or all) key-value pairs in a hash (associative array) in your application. Encode it. COMPRESS it. Insert that string into the <a href="../blob/index">BLOB</a>. </li>
+<li>JSON is recommended, but not mandatory; it is simpler than XML. Other serializations (eg, YAML) could be used. </li>
+<li>COMPRESS the JSON and put it into a <a href="../blob/index">BLOB</a> (or <a href="../mediumblob/index">MEDIUMBLOB</a>) instead of a <a href="../text/index">TEXT</a> field. Compression gives about 3x shrinkage. </li>
+<li>When SELECTing, UNCOMPRESS the blob. Decode the string into a hash. You are now ready to interrogate/display any of the extra fields. </li>
+<li>If you choose to use the JSON features of MariaDB or 5.7, you will have to forgo the compression feature described. </li>
+<li>MySQL 5.7.8's JSON native JSON datatype uses a binary format for more efficient access. </li>
+</ul> <h2 class="anchored_heading" id="conclusions">Conclusions</h2> <ul>
+<li>Schema is reasonably compact (compression, real datatypes, less redundancy, etc, than EAV) </li>
+<li>Queries are fast (since you have picked 'good' indexes) </li>
+<li>Expandable (JSON is happy to have new fields) </li>
+<li>Compatible (No 3rd party products, just supported products) </li>
+<li>Range tests work (unlike storing <a href="../int/index">INTs</a> in <a href="../varchar/index">VARCHARs</a>) </li>
+<li>(Drawback) Cannot use the non-indexed attributes in WHERE or ORDER BY clauses, must deal with that in the app. (MySQL 5.7 partially alleviates this.) </li>
+</ul> <h2 class="anchored_heading" id="postlog">Postlog</h2> <p>Posted Jan, 2014; Refreshed Feb, 2016.</p> <ul>
+<li>MariaDB's <a href="../dynamic-columns/index">Dynamic Columns</a> </li>
+<li>
+<a href="https://dev.mysql.com/doc/refman/5.7/en/json.html">MySQL 5.7's JSON</a> </li>
+</ul> <p>This looks very promising; I will need to do more research to see how much of this article is obviated by it: <a href="http://dev.mysql.com/doc/refman/5.7/en/document-store.html">Using MySQL as a Document Store in 5.7</a>, <a href="http://mysqlserverteam.com/mysql-5-7-12-part-6-mysql-document-store-a-new-chapter-in-the-mysql-story/">more DocStore discussion</a></p> <p>If you insist on EAV, set <a href="../server-system-variables/index#optimizer_search_depth">optimizer_search_depth=1</a>.</p> <h2 class="anchored_heading" id="see-also">See also</h2> <p>Rick James graciously allowed us to use this article in the Knowledge Base.</p> <p><a href="http://mysql.rjweb.org/">Rick James' site</a> has other useful tips, how-tos, optimizations, and debugging tips.</p> <p> Original source: <a href="http://mysql.rjweb.org/doc.php/eav">http://mysql.rjweb.org/doc.php/eav</a></p> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/entity-attribute-value-implementation/" class="_attribution-link">https://mariadb.com/kb/en/entity-attribute-value-implementation/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

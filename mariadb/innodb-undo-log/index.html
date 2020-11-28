@@ -1,0 +1,120 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>InnoDB Undo Log - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content="When a transaction writes data, it always inserts them in the table indexes or data (in the buffer pool or in physical files). No private copies are &hellip;">
+  <meta name="keywords" content="innodb, undo, log, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/innodb-undo-log/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>InnoDB Undo Log</h1> <div> <div class="node creole"> <div class="answer formatted">  <h2 class="anchored_heading" id="overview">Overview</h2> <p>When a <a href="../transactions/index">transaction</a> writes data, it always inserts them in the table indexes or data (in the buffer pool or in physical files). No private copies are created. The old versions of data being modified by active <a href="../innodb/index">XtraDB/InnoDB</a> transactions are stored in the undo log. The original data can then be restored, or viewed by a consistent read.</p> <h2 class="anchored_heading" id="implementation-details">Implementation Details</h2> <p>Before a row is modified, it is copied into the undo log. Each normal row contains a pointer to the most recent version of the same row in the undo log. Each row in the undo log contains a pointer to previous version, if any. So, each modified row has an history chain.</p> <p>Rows are never physically deleted until a transaction ends. If they were deleted, the restore would be impossible. Thus, rows are simply marked for deletion.</p> <p>Each transaction uses a <em>view</em> of the records. The <a href="../set-transaction/index#isolation-levels">transaction level</a> determines how this view is created. For example, READ UNCOMMITTED usually uses the current version of rows, even if they are not committed (<em>dirty reads</em>). Other isolation levels require that the most recent committed version of rows is searched in the undo log. READ COMMITTED uses a different view for each table, while REPEATABLE READ and SERIALIZABLE use the same view for all tables.</p> <p>There is also a global history list of the data. When a transaction is committed, its history is added to this history list. The order of the list is the chronological order of the commits.</p> <p>The purge thread deletes the rows in the undo log which are not needed by any existing view. The rows for which a most recent version exists are deleted, as well as the delete-marked rows.</p> <p>If InnoDB needs to restore an old version, it will simply replace the newer version with the older one. When a transaction inserts a new row, there is no older version. However, in that case, the restore can be done by deleting the inserted rows.</p> <h2 class="anchored_heading" id="effects-of-long-running-transactions">Effects of Long-Running Transactions</h2> <p>Understanding how the undo log works helps with understanding the negative effects long transactions.</p> <ul start="1">
+<li>Long transactions generate several old versions of the rows in the undo log. Those rows will probably be needed for a longer time, because other long transactions will need them. Since those transactions will generate more modified rows, a sort of combinatory explosion can be observed. Thus, the undo log requires more space. </li>
+<li>Transaction may need to read very old versions of the rows in the history list, thus their performance will degrade. </li>
+</ul> <p>Of course read-only transactions do not write more entries in the undo log; however, they delay the purging of existing entries.</p> <p>Also, long transactions can more likely result in deadlocks, but this problem is not related to the undo log.</p> <h2 class="anchored_heading" id="configuration">Configuration</h2> <p>The undo log is not a log file that can be viewed on disk in the usual sense, such as the <a href="../error-log/index">error log</a> or <a href="../slow-query-log/index">slow query log</a>, rather an area of storage.</p> <p>The undo log is usually part of the physical system tablespace, but from <a href="../what-is-mariadb-100/index">MariaDB 10.0</a>, the <a href="../xtradbinnodb-server-system-variables/index#innodb_undo_directory">innodb_undo_directory</a> and <a href="../xtradbinnodb-server-system-variables/index#innodb_undo_tablespaces">innodb_undo_tablespaces</a> system variables can be used to split into different tablespaces and store in a different location (perhaps on a different storage device).</p> <p>Each insert or update portion of the undo log is known as a rollback segment. The <a href="../xtradbinnodb-server-system-variables/index#innodb_undo_logs">innodb_undo_logs</a> system variable specifies the number of rollback segments to be used per transaction.</p> <p>The related <a href="../xtradbinnodb-server-status-variables/index#innodb_available_undo_logs">innodb_available_undo_logs</a> status variable stores the total number of available InnoDB undo logs.</p> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/innodb-undo-log/" class="_attribution-link">https://mariadb.com/kb/en/innodb-undo-log/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,182 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Converting Tables From MyISAM to InnoDB - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content="You have decided to change one or more tables from MyISAM to InnoDB. That should be as simple as ALTER TABLE foo ENGINE&#61;InnoDB. But you have &hellip;">
+  <meta name="keywords" content="converting, tables, from, myisam, innodb, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/converting-tables-from-myisam-to-innodb/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Converting Tables from MyISAM to InnoDB</h1> <div> <div class="node creole"> <div class="answer formatted">  <h2 class="anchored_heading" id="the-task">The task</h2> <p>You have decided to change one or more tables from <a href="../myisam/index">MyISAM</a> to <a href="../innodb/index">InnoDB</a>. That should be as simple as <code>ALTER TABLE foo ENGINE=InnoDB</code>. But you have heard that there might be some subtle issues. </p> <p>This describes possible issues that may arise and what to do about them. </p> <p> <em>Recommendation.</em> One way to assist in searching for issues in is to do (at least in *nix)</p> <pre class="fixed" data-language="sql">mysqldump --no-data --all-databases &gt;schemas
+egrep 'CREATE|PRIMARY' schemas   # Focusing on PRIMARY KEYs
+egrep 'CREATE|FULLTEXT' schemas  # Looking for FULLTEXT indexes
+egrep 'CREATE|KEY' schemas       # Looking for various combinations of indexes
+</pre>
+<p>Understanding how the indexes work will help you better understand what might run faster or slower in InnoDB. </p> <h2 class="anchored_heading" id="index-issues">INDEX Issues</h2> <p> <em>(Most of these Recommendations and some of these Facts have exceptions.)</em></p> <p> <em>Fact.</em> Every InnoDB table has a PRIMARY KEY. If you do not provide one, then the first non-NULL UNIQUE key is used. If that can't be done, then a 6-byte, hidden, integer is provided. </p> <p> <em>Recommendation.</em> Look for tables without a PRIMARY KEY. Explicitly specify a PRIMARY KEY, even if it's an artificial AUTO_INCREMENT. This is not an absolute requirement, but it is a stronger admonishment for InnoDB than for MyISAM. Some day you may need to walk through the table; without an explicit PK, you can't do it. </p> <p> <em>Fact.</em> The fields of the PRIMARY KEY are included in each Secondary key. </p> <ul start="1"><li>Check for redundant indexes with this in mind. </li></ul> <pre class="fixed indent1" data-language="sql">PRIMARY KEY(id),
+INDEX(b), -- effectively the same as INDEX(b, id)
+INDEX(b, id) -- effectively the same as INDEX(b)
+</pre>
+<ul start="1" style="list-style: none"><li>(Keep one of the INDEXes, not both) </li></ul> <ul start="1"><li>Note subtle things like </li></ul> <pre class="fixed indent1" data-language="sql">PRIMARY KEY(id),
+UNIQUE(b), -- keep for uniqueness constraint
+INDEX(b, id) -- DROP this one
+</pre>
+<ul start="1"><li>Also, since the PK and the data coexist: </li></ul> <pre class="fixed indent1" data-language="sql">PRIMARY KEY(id),
+INDEX(id, b) -- DROP this one; it adds almost nothing
+</pre>
+<p> <em>Contrast.</em> This feature of MyISAM is not available in InnoDB; the value of 'id' will start over at 1 for each different value of 'abc':</p> <pre class="fixed" data-language="sql">id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+PRIMARY KEY (abc, id)
+</pre>
+<p>A way to simulate the MyISAM 'feature' might be something like: What you want is this, but it won't work because it is referencing the table twice:</p> <pre class="fixed" data-language="sql">INSERT INTO foo
+    (other, id, ...)
+    VALUES
+    (123, (SELECT MAX(id)+1 FROM foo WHERE other = 123), ...);
+</pre>
+<p>Instead, you need some variant on this. (You may already have a BEGIN...COMMIT.)</p> <pre class="fixed" data-language="sql">BEGIN;
+SELECT @id := MAX(id)+1 FROM foo WHERE other = 123 FOR UPDATE;
+INSERT INTO foo
+    (other, id, ...)
+    VALUES
+    (123, @id, ...);
+COMMIT;
+</pre>
+<p>Having a transaction is mandatory to prevent another thread from grabbing the same id. </p> <p> <em>Recommendation.</em> Look for such PRIMARY KEYs. If you find such, ponder how to change the design. There is no straightforward workaround. However, the following may be ok. (Be sure that the datatype for id is big enough since it won't start over.):</p> <pre class="fixed" data-language="sql">id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+PRIMARY KEY (abc, id),
+UNIQUE(id)
+</pre>
+<p> <em>Recommendation.</em> Keep the PRIMARY KEY short. If you have Secondary keys, remember that they include the fields of the PK. A long PK would make the Secondary keys bulky. Well, maybe not <span>—</span> if the is a lot of overlap in fields. Example: <code>PRIMARY KEY(a,b,c), INDEX(c,b,a)</code> <span>—</span> no extra bulk. </p> <p> <em>Recommendation.</em> Check AUTO_INCREMENT sizes. </p> <ul start="1">
+<li>BIGINT is almost never needed. It wastes at least 4 bytes per row (versus INT). </li>
+<li>Always use UNSIGNED and NOT NULL. </li>
+<li>MEDIUMINT UNSIGNED (16M max) might suffice instead of INT </li>
+<li>Be sure to be pessimistic <span>—</span> it is painful to ALTER. </li>
+</ul> <p> <em>Contrast.</em> "Vertical Partitioning". This is where you artificially split a table to move bulky columns (eg, a BLOB) into another, parallel, table. It is beneficial in MyISAM to avoid stepping over the blob when you don't need to read it. InnoDB stores BLOB and TEXT differently <span>—</span> 767 bytes are in the record, the rest is in some other block. So, it may (or may not) be worth putting the tables back together. Caution: An InnoDB row is limited to 8KB, and the 767 counts against that. </p> <p> <em>Fact.</em> FULLTEXT (prior to <a href="https://mariadb.com/kb/en/mariadb-1005-release-notes/">MariaDB 10.0.5</a>) and SPATIAL indexes are not available in InnoDB. Note that MyISAM and InnoDB <a href="../full-text-indexes/index">FULLTEXT indexes</a> use different <a href="stopword">stopword</a> lists and different system variables.</p> <p> <em>Recommendation.</em> Search for such indexes. Keep such tables in MyISAM. Better yet, do Vertical Partitioning (see above) to split out the minimum number of columns from InnoDB. </p> <p> <em>Fact.</em> The maximum length of an INDEX is different between the Engines. (This change is not likely to hit you, but watch out.) MyISAM allows 1000 bytes; InnoDB allows 767 bytes, just big enough for a</p> <pre class="fixed" data-language="sql">VARCHAR(255) CHARACTER SET utf8.
+
+ERROR 1071 (42000): Specified key was too long; max key length is 767 bytes
+</pre>
+<p> <em>Fact.</em> The PRIMARY KEY is included in the data. Hence, SHOW TABLE STATUS will show and <code>Index_length</code> of 0 bytes (or 16KB) for a table with no secondary indexes. Otherwise, <code>Index_length</code> is the total size for the secondary keys. </p> <p> <em>Fact.</em> The PRIMARY KEY is included in the data. Hence, exact match by PK may be a little faster with InnoDB. And, "range" scans by PK are likely to be faster. </p> <p> <em>Fact.</em> A lookup by Secondary Key traverses the secondary key's BTree, grabs the PRIMARY KEY, then traverses the PK's BTree. Hence, secondary key lookups are a little more cumbersome in InnoDB. </p> <p> <em>Contrast.</em> The fields of the PRIMARY KEY are included in each Secondary key. This may lead to "Using index" (in the EXPLAIN plan) for InnoDB for cases where it did not happen in MyISAM. (This is a slight performance boost, and counteracts the double-lookup otherwise needed.) However, when "Using index" would be useful on the PRIMARY KEY, MyISAM would do an "index scan", yet InnoDB effectively has to do a "table scan". </p> <p> <em>Same as MyISAM.</em> Almost always</p> <pre class="fixed" data-language="sql">INDEX(a)   -- DROP this one because the other one handles it.
+INDEX(a,b)
+</pre>
+<p> <em>Contrast.</em> The data is stored in PK order. This means that "recent" records are 'clustered' together at the end. This may give you better 'locality of reference' than in MyISAM. </p> <p> <em>Same as MyISAM.</em> The optimizer almost never uses two indexes in a single SELECT. (5.1 will occasionally do "index merge".) SELECT in subqueries and UNIONs can independently pick indexes. </p> <p> <em>Subtle issue.</em> When you DELETE a row, the AUTO_INCREMENT id will be burned. Ditto for REPLACE, which is a DELETE plus an INSERT. </p> <p> <em>Very subtle issue.</em> Replication occurs on COMMIT. If you have multiple threads using transactions, the AUTO_INCREMENTs can arrive at a slave out of order. One transaction BEGINs, grabs an id. Then another transaction grabs an id but COMMITs before the first finishes. </p> <p> <em>Same as MyISAM.</em> "Prefix" indexing is usually bad in both InnoDB and MyISAM. Example: <code>INDEX(foo(30))</code></p> <h2 class="anchored_heading" id="non-index-issues">Non-INDEX Issues</h2> <p>Disk space for InnoDB is likely to be 2-3 times as much as for MyISAM. </p> <p>MyISAM and InnoDB use RAM radically differently. If you change all your tables, you should make significant adjustments: </p> <ul start="1">
+<li>
+<a href="../myisam-system-variables/index#key_buffer_size">key_buffer_size</a> <span>—</span> small but non-zero; say, 10M; </li>
+<li>
+<a href="../xtradbinnodb-server-system-variables/index#innodb_buffer_pool_size">innodb_buffer_pool_size</a> <span>—</span> 70% of available RAM </li>
+</ul> <p>InnoDB has essentially no need for CHECK, OPTIMIZE, or ANALYZE. Remove them from your maintenance scripts. (No real harm if you keep them.) </p> <p>Backup scripts may need checking. A MyISAM table can be backed up by copying three files. With InnoDB this is only possible if <a href="../xtradbinnodb-server-system-variables/index#innodb_file_per_table">innodb_file_per_table</a> is set to 1. Before <a href="../what-is-mariadb-100/index">MariaDB 10.0</a>, capturing a table or database for copying from production to a development environment was not possible. Change to <a href="../mysqldump/index">mysqldump</a>. Since <a href="../what-is-mariadb-100/index">MariaDB 10.0</a> a hot copy can be created - see <a href="../backup-and-restore-overview/index">Backup and restore overview</a>.</p> <p>Before <a href="../what-is-mariadb-55/index">MariaDB 5.5</a>, the DATA DIRECTORY <a href="../create-table/index#table-options">table option</a> was not supported for InnoDB. Since <a href="../what-is-mariadb-55/index">MariaDB 5.5</a> it is supported, but only in CREATE TABLE. INDEX DIRECTORY has no effect, since InnoDB does not use separate files for indexes. To better balance the workload through several disks, the paths of some InnoDB log files can also be changed.</p> <p>Understand autocommit and BEGIN/COMMIT. </p> <ul start="1">
+<li>(default) autocommit = 1: In the absence of any BEGIN or COMMIT statements, every statement is a transaction by itself. This is close to the MyISAM behavior, but is not really the best. </li>
+<li>autocommit = 0: COMMIT will close a transaction and start another one. To me, this is kludgy. </li>
+<li>(recommended) BEGIN...COMMIT gives you control over what sequence of operation(s) are to be considered a transaction and "atomic". Include the ROLLBACK statement if you need to undo stuff back to the BEGIN. </li>
+</ul> <p>Perl's DBIx::DWIW and Java's JDBC have API calls to do BEGIN and COMMIT. These are probably better than 'executing' BEGIN and COMMIT. </p> <p>Test for errors everywhere! Because InnoDB uses row-level locking, it can stumble into deadlocks that you are not expecting. The engine will automatically ROLLBACK to the BEGIN. The normal recovery is to redo, beginning at the BEGIN. Note that this is a strong reason to have BEGINs. </p> <p>LOCK/UNLOCK TABLES <span>—</span> remove them. Replace them (sort of) with BEGIN ... COMMIT. (LOCK will work if <a href="../xtradbinnodb-server-system-variables/index#innodb_table_locks">innodb_table_locks</a> is set to 1, but it is less efficient, and may have subtle issues.) </p> <p>In 5.1, ALTER ONLINE TABLE can speed up some operations significantly. (Normally ALTER TABLE copies the table over and rebuilds the indexes.) </p> <p>The "limits" on virtually everything are different between MyISAM and InnoDB. Unless you have huge tables, wide rows, lots of indexes, etc, you are unlikely to stumble into a different limit. </p> <p>Mixture of MyISAM and InnoDB? This is OK. But there are caveats. </p> <ul start="1">
+<li>RAM settings should be adjusted to accordingly. </li>
+<li>JOINing tables of different Engines works. </li>
+<li>A transaction that affects tables of both types can ROLLBACK InnoDB changes, but will leave MyISAM changes intact. </li>
+<li>Replication: MyISAM statements are replicated when finished; InnoDB statements are held until the COMMIT. </li>
+</ul> <p>FIXED (vs DYNAMIC) is meaningless in InnoDB. </p> <p>PARTITION <span>—</span> You can partition MyISAM and InnoDB tables. Remember the screwball rule: You must either </p> <ul start="1">
+<li>have no UNIQUE (or PRIMARY) keys, or </li>
+<li>have the value you are "partitioning on" in every UNIQUE key. </li>
+</ul> <p>The former is not advised for InnoDB. The latter is messy if you want an AUTO_INCREMENT. </p> <p>PRIMARY KEY in PARTITION <span>—</span> Since every key must include the field on which you are PARTITIONing, how can AUTO_INCREMENT work? Well, there seems to be a convenient special case: </p> <ul start="1"><li>This works: PRIMARY KEY(autoinc, partition_key) </li></ul> <ul start="1"><li>This does not work for InnoDB: PRIMARY KEY(partition_key, autoinc) </li></ul> <p>That is, an AUTO_INCREMENT will correctly increment, and be unique across all PARTITINOs, when it is the first field of the PRIMARY KEY, but not otherwise.</p> <h2 class="anchored_heading" id="see-also">See Also</h2> <p>Rick James graciously allowed us to use this article in the Knowledge Base.</p> <p><a href="http://mysql.rjweb.org/">Rick James' site</a> has other useful tips, how-tos, optimizations, and debugging tips.</p> <p> Original source: <a href="http://mysql.rjweb.org/doc.php/myisam2innodb">http://mysql.rjweb.org/doc.php/myisam2innodb</a></p> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/converting-tables-from-myisam-to-innodb/" class="_attribution-link">https://mariadb.com/kb/en/converting-tables-from-myisam-to-innodb/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

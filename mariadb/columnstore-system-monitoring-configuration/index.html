@@ -1,0 +1,235 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>ColumnStore System Monitoring Configuration - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content=" ColumnStore is designed to be somewhat self managing and healing. The following 2 processes help achieve this&#58; ">
+  <meta name="keywords" content="columnstore, system, monitoring, configurationintroductionsystem, configurationviewing, storage, configurationmodule, configurationlogging, level, management, configuration, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/columnstore-system-monitoring-configuration/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>ColumnStore System Monitoring Configuration</h1> <div> <div class="node creole"> <div class="answer formatted">  <h1 class="anchored_heading" id="introduction">Introduction</h1> <p>ColumnStore is designed to be somewhat self managing and healing. The following 2 processes help achieve this:</p> <ul start="1">
+<li>
+<strong>ProcMon</strong> runs on each node and is responsible for ensuring that the other required ColumnStore processes are started and automatically restarted as appropriate on that server. This in turn is started and monitored by the run.sh shell script which ensures it is restarted should it be killed. The run.sh script is invoked and automatically started by the <strong>columnstore</strong> systemd service at bootup time. This can also be utilized to restart the service on an individual node though generally it is preferred to use the <em>mcsadmin stop, shutdown, and start</em> commands from the PM1 node. </li>
+<li>
+<strong>ProcMgr</strong> runs on each PM node with only one taking an active role at a time, the others remaining in warm standby mode. This process manager is responsible for overall system health, resource monitoring, and PM node failover management. </li>
+</ul> <p>To provide additional monitoring guarantees, an external monitoring tool should monitor the health of these 3 processes and potentially all. If the run.sh process fails then the system is at potential risk of not being able to self heal.</p> <h1 class="anchored_heading" id="system-monitoring-configuration">System monitoring configuration</h1> <p>A number of system configuration variables exist to allow fine tuning of the system monitoring capabilities. In general the default values will work relatively well for many cases.</p> <p>The configuration parameters are maintained in the /usr/local/mariadb/columnstore/etc/Columnstore.xml file. In a multiple server deployment these should only be edited on the PM1 server as this will be automatically replicated to other servers by the system. A system restart will be required for the configuration change to take affect.</p> <p>Convenience utility programs <em>getConfig</em> and <em>setConfig</em> are available to safely update the Columnstore.xml without needing to be comfortable with editing XML files. The -h argument will display usage information. The section value will be <em>SystemConfig</em> for all settings in this document. For example:</p> <pre class="fixed" data-language="sql"># ./setConfig SystemConfig ModuleHeartbeatPeriod 5
+# ./getConfig SystemConfig ModuleHeartbeatPeriod
+5
+</pre>
+<h2 class="anchored_heading" id="module-heartbeats">Module heartbeats</h2> <p>Heartbeat monitoring occurs between modules (both <a href="../columnstore-user-module/index">UM</a> and <a href="../columnstore-performance-module/index">PM</a>) to determine the module us up and functioning. The module heartbeat settings are the same for all modules.</p> <ol start="1">
+<li>
+<em>ModuleHeartbeatPeriod</em> refers to how often the heartbeat test is performed. For example, if you set the period to 5, then the heartbeat test is performed every 5 seconds. The initial default value is 1. To disable heartbeat monitoring set the value to -1. </li>
+<li>
+<em>ModuleHeartbeatCount</em> refers to how many failures in a row must take place before a fault is processed. The initial default value is 3. </li>
+</ol> <h2 class="anchored_heading" id="disk-threshold">Disk threshold</h2> <p>Thresholds can be set to trigger a local alert when file system usage crosses a specified percentage of a file system on a server. Critical, Major or Minor thresholds can be set for the disk usage for each server. However it is recommend to use an external system monitoring tool configured to monitor for free disk space to perform proactive external alerting or paging. Actual columnstore data is stored within the <em>data&lt;N&gt;</em> directories of the installation and mariadb db files are stored under the <em>mysql/db</em> directory.</p> <ol start="1">
+<li>
+<em>ExternalMinorThreshold</em> - Percentage threshold for when a minor local alarm is triggered. Default value is 70. </li>
+<li>
+<em>ExternalMajorThreshold</em> - Percentage threshold for when a minor local alarm is triggered. Default value is 80. </li>
+<li>
+<em>ExternalCriticalThreshold</em> - Percentage threshold for when a minor local alarm is triggered. Default value is 90. </li>
+</ol> <p>The value is a numeric percentage value between 0 and 100. To disable a particular threshold use value 0. To disable a threshold alarm, set it to 0.</p> <h2 class="anchored_heading" id="memory-utilization">Memory utilization</h2> <p>A couple of mcsadmin commands provide convenience functions for monitoring memory utilization across nodes. <em>getSystemMemory</em> returns server level memory statistics and <em>getSystemMemoryUsers</em> shows the the top 5 processes by server. The following examples are for a 2 server combined setup:</p> <pre class="fixed" data-language="sql">mcsadmin&gt; getSystemMemory
+getsystemmemory   Tue Nov 29 11:14:21 2016
+
+System Memory Usage per Module (in K bytes)
+
+Module  Mem Total  Mem Used  Cache    Mem Usage %  Swap Total  Swap Used  Swap Usage % 
+------  ---------  --------  -------  -----------  ----------  ---------  ------------ 
+pm1     7979488    1014772   6438432      12       3145724     0               0
+pm2     3850724    632712    1134324      16       3145724     0               0
+
+mcsadmin&gt; getSystemMemoryUsers
+getsystemmemoryusers   Tue Nov 29 11:41:10 2016
+
+System Process Top Memory Users per Module
+
+Module 'pm1' Top Memory Users (in bytes)
+
+Process             Memory Used  Memory Usage %
+-----------------   -----------  --------------
+mysqld              19621              3
+PrimProc            18990              3
+gnome-shell         10192              2
+systemd-journald    4236               1
+DDLProc             3004               1
+
+Module 'pm2' Top Memory Users (in bytes)
+
+Process             Memory Used  Memory Usage %
+-----------------   -----------  --------------
+mysqld              19046              5
+PrimProc            18891              5
+ProcMon             2343               1
+workernode          1806               1
+WriteEngineServ     1507               1
+
+
+</pre>
+<h1 class="anchored_heading" id="viewing-storage-configuration">Viewing storage configuration</h1> <p>To view the storage configuration, use the <em>getStorageConfig</em> command in <a href="../mariadb-columnstore-administrative-console/index">mcsadmin</a>, or simply use <a href="../mariadb-columnstore-administrative-console/index">mcsadmin</a> <em>getStorageConfig</em> from the operating system prompt. This will provide information on DBRoots and which PM they are assigned to, if any.</p> <p>Example:</p> <pre class="fixed" data-language="sql"># mcsadmin getstorageconfig Wed Mar 28 10:40:34 2016
+
+System Storage Configuration
+
+Storage Type = internal
+System DBRoot count = 6
+DBRoot IDs assigned to 'pm1' = 1
+DBRoot IDs assigned to 'pm2' = 2
+DBRoot IDs assigned to 'pm3' = 3
+DBRoot IDs assigned to 'pm4' = 4
+DBRoot IDs assigned to 'pm5' = 5
+DBRoot IDs assigned to 'pm6' = 6
+</pre>
+<h1 class="anchored_heading" id="module-monitoring-configuration">Module monitoring configuration</h1> <p>An internal alarm system is used to keep track of internal notable events as a convenience or reference point. It is recommended to use a dedicated system monitoring tool for more proactive alerting of critical CPU, memory, or disk utilization issues for each of the servers.</p> <p>Alarms are logged to the <em> /var/log/mariadb/columnstore/alarm.log</em> file and a summary is displayed in mcsadmin. The <em>getActiveAlarms</em> command in mcsadmin can be used to retrieve current alarm conditions. </p> <p>For each module (PM and UM), the following resource monitoring parameters can be configured:</p> <div class="cstm-style darkheader-nospace-borders">
+<table>
+<tr>
+<th>Resource Monitoring Parameter</th>
+<th>mcsadmin command</th>
+</tr> <tr>
+<td>CPU thresholds</td>
+<td>setModuleTypeConfig (module name) ModuleCPU(Clear/ Minor/Major/Critical)Threshold n (where n= percentage of CPU usage)</td>
+</tr> <tr>
+<td>Disk file system use threshold</td>
+<td>setModuleTypeConfig (module name) ModuleDisk(Minor/ Major/Critical)Threshold n (where n= percentage of disk system used)</td>
+</tr> <tr>
+<td>Module swap thresholds</td>
+<td>setModuleTypeConfig (module name) ModuleSwap(Minor/ Major/Crictical)Threshold n (where n= percentage of swap space used)</td>
+</tr> </table> </div>
+<h2 class="anchored_heading" id="alarm-trigger-count-threshold">Alarm trigger count threshold</h2> <p>For an alarm, a threshold can be set for how many times the alarm can be triggered in 30 minutes. The default threshold is 100.</p> <pre class="fixed" data-language="sql">setAlarmConfig (alarmID#) Threshold n
+</pre>
+<p>(where n= maximum number of times an alarm can be triggered in 30 minutes),</p> <p>Example to change Alarm ID 22's threshold to 50:</p> <pre class="fixed" data-language="sql"># mcsadmin setAlarmConfig 22 Threshold 50
+</pre>
+<h2 class="anchored_heading" id="clearing-alarms">Clearing alarms</h2> <p>The <em>resetAlarm</em> command is used to clear and acknowledge the issue is resolved. The <em>resetAlarm</em> command can be invoked with the argument ALL to clear all outstanding local alarms. </p> <h2 class="anchored_heading" id="automated-restart-based-on-excessive-swapping">Automated restart based on excessive swapping</h2> <p>ColumnStore by default has behavior that will restart a server should swap space utilization exceed the configured module swap major threshold (default is 80%). At this point the system will likely be near unusable and so this is an attempt to recover from very large queries or data loads. The behavior of this is configured by the <em>SystemConfig</em> section configuration variable <em>SwapAction</em> which contains the oam command to be run if the threshold is exceeded. The default value is <em>'restartSystem'</em> but it can be set to <em>'none'</em> to disable this behavior. The fact that this has happened can be determined by the following log entry:</p> <pre class="fixed" data-language="sql">Nov 01 11:23:13 [ServerMonitor] 13.306324 |0|0|0| C 09 CAL0000: Swap Space usage over Major threashold, perform OAM command restartSystem
+</pre>
+<h1 class="anchored_heading" id="logging-level-management">Logging level management</h1> <p>There are five levels of logging in MariaDB ColumnStore.</p> <ul start="1">
+<li>Critical </li>
+<li>Error </li>
+<li>Warning </li>
+<li>Info </li>
+<li>Debug </li>
+</ul> <p>Application log files are written to <em> /var/log/mariadb/columnstore</em> on each server and log rotation / archiving is configured to manage these automatically.</p> <p>To get details about current logging configuration:</p> <pre class="fixed" data-language="sql"># mcsadmin getlogconfig
+getlogconfig   Wed Oct 19 06:58:47 2016
+
+MariaDB Columnstore System Log Configuration Data
+
+System Logging Configuration File being used: /etc/rsyslog.d/49-columnstore.conf
+
+Module    Configured Log Levels
+------    ---------------------------------------
+pm1       Critical Error Warning Info
+</pre>
+<p>The system logging configuration file referenced is a standard syslog configuration file and may be edited to enable and or disable specific levels, for example to disable debug logging and to only log at the specific level in each file:</p> <pre class="fixed" data-language="sql"># cat /etc/rsyslog.d/49-columnstore.conf
+# MariaDb Columnstore Database Platform Logging
+local1.=crit -/var/log/mariadb/columnstore/crit.log
+local1.=err -/var/log/mariadb/columnstore/err.log
+local1.=warning -/var/log/mariadb/columnstore/warning.log
+local1.=info -/var/log/mariadb/columnstore/info.log
+</pre>
+<p>After making changes to this restart the syslog process, e.g:</p> <pre class="fixed" data-language="sql"># systemctl restart rsyslog
+</pre>
+<p>Log rotation and archiving are also configured by the installer and the settings for this may be found and managed similarly in the file <em> /etc/logrotate.d/columnstore </em>. If the current log files are manually deleted restart the syslog process to resume logging.</p> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/columnstore-system-monitoring-configuration/" class="_attribution-link">https://mariadb.com/kb/en/columnstore-system-monitoring-configuration/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

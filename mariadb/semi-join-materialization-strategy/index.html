@@ -1,0 +1,204 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Semi-join Materialization Strategy - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content=" Semi-join Materialization is a special kind of subquery materialization used for Semi-join subqueries. It actually includes two strategies&#58; ">
+  <meta name="keywords" content="semi-join, materialization, strategy, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/semi-join-materialization-strategy/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Semi-join Materialization Strategy</h1> <div> <div class="node creole"> <div class="answer formatted">  <p>Semi-join Materialization is a special kind of subquery materialization used for <a href="../semi-join-subquery-optimizations/index">Semi-join subqueries</a>. It actually includes two strategies:</p> <ul start="1">
+<li>Materialization/lookup </li>
+<li>Materialization/scan </li>
+</ul> <h2 class="anchored_heading" id="the-idea">The idea</h2> <p>Consider a query that finds countries in Europe which have big cities:</p> <pre class="fixed" data-language="sql">select * from Country 
+where Country.code IN (select City.Country 
+                       from City 
+                       where City.Population &gt; 7*1000*1000)
+      and Country.continent='Europe'
+</pre>
+<p>The subquery is uncorrelated, that is, we can run it independently of the upper query. The idea of semi-join materialization is to do just that, and fill a temporary table with possible values of the City.country field of big cities, and then do a join with countries in Europe:</p> <p><img src="data:image/png;base64,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" alt="sj-materialization1" title="sj-materialization1"></p> <p>The join can be done in two directions:</p> <ol start="1">
+<li>From the materialized table to countries in Europe </li>
+<li>From countries in Europe to the materialized table </li>
+</ol> <p>The first way involves doing a full scan on the materialized table, so we call it "Materialization-scan".</p> <p>If you run a join from Countries to the materialized table, the cheapest way to find a match in the materialized table is to make a lookup on its primary key (it has one: we used it to remove duplicates). Because of that, we call the strategy "Materialization-lookup".</p> <h2 class="anchored_heading" id="semi-join-materialization-in-action">Semi-join materialization in action</h2> <h3 class="anchored_heading" id="materialization-scan">Materialization-Scan</h3> <p>If we chose to look for cities with a population greater than 7 million, the optimizer will use Materialization-Scan and <code>EXPLAIN</code> will show this:</p> <pre class="fixed" data-language="sql">MariaDB [world]&gt; explain select * from Country where Country.code IN (select City.Country from City where  City.Population &gt; 7*1000*1000);
++----+--------------+-------------+--------+--------------------+------------+---------+--------------------+------+-----------------------+
+| id | select_type  | table       | type   | possible_keys      | key        | key_len | ref                | rows | Extra                 |
++----+--------------+-------------+--------+--------------------+------------+---------+--------------------+------+-----------------------+
+|  1 | PRIMARY      | &lt;subquery2&gt; | ALL    | distinct_key       | NULL       | NULL    | NULL               |   15 |                       |
+|  1 | PRIMARY      | Country     | eq_ref | PRIMARY            | PRIMARY    | 3       | world.City.Country |    1 |                       |
+|  2 | MATERIALIZED | City        | range  | Population,Country | Population | 4       | NULL               |   15 | Using index condition |
++----+--------------+-------------+--------+--------------------+------------+---------+--------------------+------+-----------------------+
+3 rows in set (0.01 sec)
+</pre>
+<p>Here, you can see:</p> <ul start="1">
+<li>There are still two <code>SELECT</code>s (look for columns with <code class="fixed" style="white-space:pre-wrap">id=1</code> and <code class="fixed" style="white-space:pre-wrap">id=2</code>) </li>
+<li>The second select (with <code>id=2</code>) has <code class="fixed" style="white-space:pre-wrap">select_type=MATERIALIZED</code>. This means it will be executed and its results will be stored in a temporary table with a unique key over all columns. The unique key is there to prevent the table from containing any duplicate records. </li>
+<li>The first select received the table name <code class="fixed" style="white-space:pre-wrap">&amp;lt;subquery2&amp;gt;</code>. This is the table that we got as a result of the materialization of the select with <code>id=2</code>. </li>
+</ul> <p>The optimizer chose to do a full scan over the materialized table, so this is an example of a use of the Materialization-Scan strategy.</p> <p>As for execution costs, we're going to read 15 rows from table City, write 15 rows to materialized table, read them back (the optimizer assumes there won't be any duplicates), and then do 15 eq_ref accesses to table Country. In total, we'll do 45 reads and 15 writes.</p> <p>By comparison, if you run the <code>EXPLAIN</code> in MySQL, you'll get this:</p> <pre class="fixed" data-language="sql">MySQL [world]&gt; explain select * from Country where Country.code IN (select City.Country from City where  City.Population &gt; 7*1000*1000);
++----+--------------------+---------+-------+--------------------+------------+---------+------+------+------------------------------------+
+| id | select_type        | table   | type  | possible_keys      | key        | key_len | ref  | rows | Extra                              |
++----+--------------------+---------+-------+--------------------+------------+---------+------+------+------------------------------------+
+|  1 | PRIMARY            | Country | ALL   | NULL               | NULL       | NULL    | NULL |  239 | Using where                        |
+|  2 | DEPENDENT SUBQUERY | City    | range | Population,Country | Population | 4       | NULL |   15 | Using index condition; Using where |
++----+--------------------+---------+-------+--------------------+------------+---------+------+------+------------------------------------+
+</pre>
+<p>...which is a plan to do <code>(239 + 239*15) = 3824</code> table reads.</p> <h3 class="anchored_heading" id="materialization-lookup">Materialization-Lookup</h3> <p>Let's modify the query slightly and look for countries which have cities with a population over one millon (instead of seven): </p> <pre class="fixed" data-language="sql">MariaDB [world]&gt; explain select * from Country where Country.code IN (select City.Country from City where  City.Population &gt; 1*1000*1000) ;
++----+--------------+-------------+--------+--------------------+--------------+---------+------+------+-----------------------+
+| id | select_type  | table       | type   | possible_keys      | key          | key_len | ref  | rows | Extra                 |
++----+--------------+-------------+--------+--------------------+--------------+---------+------+------+-----------------------+
+|  1 | PRIMARY      | Country     | ALL    | PRIMARY            | NULL         | NULL    | NULL |  239 |                       |
+|  1 | PRIMARY      | &lt;subquery2&gt; | eq_ref | distinct_key       | distinct_key | 3       | func |    1 |                       |
+|  2 | MATERIALIZED | City        | range  | Population,Country | Population   | 4       | NULL |  238 | Using index condition |
++----+--------------+-------------+--------+--------------------+--------------+---------+------+------+-----------------------+
+3 rows in set (0.00 sec)
+</pre>
+<p>The <code>EXPLAIN</code> output is similar to the one which used Materialization-scan, except that:</p> <ul start="1">
+<li>the <code class="fixed" style="white-space:pre-wrap">&lt;subquery2&gt;</code> table is accessed with the <code>eq_ref</code> access method </li>
+<li>the access uses an index named <code class="fixed" style="white-space:pre-wrap">distinct_key</code> </li>
+</ul> <p>This means that the optimizer is planning to do index lookups into the materialized table. In other words, we're going to use the Materialization-lookup strategy.</p> <p>In MySQL (or with <code class="fixed" style="white-space:pre-wrap">optimizer_switch='semijoin=off,materialization=off'</code>), one will get this <code>EXPLAIN</code>:</p> <pre class="fixed" data-language="sql">MySQL [world]&gt; explain select * from Country where Country.code IN (select City.Country from City where  City.Population &gt; 1*1000*1000) ;
++----+--------------------+---------+----------------+--------------------+---------+---------+------+------+-------------+
+| id | select_type        | table   | type           | possible_keys      | key     | key_len | ref  | rows | Extra       |
++----+--------------------+---------+----------------+--------------------+---------+---------+------+------+-------------+
+|  1 | PRIMARY            | Country | ALL            | NULL               | NULL    | NULL    | NULL |  239 | Using where |
+|  2 | DEPENDENT SUBQUERY | City    | index_subquery | Population,Country | Country | 3       | func |   18 | Using where |
++----+--------------------+---------+----------------+--------------------+---------+---------+------+------+-------------+
+</pre>
+<p>One can see that both plans will do a full scan on the <code>Country</code> table. For the second step, MariaDB will fill the materialized table (238 rows read from table City and written to the temporary table) and then do a unique key lookup for each record in table <code>Country</code>, which works out to 238 unique key lookups. In total, the second step will cost <code>(239+238) = 477</code> reads and <code>238</code> temp.table writes.</p> <p>MySQL's plan for the second step is to read 18 rows using an index on <code>City.Country</code> for each record it receives for table <code>Country</code>. This works out to a cost of <code>(18*239) = 4302</code> reads. Had there been fewer subquery invocations, this plan would have been better than the one with Materialization. By the way, MariaDB has an option to use such a query plan, too (see <a href="../firstmatch-strategy/index">FirstMatch Strategy</a>), but it did not choose it.</p> <h2 class="anchored_heading" id="subqueries-with-grouping">Subqueries with grouping</h2> <p>MariaDB is able to use Semi-join materialization strategy when the subquery has grouping (other semi-join strategies are not applicable in this case).</p> <p>This allows for efficient execution of queries that search for the best/last element in a certain group. </p> <p>For example, let's find cities that have the biggest population on their continent: </p> <pre class="fixed" data-language="sql">explain 
+select * from City 
+where City.Population in (select max(City.Population) from City, Country 
+                          where City.Country=Country.Code 
+                          group by Continent)
++------+--------------+-------------+------+---------------+------------+---------+----------------------------------+------+-----------------+
+| id   | select_type  | table       | type | possible_keys | key        | key_len | ref                              | rows | Extra           |
++------+--------------+-------------+------+---------------+------------+---------+----------------------------------+------+-----------------+
+|    1 | PRIMARY      | &lt;subquery2&gt; | ALL  | distinct_key  | NULL       | NULL    | NULL                             |  239 |                 |
+|    1 | PRIMARY      | City        | ref  | Population    | Population | 4       | &lt;subquery2&gt;.max(City.Population) |    1 |                 |
+|    2 | MATERIALIZED | Country     | ALL  | PRIMARY       | NULL       | NULL    | NULL                             |  239 | Using temporary |
+|    2 | MATERIALIZED | City        | ref  | Country       | Country    | 3       | world.Country.Code               |   18 |                 |
++------+--------------+-------------+------+---------------+------------+---------+----------------------------------+------+-----------------+
+4 rows in set (0.00 sec)
+</pre>
+<p>the cities are:</p> <pre class="fixed" data-language="sql">+------+-------------------+---------+------------+
+| ID   | Name              | Country | Population |
++------+-------------------+---------+------------+
+| 1024 | Mumbai (Bombay)   | IND     |   10500000 |
+| 3580 | Moscow            | RUS     |    8389200 |
+| 2454 | Macao             | MAC     |     437500 |
+|  608 | Cairo             | EGY     |    6789479 |
+| 2515 | Ciudad de México | MEX     |    8591309 |
+|  206 | São Paulo        | BRA     |    9968485 |
+|  130 | Sydney            | AUS     |    3276207 |
++------+-------------------+---------+------------+
+</pre>
+<h2 class="anchored_heading" id="factsheet">Factsheet</h2> <p>Semi-join materialization</p> <ul start="1">
+<li>Can be used for uncorrelated IN-subqueries. The subselect may use grouping and/or aggregate functions. </li>
+<li>Is shown in <code>EXPLAIN</code> as <code class="fixed" style="white-space:pre-wrap">type=MATERIALIZED</code> for the subquery, and a line with <code class="fixed" style="white-space:pre-wrap">table=&lt;subqueryN&gt;</code> in the parent subquery. </li>
+<li>Is enabled when one has both <code class="fixed" style="white-space:pre-wrap">materialization=on</code> and <code class="fixed" style="white-space:pre-wrap">semijoin=on</code> in the <a href="../server-system-variables/index#optimizer_switch">optimizer_switch</a> variable. </li>
+<li>The <code class="fixed" style="white-space:pre-wrap">materialization=on|off</code> flag is shared with <a href="../non-semi-join-subquery-optimizations/index#materialization-for-non-correlated-in-subqueries">Non-semijoin materialization</a>. </li>
+</ul> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/semi-join-materialization-strategy/" class="_attribution-link">https://mariadb.com/kb/en/semi-join-materialization-strategy/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

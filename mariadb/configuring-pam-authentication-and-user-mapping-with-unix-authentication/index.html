@@ -1,0 +1,223 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Configuring PAM Authentication and User Mapping With Unix Authentication - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content="In this article, we will walk through the configuration of PAM authentication using the pam authentication plugin and user and group mapping with &hellip;">
+  <meta name="keywords" content="configuring, pam, authentication, and, user, mapping, with, unix, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/configuring-pam-authentication-and-user-mapping-with-unix-authentication/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Configuring PAM Authentication and User Mapping with Unix Authentication</h1> <div> <div class="node creole"> <div class="answer formatted"> <p>In this article, we will walk through the configuration of PAM authentication using the <code><a href="../authentication-plugin-pam/index">pam</a></code> authentication plugin and user and group mapping with the <code><a href="../user-and-group-mapping-with-pam/index">pam_user_map</a></code> PAM module. The primary authentication will be handled by the <code><a href="https://linux.die.net/man/8/pam_unix">pam_unix</a></code> PAM module, which performs standard Unix password authentication.</p>  <h2 class="anchored_heading" id="hypothetical-requirements">Hypothetical Requirements</h2> <p>In this walkthrough, we are going to assume the following hypothetical requirements:</p> <ul start="1">
+<li>The Unix user <code>foo</code> should be mapped to the MariaDB user <code>bar</code>. (<code>foo: bar</code>) </li>
+<li>Any Unix user in the Unix group <code>dba</code> should be mapped to the MariaDB user <code>dba</code>. (<code>@dba: dba</code>) </li>
+</ul> <h2 class="anchored_heading" id="creating-our-unix-users-and-groups">Creating Our Unix Users and Groups</h2> <p>Let's go ahead and create the Unix users and groups that we are using for this hypothetical scenario.</p> <p>First, let's create the the <code>foo</code> user and a couple users to go into the <code>dba</code> group. Note that each of these users needs a password.</p> <pre class="fixed" data-language="sql">sudo useradd foo
+sudo passwd foo
+sudo useradd alice
+sudo passwd alice
+sudo useradd bob
+sudo passwd bob
+</pre>
+<p>And then let's create our <code>dba</code> group and add our two users to it:</p> <pre class="fixed" data-language="sql">sudo groupadd dba
+sudo usermod -a -G dba alice 
+sudo usermod -a -G dba bob 
+</pre>
+<p>We also need to create Unix users with the same name as the <code>bar</code> and <code>dba</code> MariaDB users. See <a href="../user-and-group-mapping-with-pam/index#pam-user-with-same-name-as-mapped-mariadb-user-must-exist">here</a> to read more about why. No one will be logging in as these users, so they do not need passwords.</p> <pre class="fixed" data-language="sql">sudo useradd bar
+sudo useradd dba -g dba
+</pre>
+<h2 class="anchored_heading" id="installing-the-pam_user_map-pam-module">Installing the pam_user_map PAM Module</h2> <p>Next, let's <a href="../user-and-group-mapping-with-pam/index#installing-the-pam_user_map-pam-module">install the pam_user_map PAM module</a>.</p> <p>Before the module can be compiled from source, we may need to install some dependencies.</p> <p>On RHEL, CentOS, and other similar Linux distributions that use <a href="../rpm/index">RPM packages</a>, we need to install <code>gcc</code> and <code>pam-devel</code>:</p> <pre class="fixed" data-language="sql">sudo yum install gcc pam-devel
+</pre>
+<p>On Debian, Ubuntu, and other similar Linux distributions that use <a href="../installing-mariadb-deb-files/index">DEB packages</a>, we need to install <code>gcc</code> and <code>libpam0g-dev</code>:</p> <pre class="fixed" data-language="sql">sudo apt-get install gcc libpam0g-dev
+</pre>
+<p>And then we can build and install the library with the following:</p> <pre class="fixed" data-language="sql">wget https://raw.githubusercontent.com/MariaDB/server/10.4/plugin/auth_pam/mapper/pam_user_map.c 
+gcc pam_user_map.c -shared -lpam -fPIC -o pam_user_map.so 
+sudo install --mode=0755 pam_user_map.so /lib64/security/ 
+</pre>
+<h2 class="anchored_heading" id="configuring-the-pam_user_map-pam-module">Configuring the pam_user_map PAM Module</h2> <p>Next, let's <a href="../user-and-group-mapping-with-pam/index#configuring-the-pam_user_map-pam-module">configure the pam_user_map PAM module</a> based on our hypothetical requirements.</p> <p>The configuration file for the <code>pam_user_map</code> PAM module is <code>/etc/security/user_map.conf</code>. Based on our hypothetical requirements, ours would look like:</p> <pre class="fixed" data-language="sql">foo: bar
+@dba:dba
+</pre>
+<h2 class="anchored_heading" id="installing-the-pam-authentication-plugin">Installing the PAM Authentication Plugin</h2> <p>Next, let's <a href="../authentication-plugin-pam/index#installing-the-plugin">install the <code>pam</code> authentication plugin</a>.</p> <p>Log into the MariaDB Server and execute the following:</p> <pre class="fixed" data-language="sql">INSTALL SONAME 'auth_pam';
+</pre>
+<h2 class="anchored_heading" id="configuring-the-pam-service">Configuring the PAM Service</h2> <p>Next, let's <a href="../authentication-plugin-pam/index#configuring-the-pam-service">configure the PAM service</a>. We will call our service <code>mariadb</code>, so our PAM service configuration file will be located at <code>/etc/pam.d/mariadb</code> on most systems.</p> <p>Since we are only doing Unix authentication with the <code>pam_unix</code> PAM module and group mapping with the <code>pam_user_map</code> PAM module, our configuration file would look like this:</p> <pre class="fixed" data-language="sql">auth required pam_unix.so audit
+auth required pam_user_map.so
+account required pam_unix.so audit
+</pre>
+<h2 class="anchored_heading" id="configuring-the-pam_unix-pam-module">Configuring the pam_unix PAM Module</h2> <p>The <code>pam_unix</code> PAM module adds <a href="../authentication-plugin-pam/index#configuring-the-pam-service">some additional configuration steps</a> on a lot of systems. We basically have to give the user that runs <code>mysqld</code> access to <code>/etc/shadow</code>.</p> <p>If the <code>mysql</code> user is running <code>mysqld</code>, then we can do that by executing the following:</p> <pre class="fixed" data-language="sql">sudo groupadd shadow
+sudo usermod -a -G shadow mysql
+sudo chown root:shadow /etc/shadow
+sudo chmod g+r /etc/shadow
+</pre>
+<p>The <a href="../starting-and-stopping-mariadb-starting-and-stopping-mariadb/index">server needs to be restarted</a> for this change to take affect.</p> <h2 class="anchored_heading" id="creating-mariadb-users">Creating MariaDB Users</h2> <p>Next, let's <a href="../authentication-plugin-pam/index#creating-users">create the MariaDB users</a>. Remember that our PAM service is called <code>mariadb</code>.</p> <p>First, let's create the MariaDB user for the user mapping: <code>foo: bar</code></p> <p>That means that we need to create a <code>bar</code> user:</p> <pre class="fixed" data-language="sql">CREATE USER 'bar'@'%' IDENTIFIED BY 'strongpassword';
+GRANT ALL PRIVILEGES ON *.* TO 'bar'@'%' ;
+</pre>
+<p>And then let's create the MariaDB user for the group mapping: <code>@dba: dba</code></p> <p>That means that we need to create a <code>dba</code> user:</p> <pre class="fixed" data-language="sql">CREATE USER 'dba'@'%' IDENTIFIED BY 'strongpassword';
+GRANT ALL PRIVILEGES ON *.* TO 'dba'@'%' ;
+</pre>
+<p>And then to allow for the user and group mapping, we need to <a href="../user-and-group-mapping-with-pam/index#creating-users">create an anonymous user that authenticates with the <code>pam</code> authentication plugin</a> that is also able to <code>PROXY</code> as the <code>bar</code> and <code>dba</code> users. Before we can create the proxy user, we might need to <a href="../create-user/index#fixing-a-legacy-default-anonymous-account">clean up some defaults</a>:</p> <pre class="fixed" data-language="sql">DELETE FROM mysql.db WHERE User='' AND Host='%';
+FLUSH PRIVILEGES;
+</pre>
+<p>And then let's create the anonymous proxy user:</p> <pre class="fixed" data-language="sql">CREATE USER ''@'%' IDENTIFIED VIA pam USING 'mariadb';
+GRANT PROXY ON 'bar'@'%' TO ''@'%';
+GRANT PROXY ON 'dba'@'%' TO ''@'%';
+</pre>
+<h2 class="anchored_heading" id="testing-our-configuration">Testing our Configuration</h2> <p>Next, let's test out our configuration by <a href="../user-and-group-mapping-with-pam/index#verifying-that-mapping-is-occurring">verifying that mapping is occurring</a>. We can verify this by logging in as each of our users and comparing the return value of <code><a href="../user/index">USER()</a></code>, which is the original user name and the return value of <code><a href="../current_user/index">CURRENT_USER()</a></code>, which is the authenticated user name.</p> <p>First, let's test out our <code>foo</code> user:</p> <pre class="fixed" data-language="sql">$ mysql -u foo -h 172.30.0.198
+[mariadb] Password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 22
+Server version: 10.3.10-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]&gt; SELECT USER(), CURRENT_USER();
++------------------------------------------------+----------------+
+| USER()                                         | CURRENT_USER() |
++------------------------------------------------+----------------+
+| foo@ip-172-30-0-198.us-west-2.compute.internal | bar@%          |
++------------------------------------------------+----------------+
+1 row in set (0.000 sec)
+</pre>
+<p>We can verify that our <code>foo</code> Unix user was properly mapped to the <code>bar</code> MariaDB user by looking at the return value of <code><a href="../current_user/index">CURRENT_USER()</a></code>.</p> <p>Then let's test out our <code>alice</code> user in the <code>dba</code> group:</p> <pre class="fixed" data-language="sql">$ mysql -u alice -h 172.30.0.198
+[mariadb] Password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 19
+Server version: 10.3.10-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]&gt; SELECT USER(), CURRENT_USER();
++--------------------------------------------------+----------------+
+| USER()                                           | CURRENT_USER() |
++--------------------------------------------------+----------------+
+| alice@ip-172-30-0-198.us-west-2.compute.internal | dba@%          |
++--------------------------------------------------+----------------+
+1 row in set (0.000 sec)
+</pre>
+<p>And then let's test out our <code>bob</code> user in the <code>dba</code> group:</p> <pre class="fixed" data-language="sql">$ mysql -u bob -h 172.30.0.198
+[mariadb] Password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 20
+Server version: 10.3.10-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]&gt; SELECT USER(), CURRENT_USER();
++------------------------------------------------+----------------+
+| USER()                                         | CURRENT_USER() |
++------------------------------------------------+----------------+
+| bob@ip-172-30-0-198.us-west-2.compute.internal | dba@%          |
++------------------------------------------------+----------------+
+1 row in set (0.000 sec)
+</pre>
+<p>We can verify that our <code>alice</code> and <code>bob</code> Unix users in the <code>dba</code> Unix group were properly mapped to the <code>dba</code> MariaDB user by looking at the return values of <code><a href="../current_user/index">CURRENT_USER()</a></code>.</p> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/configuring-pam-authentication-and-user-mapping-with-unix-authentication/" class="_attribution-link">https://mariadb.com/kb/en/configuring-pam-authentication-and-user-mapping-with-unix-authentication/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,153 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Derived Table Merge Optimization - MariaDB - W3cubDocs</title>
+  
+  <meta name="description" content="Users of &#34;big&#34; database systems are used to using FROM subqueries as a way to structure their queries. For example, if one&#39;s first &hellip;">
+  <meta name="keywords" content="derived, table, merge, optimization, mariadb">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/mariadb/derived-table-merge-optimization/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/mariadb.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/mariadb/" class="_nav-link" title="" style="margin-left:0;">MariaDB</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mariadb">
+				
+				
+<h1>Derived Table Merge Optimization</h1> <div> <div class="node creole"> <div class="answer formatted">  <h2 class="anchored_heading" id="background">Background</h2> <p>Users of "big" database systems are used to using <code>FROM</code> subqueries as a way to structure their queries. For example, if one's first thought was to select cities with population greater than 10,000 people, and then that from these cities to select those that are located in Germany, one could write this SQL:</p> <pre class="fixed" data-language="sql">SELECT * 
+FROM 
+  (SELECT * FROM City WHERE Population &gt; 10*1000) AS big_city
+WHERE 
+  big_city.Country='DEU'
+</pre>
+<p>For MySQL, using such syntax was taboo. If you run <code><a href="../explain/index">EXPLAIN</a></code> for this query, you can see why:</p> <pre class="fixed" data-language="sql">mysql&gt; EXPLAIN SELECT * FROM (SELECT * FROM City WHERE Population &gt; 1*1000) AS big_city WHERE big_city.Country='DEU' ;
++----+-------------+------------+------+---------------+------+---------+------+------+-------------+
+| id | select_type | table      | type | possible_keys | key  | key_len | ref  | rows | Extra       |
++----+-------------+------------+------+---------------+------+---------+------+------+-------------+
+|  1 | PRIMARY     | &lt;derived2&gt; | ALL  | NULL          | NULL | NULL    | NULL | 4068 | Using where |
+|  2 | DERIVED     | City       | ALL  | Population    | NULL | NULL    | NULL | 4079 | Using where |
++----+-------------+------------+------+---------------+------+---------+------+------+-------------+
+2 rows in set (0.60 sec)
+</pre>
+<p>It plans to do the following actions:</p> <p><img src="data:image/png;base64,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" alt="derived-inefficent" title="derived-inefficent"></p> <p>From left to right:</p> <ol start="1">
+<li>Execute the subquery: <code>(SELECT * FROM City WHERE Population &gt; 1*1000)</code>, exactly as it was written in the query. </li>
+<li>Put result of the subquery into a temporary table. </li>
+<li>Read back, and apply a <code>WHERE</code> condition from the upper select, <code>big_city.Country='DEU'</code> </li>
+</ol> <p>Executing a subquery like this is very inefficient, because the highly-selective condition from the parent select, (<code>Country='DEU'</code>) is not used when scanning the base table <code>City</code>. We read too many records from the <code>City</code> table, and then we have to write them into a temporary table and read them back again, before finally filtering them out.</p> <h2 class="anchored_heading" id="derived-table-merge-in-action">Derived table merge in action</h2> <p>If one runs this query in MariaDB/MySQL 5.6, they get this:</p> <pre class="fixed" data-language="sql">MariaDB [world]&gt; EXPLAIN SELECT * FROM (SELECT * FROM City WHERE Population &gt; 1*1000) AS big_city WHERE big_city.Country='DEU';
++----+-------------+-------+------+--------------------+---------+---------+-------+------+------------------------------------+
+| id | select_type | table | type | possible_keys      | key     | key_len | ref   | rows | Extra                              |
++----+-------------+-------+------+--------------------+---------+---------+-------+------+------------------------------------+
+|  1 | SIMPLE      | City  | ref  | Population,Country | Country | 3       | const |   90 | Using index condition; Using where |
++----+-------------+-------+------+--------------------+---------+---------+-------+------+------------------------------------+
+1 row in set (0.00 sec)
+</pre>
+<p>From the above, one can see that:</p> <ol start="1">
+<li>The output has only one line. This means that the subquery has been merged into the top-level <code>SELECT</code>. </li>
+<li>Table <code>City</code> is accessed through an index on the <code>Country</code> column. Apparently, the <code>Country='DEU'</code> condition was used to construct <code>ref</code> access on the table. </li>
+<li>The query will read about 90 rows, which is a big improvement over the 4079 row reads plus 4068 temporary table reads/writes we had before. </li>
+</ol> <h2 class="anchored_heading" id="factsheet">Factsheet</h2> <ul start="1">
+<li>Derived tables (subqueries in the <code>FROM</code> clause) can be merged into their parent select when they have no grouping, aggregates, or <code>ORDER BY ...  LIMIT</code> clauses. These requirements are the same as requirements for <code>VIEW</code>s to allow <code>algorithm=merge</code>. </li>
+<li>The optimization is enabled by default. It can be disabled with: <pre class="fixed" data-language="sql">set @@optimizer_switch='derived_merge=OFF'
+</pre> </li>
+<li>Versions of MySQL and MariaDB which do not have support for this optimization will execute subqueries even when running <code>EXPLAIN</code>. This can result in a well-known problem (see e.g. <a href="http://bugs.mysql.com/bug.php?id=44802">MySQL Bug #44802</a>) of <code>EXPLAIN</code> statements taking a very long time. Starting from <a href="../what-is-mariadb-53/index">MariaDB 5.3</a>+ and MySQL 5.6+ <code>EXPLAIN</code> commands execute instantly, regardless of the <code>derived_merge</code> setting. </li>
+</ul> <h2 class="anchored_heading" id="see-also">See also</h2> <ul start="1"><li>FAQ entry: <a href="../why-is-order-by-in-a-from-subquery-ignored/index">Why is ORDER BY in a FROM subquery ignored?</a> </li></ul> </div>     </div> <div id="content_disclaimer" class="graybox"> Content reproduced on this site is the property of its respective owners, and this content is not reviewed in advance by MariaDB. The views, information and opinions expressed by this content do not necessarily represent those of MariaDB or any other party. </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 MariaDB<br>Licensed under the Creative Commons Attribution 3.0 Unported License and the GNU Free Documentation License.<br>
+    <a href="https://mariadb.com/kb/en/derived-table-merge-optimization/" class="_attribution-link">https://mariadb.com/kb/en/derived-table-merge-optimization/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
