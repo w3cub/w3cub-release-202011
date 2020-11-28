@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>16.4. Extensible Concurrency With the Sync and Send Traits - Rust - W3cubDocs</title>
+  
+  <meta name="description" content="Interestingly, the Rust language has very few concurrency features. Almost every concurrency feature we’ve talked about so far in this chapter has &hellip;">
+  <meta name="keywords" content="extensible, concurrency, with, and, traits, sync, send, rust">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rust/book/ch16-04-extensible-concurrency-sync-and-send.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rust.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rust/" class="_nav-link" title="" style="margin-left:0;">Rust</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rust">
+				
+				
+<h1>Extensible Concurrency with the <code id="extensible-concurrency-with-the-sync-and-send-traits">Sync</code> and <code>Send</code> Traits</h1> <p>Interestingly, the Rust language has <em>very</em> few concurrency features. Almost every concurrency feature we’ve talked about so far in this chapter has been part of the standard library, not the language. Your options for handling concurrency are not limited to the language or the standard library; you can write your own concurrency features or use those written by others.</p> <p>However, two concurrency concepts are embedded in the language: the <code>std::marker</code> traits <code>Sync</code> and <code>Send</code>.</p> <h3>Allowing Transference of Ownership Between Threads with <code id="allowing-transference-of-ownership-between-threads-with-send">Send</code>
+</h3> <p>The <code>Send</code> marker trait indicates that ownership of the type implementing <code>Send</code> can be transferred between threads. Almost every Rust type is <code>Send</code>, but there are some exceptions, including <code>Rc&lt;T&gt;</code>: this cannot be <code>Send</code> because if you cloned an <code>Rc&lt;T&gt;</code> value and tried to transfer ownership of the clone to another thread, both threads might update the reference count at the same time. For this reason, <code>Rc&lt;T&gt;</code> is implemented for use in single-threaded situations where you don’t want to pay the thread-safe performance penalty.</p> <p>Therefore, Rust’s type system and trait bounds ensure that you can never accidentally send an <code>Rc&lt;T&gt;</code> value across threads unsafely. When we tried to do this in Listing 16-14, we got the error <code>the trait Send is not implemented for Rc&lt;Mutex&lt;i32&gt;&gt;</code>. When we switched to <code>Arc&lt;T&gt;</code>, which is <code>Send</code>, the code compiled.</p> <p>Any type composed entirely of <code>Send</code> types is automatically marked as <code>Send</code> as well. Almost all primitive types are <code>Send</code>, aside from raw pointers, which we’ll discuss in Chapter 19.</p> <h3>Allowing Access from Multiple Threads with <code id="allowing-access-from-multiple-threads-with-sync">Sync</code>
+</h3> <p>The <code>Sync</code> marker trait indicates that it is safe for the type implementing <code>Sync</code> to be referenced from multiple threads. In other words, any type <code>T</code> is <code>Sync</code> if <code>&amp;T</code> (a reference to <code>T</code>) is <code>Send</code>, meaning the reference can be sent safely to another thread. Similar to <code>Send</code>, primitive types are <code>Sync</code>, and types composed entirely of types that are <code>Sync</code> are also <code>Sync</code>.</p> <p>The smart pointer <code>Rc&lt;T&gt;</code> is also not <code>Sync</code> for the same reasons that it’s not <code>Send</code>. The <code>RefCell&lt;T&gt;</code> type (which we talked about in Chapter 15) and the family of related <code>Cell&lt;T&gt;</code> types are not <code>Sync</code>. The implementation of borrow checking that <code>RefCell&lt;T&gt;</code> does at runtime is not thread-safe. The smart pointer <code>Mutex&lt;T&gt;</code> is <code>Sync</code> and can be used to share access with multiple threads as you saw in the <a href="ch16-03-shared-state#sharing-a-mutext-between-multiple-threads">“Sharing a <code>Mutex&lt;T&gt;</code> Between Multiple Threads”</a> section.</p> <h3>Implementing <code id="implementing-send-and-sync-manually-is-unsafe">Send</code> and <code>Sync</code> Manually Is Unsafe</h3> <p>Because types that are made up of <code>Send</code> and <code>Sync</code> traits are automatically also <code>Send</code> and <code>Sync</code>, we don’t have to implement those traits manually. As marker traits, they don’t even have any methods to implement. They’re just useful for enforcing invariants related to concurrency.</p> <p>Manually implementing these traits involves implementing unsafe Rust code. We’ll talk about using unsafe Rust code in Chapter 19; for now, the important information is that building new concurrent types not made up of <code>Send</code> and <code>Sync</code> parts requires careful thought to uphold the safety guarantees. <a href="https://doc.rust-lang.org/nomicon/index.html">“The Rustonomicon”</a> has more information about these guarantees and how to uphold them.</p> <h2>Summary</h2> <p>This isn’t the last you’ll see of concurrency in this book: the project in Chapter 20 will use the concepts in this chapter in a more realistic situation than the smaller examples discussed here.</p> <p>As mentioned earlier, because very little of how Rust handles concurrency is part of the language, many concurrency solutions are implemented as crates. These evolve more quickly than the standard library, so be sure to search online for the current, state-of-the-art crates to use in multithreaded situations.</p> <p>The Rust standard library provides channels for message passing and smart pointer types, such as <code>Mutex&lt;T&gt;</code> and <code>Arc&lt;T&gt;</code>, that are safe to use in concurrent contexts. The type system and the borrow checker ensure that the code using these solutions won’t end up with data races or invalid references. Once you get your code to compile, you can rest assured that it will happily run on multiple threads without the kinds of hard-to-track-down bugs common in other languages. Concurrent programming is no longer a concept to be afraid of: go forth and make your programs concurrent, fearlessly!</p> <p>Next, we’ll talk about idiomatic ways to model problems and structure solutions as your Rust programs get bigger. In addition, we’ll discuss how Rust’s idioms relate to those you might be familiar with from object-oriented programming.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010 The Rust Project Developers<br>Licensed under the Apache License, Version 2.0 or the MIT license, at your option.<br>
+    <a href="https://doc.rust-lang.org/book/ch16-04-extensible-concurrency-sync-and-send.html" class="_attribution-link">https://doc.rust-lang.org/book/ch16-04-extensible-concurrency-sync-and-send.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

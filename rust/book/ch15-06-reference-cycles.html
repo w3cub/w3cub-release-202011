@@ -1,0 +1,346 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>15.6. Reference Cycles Can Leak Memory - Rust - W3cubDocs</title>
+  
+  <meta name="description" content="Rust’s memory safety guarantees make it difficult, but not impossible, to accidentally create memory that is never cleaned up (known as a memory &hellip;">
+  <meta name="keywords" content="reference, cycles, can, leak, memory, rust">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rust/book/ch15-06-reference-cycles.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rust.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rust/" class="_nav-link" title="" style="margin-left:0;">Rust</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rust">
+				
+				
+<h1>Reference Cycles Can Leak Memory</h1> <p>Rust’s memory safety guarantees make it difficult, but not impossible, to accidentally create memory that is never cleaned up (known as a <em>memory leak</em>). Preventing memory leaks entirely is not one of Rust’s guarantees in the same way that disallowing data races at compile time is, meaning memory leaks are memory safe in Rust. We can see that Rust allows memory leaks by using <code>Rc&lt;T&gt;</code> and <code>RefCell&lt;T&gt;</code>: it’s possible to create references where items refer to each other in a cycle. This creates memory leaks because the reference count of each item in the cycle will never reach 0, and the values will never be dropped.</p> <h3>Creating a Reference Cycle</h3> <p>Let’s look at how a reference cycle might happen and how to prevent it, starting with the definition of the <code>List</code> enum and a <code>tail</code> method in Listing 15-25:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell&lt;Rc&lt;List&gt;&gt;),
+    Nil,
+}
+
+impl List {
+    fn tail(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
+        match self {
+            Cons(_, item) =&gt; Some(item),
+            Nil =&gt; None,
+        }
+    }
+}
+
+fn main() {}
+</pre> <p><span class="caption">Listing 15-25: A cons list definition that holds a <code>RefCell&lt;T&gt;</code> so we can modify what a <code>Cons</code> variant is referring to</span></p> <p>We’re using another variation of the <code>List</code> definition from Listing 15-5. The second element in the <code>Cons</code> variant is now <code>RefCell&lt;Rc&lt;List&gt;&gt;</code>, meaning that instead of having the ability to modify the <code>i32</code> value as we did in Listing 15-24, we want to modify which <code>List</code> value a <code>Cons</code> variant is pointing to. We’re also adding a <code>tail</code> method to make it convenient for us to access the second item if we have a <code>Cons</code> variant.</p> <p>In Listing 15-26, we’re adding a <code>main</code> function that uses the definitions in Listing 15-25. This code creates a list in <code>a</code> and a list in <code>b</code> that points to the list in <code>a</code>. Then it modifies the list in <code>a</code> to point to <code>b</code>, creating a reference cycle. There are <code>println!</code> statements along the way to show what the reference counts are at various points in this process.</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell&lt;Rc&lt;List&gt;&gt;),
+    Nil,
+}
+
+impl List {
+    fn tail(&amp;self) -&gt; Option&lt;&amp;RefCell&lt;Rc&lt;List&gt;&gt;&gt; {
+        match self {
+            Cons(_, item) =&gt; Some(item),
+            Nil =&gt; None,
+        }
+    }
+}
+
+fn main() {
+    let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+
+    println!("a initial rc count = {}", Rc::strong_count(&amp;a));
+    println!("a next item = {:?}", a.tail());
+
+    let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&amp;a))));
+
+    println!("a rc count after b creation = {}", Rc::strong_count(&amp;a));
+    println!("b initial rc count = {}", Rc::strong_count(&amp;b));
+    println!("b next item = {:?}", b.tail());
+
+    if let Some(link) = a.tail() {
+        *link.borrow_mut() = Rc::clone(&amp;b);
+    }
+
+    println!("b rc count after changing a = {}", Rc::strong_count(&amp;b));
+    println!("a rc count after changing a = {}", Rc::strong_count(&amp;a));
+
+    // Uncomment the next line to see that we have a cycle;
+    // it will overflow the stack
+    // println!("a next item = {:?}", a.tail());
+}
+</pre> <p><span class="caption">Listing 15-26: Creating a reference cycle of two <code>List</code> values pointing to each other</span></p> <p>We create an <code>Rc&lt;List&gt;</code> instance holding a <code>List</code> value in the variable <code>a</code> with an initial list of <code>5, Nil</code>. We then create an <code>Rc&lt;List&gt;</code> instance holding another <code>List</code> value in the variable <code>b</code> that contains the value 10 and points to the list in <code>a</code>.</p> <p>We modify <code>a</code> so it points to <code>b</code> instead of <code>Nil</code>, creating a cycle. We do that by using the <code>tail</code> method to get a reference to the <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> in <code>a</code>, which we put in the variable <code>link</code>. Then we use the <code>borrow_mut</code> method on the <code>RefCell&lt;Rc&lt;List&gt;&gt;</code> to change the value inside from an <code>Rc&lt;List&gt;</code> that holds a <code>Nil</code> value to the <code>Rc&lt;List&gt;</code> in <code>b</code>.</p> <p>When we run this code, keeping the last <code>println!</code> commented out for the moment, we’ll get this output:</p> <pre>$ cargo run
+   Compiling cons-list v0.1.0 (file:///projects/cons-list)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.53s
+     Running `target/debug/cons-list`
+a initial rc count = 1
+a next item = Some(RefCell { value: Nil })
+a rc count after b creation = 2
+b initial rc count = 1
+b next item = Some(RefCell { value: Cons(5, RefCell { value: Nil }) })
+b rc count after changing a = 2
+a rc count after changing a = 2
+</pre> <p>The reference count of the <code>Rc&lt;List&gt;</code> instances in both <code>a</code> and <code>b</code> are 2 after we change the list in <code>a</code> to point to <code>b</code>. At the end of <code>main</code>, Rust will try to drop <code>b</code> first, which will decrease the count of the <code>Rc&lt;List&gt;</code> instance in <code>b</code> by 1.</p> <p>However, because <code>a</code> is still referencing the <code>Rc&lt;List&gt;</code> that was in <code>b</code>, that <code>Rc&lt;List&gt;</code> has a count of 1 rather than 0, so the memory the <code>Rc&lt;List&gt;</code> has on the heap won’t be dropped. The memory will just sit there with a count of 1, forever. To visualize this reference cycle, we’ve created a diagram in Figure 15-4.</p> <img alt="Reference cycle of lists" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+CjwhLS0gR2VuZXJhdGVkIGJ5IGdyYXBodml6IHZlcnNpb24gMi4zNi4wICgyMDE0MDExMS4yMzE1KQogLS0+CjwhLS0gVGl0bGU6ICUzIFBhZ2VzOiAxIC0tPgo8c3ZnIHdpZHRoPSI2MzNwdCIgaGVpZ2h0PSI0OThwdCIgdmlld0JveD0iMC4wMCAwLjAwIDYzMy4zMyA0OTguMTkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPgo8ZyBpZD0iZ3JhcGgwIiBjbGFzcz0iZ3JhcGgiIHRyYW5zZm9ybT0ic2NhbGUoNC4xNjY2NyA0LjE2NjY3KSByb3RhdGUoMCkgdHJhbnNsYXRlKDQgMTE1LjU2NikiPgo8dGl0bGU+JTM8L3RpdGxlPgo8cG9seWdvbiBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSJub25lIiBwb2ludHM9Ii00LDQgLTQsLTExNS41NjYgMTQ4LC0xMTUuNTY2IDE0OCw0IC00LDQiLz4KPCEtLSB0YWJsZTAgLS0+CjxnIGlkPSJub2RlMiIgY2xhc3M9Im5vZGUiPjx0aXRsZT50YWJsZTA8L3RpdGxlPgo8cG9seWdvbiBmaWxsPSJub25lIiBzdHJva2U9ImJsYWNrIiBwb2ludHM9IjAsLTc1LjU2NTYgMCwtMTExLjU2NiA1NCwtMTExLjU2NiA1NCwtNzUuNTY1NiAwLC03NS41NjU2Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjI3IiB5PSItODkuODY1NiIgZm9udC1mYW1pbHk9IlRpbWVzLHNlcmlmIiBmb250LXNpemU9IjE0LjAwIj5hPC90ZXh0Pgo8L2c+CjwhLS0gdGFibGUxIC0tPgo8ZyBpZD0ibm9kZTQiIGNsYXNzPSJub2RlIj48dGl0bGU+dGFibGUxPC90aXRsZT4KPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgcG9pbnRzPSI5MCwtNzUuNTY1NiA5MCwtMTExLjU2NiAxNDQsLTExMS41NjYgMTQ0LC03NS41NjU2IDkwLC03NS41NjU2Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjEwNCIgeT0iLTg5Ljg2NTYiIGZvbnQtZmFtaWx5PSJUaW1lcyxzZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+NTwvdGV4dD4KPHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIHBvaW50cz0iMTE4LC03NS41NjU2IDExOCwtMTExLjU2NiAiLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMTMxIiB5PSItODkuODY1NiIgZm9udC1mYW1pbHk9IlRpbWVzLHNlcmlmIiBmb250LXNpemU9IjE0LjAwIj4gPC90ZXh0Pgo8L2c+CjwhLS0gdGFibGUyIC0tPgo8ZyBpZD0ibm9kZTMiIGNsYXNzPSJub2RlIj48dGl0bGU+dGFibGUyPC90aXRsZT4KPHBvbHlnb24gZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgcG9pbnRzPSI5MCwtMjAuNTY1NiA5MCwtNTYuNTY1NiAxNDQsLTU2LjU2NTYgMTQ0LC0yMC41NjU2IDkwLC0yMC41NjU2Ii8+Cjx0ZXh0IHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjExNyIgeT0iLTM0Ljg2NTYiIGZvbnQtZmFtaWx5PSJUaW1lcyxzZXJpZiIgZm9udC1zaXplPSIxNC4wMCI+YjwvdGV4dD4KPC9nPgo8IS0tIHRhYmxlMyAtLT4KPGcgaWQ9Im5vZGUxIiBjbGFzcz0ibm9kZSI+PHRpdGxlPnRhYmxlMzwvdGl0bGU+Cjxwb2x5Z29uIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIHBvaW50cz0iMCwtMjAuNTY1NiAwLC01Ni41NjU2IDU0LC01Ni41NjU2IDU0LC0yMC41NjU2IDAsLTIwLjU2NTYiLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMTYiIHk9Ii0zNC44NjU2IiBmb250LWZhbWlseT0iVGltZXMsc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPjEwPC90ZXh0Pgo8cG9seWxpbmUgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgcG9pbnRzPSIzMiwtMjAuNTY1NiAzMiwtNTYuNTY1NiAiLz4KPHRleHQgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNDMiIHk9Ii0zNC44NjU2IiBmb250LWZhbWlseT0iVGltZXMsc2VyaWYiIGZvbnQtc2l6ZT0iMTQuMDAiPiA8L3RleHQ+CjwvZz4KPCEtLSB0YWJsZTAmIzQ1OyZndDt0YWJsZTEgLS0+CjxnIGlkPSJlZGdlMSIgY2xhc3M9ImVkZ2UiPjx0aXRsZT50YWJsZTA6cmVmLSZndDt0YWJsZTE6ZGF0YTwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik01NCwtOTMuNTY1NkM2NiwtOTMuNTY1NiA3MS4yNSwtOTMuNTY1NiA3OC44NzUsLTkzLjU2NTYiLz4KPHBvbHlnb24gZmlsbD0iYmxhY2siIHN0cm9rZT0iYmxhY2siIHBvaW50cz0iNzksLTk3LjA2NTcgODksLTkzLjU2NTYgNzksLTkwLjA2NTcgNzksLTk3LjA2NTciLz4KPC9nPgo8IS0tIHRhYmxlMSYjNDU7Jmd0O3RhYmxlMiAtLT4KPGcgaWQ9ImVkZ2UyIiBjbGFzcz0iZWRnZSI+PHRpdGxlPnRhYmxlMTpyZWYtJmd0O3RhYmxlMjpkYXRhPC90aXRsZT4KPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgZD0iTTEyMy4xNDAzLC02NS4xMzE1QzEyNy42NTIzLC02Ny4zNDAyIDEzMywtNjguODEyIDEzMywtNzUiLz4KPHBvbHlnb24gZmlsbD0iYmxhY2siIHN0cm9rZT0iYmxhY2siIHBvaW50cz0iMTIwLjIzMywtNjcuMDg5NSAxMTcsLTU3IDEyNS44MTkzLC02Mi44NzEyIDEyMC4yMzMsLTY3LjA4OTUiLz4KPC9nPgo8IS0tIHRhYmxlMiYjNDU7Jmd0O3RhYmxlMyAtLT4KPGcgaWQ9ImVkZ2UzIiBjbGFzcz0iZWRnZSI+PHRpdGxlPnRhYmxlMjpyZWYtJmd0O3RhYmxlMzpkYXRhPC90aXRsZT4KPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgZD0iTTExNywtMjAuNTY1NkMxMTcsMi42OTU3IDQzLjczNzUsNS41NjUzMiAyMS4yNDAxLC0xMC45NTY3Ii8+Cjxwb2x5Z29uIGZpbGw9ImJsYWNrIiBzdHJva2U9ImJsYWNrIiBwb2ludHM9IjE4LjIwOTgsLTkuMjAzNzUgMTYsLTE5LjU2NTYgMjQuMTg5MiwtMTIuODQzNCAxOC4yMDk4LC05LjIwMzc1Ii8+CjwvZz4KPCEtLSB0YWJsZTMmIzQ1OyZndDt0YWJsZTAgLS0+CjxnIGlkPSJlZGdlNCIgY2xhc3M9ImVkZ2UiPjx0aXRsZT50YWJsZTM6cmVmLSZndDt0YWJsZTA6ZGF0YTwvdGl0bGU+CjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iYmxhY2siIGQ9Ik0zMy4xNDA5LC02Ni44Njg1QzM3LjY1MjMsLTY0LjY1OTggNDMsLTYzLjE4OCA0MywtNTciLz4KPHBvbHlnb24gZmlsbD0iYmxhY2siIHN0cm9rZT0iYmxhY2siIHBvaW50cz0iMzAuMjMzLC02NC45MTA1IDI3LC03NSAzNS44MTkzLC02OS4xMjg4IDMwLjIzMywtNjQuOTEwNSIvPgo8L2c+CjwvZz4KPC9zdmc+Cg==" class="center"> <p><span class="caption">Figure 15-4: A reference cycle of lists <code>a</code> and <code>b</code> pointing to each other</span></p> <p>If you uncomment the last <code>println!</code> and run the program, Rust will try to print this cycle with <code>a</code> pointing to <code>b</code> pointing to <code>a</code> and so forth until it overflows the stack.</p> <p>In this case, right after we create the reference cycle, the program ends. The consequences of this cycle aren’t very dire. However, if a more complex program allocated lots of memory in a cycle and held onto it for a long time, the program would use more memory than it needed and might overwhelm the system, causing it to run out of available memory.</p> <p>Creating reference cycles is not easily done, but it’s not impossible either. If you have <code>RefCell&lt;T&gt;</code> values that contain <code>Rc&lt;T&gt;</code> values or similar nested combinations of types with interior mutability and reference counting, you must ensure that you don’t create cycles; you can’t rely on Rust to catch them. Creating a reference cycle would be a logic bug in your program that you should use automated tests, code reviews, and other software development practices to minimize.</p> <p>Another solution for avoiding reference cycles is reorganizing your data structures so that some references express ownership and some references don’t. As a result, you can have cycles made up of some ownership relationships and some non-ownership relationships, and only the ownership relationships affect whether or not a value can be dropped. In Listing 15-25, we always want <code>Cons</code> variants to own their list, so reorganizing the data structure isn’t possible. Let’s look at an example using graphs made up of parent nodes and child nodes to see when non-ownership relationships are an appropriate way to prevent reference cycles.</p> <h3>Preventing Reference Cycles: Turning an <code id="preventing-reference-cycles-turning-an-rct-into-a-weakt">Rc&lt;T&gt;</code> into a <code>Weak&lt;T&gt;</code>
+</h3> <p>So far, we’ve demonstrated that calling <code>Rc::clone</code> increases the <code>strong_count</code> of an <code>Rc&lt;T&gt;</code> instance, and an <code>Rc&lt;T&gt;</code> instance is only cleaned up if its <code>strong_count</code> is 0. You can also create a <em>weak reference</em> to the value within an <code>Rc&lt;T&gt;</code> instance by calling <code>Rc::downgrade</code> and passing a reference to the <code>Rc&lt;T&gt;</code>. When you call <code>Rc::downgrade</code>, you get a smart pointer of type <code>Weak&lt;T&gt;</code>. Instead of increasing the <code>strong_count</code> in the <code>Rc&lt;T&gt;</code> instance by 1, calling <code>Rc::downgrade</code> increases the <code>weak_count</code> by 1. The <code>Rc&lt;T&gt;</code> type uses <code>weak_count</code> to keep track of how many <code>Weak&lt;T&gt;</code> references exist, similar to <code>strong_count</code>. The difference is the <code>weak_count</code> doesn’t need to be 0 for the <code>Rc&lt;T&gt;</code> instance to be cleaned up.</p> <p>Strong references are how you can share ownership of an <code>Rc&lt;T&gt;</code> instance. Weak references don’t express an ownership relationship. They won’t cause a reference cycle because any cycle involving some weak references will be broken once the strong reference count of values involved is 0.</p> <p>Because the value that <code>Weak&lt;T&gt;</code> references might have been dropped, to do anything with the value that a <code>Weak&lt;T&gt;</code> is pointing to, you must make sure the value still exists. Do this by calling the <code>upgrade</code> method on a <code>Weak&lt;T&gt;</code> instance, which will return an <code>Option&lt;Rc&lt;T&gt;&gt;</code>. You’ll get a result of <code>Some</code> if the <code>Rc&lt;T&gt;</code> value has not been dropped yet and a result of <code>None</code> if the <code>Rc&lt;T&gt;</code> value has been dropped. Because <code>upgrade</code> returns an <code>Option&lt;Rc&lt;T&gt;&gt;</code>, Rust will ensure that the <code>Some</code> case and the <code>None</code> case are handled, and there won’t be an invalid pointer.</p> <p>As an example, rather than using a list whose items know only about the next item, we’ll create a tree whose items know about their children items <em>and</em> their parent items.</p> <h4>Creating a Tree Data Structure: a <code id="creating-a-tree-data-structure-a-node-with-child-nodes">Node</code> with Child Nodes</h4> <p>To start, we’ll build a tree with nodes that know about their child nodes. We’ll create a struct named <code>Node</code> that holds its own <code>i32</code> value as well as references to its children <code>Node</code> values:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![]),
+    });
+
+    let branch = Rc::new(Node {
+        value: 5,
+        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+    });
+}
+</pre> <p>We want a <code>Node</code> to own its children, and we want to share that ownership with variables so we can access each <code>Node</code> in the tree directly. To do this, we define the <code>Vec&lt;T&gt;</code> items to be values of type <code>Rc&lt;Node&gt;</code>. We also want to modify which nodes are children of another node, so we have a <code>RefCell&lt;T&gt;</code> in <code>children</code> around the <code>Vec&lt;Rc&lt;Node&gt;&gt;</code>.</p> <p>Next, we’ll use our struct definition and create one <code>Node</code> instance named <code>leaf</code> with the value 3 and no children, and another instance named <code>branch</code> with the value 5 and <code>leaf</code> as one of its children, as shown in Listing 15-27:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![]),
+    });
+
+    let branch = Rc::new(Node {
+        value: 5,
+        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+    });
+}
+</pre> <p><span class="caption">Listing 15-27: Creating a <code>leaf</code> node with no children and a <code>branch</code> node with <code>leaf</code> as one of its children</span></p> <p>We clone the <code>Rc&lt;Node&gt;</code> in <code>leaf</code> and store that in <code>branch</code>, meaning the <code>Node</code> in <code>leaf</code> now has two owners: <code>leaf</code> and <code>branch</code>. We can get from <code>branch</code> to <code>leaf</code> through <code>branch.children</code>, but there’s no way to get from <code>leaf</code> to <code>branch</code>. The reason is that <code>leaf</code> has no reference to <code>branch</code> and doesn’t know they’re related. We want <code>leaf</code> to know that <code>branch</code> is its parent. We’ll do that next.</p> <h4>Adding a Reference from a Child to Its Parent</h4> <p>To make the child node aware of its parent, we need to add a <code>parent</code> field to our <code>Node</code> struct definition. The trouble is in deciding what the type of <code>parent</code> should be. We know it can’t contain an <code>Rc&lt;T&gt;</code>, because that would create a reference cycle with <code>leaf.parent</code> pointing to <code>branch</code> and <code>branch.children</code> pointing to <code>leaf</code>, which would cause their <code>strong_count</code> values to never be 0.</p> <p>Thinking about the relationships another way, a parent node should own its children: if a parent node is dropped, its child nodes should be dropped as well. However, a child should not own its parent: if we drop a child node, the parent should still exist. This is a case for weak references!</p> <p>So instead of <code>Rc&lt;T&gt;</code>, we’ll make the type of <code>parent</code> use <code>Weak&lt;T&gt;</code>, specifically a <code>RefCell&lt;Weak&lt;Node&gt;&gt;</code>. Now our <code>Node</code> struct definition looks like this:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
+    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+}
+</pre> <p>A node will be able to refer to its parent node but doesn’t own its parent. In Listing 15-28, we update <code>main</code> to use this new definition so the <code>leaf</code> node will have a way to refer to its parent, <code>branch</code>:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
+    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+}
+</pre> <p><span class="caption">Listing 15-28: A <code>leaf</code> node with a weak reference to its parent node <code>branch</code></span></p> <p>Creating the <code>leaf</code> node looks similar to how creating the <code>leaf</code> node looked in Listing 15-27 with the exception of the <code>parent</code> field: <code>leaf</code> starts out without a parent, so we create a new, empty <code>Weak&lt;Node&gt;</code> reference instance.</p> <p>At this point, when we try to get a reference to the parent of <code>leaf</code> by using the <code>upgrade</code> method, we get a <code>None</code> value. We see this in the output from the first <code>println!</code> statement:</p> <pre>leaf parent = None
+</pre> <p>When we create the <code>branch</code> node, it will also have a new <code>Weak&lt;Node&gt;</code> reference in the <code>parent</code> field, because <code>branch</code> doesn’t have a parent node. We still have <code>leaf</code> as one of the children of <code>branch</code>. Once we have the <code>Node</code> instance in <code>branch</code>, we can modify <code>leaf</code> to give it a <code>Weak&lt;Node&gt;</code> reference to its parent. We use the <code>borrow_mut</code> method on the <code>RefCell&lt;Weak&lt;Node&gt;&gt;</code> in the <code>parent</code> field of <code>leaf</code>, and then we use the <code>Rc::downgrade</code> function to create a <code>Weak&lt;Node&gt;</code> reference to <code>branch</code> from the <code>Rc&lt;Node&gt;</code> in <code>branch.</code></p> <p>When we print the parent of <code>leaf</code> again, this time we’ll get a <code>Some</code> variant holding <code>branch</code>: now <code>leaf</code> can access its parent! When we print <code>leaf</code>, we also avoid the cycle that eventually ended in a stack overflow like we had in Listing 15-26; the <code>Weak&lt;Node&gt;</code> references are printed as <code>(Weak)</code>:</p> <pre>leaf parent = Some(Node { value: 5, parent: RefCell { value: (Weak) },
+children: RefCell { value: [Node { value: 3, parent: RefCell { value: (Weak) },
+children: RefCell { value: [] } }] } })
+</pre> <p>The lack of infinite output indicates that this code didn’t create a reference cycle. We can also tell this by looking at the values we get from calling <code>Rc::strong_count</code> and <code>Rc::weak_count</code>.</p> <h4>Visualizing Changes to <code id="visualizing-changes-to-strong_count-and-weak_count">strong_count</code> and <code>weak_count</code>
+</h4> <p>Let’s look at how the <code>strong_count</code> and <code>weak_count</code> values of the <code>Rc&lt;Node&gt;</code> instances change by creating a new inner scope and moving the creation of <code>branch</code> into that scope. By doing so, we can see what happens when <code>branch</code> is created and then dropped when it goes out of scope. The modifications are shown in Listing 15-29:</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    parent: RefCell&lt;Weak&lt;Node&gt;&gt;,
+    children: RefCell&lt;Vec&lt;Rc&lt;Node&gt;&gt;&gt;,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&amp;leaf),
+        Rc::weak_count(&amp;leaf),
+    );
+
+    {
+        let branch = Rc::new(Node {
+            value: 5,
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![Rc::clone(&amp;leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&amp;branch);
+
+        println!(
+            "branch strong = {}, weak = {}",
+            Rc::strong_count(&amp;branch),
+            Rc::weak_count(&amp;branch),
+        );
+
+        println!(
+            "leaf strong = {}, weak = {}",
+            Rc::strong_count(&amp;leaf),
+            Rc::weak_count(&amp;leaf),
+        );
+    }
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade());
+    println!(
+        "leaf strong = {}, weak = {}",
+        Rc::strong_count(&amp;leaf),
+        Rc::weak_count(&amp;leaf),
+    );
+}
+</pre> <p><span class="caption">Listing 15-29: Creating <code>branch</code> in an inner scope and examining strong and weak reference counts</span></p> <p>After <code>leaf</code> is created, its <code>Rc&lt;Node&gt;</code> has a strong count of 1 and a weak count of 0. In the inner scope, we create <code>branch</code> and associate it with <code>leaf</code>, at which point when we print the counts, the <code>Rc&lt;Node&gt;</code> in <code>branch</code> will have a strong count of 1 and a weak count of 1 (for <code>leaf.parent</code> pointing to <code>branch</code> with a <code>Weak&lt;Node&gt;</code>). When we print the counts in <code>leaf</code>, we’ll see it will have a strong count of 2, because <code>branch</code> now has a clone of the <code>Rc&lt;Node&gt;</code> of <code>leaf</code> stored in <code>branch.children</code>, but will still have a weak count of 0.</p> <p>When the inner scope ends, <code>branch</code> goes out of scope and the strong count of the <code>Rc&lt;Node&gt;</code> decreases to 0, so its <code>Node</code> is dropped. The weak count of 1 from <code>leaf.parent</code> has no bearing on whether or not <code>Node</code> is dropped, so we don’t get any memory leaks!</p> <p>If we try to access the parent of <code>leaf</code> after the end of the scope, we’ll get <code>None</code> again. At the end of the program, the <code>Rc&lt;Node&gt;</code> in <code>leaf</code> has a strong count of 1 and a weak count of 0, because the variable <code>leaf</code> is now the only reference to the <code>Rc&lt;Node&gt;</code> again.</p> <p>All of the logic that manages the counts and value dropping is built into <code>Rc&lt;T&gt;</code> and <code>Weak&lt;T&gt;</code> and their implementations of the <code>Drop</code> trait. By specifying that the relationship from a child to its parent should be a <code>Weak&lt;T&gt;</code> reference in the definition of <code>Node</code>, you’re able to have parent nodes point to child nodes and vice versa without creating a reference cycle and memory leaks.</p> <h2>Summary</h2> <p>This chapter covered how to use smart pointers to make different guarantees and trade-offs from those Rust makes by default with regular references. The <code>Box&lt;T&gt;</code> type has a known size and points to data allocated on the heap. The <code>Rc&lt;T&gt;</code> type keeps track of the number of references to data on the heap so that data can have multiple owners. The <code>RefCell&lt;T&gt;</code> type with its interior mutability gives us a type that we can use when we need an immutable type but need to change an inner value of that type; it also enforces the borrowing rules at runtime instead of at compile time.</p> <p>Also discussed were the <code>Deref</code> and <code>Drop</code> traits, which enable a lot of the functionality of smart pointers. We explored reference cycles that can cause memory leaks and how to prevent them using <code>Weak&lt;T&gt;</code>.</p> <p>If this chapter has piqued your interest and you want to implement your own smart pointers, check out <a href="https://doc.rust-lang.org/nomicon/index.html">“The Rustonomicon”</a> for more useful information.</p> <p>Next, we’ll talk about concurrency in Rust. You’ll even learn about a few new smart pointers.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010 The Rust Project Developers<br>Licensed under the Apache License, Version 2.0 or the MIT license, at your option.<br>
+    <a href="https://doc.rust-lang.org/book/ch15-06-reference-cycles.html" class="_attribution-link">https://doc.rust-lang.org/book/ch15-06-reference-cycles.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

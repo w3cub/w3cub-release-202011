@@ -1,0 +1,289 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>19.3. Advanced Types - Rust - W3cubDocs</title>
+  
+  <meta name="description" content="The Rust type system has some features that we’ve mentioned in this book but haven’t yet discussed. We’ll start by discussing newtypes in general as &hellip;">
+  <meta name="keywords" content="advanced, types, rust">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rust/book/ch19-04-advanced-types.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rust.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rust/" class="_nav-link" title="" style="margin-left:0;">Rust</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rust">
+				
+				
+<h1>Advanced Types</h1> <p>The Rust type system has some features that we’ve mentioned in this book but haven’t yet discussed. We’ll start by discussing newtypes in general as we examine why newtypes are useful as types. Then we’ll move on to type aliases, a feature similar to newtypes but with slightly different semantics. We’ll also discuss the <code>!</code> type and dynamically sized types.</p> <blockquote> <p>Note: The next section assumes you’ve read the earlier section <a href="ch19-03-advanced-traits#using-the-newtype-pattern-to-implement-external-traits-on-external-types">“Using the Newtype Pattern to Implement External Traits on External Types.”</a></p> </blockquote> <h3>Using the Newtype Pattern for Type Safety and Abstraction</h3> <p>The newtype pattern is useful for tasks beyond those we’ve discussed so far, including statically enforcing that values are never confused and indicating the units of a value. You saw an example of using newtypes to indicate units in Listing 19-15: recall that the <code>Millimeters</code> and <code>Meters</code> structs wrapped <code>u32</code> values in a newtype. If we wrote a function with a parameter of type <code>Millimeters</code>, we couldn’t compile a program that accidentally tried to call that function with a value of type <code>Meters</code> or a plain <code>u32</code>.</p> <p>Another use of the newtype pattern is in abstracting away some implementation details of a type: the new type can expose a public API that is different from the API of the private inner type if we used the new type directly to restrict the available functionality, for example.</p> <p>Newtypes can also hide internal implementation. For example, we could provide a <code>People</code> type to wrap a <code>HashMap&lt;i32, String&gt;</code> that stores a person’s ID associated with their name. Code using <code>People</code> would only interact with the public API we provide, such as a method to add a name string to the <code>People</code> collection; that code wouldn’t need to know that we assign an <code>i32</code> ID to names internally. The newtype pattern is a lightweight way to achieve encapsulation to hide implementation details, which we discussed in the <a href="ch17-01-what-is-oo#encapsulation-that-hides-implementation-details">“Encapsulation that Hides Implementation Details”</a> section of Chapter 17.</p> <h3>Creating Type Synonyms with Type Aliases</h3> <p>Along with the newtype pattern, Rust provides the ability to declare a <em>type alias</em> to give an existing type another name. For this we use the <code>type</code> keyword. For example, we can create the alias <code>Kilometers</code> to <code>i32</code> like so:</p> <pre data-language="rust">fn main() {
+    type Kilometers = i32;
+
+    let x: i32 = 5;
+    let y: Kilometers = 5;
+
+    println!("x + y = {}", x + y);
+}
+</pre> <p>Now, the alias <code>Kilometers</code> is a <em>synonym</em> for <code>i32</code>; unlike the <code>Millimeters</code> and <code>Meters</code> types we created in Listing 19-15, <code>Kilometers</code> is not a separate, new type. Values that have the type <code>Kilometers</code> will be treated the same as values of type <code>i32</code>:</p> <pre data-language="rust">fn main() {
+    type Kilometers = i32;
+
+    let x: i32 = 5;
+    let y: Kilometers = 5;
+
+    println!("x + y = {}", x + y);
+}
+</pre> <p>Because <code>Kilometers</code> and <code>i32</code> are the same type, we can add values of both types and we can pass <code>Kilometers</code> values to functions that take <code>i32</code> parameters. However, using this method, we don’t get the type checking benefits that we get from the newtype pattern discussed earlier.</p> <p>The main use case for type synonyms is to reduce repetition. For example, we might have a lengthy type like this:</p> <pre data-language="rust">Box&lt;dyn Fn() + Send + 'static&gt;
+</pre> <p>Writing this lengthy type in function signatures and as type annotations all over the code can be tiresome and error prone. Imagine having a project full of code like that in Listing 19-24.</p> <pre data-language="rust">fn main() {
+    let f: Box&lt;dyn Fn() + Send + 'static&gt; = Box::new(|| println!("hi"));
+
+    fn takes_long_type(f: Box&lt;dyn Fn() + Send + 'static&gt;) {
+        // --snip--
+    }
+
+    fn returns_long_type() -&gt; Box&lt;dyn Fn() + Send + 'static&gt; {
+        // --snip--
+        Box::new(|| ())
+    }
+}
+</pre> <p><span class="caption">Listing 19-24: Using a long type in many places</span></p> <p>A type alias makes this code more manageable by reducing the repetition. In Listing 19-25, we’ve introduced an alias named <code>Thunk</code> for the verbose type and can replace all uses of the type with the shorter alias <code>Thunk</code>.</p> <pre data-language="rust">fn main() {
+    type Thunk = Box&lt;dyn Fn() + Send + 'static&gt;;
+
+    let f: Thunk = Box::new(|| println!("hi"));
+
+    fn takes_long_type(f: Thunk) {
+        // --snip--
+    }
+
+    fn returns_long_type() -&gt; Thunk {
+        // --snip--
+        Box::new(|| ())
+    }
+}
+</pre> <p><span class="caption">Listing 19-25: Introducing a type alias <code>Thunk</code> to reduce repetition</span></p> <p>This code is much easier to read and write! Choosing a meaningful name for a type alias can help communicate your intent as well (<em>thunk</em> is a word for code to be evaluated at a later time, so it’s an appropriate name for a closure that gets stored).</p> <p>Type aliases are also commonly used with the <code>Result&lt;T, E&gt;</code> type for reducing repetition. Consider the <code>std::io</code> module in the standard library. I/O operations often return a <code>Result&lt;T, E&gt;</code> to handle situations when operations fail to work. This library has a <code>std::io::Error</code> struct that represents all possible I/O errors. Many of the functions in <code>std::io</code> will be returning <code>Result&lt;T, E&gt;</code> where the <code>E</code> is <code>std::io::Error</code>, such as these functions in the <code>Write</code> trait:</p> <pre data-language="rust">
+#![allow(unused)]
+fn main() {
+use std::fmt;
+use std::io::Error;
+
+pub trait Write {
+    fn write(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;usize, Error&gt;;
+    fn flush(&amp;mut self) -&gt; Result&lt;(), Error&gt;;
+
+    fn write_all(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;(), Error&gt;;
+    fn write_fmt(&amp;mut self, fmt: fmt::Arguments) -&gt; Result&lt;(), Error&gt;;
+}
+}
+</pre> <p>The <code>Result&lt;..., Error&gt;</code> is repeated a lot. As such, <code>std::io</code> has this type of alias declaration:</p> <pre data-language="rust">use std::fmt;
+
+type Result&lt;T&gt; = std::result::Result&lt;T, std::io::Error&gt;;
+
+pub trait Write {
+    fn write(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;usize&gt;;
+    fn flush(&amp;mut self) -&gt; Result&lt;()&gt;;
+
+    fn write_all(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;()&gt;;
+    fn write_fmt(&amp;mut self, fmt: fmt::Arguments) -&gt; Result&lt;()&gt;;
+}
+
+fn main() {}
+</pre> <p>Because this declaration is in the <code>std::io</code> module, we can use the fully qualified alias <code>std::io::Result&lt;T&gt;</code>—that is, a <code>Result&lt;T, E&gt;</code> with the <code>E</code> filled in as <code>std::io::Error</code>. The <code>Write</code> trait function signatures end up looking like this:</p> <pre data-language="rust">use std::fmt;
+
+type Result&lt;T&gt; = std::result::Result&lt;T, std::io::Error&gt;;
+
+pub trait Write {
+    fn write(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;usize&gt;;
+    fn flush(&amp;mut self) -&gt; Result&lt;()&gt;;
+
+    fn write_all(&amp;mut self, buf: &amp;[u8]) -&gt; Result&lt;()&gt;;
+    fn write_fmt(&amp;mut self, fmt: fmt::Arguments) -&gt; Result&lt;()&gt;;
+}
+
+fn main() {}
+</pre> <p>The type alias helps in two ways: it makes code easier to write <em>and</em> it gives us a consistent interface across all of <code>std::io</code>. Because it’s an alias, it’s just another <code>Result&lt;T, E&gt;</code>, which means we can use any methods that work on <code>Result&lt;T, E&gt;</code> with it, as well as special syntax like the <code>?</code> operator.</p> <h3>The Never Type that Never Returns</h3> <p>Rust has a special type named <code>!</code> that’s known in type theory lingo as the <em>empty type</em> because it has no values. We prefer to call it the <em>never type</em> because it stands in the place of the return type when a function will never return. Here is an example:</p> <pre data-language="rust">fn bar() -&gt; ! {
+    // --snip--
+    panic!();
+}
+
+fn main() {}
+</pre> <p>This code is read as “the function <code>bar</code> returns never.” Functions that return never are called <em>diverging functions</em>. We can’t create values of the type <code>!</code> so <code>bar</code> can never possibly return.</p> <p>But what use is a type you can never create values for? Recall the code from Listing 2-5; we’ve reproduced part of it here in Listing 19-26.</p> <pre data-language="rust">use rand::Rng;
+use std::cmp::Ordering;
+use std::io;
+
+fn main() {
+    println!("Guess the number!");
+
+    let secret_number = rand::thread_rng().gen_range(1, 101);
+
+    println!("The secret number is: {}", secret_number);
+
+    loop {
+        println!("Please input your guess.");
+
+        let mut guess = String::new();
+
+        // --snip--
+
+        io::stdin()
+            .read_line(&amp;mut guess)
+            .expect("Failed to read line");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) =&gt; num,
+            Err(_) =&gt; continue,
+        };
+
+        println!("You guessed: {}", guess);
+
+        // --snip--
+
+        match guess.cmp(&amp;secret_number) {
+            Ordering::Less =&gt; println!("Too small!"),
+            Ordering::Greater =&gt; println!("Too big!"),
+            Ordering::Equal =&gt; {
+                println!("You win!");
+                break;
+            }
+        }
+    }
+}
+</pre> <p><span class="caption">Listing 19-26: A <code>match</code> with an arm that ends in <code>continue</code></span></p> <p>At the time, we skipped over some details in this code. In Chapter 6 in <a href="ch06-02-match#the-match-control-flow-operator">“The <code>match</code> Control Flow Operator”</a> section, we discussed that <code>match</code> arms must all return the same type. So, for example, the following code doesn’t work:</p> <pre data-language="rust">fn main() {
+    let guess = "3";
+    let guess = match guess.trim().parse() {
+        Ok(_) =&gt; 5,
+        Err(_) =&gt; "hello",
+    };
+}
+</pre> <p>The type of <code>guess</code> in this code would have to be an integer <em>and</em> a string, and Rust requires that <code>guess</code> have only one type. So what does <code>continue</code> return? How were we allowed to return a <code>u32</code> from one arm and have another arm that ends with <code>continue</code> in Listing 19-26?</p> <p>As you might have guessed, <code>continue</code> has a <code>!</code> value. That is, when Rust computes the type of <code>guess</code>, it looks at both match arms, the former with a value of <code>u32</code> and the latter with a <code>!</code> value. Because <code>!</code> can never have a value, Rust decides that the type of <code>guess</code> is <code>u32</code>.</p> <p>The formal way of describing this behavior is that expressions of type <code>!</code> can be coerced into any other type. We’re allowed to end this <code>match</code> arm with <code>continue</code> because <code>continue</code> doesn’t return a value; instead, it moves control back to the top of the loop, so in the <code>Err</code> case, we never assign a value to <code>guess</code>.</p> <p>The never type is useful with the <code>panic!</code> macro as well. Remember the <code>unwrap</code> function that we call on <code>Option&lt;T&gt;</code> values to produce a value or panic? Here is its definition:</p> <pre data-language="rust">enum Option&lt;T&gt; {
+    Some(T),
+    None,
+}
+
+use crate::Option::*;
+
+impl&lt;T&gt; Option&lt;T&gt; {
+    pub fn unwrap(self) -&gt; T {
+        match self {
+            Some(val) =&gt; val,
+            None =&gt; panic!("called `Option::unwrap()` on a `None` value"),
+        }
+    }
+}
+</pre> <p>In this code, the same thing happens as in the <code>match</code> in Listing 19-26: Rust sees that <code>val</code> has the type <code>T</code> and <code>panic!</code> has the type <code>!</code>, so the result of the overall <code>match</code> expression is <code>T</code>. This code works because <code>panic!</code> doesn’t produce a value; it ends the program. In the <code>None</code> case, we won’t be returning a value from <code>unwrap</code>, so this code is valid.</p> <p>One final expression that has the type <code>!</code> is a <code>loop</code>:</p> <pre data-language="rust">fn main() {
+    print!("forever ");
+
+    loop {
+        print!("and ever ");
+    }
+}
+</pre> <p>Here, the loop never ends, so <code>!</code> is the value of the expression. However, this wouldn’t be true if we included a <code>break</code>, because the loop would terminate when it got to the <code>break</code>.</p> <h3>Dynamically Sized Types and the <code id="dynamically-sized-types-and-the-sized-trait">Sized</code> Trait</h3> <p>Due to Rust’s need to know certain details, such as how much space to allocate for a value of a particular type, there is a corner of its type system that can be confusing: the concept of <em>dynamically sized types</em>. Sometimes referred to as <em>DSTs</em> or <em>unsized types</em>, these types let us write code using values whose size we can know only at runtime.</p> <p>Let’s dig into the details of a dynamically sized type called <code>str</code>, which we’ve been using throughout the book. That’s right, not <code>&amp;str</code>, but <code>str</code> on its own, is a DST. We can’t know how long the string is until runtime, meaning we can’t create a variable of type <code>str</code>, nor can we take an argument of type <code>str</code>. Consider the following code, which does not work:</p> <pre data-language="rust">fn main() {
+    let s1: str = "Hello there!";
+    let s2: str = "How's it going?";
+}
+</pre> <p>Rust needs to know how much memory to allocate for any value of a particular type, and all values of a type must use the same amount of memory. If Rust allowed us to write this code, these two <code>str</code> values would need to take up the same amount of space. But they have different lengths: <code>s1</code> needs 12 bytes of storage and <code>s2</code> needs 15. This is why it’s not possible to create a variable holding a dynamically sized type.</p> <p>So what do we do? In this case, you already know the answer: we make the types of <code>s1</code> and <code>s2</code> a <code>&amp;str</code> rather than a <code>str</code>. Recall that in the <a href="ch04-03-slices#string-slices">“String Slices”</a> section of Chapter 4, we said the slice data structure stores the starting position and the length of the slice.</p> <p>So although a <code>&amp;T</code> is a single value that stores the memory address of where the <code>T</code> is located, a <code>&amp;str</code> is <em>two</em> values: the address of the <code>str</code> and its length. As such, we can know the size of a <code>&amp;str</code> value at compile time: it’s twice the length of a <code>usize</code>. That is, we always know the size of a <code>&amp;str</code>, no matter how long the string it refers to is. In general, this is the way in which dynamically sized types are used in Rust: they have an extra bit of metadata that stores the size of the dynamic information. The golden rule of dynamically sized types is that we must always put values of dynamically sized types behind a pointer of some kind.</p> <p>We can combine <code>str</code> with all kinds of pointers: for example, <code>Box&lt;str&gt;</code> or <code>Rc&lt;str&gt;</code>. In fact, you’ve seen this before but with a different dynamically sized type: traits. Every trait is a dynamically sized type we can refer to by using the name of the trait. In Chapter 17 in the <a href="ch17-02-trait-objects#using-trait-objects-that-allow-for-values-of-different-types">“Using Trait Objects That Allow for Values of Different Types”</a> section, we mentioned that to use traits as trait objects, we must put them behind a pointer, such as <code>&amp;dyn Trait</code> or <code>Box&lt;dyn Trait&gt;</code> (<code>Rc&lt;dyn Trait&gt;</code> would work too).</p> <p>To work with DSTs, Rust has a particular trait called the <code>Sized</code> trait to determine whether or not a type’s size is known at compile time. This trait is automatically implemented for everything whose size is known at compile time. In addition, Rust implicitly adds a bound on <code>Sized</code> to every generic function. That is, a generic function definition like this:</p> <pre data-language="rust">fn generic&lt;T&gt;(t: T) {
+    // --snip--
+}
+</pre> <p>is actually treated as though we had written this:</p> <pre data-language="rust">fn generic&lt;T: Sized&gt;(t: T) {
+    // --snip--
+}
+</pre> <p>By default, generic functions will work only on types that have a known size at compile time. However, you can use the following special syntax to relax this restriction:</p> <pre data-language="rust">fn generic&lt;T: ?Sized&gt;(t: &amp;T) {
+    // --snip--
+}
+</pre> <p>A trait bound on <code>?Sized</code> is the opposite of a trait bound on <code>Sized</code>: we would read this as “<code>T</code> may or may not be <code>Sized</code>.” This syntax is only available for <code>Sized</code>, not any other traits.</p> <p>Also note that we switched the type of the <code>t</code> parameter from <code>T</code> to <code>&amp;T</code>. Because the type might not be <code>Sized</code>, we need to use it behind some kind of pointer. In this case, we’ve chosen a reference.</p> <p>Next, we’ll talk about functions and closures!</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010 The Rust Project Developers<br>Licensed under the Apache License, Version 2.0 or the MIT license, at your option.<br>
+    <a href="https://doc.rust-lang.org/book/ch19-04-advanced-types.html" class="_attribution-link">https://doc.rust-lang.org/book/ch19-04-advanced-types.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

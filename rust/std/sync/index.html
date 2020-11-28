@@ -1,0 +1,239 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Std&#58;&#58;sync - Rust - W3cubDocs</title>
+  
+  <meta name="description" content=" Useful synchronization primitives. ">
+  <meta name="keywords" content="module, std, sync, rust">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rust/std/sync/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rust.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rust/" class="_nav-link" title="" style="margin-left:0;">Rust</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rust">
+				
+				
+<h1 class="fqn">Module std::sync</h1>
+<p>Useful synchronization primitives.</p> <h3 id="the-need-for-synchronization" class="section-header">The need for synchronization</h3> <p>Conceptually, a Rust program is a series of operations which will be executed on a computer. The timeline of events happening in the program is consistent with the order of the operations in the code.</p> <p>Consider the following code, operating on some global static variables:</p> <div class="example-wrap"><pre class="rust rust-example-rendered" data-language="rust">
+static mut A: u32 = 0;
+static mut B: u32 = 0;
+static mut C: u32 = 0;
+
+fn main() {
+    unsafe {
+        A = 3;
+        B = 4;
+        A = A + B;
+        C = B;
+        println!("{} {} {}", A, B, C);
+        C = A;
+    }
+}</pre></div> <p>It appears as if some variables stored in memory are changed, an addition is performed, result is stored in <code>A</code> and the variable <code>C</code> is modified twice.</p> <p>When only a single thread is involved, the results are as expected: the line <code>7 4 4</code> gets printed.</p> <p>As for what happens behind the scenes, when optimizations are enabled the final generated machine code might look very different from the code:</p> <ul> <li> <p>The first store to <code>C</code> might be moved before the store to <code>A</code> or <code>B</code>, <em>as if</em> we had written <code>C = 4; A = 3; B = 4</code>.</p> </li> <li> <p>Assignment of <code>A + B</code> to <code>A</code> might be removed, since the sum can be stored in a temporary location until it gets printed, with the global variable never getting updated.</p> </li> <li> <p>The final result could be determined just by looking at the code at compile time, so <a href="https://en.wikipedia.org/wiki/Constant_folding">constant folding</a> might turn the whole block into a simple <code>println!("7 4 4")</code>.</p> </li> </ul> <p>The compiler is allowed to perform any combination of these optimizations, as long as the final optimized code, when executed, produces the same results as the one without optimizations.</p> <p>Due to the <a href="https://en.wikipedia.org/wiki/Concurrency_(computer_science)">concurrency</a> involved in modern computers, assumptions about the program's execution order are often wrong. Access to global variables can lead to nondeterministic results, <strong>even if</strong> compiler optimizations are disabled, and it is <strong>still possible</strong> to introduce synchronization bugs.</p> <p>Note that thanks to Rust's safety guarantees, accessing global (static) variables requires <code>unsafe</code> code, assuming we don't use any of the synchronization primitives in this module.</p> <h3 id="out-of-order-execution" class="section-header">Out-of-order execution</h3> <p>Instructions can execute in a different order from the one we define, due to various reasons:</p> <ul> <li> <p>The <strong>compiler</strong> reordering instructions: If the compiler can issue an instruction at an earlier point, it will try to do so. For example, it might hoist memory loads at the top of a code block, so that the CPU can start <a href="https://en.wikipedia.org/wiki/Cache_prefetching">prefetching</a> the values from memory.</p> <p>In single-threaded scenarios, this can cause issues when writing signal handlers or certain kinds of low-level code. Use <a href="atomic/fn.compiler_fence">compiler fences</a> to prevent this reordering.</p> </li> <li> <p>A <strong>single processor</strong> executing instructions <a href="https://en.wikipedia.org/wiki/Out-of-order_execution">out-of-order</a>: Modern CPUs are capable of <a href="https://en.wikipedia.org/wiki/Superscalar_processor">superscalar</a> execution, i.e., multiple instructions might be executing at the same time, even though the machine code describes a sequential process.</p> <p>This kind of reordering is handled transparently by the CPU.</p> </li> <li> <p>A <strong>multiprocessor</strong> system executing multiple hardware threads at the same time: In multi-threaded scenarios, you can use two kinds of primitives to deal with synchronization:</p> <ul> <li>
+<a href="atomic/fn.fence">memory fences</a> to ensure memory accesses are made visible to other CPUs in the right order.</li> <li>
+<a href="atomic/index">atomic operations</a> to ensure simultaneous access to the same memory location doesn't lead to undefined behavior.</li> </ul> </li> </ul> <h3 id="higher-level-synchronization-objects" class="section-header">Higher-level synchronization objects</h3> <p>Most of the low-level synchronization primitives are quite error-prone and inconvenient to use, which is why the standard library also exposes some higher-level synchronization objects.</p> <p>These abstractions can be built out of lower-level primitives. For efficiency, the sync objects in the standard library are usually implemented with help from the operating system's kernel, which is able to reschedule the threads while they are blocked on acquiring a lock.</p> <p>The following is an overview of the available synchronization objects:</p> <ul> <li> <p><a href="struct.arc"><code>Arc</code></a>: Atomically Reference-Counted pointer, which can be used in multithreaded environments to prolong the lifetime of some data until all the threads have finished using it.</p> </li> <li> <p><a href="struct.barrier"><code>Barrier</code></a>: Ensures multiple threads will wait for each other to reach a point in the program, before continuing execution all together.</p> </li> <li> <p><a href="struct.condvar"><code>Condvar</code></a>: Condition Variable, providing the ability to block a thread while waiting for an event to occur.</p> </li> <li> <p><a href="mpsc/index"><code>mpsc</code></a>: Multi-producer, single-consumer queues, used for message-based communication. Can provide a lightweight inter-thread synchronisation mechanism, at the cost of some extra memory.</p> </li> <li> <p><a href="struct.mutex"><code>Mutex</code></a>: Mutual Exclusion mechanism, which ensures that at most one thread at a time is able to access some data.</p> </li> <li> <p><a href="struct.once"><code>Once</code></a>: Used for thread-safe, one-time initialization of a global variable.</p> </li> <li> <p><a href="struct.rwlock"><code>RwLock</code></a>: Provides a mutual exclusion mechanism which allows multiple readers at the same time, while allowing only one writer at a time. In some cases, this can be more efficient than a mutex.</p> </li> </ul> <h3 id="modules" class="section-header">Modules</h3> <table>
+<tr class="module-item">
+<td><a class="mod" href="atomic/index" title="std::sync::atomic mod">atomic</a></td>
+<td class="docblock-short">
+<p>Atomic types</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="mod" href="mpsc/index" title="std::sync::mpsc mod">mpsc</a></td>
+<td class="docblock-short">
+<p>Multi-producer, single-consumer FIFO queue communication primitives.</p> </td>
+</tr>
+</table>
+<h3 id="structs" class="section-header">Structs</h3> <table>
+<tr class="module-item">
+<td><a class="struct" href="struct.arc" title="std::sync::Arc struct">Arc</a></td>
+<td class="docblock-short">
+<p>A thread-safe reference-counting pointer. 'Arc' stands for 'Atomically Reference Counted'.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.barrier" title="std::sync::Barrier struct">Barrier</a></td>
+<td class="docblock-short">
+<p>A barrier enables multiple threads to synchronize the beginning of some computation.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.barrierwaitresult" title="std::sync::BarrierWaitResult struct">BarrierWaitResult</a></td>
+<td class="docblock-short">
+<p>A <code>BarrierWaitResult</code> is returned by <a href="struct.barrier#method.wait"><code>wait</code></a> when all threads in the <a href="struct.barrier"><code>Barrier</code></a> have rendezvoused.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.condvar" title="std::sync::Condvar struct">Condvar</a></td>
+<td class="docblock-short">
+<p>A Condition Variable</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.mutex" title="std::sync::Mutex struct">Mutex</a></td>
+<td class="docblock-short">
+<p>A mutual exclusion primitive useful for protecting shared data</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.mutexguard" title="std::sync::MutexGuard struct">MutexGuard</a></td>
+<td class="docblock-short">
+<p>An RAII implementation of a "scoped lock" of a mutex. When this structure is dropped (falls out of scope), the lock will be unlocked.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.once" title="std::sync::Once struct">Once</a></td>
+<td class="docblock-short">
+<p>A synchronization primitive which can be used to run a one-time global initialization. Useful for one-time initialization for FFI or related functionality. This type can only be constructed with the <a href="struct.once#method.new"><code>Once::new</code></a> constructor.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.poisonerror" title="std::sync::PoisonError struct">PoisonError</a></td>
+<td class="docblock-short">
+<p>A type of error which can be returned whenever a lock is acquired.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.rwlock" title="std::sync::RwLock struct">RwLock</a></td>
+<td class="docblock-short">
+<p>A reader-writer lock</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.rwlockreadguard" title="std::sync::RwLockReadGuard struct">RwLockReadGuard</a></td>
+<td class="docblock-short">
+<p>RAII structure used to release the shared read access of a lock when dropped.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.rwlockwriteguard" title="std::sync::RwLockWriteGuard struct">RwLockWriteGuard</a></td>
+<td class="docblock-short">
+<p>RAII structure used to release the exclusive write access of a lock when dropped.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.waittimeoutresult" title="std::sync::WaitTimeoutResult struct">WaitTimeoutResult</a></td>
+<td class="docblock-short">
+<p>A type indicating whether a timed wait on a condition variable returned due to a time out or not.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="struct" href="struct.weak" title="std::sync::Weak struct">Weak</a></td>
+<td class="docblock-short">
+<p><code>Weak</code> is a version of <a href="struct.arc" title="`Arc`"><code>Arc</code></a> that holds a non-owning reference to the managed allocation. The allocation is accessed by calling <a href="struct.weak#method.upgrade"><code>upgrade</code></a> on the <code>Weak</code> pointer, which returns an <a href="../option/enum.option" title="`Option`"><code>Option</code></a><code>&lt;</code><a href="struct.arc" title="`Arc`"><code>Arc</code></a><code>&lt;T&gt;&gt;</code>.</p> </td>
+</tr>
+<tr class="unstable module-item">
+<td><a class="struct" href="struct.oncestate" title="std::sync::OnceState struct">OnceState</a></td>
+<td class="docblock-short">
+<span class="stab unstable">Experimental</span><p>State yielded to <a href="struct.once#method.call_once_force"><code>call_once_force</code></a>’s closure parameter. The state can be used to query the poison status of the <a href="struct.once"><code>Once</code></a>.</p> </td>
+</tr>
+</table>
+<h3 id="enums" class="section-header">Enums</h3> <table><tr class="module-item">
+<td><a class="enum" href="enum.trylockerror" title="std::sync::TryLockError enum">TryLockError</a></td>
+<td class="docblock-short">
+<p>An enumeration of possible errors associated with a <a href="type.trylockresult"><code>TryLockResult</code></a> which can occur while trying to acquire a lock, from the <a href="struct.mutex#method.try_lock"><code>try_lock</code></a> method on a <a href="struct.mutex"><code>Mutex</code></a> or the <a href="struct.rwlock#method.try_read"><code>try_read</code></a> and <a href="struct.rwlock#method.try_write"><code>try_write</code></a> methods on an <a href="struct.rwlock"><code>RwLock</code></a>.</p> </td>
+</tr></table>
+<h3 id="constants" class="section-header">Constants</h3> <table><tr class="deprecated module-item">
+<td><a class="constant" href="constant.once_init" title="std::sync::ONCE_INIT constant">ONCE_INIT</a></td>
+<td class="docblock-short">
+<span class="stab deprecated">Deprecated</span><p>Initialization value for static <a href="struct.once"><code>Once</code></a> values.</p> </td>
+</tr></table>
+<h3 id="types" class="section-header">Type Definitions</h3> <table>
+<tr class="module-item">
+<td><a class="type" href="type.lockresult" title="std::sync::LockResult type">LockResult</a></td>
+<td class="docblock-short">
+<p>A type alias for the result of a lock method which can be poisoned.</p> </td>
+</tr>
+<tr class="module-item">
+<td><a class="type" href="type.trylockresult" title="std::sync::TryLockResult type">TryLockResult</a></td>
+<td class="docblock-short">
+<p>A type alias for the result of a nonblocking locking method.</p> </td>
+</tr>
+</table>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010 The Rust Project Developers<br>Licensed under the Apache License, Version 2.0 or the MIT license, at your option.<br>
+    <a href="https://doc.rust-lang.org/std/sync/index.html" class="_attribution-link">https://doc.rust-lang.org/std/sync/index.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

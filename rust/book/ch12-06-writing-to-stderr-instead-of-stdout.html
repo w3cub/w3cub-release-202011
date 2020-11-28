@@ -1,0 +1,143 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>12.6. Writing Error Messages to Standard Error Instead of Standard Output - Rust - W3cubDocs</title>
+  
+  <meta name="description" content="At the moment, we’re writing all of our output to the terminal using the println! macro. Most terminals provide two kinds of output&#58; standard &hellip;">
+  <meta name="keywords" content="writing, error, messages, standard, instead, output, rust">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rust/book/ch12-06-writing-to-stderr-instead-of-stdout.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rust.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rust/" class="_nav-link" title="" style="margin-left:0;">Rust</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rust">
+				
+				
+<h1>Writing Error Messages to Standard Error Instead of Standard Output</h1> <p>At the moment, we’re writing all of our output to the terminal using the <code>println!</code> macro. Most terminals provide two kinds of output: <em>standard output</em> (<code>stdout</code>) for general information and <em>standard error</em> (<code>stderr</code>) for error messages. This distinction enables users to choose to direct the successful output of a program to a file but still print error messages to the screen.</p> <p>The <code>println!</code> macro is only capable of printing to standard output, so we have to use something else to print to standard error.</p> <h3>Checking Where Errors Are Written</h3> <p>First, let’s observe how the content printed by <code>minigrep</code> is currently being written to standard output, including any error messages we want to write to standard error instead. We’ll do that by redirecting the standard output stream to a file while also intentionally causing an error. We won’t redirect the standard error stream, so any content sent to standard error will continue to display on the screen.</p> <p>Command line programs are expected to send error messages to the standard error stream so we can still see error messages on the screen even if we redirect the standard output stream to a file. Our program is not currently well-behaved: we’re about to see that it saves the error message output to a file instead!</p> <p>The way to demonstrate this behavior is by running the program with <code>&gt;</code> and the filename, <em>output.txt</em>, that we want to redirect the standard output stream to. We won’t pass any arguments, which should cause an error:</p> <pre>$ cargo run &gt; output.txt
+</pre> <p>The <code>&gt;</code> syntax tells the shell to write the contents of standard output to <em>output.txt</em> instead of the screen. We didn’t see the error message we were expecting printed to the screen, so that means it must have ended up in the file. This is what <em>output.txt</em> contains:</p> <pre>Problem parsing arguments: not enough arguments
+</pre> <p>Yup, our error message is being printed to standard output. It’s much more useful for error messages like this to be printed to standard error so only data from a successful run ends up in the file. We’ll change that.</p> <h3>Printing Errors to Standard Error</h3> <p>We’ll use the code in Listing 12-24 to change how error messages are printed. Because of the refactoring we did earlier in this chapter, all the code that prints error messages is in one function, <code>main</code>. The standard library provides the <code>eprintln!</code> macro that prints to the standard error stream, so let’s change the two places we were calling <code>println!</code> to print errors to use <code>eprintln!</code> instead.</p> <p><span class="filename">Filename: src/main.rs</span></p> <pre data-language="rust">use std::env;
+use std::process;
+
+use minigrep::Config;
+
+fn main() {
+    let args: Vec&lt;String&gt; = env::args().collect();
+
+    let config = Config::new(&amp;args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+
+    if let Err(e) = minigrep::run(config) {
+        eprintln!("Application error: {}", e);
+
+        process::exit(1);
+    }
+}
+</pre> <p><span class="caption">Listing 12-24: Writing error messages to standard error instead of standard output using <code>eprintln!</code></span></p> <p>After changing <code>println!</code> to <code>eprintln!</code>, let’s run the program again in the same way, without any arguments and redirecting standard output with <code>&gt;</code>:</p> <pre>$ cargo run &gt; output.txt
+Problem parsing arguments: not enough arguments
+</pre> <p>Now we see the error onscreen and <em>output.txt</em> contains nothing, which is the behavior we expect of command line programs.</p> <p>Let’s run the program again with arguments that don’t cause an error but still redirect standard output to a file, like so:</p> <pre>$ cargo run to poem.txt &gt; output.txt
+</pre> <p>We won’t see any output to the terminal, and <em>output.txt</em> will contain our results:</p> <p><span class="filename">Filename: output.txt</span></p> <pre>Are you nobody, too?
+How dreary to be somebody!
+</pre> <p>This demonstrates that we’re now using standard output for successful output and standard error for error output as appropriate.</p> <h2>Summary</h2> <p>This chapter recapped some of the major concepts you’ve learned so far and covered how to perform common I/O operations in Rust. By using command line arguments, files, environment variables, and the <code>eprintln!</code> macro for printing errors, you’re now prepared to write command line applications. By using the concepts in previous chapters, your code will be well organized, store data effectively in the appropriate data structures, handle errors nicely, and be well tested.</p> <p>Next, we’ll explore some Rust features that were influenced by functional languages: closures and iterators.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010 The Rust Project Developers<br>Licensed under the Apache License, Version 2.0 or the MIT license, at your option.<br>
+    <a href="https://doc.rust-lang.org/book/ch12-06-writing-to-stderr-instead-of-stdout.html" class="_attribution-link">https://doc.rust-lang.org/book/ch12-06-writing-to-stderr-instead-of-stdout.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
