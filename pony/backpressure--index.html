@@ -1,0 +1,158 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>1. Backpressure - Pony - W3cubDocs</title>
+  
+  <meta name="description" content="The Backpressure package allows Pony programmers to participate in Pony&#39;s runtime backpressure system. The goal of the backpressure system is to &hellip;">
+  <meta name="keywords" content="backpressure, package, pony">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/pony/backpressure--">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/pony.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/pony/" class="_nav-link" title="" style="margin-left:0;">Pony</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="backpressure-package">Backpressure Package</h1> <p>The Backpressure package allows Pony programmers to participate in Pony's runtime backpressure system. The goal of the backpressure system is to prevent an actor's mailbox from growing at an unbounded rate.</p> <p>At a high level, the runtime backpressure system works by adjusting the scheduling of actors. When an actor becomes overloaded, the Pony runtime will deprioritize scheduling the actors that are sending to it. This change in scheduling allows the overloaded actor to catch up.</p> <p>The Pony runtime can detect overloading based on message queue size. However, the overloading of some types of actors is harder to detect. Let's take the case of actors like <code>TCPConnection</code>.</p> <p><code>TCPConnection</code> manages a socket for sending data to and receiving data from another process. TCP connections can experience backpressure from outside our Pony program that prevents them from sending. There's no way for the Pony runtime to detect this, so intervention by the programmer is needed.</p> <p><code>TCPConnection</code> is a single example. This Backpressure package exists to allow a programmer to indicate to the runtime that a given actor is experiencing pressure and sending messages to it should be adjusted accordingly.</p> <p>Any actor that needs to be able to tell the runtime to "send me messages slower" due to external conditions can do so via this package. Additionally, actors that maintain their own internal queues of any sort, say for buffering, are also prime candidates for using this package. If an actor's internal queue grows too large, it can call <code>Backpressure.apply</code> to let the runtime know it is under pressure.</p> <h2 id="example-program">Example program</h2> <pre>// Here we have a TCPConnectionNotify that upon construction
+// is given a BackpressureAuth token. This allows the notifier
+// to inform the Pony runtime when to apply and release backpressure
+// as the connection experiences it.
+// Note the calls to
+//
+// Backpressure.apply(_auth)
+// Backpressure.release(_auth)
+//
+// that apply and release backpressure as needed
+
+use "backpressure"
+use "collections"
+use "net"
+
+class SlowDown is TCPConnectionNotify
+  let _auth: BackpressureAuth
+  let _out: StdStream
+
+  new iso create(auth: BackpressureAuth, out: StdStream) =&gt;
+    _auth = auth
+    _out = out
+
+  fun ref throttled(connection: TCPConnection ref) =&gt;
+    _out.print("Experiencing backpressure!")
+    Backpressure.apply(_auth)
+
+  fun ref unthrottled(connection: TCPConnection ref) =&gt;
+    _out.print("Releasing backpressure!")
+    Backpressure.release(_auth)
+
+  fun ref connect_failed(conn: TCPConnection ref) =&gt;
+    None
+
+actor Main
+  new create(env: Env) =&gt;
+    try
+      let auth = env.root as AmbientAuth
+      let socket = TCPConnection(auth, recover SlowDown(auth, env.out) end,
+        "", "7669")
+    end
+</pre> <h2 id="caveat">Caveat</h2> <p>The runtime backpressure is a powerful system. By intervening, programmers can create deadlocks. Any call to <code>Backpressure.apply</code> should be matched by a corresponding call to <code>Backpressure.release</code>. Authorization via the <code>ApplyReleaseBackpressureAuth</code> capability is required to apply or release backpressure. By requiring that the caller have a token to apply or release a backpressure, rouge 3rd party library code can't run wild and unknowingly interfere with the runtime.</p> <h2 id="public-types">Public Types</h2> <ul> <li><a href="backpressure-backpressureauth">type BackpressureAuth</a></li> <li><a href="backpressure-backpressure">primitive Backpressure</a></li> <li><a href="backpressure-applyreleasebackpressureauth">primitive ApplyReleaseBackpressureAuth</a></li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2016-2018, The Pony Developers<br>© 2014-2015, Causality Ltd.<br>Licensed under the BSD 2-Clause License.<br>
+    <a href="https://stdlib.ponylang.io/backpressure--index" class="_attribution-link">https://stdlib.ponylang.io/backpressure--index</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

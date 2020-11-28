@@ -1,0 +1,434 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>TCPConnection - Pony - W3cubDocs</title>
+  
+  <meta name="description" content=" [Source] ">
+  <meta name="keywords" content="tcpconnection, pony">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/pony/net-tcpconnection.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/pony.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/pony/" class="_nav-link" title="" style="margin-left:0;">Pony</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="tcpconnection">TCPConnection</h1> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L16">[Source]</a></span></p> <p>A TCP connection. When connecting, the Happy Eyeballs algorithm is used.</p> <p>The following code creates a client that connects to port 8989 of the local host, writes "hello world", and listens for a response, which it then prints.</p> <pre>use "net"
+
+class MyTCPConnectionNotify is TCPConnectionNotify
+  let _out: OutStream
+
+  new create(out: OutStream) =&gt;
+    _out = out
+
+  fun ref connected(conn: TCPConnection ref) =&gt;
+    conn.write("hello world")
+
+  fun ref received(
+    conn: TCPConnection ref,
+    data: Array[U8] iso,
+    times: USize)
+    : Bool
+  =&gt;
+    _out.print("GOT:" + String.from_array(consume data))
+    conn.close()
+    true
+
+  fun ref connect_failed(conn: TCPConnection ref) =&gt;
+    None
+
+actor Main
+  new create(env: Env) =&gt;
+    try
+      TCPConnection(env.root as AmbientAuth,
+        recover MyTCPConnectionNotify(env.out) end, "", "8989")
+    end
+</pre> <p>Note: when writing to the connection data will be silently discarded if the connection has not yet been established.</p> <h2 id="backpressure-support">Backpressure support</h2> <h3 id="write">Write</h3> <p>The TCP protocol has built-in backpressure support. This is generally experienced as the outgoing write buffer becoming full and being unable to write all requested data to the socket. In <code>TCPConnection</code>, this is hidden from the programmer. When this occurs, <code>TCPConnection</code> will buffer the extra data until such time as it is able to be sent. Left unchecked, this could result in uncontrolled queuing. To address this, <code>TCPConnectionNotify</code> implements two methods <code>throttled</code> and <code>unthrottled</code> that are called when backpressure is applied and released.</p> <p>Upon receiving a <code>throttled</code> notification, your application has two choices on how to handle it. One is to inform the Pony runtime that it can no longer make progress and that runtime backpressure should be applied to any actors sending this one messages. For example, you might construct your application like:</p> <pre>// Here we have a TCPConnectionNotify that upon construction
+// is given a BackpressureAuth token. This allows the notifier
+// to inform the Pony runtime when to apply and release backpressure
+// as the connection experiences it.
+// Note the calls to
+//
+// Backpressure.apply(_auth)
+// Backpressure.release(_auth)
+//
+// that apply and release backpressure as needed
+
+use "backpressure"
+use "collections"
+use "net"
+
+class SlowDown is TCPConnectionNotify
+  let _auth: BackpressureAuth
+  let _out: StdStream
+
+  new iso create(auth: BackpressureAuth, out: StdStream) =&gt;
+    _auth = auth
+    _out = out
+
+  fun ref throttled(connection: TCPConnection ref) =&gt;
+    _out.print("Experiencing backpressure!")
+    Backpressure.apply(_auth)
+
+  fun ref unthrottled(connection: TCPConnection ref) =&gt;
+    _out.print("Releasing backpressure!")
+    Backpressure.release(_auth)
+
+  fun ref closed(connection: TCPConnection ref) =&gt;
+    // if backpressure has been applied, make sure we release
+    // when shutting down
+    _out.print("Releasing backpressure if applied!")
+    Backpressure.release(_auth)
+
+  fun ref connect_failed(conn: TCPConnection ref) =&gt;
+    None
+
+actor Main
+  new create(env: Env) =&gt;
+    try
+      let auth = env.root as AmbientAuth
+      let socket = TCPConnection(auth, recover SlowDown(auth, env.out) end,
+        "", "7669")
+    end
+
+</pre> <p>Or if you want, you could handle backpressure by shedding load, that is, dropping the extra data rather than carrying out the send. This might look like:</p> <pre>use "net"
+
+class ThrowItAway is TCPConnectionNotify
+  var _throttled: Bool = false
+
+  fun ref sent(conn: TCPConnection ref, data: ByteSeq): ByteSeq =&gt;
+    if not _throttled then
+      data
+    else
+      ""
+    end
+
+  fun ref sentv(conn: TCPConnection ref, data: ByteSeqIter): ByteSeqIter =&gt;
+    if not _throttled then
+      data
+    else
+      recover Array[String] end
+    end
+
+  fun ref throttled(connection: TCPConnection ref) =&gt;
+    _throttled = true
+
+  fun ref unthrottled(connection: TCPConnection ref) =&gt;
+    _throttled = false
+
+  fun ref connect_failed(conn: TCPConnection ref) =&gt;
+    None
+
+actor Main
+  new create(env: Env) =&gt;
+    try
+      TCPConnection(env.root as AmbientAuth,
+        recover ThrowItAway end, "", "7669")
+    end
+</pre> <p>In general, unless you have a very specific use case, we strongly advise that you don't implement a load shedding scheme where you drop data.</p> <h3 id="read">Read</h3> <p>If your application is unable to keep up with data being sent to it over a <code>TCPConnection</code> you can use the builtin read backpressure support to pause reading the socket which will in turn start to exert backpressure on the corresponding writer on the other end of that socket.</p> <p>The <code>mute</code> behavior allow any other actors in your application to request the cessation of additional reads until such time as <code>unmute</code> is called. Please note that this cessation is not guaranteed to happen immediately as it is the result of an asynchronous behavior call and as such will have to wait for existing messages in the <code>TCPConnection</code>'s mailbox to be handled.</p> <p>On non-windows platforms, your <code>TCPConnection</code> will not notice if the other end of the connection closes until you unmute it. Unix type systems like FreeBSD, Linux and OSX learn about a closed connection upon read. On these platforms, you <strong>must</strong> call <code>unmute</code> on a muted connection to have it close. Without calling <code>unmute</code> the <code>TCPConnection</code> actor will never exit.</p> <pre>actor tag TCPConnection
+</pre> <h2 id="constructors">Constructors</h2> <h3 id="create">create</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L226">[Source]</a></span></p> <p>Connect via IPv4 or IPv6. If <code>from</code> is a non-empty string, the connection will be made from the specified interface.</p> <pre>new tag create(
+  auth: (AmbientAuth val | NetAuth val | TCPAuth val | 
+    TCPConnectAuth val),
+  notify: TCPConnectionNotify iso,
+  host: String val,
+  service: String val,
+  from: String val = "",
+  read_buffer_size: USize val = 16384,
+  yield_after_reading: USize val = 16384,
+  yield_after_writing: USize val = 16384)
+: TCPConnection tag^
+</pre> <h4 id="parameters">Parameters</h4> <ul> <li>auth: (<a href="builtin-ambientauth">AmbientAuth</a> val | <a href="net-netauth">NetAuth</a> val | <a href="net-tcpauth">TCPAuth</a> val | <a href="net-tcpconnectauth">TCPConnectAuth</a> val)</li> <li>notify: <a href="net-tcpconnectionnotify">TCPConnectionNotify</a> iso</li> <li>host: <a href="builtin-string">String</a> val</li> <li>service: <a href="builtin-string">String</a> val</li> <li>from: <a href="builtin-string">String</a> val = ""</li> <li>read_buffer_size: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_reading: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_writing: <a href="builtin-usize">USize</a> val = 16384</li> </ul> <h4 id="returns">Returns</h4> <ul> <li>
+<a href="index">TCPConnection</a> tag^</li> </ul>  <h3 id="ip4">ip4</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L256">[Source]</a></span></p> <p>Connect via IPv4.</p> <pre>new tag ip4(
+  auth: (AmbientAuth val | NetAuth val | TCPAuth val | 
+    TCPConnectAuth val),
+  notify: TCPConnectionNotify iso,
+  host: String val,
+  service: String val,
+  from: String val = "",
+  read_buffer_size: USize val = 16384,
+  yield_after_reading: USize val = 16384,
+  yield_after_writing: USize val = 16384)
+: TCPConnection tag^
+</pre> <h4 id="parameters_1">Parameters</h4> <ul> <li>auth: (<a href="builtin-ambientauth">AmbientAuth</a> val | <a href="net-netauth">NetAuth</a> val | <a href="net-tcpauth">TCPAuth</a> val | <a href="net-tcpconnectauth">TCPConnectAuth</a> val)</li> <li>notify: <a href="net-tcpconnectionnotify">TCPConnectionNotify</a> iso</li> <li>host: <a href="builtin-string">String</a> val</li> <li>service: <a href="builtin-string">String</a> val</li> <li>from: <a href="builtin-string">String</a> val = ""</li> <li>read_buffer_size: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_reading: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_writing: <a href="builtin-usize">USize</a> val = 16384</li> </ul> <h4 id="returns_1">Returns</h4> <ul> <li>
+<a href="index">TCPConnection</a> tag^</li> </ul>  <h3 id="ip6">ip6</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L285">[Source]</a></span></p> <p>Connect via IPv6.</p> <pre>new tag ip6(
+  auth: (AmbientAuth val | NetAuth val | TCPAuth val | 
+    TCPConnectAuth val),
+  notify: TCPConnectionNotify iso,
+  host: String val,
+  service: String val,
+  from: String val = "",
+  read_buffer_size: USize val = 16384,
+  yield_after_reading: USize val = 16384,
+  yield_after_writing: USize val = 16384)
+: TCPConnection tag^
+</pre> <h4 id="parameters_2">Parameters</h4> <ul> <li>auth: (<a href="builtin-ambientauth">AmbientAuth</a> val | <a href="net-netauth">NetAuth</a> val | <a href="net-tcpauth">TCPAuth</a> val | <a href="net-tcpconnectauth">TCPConnectAuth</a> val)</li> <li>notify: <a href="net-tcpconnectionnotify">TCPConnectionNotify</a> iso</li> <li>host: <a href="builtin-string">String</a> val</li> <li>service: <a href="builtin-string">String</a> val</li> <li>from: <a href="builtin-string">String</a> val = ""</li> <li>read_buffer_size: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_reading: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_writing: <a href="builtin-usize">USize</a> val = 16384</li> </ul> <h4 id="returns_2">Returns</h4> <ul> <li>
+<a href="index">TCPConnection</a> tag^</li> </ul>  <h3 id="_accept">_accept</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L314">[Source]</a></span></p> <p>A new connection accepted on a server.</p> <pre>new tag _accept(
+  listen: TCPListener tag,
+  notify: TCPConnectionNotify iso,
+  fd: U32 val,
+  read_buffer_size: USize val = 16384,
+  yield_after_reading: USize val = 16384,
+  yield_after_writing: USize val = 16384)
+: TCPConnection tag^
+</pre> <h4 id="parameters_3">Parameters</h4> <ul> <li>listen: <a href="net-tcplistener">TCPListener</a> tag</li> <li>notify: <a href="net-tcpconnectionnotify">TCPConnectionNotify</a> iso</li> <li>fd: <a href="builtin-u32">U32</a> val</li> <li>read_buffer_size: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_reading: <a href="builtin-usize">USize</a> val = 16384</li> <li>yield_after_writing: <a href="builtin-usize">USize</a> val = 16384</li> </ul> <h4 id="returns_3">Returns</h4> <ul> <li>
+<a href="index">TCPConnection</a> tag^</li> </ul>  <h2 id="public-behaviours">Public Behaviours</h2> <h3 id="write_1">write</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L352">[Source]</a></span></p> <p>Write a single sequence of bytes. Data will be silently discarded if the connection has not yet been established though.</p> <pre>be write(
+  data: (String val | Array[U8 val] val))
+</pre> <h4 id="parameters_4">Parameters</h4> <ul> <li>data: (<a href="builtin-string">String</a> val | <a href="builtin-array">Array</a>[<a href="builtin-u8">U8</a> val] val)</li> </ul>  <h3 id="writev">writev</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L363">[Source]</a></span></p> <p>Write a sequence of sequences of bytes. Data will be silently discarded if the connection has not yet been established though.</p> <pre>be writev(
+  data: ByteSeqIter val)
+</pre> <h4 id="parameters_5">Parameters</h4> <ul> <li>data: <a href="builtin-byteseqiter">ByteSeqIter</a> val</li> </ul>  <h3 id="mute">mute</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L420">[Source]</a></span></p> <p>Temporarily suspend reading off this TCPConnection until such time as <code>unmute</code> is called.</p> <pre>be mute()
+</pre>  <h3 id="unmute">unmute</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L427">[Source]</a></span></p> <p>Start reading off this TCPConnection again after having been muted.</p> <pre>be unmute()
+</pre>  <h3 id="set_notify">set_notify</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L436">[Source]</a></span></p> <p>Change the notifier.</p> <pre>be set_notify(
+  notify: TCPConnectionNotify iso)
+</pre> <h4 id="parameters_6">Parameters</h4> <ul> <li>notify: <a href="net-tcpconnectionnotify">TCPConnectionNotify</a> iso</li> </ul>  <h3 id="dispose">dispose</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L442">[Source]</a></span></p> <p>Close the connection gracefully once all writes are sent.</p> <pre>be dispose()
+</pre>  <h2 id="public-functions">Public Functions</h2> <h3 id="local_address">local_address</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L448">[Source]</a></span></p> <p>Return the local IP address. If this TCPConnection is closed then the address returned is invalid.</p> <pre>fun box local_address()
+: NetAddress val
+</pre> <h4 id="returns_4">Returns</h4> <ul> <li>
+<a href="net-netaddress">NetAddress</a> val</li> </ul>  <h3 id="remote_address">remote_address</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L457">[Source]</a></span></p> <p>Return the remote IP address. If this TCPConnection is closed then the address returned is invalid.</p> <pre>fun box remote_address()
+: NetAddress val
+</pre> <h4 id="returns_5">Returns</h4> <ul> <li>
+<a href="net-netaddress">NetAddress</a> val</li> </ul>  <h3 id="expect">expect</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L466">[Source]</a></span></p> <p>A <code>received</code> call on the notifier must contain exactly <code>qty</code> bytes. If <code>qty</code> is zero, the call can contain any amount of data. This has no effect if called in the <code>sent</code> notifier callback.</p> <p>Errors if <code>qty</code> exceeds the max buffer size as indicated by the <code>read_buffer_size</code> supplied when the connection was created.</p> <pre>fun ref expect(
+  qty: USize val = 0)
+: None val ?
+</pre> <h4 id="parameters_7">Parameters</h4> <ul> <li>qty: <a href="builtin-usize">USize</a> val = 0</li> </ul> <h4 id="returns_6">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val ?</li> </ul>  <h3 id="set_nodelay">set_nodelay</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L485">[Source]</a></span></p> <p>Turn Nagle on/off. Defaults to on. This can only be set on a connected socket.</p> <pre>fun ref set_nodelay(
+  state: Bool val)
+: None val
+</pre> <h4 id="parameters_8">Parameters</h4> <ul> <li>state: <a href="builtin-bool">Bool</a> val</li> </ul> <h4 id="returns_7">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="set_keepalive">set_keepalive</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L494">[Source]</a></span></p> <p>Sets the TCP keepalive timeout to approximately <code>secs</code> seconds. Exact timing is OS dependent. If <code>secs</code> is zero, TCP keepalive is disabled. TCP keepalive is disabled by default. This can only be set on a connected socket.</p> <pre>fun ref set_keepalive(
+  secs: U32 val)
+: None val
+</pre> <h4 id="parameters_9">Parameters</h4> <ul> <li>secs: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_8">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="write_final">write_final</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L596">[Source]</a></span></p> <p>Write as much as possible to the socket. Set <code>_writeable</code> to <code>false</code> if not everything was written. On an error, close the connection. This is for data that has already been transformed by the notifier. Data will be silently discarded if the connection has not yet been established though.</p> <pre>fun ref write_final(
+  data: (String val | Array[U8 val] val))
+: None val
+</pre> <h4 id="parameters_10">Parameters</h4> <ul> <li>data: (<a href="builtin-string">String</a> val | <a href="builtin-array">Array</a>[<a href="builtin-u8">U8</a> val] val)</li> </ul> <h4 id="returns_9">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="close">close</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L942">[Source]</a></span></p> <p>Attempt to perform a graceful shutdown. Don't accept new writes. If the connection isn't muted then we won't finish closing until we get a zero length read. If the connection is muted, perform a hard close and shut down immediately.</p> <pre>fun ref close()
+: None val
+</pre> <h4 id="returns_10">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="hard_close">hard_close</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L998">[Source]</a></span></p> <p>When an error happens, do a non-graceful close.</p> <pre>fun ref hard_close()
+: None val
+</pre> <h4 id="returns_11">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="getsockopt">getsockopt</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1064">[Source]</a></span></p> <p>General wrapper for TCP sockets to the <code>getsockopt(2)</code> system call.</p> <p>The caller must provide an array that is pre-allocated to be at least as large as the largest data structure that the kernel may return for the requested option.</p> <p>In case of system call success, this function returns the 2-tuple: 1. The integer <code>0</code>. 2. An <code>Array[U8]</code> of data returned by the system call's <code>void *</code> 4th argument. Its size is specified by the kernel via the system call's <code>sockopt_len_t *</code> 5th argument.</p> <p>In case of system call failure, this function returns the 2-tuple: 1. The value of <code>errno</code>. 2. An undefined value that must be ignored.</p> <p>Usage example:</p> <pre>// connected() is a callback function for class TCPConnectionNotify
+fun ref connected(conn: TCPConnection ref) =&gt;
+  match conn.getsockopt(OSSockOpt.sol_socket(), OSSockOpt.so_rcvbuf(), 4)
+    | (0, let gbytes: Array[U8] iso) =&gt;
+      try
+        let br = Reader.create().&gt;append(consume gbytes)
+        ifdef littleendian then
+          let buffer_size = br.u32_le()?
+        else
+          let buffer_size = br.u32_be()?
+        end
+      end
+    | (let errno: U32, _) =&gt;
+      // System call failed
+  end
+</pre> <pre>fun ref getsockopt(
+  level: I32 val,
+  option_name: I32 val,
+  option_max_size: USize val = 4)
+: (U32 val , Array[U8 val] iso^)
+</pre> <h4 id="parameters_11">Parameters</h4> <ul> <li>level: <a href="builtin-i32">I32</a> val</li> <li>option_name: <a href="builtin-i32">I32</a> val</li> <li>option_max_size: <a href="builtin-usize">USize</a> val = 4</li> </ul> <h4 id="returns_12">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-array">Array</a>[<a href="builtin-u8">U8</a> val] iso^)</li> </ul>  <h3 id="getsockopt_u32">getsockopt_u32</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1105">[Source]</a></span></p> <p>Wrapper for TCP sockets to the <code>getsockopt(2)</code> system call where the kernel's returned option value is a C <code>uint32_t</code> type / Pony type <code>U32</code>.</p> <p>In case of system call success, this function returns the 2-tuple: 1. The integer <code>0</code>. 2. The <code>*option_value</code> returned by the kernel converted to a Pony <code>U32</code>.</p> <p>In case of system call failure, this function returns the 2-tuple: 1. The value of <code>errno</code>. 2. An undefined value that must be ignored.</p> <pre>fun ref getsockopt_u32(
+  level: I32 val,
+  option_name: I32 val)
+: (U32 val , U32 val)
+</pre> <h4 id="parameters_12">Parameters</h4> <ul> <li>level: <a href="builtin-i32">I32</a> val</li> <li>option_name: <a href="builtin-i32">I32</a> val</li> </ul> <h4 id="returns_13">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-u32">U32</a> val)</li> </ul>  <h3 id="setsockopt">setsockopt</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1121">[Source]</a></span></p> <p>General wrapper for TCP sockets to the <code>setsockopt(2)</code> system call.</p> <p>The caller is responsible for the correct size and byte contents of the <code>option</code> array for the requested <code>level</code> and <code>option_name</code>, including using the appropriate machine endian byte order.</p> <p>This function returns <code>0</code> on success, else the value of <code>errno</code> on failure.</p> <p>Usage example:</p> <pre>// connected() is a callback function for class TCPConnectionNotify
+fun ref connected(conn: TCPConnection ref) =&gt;
+  let sb = Writer
+
+  sb.u32_le(7744)             // Our desired socket buffer size
+  let sbytes = Array[U8]
+  for bs in sb.done().values() do
+    sbytes.append(bs)
+  end
+  match conn.setsockopt(OSSockOpt.sol_socket(), OSSockOpt.so_rcvbuf(), sbytes)
+    | 0 =&gt;
+      // System call was successful
+    | let errno: U32 =&gt;
+      // System call failed
+  end
+</pre> <pre>fun ref setsockopt(
+  level: I32 val,
+  option_name: I32 val,
+  option: Array[U8 val] ref)
+: U32 val
+</pre> <h4 id="parameters_13">Parameters</h4> <ul> <li>level: <a href="builtin-i32">I32</a> val</li> <li>option_name: <a href="builtin-i32">I32</a> val</li> <li>option: <a href="builtin-array">Array</a>[<a href="builtin-u8">U8</a> val] ref</li> </ul> <h4 id="returns_14">Returns</h4> <ul> <li>
+<a href="builtin-u32">U32</a> val</li> </ul>  <h3 id="setsockopt_u32">setsockopt_u32</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1154">[Source]</a></span></p> <p>General wrapper for TCP sockets to the <code>setsockopt(2)</code> system call where the kernel expects an option value of a C <code>uint32_t</code> type / Pony type <code>U32</code>.</p> <p>This function returns <code>0</code> on success, else the value of <code>errno</code> on failure.</p> <pre>fun ref setsockopt_u32(
+  level: I32 val,
+  option_name: I32 val,
+  option: U32 val)
+: U32 val
+</pre> <h4 id="parameters_14">Parameters</h4> <ul> <li>level: <a href="builtin-i32">I32</a> val</li> <li>option_name: <a href="builtin-i32">I32</a> val</li> <li>option: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_15">Returns</h4> <ul> <li>
+<a href="builtin-u32">U32</a> val</li> </ul>  <h3 id="get_so_error">get_so_error</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1166">[Source]</a></span></p> <p>Wrapper for the FFI call <code>getsockopt(fd, SOL_SOCKET, SO_ERROR, ...)</code></p> <pre>fun ref get_so_error()
+: (U32 val , U32 val)
+</pre> <h4 id="returns_16">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-u32">U32</a> val)</li> </ul>  <h3 id="get_so_rcvbuf">get_so_rcvbuf</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1172">[Source]</a></span></p> <p>Wrapper for the FFI call <code>getsockopt(fd, SOL_SOCKET, SO_RCVBUF, ...)</code></p> <pre>fun ref get_so_rcvbuf()
+: (U32 val , U32 val)
+</pre> <h4 id="returns_17">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-u32">U32</a> val)</li> </ul>  <h3 id="get_so_sndbuf">get_so_sndbuf</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1178">[Source]</a></span></p> <p>Wrapper for the FFI call <code>getsockopt(fd, SOL_SOCKET, SO_SNDBUF, ...)</code></p> <pre>fun ref get_so_sndbuf()
+: (U32 val , U32 val)
+</pre> <h4 id="returns_18">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-u32">U32</a> val)</li> </ul>  <h3 id="get_tcp_nodelay">get_tcp_nodelay</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1184">[Source]</a></span></p> <p>Wrapper for the FFI call <code>getsockopt(fd, SOL_SOCKET, TCP_NODELAY, ...)</code></p> <pre>fun ref get_tcp_nodelay()
+: (U32 val , U32 val)
+</pre> <h4 id="returns_19">Returns</h4> <ul> <li>(<a href="builtin-u32">U32</a> val , <a href="builtin-u32">U32</a> val)</li> </ul>  <h3 id="set_so_rcvbuf">set_so_rcvbuf</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1191">[Source]</a></span></p> <p>Wrapper for the FFI call <code>setsockopt(fd, SOL_SOCKET, SO_RCVBUF, ...)</code></p> <pre>fun ref set_so_rcvbuf(
+  bufsize: U32 val)
+: U32 val
+</pre> <h4 id="parameters_15">Parameters</h4> <ul> <li>bufsize: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_20">Returns</h4> <ul> <li>
+<a href="builtin-u32">U32</a> val</li> </ul>  <h3 id="set_so_sndbuf">set_so_sndbuf</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1197">[Source]</a></span></p> <p>Wrapper for the FFI call <code>setsockopt(fd, SOL_SOCKET, SO_SNDBUF, ...)</code></p> <pre>fun ref set_so_sndbuf(
+  bufsize: U32 val)
+: U32 val
+</pre> <h4 id="parameters_16">Parameters</h4> <ul> <li>bufsize: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_21">Returns</h4> <ul> <li>
+<a href="builtin-u32">U32</a> val</li> </ul>  <h3 id="set_tcp_nodelay">set_tcp_nodelay</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1203">[Source]</a></span></p> <p>Wrapper for the FFI call <code>setsockopt(fd, SOL_SOCKET, TCP_NODELAY, ...)</code></p> <pre>fun ref set_tcp_nodelay(
+  state: Bool val)
+: U32 val
+</pre> <h4 id="parameters_17">Parameters</h4> <ul> <li>state: <a href="builtin-bool">Bool</a> val</li> </ul> <h4 id="returns_22">Returns</h4> <ul> <li>
+<a href="builtin-u32">U32</a> val</li> </ul>  <h2 id="private-behaviours">Private Behaviours</h2> <h3 id="_event_notify">_event_notify</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L505">[Source]</a></span></p> <p>Handle socket events.</p> <pre>be _event_notify(
+  event: Pointer[AsioEvent val] tag,
+  flags: U32 val,
+  arg: U32 val)
+</pre> <h4 id="parameters_18">Parameters</h4> <ul> <li>event: <a href="builtin-pointer">Pointer</a>[<a href="builtin-asioevent">AsioEvent</a> val] tag</li> <li>flags: <a href="builtin-u32">U32</a> val</li> <li>arg: <a href="builtin-u32">U32</a> val</li> </ul>  <h3 id="_read_again">_read_again</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L590">[Source]</a></span></p> <p>Resume reading.</p> <pre>be _read_again()
+</pre>  <h3 id="_write_again">_write_again</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L659">[Source]</a></span></p> <p>Resume writing.</p> <pre>be _write_again()
+</pre>  <h2 id="private-functions">Private Functions</h2> <h3 id="_complete_writes">_complete_writes</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L634">[Source]</a></span></p> <p>The OS has informed us that <code>len</code> bytes of pending writes have completed. This occurs only with IOCP on Windows.</p> <pre>fun ref _complete_writes(
+  len: U32 val)
+: None val
+</pre> <h4 id="parameters_19">Parameters</h4> <ul> <li>len: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_23">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_pending_writes">_pending_writes</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L665">[Source]</a></span></p> <p>Send pending data. If any data can't be sent, keep it and mark as not writeable. On an error, dispose of the connection. Returns whether it sent all pending data or not.</p> <pre>fun ref _pending_writes()
+: Bool val
+</pre> <h4 id="returns_24">Returns</h4> <ul> <li>
+<a href="builtin-bool">Bool</a> val</li> </ul>  <h3 id="_manage_pending_buffer">_manage_pending_buffer</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L717">[Source]</a></span></p> <p>Manage pending buffer for data sent. Returns a boolean of whether the pending buffer is empty or not.</p> <pre>fun ref _manage_pending_buffer(
+  bytes_sent: USize val,
+  bytes_to_send: USize val,
+  num_to_send: USize val)
+: Bool val ?
+</pre> <h4 id="parameters_20">Parameters</h4> <ul> <li>bytes_sent: <a href="builtin-usize">USize</a> val</li> <li>bytes_to_send: <a href="builtin-usize">USize</a> val</li> <li>num_to_send: <a href="builtin-usize">USize</a> val</li> </ul> <h4 id="returns_25">Returns</h4> <ul> <li>
+<a href="builtin-bool">Bool</a> val ?</li> </ul>  <h3 id="_complete_reads">_complete_reads</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L792">[Source]</a></span></p> <p>The OS has informed us that <code>len</code> bytes of pending reads have completed. This occurs only with IOCP on Windows.</p> <pre>fun ref _complete_reads(
+  len: U32 val)
+: None val
+</pre> <h4 id="parameters_21">Parameters</h4> <ul> <li>len: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_26">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_read_buf_size">_read_buf_size</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L824">[Source]</a></span></p> <p>Resize the read buffer if it is empty or smaller than the next payload size</p> <pre>fun ref _read_buf_size()
+: None val
+</pre> <h4 id="returns_27">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_queue_read">_queue_read</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L832">[Source]</a></span></p> <p>Begin an IOCP read on Windows.</p> <pre>fun ref _queue_read()
+: None val
+</pre> <h4 id="returns_28">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_pending_reads">_pending_reads</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L847">[Source]</a></span></p> <p>Unless this connection is currently muted, read while data is available, guessing the next packet length as we go. If we read 5 kb of data, send ourself a resume message and stop reading, to avoid starving other actors. Currently we can handle a varying value of _expect (greater than 0) and constant _expect of 0 but we cannot handle switching between these two cases.</p> <pre>fun ref _pending_reads()
+: None val
+</pre> <h4 id="returns_29">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_notify_connecting">_notify_connecting</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L931">[Source]</a></span></p> <p>Inform the notifier that we're connecting.</p> <pre>fun ref _notify_connecting()
+: None val
+</pre> <h4 id="returns_30">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_close">_close</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L959">[Source]</a></span></p> <pre>fun ref _close()
+: None val
+</pre> <h4 id="returns_31">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_try_shutdown">_try_shutdown</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L963">[Source]</a></span></p> <p>If we have closed and we have no remaining writes or pending connections, then shutdown.</p> <pre>fun ref _try_shutdown()
+: None val
+</pre> <h4 id="returns_32">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_is_sock_connected">_is_sock_connected</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1038">[Source]</a></span></p> <pre>fun box _is_sock_connected(
+  fd: U32 val)
+: Bool val
+</pre> <h4 id="parameters_22">Parameters</h4> <ul> <li>fd: <a href="builtin-u32">U32</a> val</li> </ul> <h4 id="returns_33">Returns</h4> <ul> <li>
+<a href="builtin-bool">Bool</a> val</li> </ul>  <h3 id="_apply_backpressure">_apply_backpressure</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1042">[Source]</a></span></p> <pre>fun ref _apply_backpressure()
+: None val
+</pre> <h4 id="returns_34">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>  <h3 id="_release_backpressure">_release_backpressure</h3> <p><span class="source-link"><a href="https://stdlib.ponylang.io/src/net/tcp_connection/#L1056">[Source]</a></span></p> <pre>fun ref _release_backpressure()
+: None val
+</pre> <h4 id="returns_35">Returns</h4> <ul> <li>
+<a href="builtin-none">None</a> val</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2016-2018, The Pony Developers<br>© 2014-2015, Causality Ltd.<br>Licensed under the BSD 2-Clause License.<br>
+    <a href="https://stdlib.ponylang.io/net-TCPConnection" class="_attribution-link">https://stdlib.ponylang.io/net-TCPConnection</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
