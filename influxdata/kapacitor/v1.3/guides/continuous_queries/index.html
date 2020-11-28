@@ -1,0 +1,172 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Kapacitor as a Continous Query Engine - InfluxData - W3cubDocs</title>
+  
+  <meta name="description" content="Kapacitor can be used to do the same work as Continuous Queries in InfluxDB. Today we are going to explore reasons to use one over the other and the &hellip;">
+  <meta name="keywords" content="kapacitor, continous, query, engine, influxdata">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/influxdata/kapacitor/v1.3/guides/continuous_queries/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/influxdata.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/influxdata/" class="_nav-link" title="" style="margin-left:0;">InfluxData</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Kapacitor as a Continous Query engine</h1>     <p>Kapacitor can be used to do the same work as Continuous Queries in InfluxDB. Today we are going to explore reasons to use one over the other and the basics of using Kapacitor for CQ type workloads.</p> <h2 id="an-example">An Example</h2> <p>First, lets take a simple CQ and rewrite it as a Kapacitor TICKscript.</p> <p>Here is a CQ that computes the mean of the <code>cpu.usage_idle</code> every 5 minutes and stores it in the new measurement <code>mean_cpu_idle</code>.</p> <pre>CREATE CONTINUOUS QUERY cpu_idle_mean ON telegraf BEGIN SELECT mean("usage_idle") as usage_idle INTO mean_cpu_idle FROM cpu GROUP BY time(5m),* END
+</pre> <p>To do the same with Kapacitor here is a streaming TICKscript.</p> <pre data-language="javascript">stream
+    |from()
+        .database('telegraf')
+        .measurement('cpu')
+        .groupBy(*)
+    |window()
+        .period(5m)
+        .every(5m)
+        .align()
+    |mean('usage_idle')
+        .as('usage_idle')
+    |influxDBOut()
+        .database('telegraf')
+        .retentionPolicy('autogen')
+        .measurement('mean_cpu_idle')
+        .precision('s')
+</pre> <p>The same thing can also be done as a batch task in Kapacitor.</p> <pre data-language="javascript">batch
+    |query('SELECT mean(usage_idle) as usage_idle FROM "telegraf"."autogen".cpu')
+        .period(5m)
+        .every(5m)
+        .groupBy(*)
+    |influxDBOut()
+        .database('telegraf')
+        .retentionPolicy('autogen')
+        .measurement('mean_cpu_idle')
+        .precision('s')
+</pre> <p>All three of these methods will produce the same results.</p> <h2 id="questions">Questions</h2> <p>At this point there are a few questions we should answer:</p> <ol> <li>When should we use Kapacitor instead of CQs?</li> <li>When should we use stream tasks vs batch tasks in Kapacitor?</li> </ol> <h3 id="when-should-we-use-kapacitor-instead-of-cqs">When should we use Kapacitor instead of CQs?</h3> <p>There are a few reasons to use Kapacitor instead of CQs.</p> <ul> <li>You are performing a significant number of CQs and want to isolate the work load. By using Kapacitor to perform the aggregations InfluxDB’s performance profile can remain more stable and isolated from Kapacitor’s.</li> <li>You need to do more than just perform a query, for example maybe you only want to store only outliers from an aggregation instead of all of them. Kapacitor can do significantly more with the data than CQs so you have more flexibility in transforming your data.</li> </ul> <p>There are a few use cases where using CQs almost always makes sense.</p> <ul> <li>Performing downsampling for retention policies. This is what CQs are designed for and do well. No need to add another moving piece (i.e. Kapacitor) to your infrastructure if you do not need it. Keep it simple.</li> <li>You only have a handful of CQs, again keep it simple, do not add more moving parts to your setup unless you need it.</li> </ul> <h3 id="when-should-we-use-stream-tasks-vs-batch-tasks-in-kapacitor">When should we use stream tasks vs batch tasks in Kapacitor?</h3> <p>Basically the answer boils down to two things, the available RAM and time period being used.</p> <p>A stream task will have to keep all data in RAM for the specified period. If this period is too long for the available RAM then you will first need to store the data in InfluxDB and then query using a batch task.</p> <p>A stream task does have one slight advantage in that since its watching the stream of data it understands time by the timestamps on the data. As such there are no race conditions for whether a given point will make it into a window or not. If you are using a batch task it is still possible for a point to arrive late and be missed in a window.</p> <h2 id="another-example">Another Example</h2> <p>Create a continuous query to down sample across retention policies.</p> <pre>CREATE CONTINUOUS QUERY cpu_idle_median ON telegraf BEGIN SELECT median("usage_idle") as usage_idle INTO "telegraf"."sampled_5m"."median_cpu_idle" FROM "telegraf"."autogen"."cpu" GROUP BY time(5m),* END
+</pre> <p>The stream TICKscript:</p> <pre data-language="javascript">stream
+    |from()
+        .database('telegraf')
+        .retentionPolicy('autogen')
+        .measurement('cpu')
+        .groupBy(*)
+    |window()
+        .period(5m)
+        .every(5m)
+        .align()
+    |median('usage_idle')
+        .as('usage_idle')
+    |influxDBOut()
+        .database('telegraf')
+        .retentionPolicy('sampled_5m')
+        .measurement('median_cpu_idle')
+        .precision('s')
+</pre> <p>And the batch TICKscript:</p> <pre data-language="javascript">batch
+    |query('SELECT median(usage_idle) as usage_idle FROM "telegraf"."autogen"."cpu"')
+        .period(5m)
+        .every(5m)
+        .groupBy(*)
+    |influxDBOut()
+        .database('telegraf')
+        .retentionPolicy('sampled_5m')
+        .measurement('median_cpu_idle')
+        .precision('s')
+</pre> <h2 id="summary">Summary</h2> <p>Kapacitor is a powerful tool, if you need more power use it. If not keep using CQs until you do. For more information and help writing TICKscripts from InfluxQL queries take a looks at these <a href="https://docs.influxdata.com/kapacitor/latest/nodes/influx_q_l_node/">docs</a> on the InfluxQL node in Kapacitor. Every function available in the InfluxDB query language is available in Kapacitor, so you can convert any query into a Kapacitor TICKscript.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015 InfluxData, Inc.<br>Licensed under the MIT license.<br>
+    <a href="https://docs.influxdata.com/kapacitor/v1.3/guides/continuous_queries/" class="_attribution-link">https://docs.influxdata.com/kapacitor/v1.3/guides/continuous_queries/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

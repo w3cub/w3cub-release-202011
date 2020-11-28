@@ -1,0 +1,174 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using Alert Topics - InfluxData - W3cubDocs</title>
+  
+  <meta name="description" content=" Kapacitor’s alert system follows a publish subscribe design pattern. Alerts are published to a topic and handlers subscribe to a topic. ">
+  <meta name="keywords" content="using, alert, topics, influxdata">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/influxdata/kapacitor/v1.3/guides/using_alert_topics/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/influxdata.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/influxdata/" class="_nav-link" title="" style="margin-left:0;">InfluxData</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Using Alert Topics</h1>     <p>Kapacitor’s alert system follows a publish subscribe design pattern. Alerts are published to a <code>topic</code> and <code>handlers</code> subscribe to a topic.</p> <p>This example will walk you through setting up a simple cpu threshold alert that sends alerts to Slack.</p> <h3 id="requirements">Requirements</h3> <p>It is expected that you have a working Telegraf and Kapacitor install to walk through this example. If you do not please take a second to setup both.</p> <h2 id="the-task">The Task</h2> <p>We are going to demonstrate how to setup a <code>cpu</code> alert topic and send alerts to that topic.</p> <p>First let’s define our simple cpu alert.</p> <pre data-language="go">stream
+    |from()
+        .measurement('cpu')
+        .groupBy(*)
+    |alert()
+        .warn(lambda: "usage_idle" &lt; 20)
+        .crit(lambda: "usage_idle" &lt; 10)
+        // Send alerts to the `cpu` topic
+        .topic('cpu')
+</pre> <p>The above TICKscript creates a threshold alert for cpu usage and sends the alerts to the <code>cpu</code> topic.</p> <p>Save the above script as <code>cpu_alert.tick</code>. Create and start the task by running the following commands:</p> <pre data-language="sh">$ kapacitor define cpu_alert -type stream -tick cpu_alert.tick -dbrp telegraf.autogen
+$ kapacitor enable cpu_alert
+</pre> <h2 id="the-slack-handler">The Slack handler</h2> <p>At this point we have a Kapacitor task which is generating alerts and sending them to the <code>cpu</code> topic, but since the topic does not have any handlers nothing happens with the alerts.</p> <p>We can confirm there are no handlers by checking the topic:</p> <pre data-language="sh">$ kapacitor show-topic cpu
+</pre> <p>The output should look something like:</p> <pre>ID: cpu
+Level: OK
+Collected: 27
+Handlers: []
+Events:
+Event                            Level    Message                                Date
+cpu:cpu=cpu3,host=localhost      OK       cpu:cpu=cpu3,host=localhost is OK      23 Jan 17 14:04 MST
+</pre> <blockquote> <p>NOTE: Topics are created only when needed, as such if the task has not triggered an alert yet, the topic will not exist. If you get an error about the topic not existing, cause an alert to be triggered. Either change the thresholds on the task or create some cpu load.</p> </blockquote> <p>To configure a handler we must first define the handler. A handler definition has a few parts:</p> <ul> <li>ID - The unique ID of the handler.</li> <li>Kind - The kind of handler, in this case it will be a <code>slack</code> handler</li> <li>Match - A lambda expression to filter matching alerts. By default all alerts match.</li> <li>Options - A map of values, differs by kind.</li> </ul> <p>The slack handler can be defined as either yaml or json, here we use yaml:</p> <pre data-language="yaml">kind: slack
+options:
+  channel: '#alerts'
+</pre> <p>The above handler definition defines a handler that sends alerts to the slack channel <code>#alerts</code>.</p> <p>Save the above text as <code>slack.yaml</code>. Now we can define our new handler via the <code>kapacitor</code> cli. To do this we use the <code>define-topic-handler</code> command which takes three arguments.</p> <pre>$ kapacitor define-topic-handler
+Usage: kapacitor define-topic-handler &lt;topic id&gt; &lt;handler id&gt; &lt;path to handler spec file&gt;
+</pre> <pre data-language="sh">$ kapacitor define-topic-handler cpu slack ./slack.yaml
+</pre> <p>Validate the handler was defined as expected:</p> <pre data-language="sh">$ kapacitor show-topic-handler cpu slack
+</pre> <p>Finally confirm the topic is configured as expected:</p> <pre data-language="sh">$ kapacitor show-topic cpu
+</pre> <p>The output should look something like:</p> <pre>ID: cpu
+Level: OK
+Collected: 27
+Handlers: [slack]
+Events:
+Event                            Level    Message                                Date
+cpu:cpu=cpu3,host=localhost      OK       cpu:cpu=cpu3,host=localhost is OK      23 Jan 17 14:04 MST
+</pre> <p>We are done, future alerts triggered by the <code>cpu_alert</code> task will be send to Slack via the <code>cpu</code> topic.</p> <h2 id="conclusion">Conclusion</h2> <p>While it is simple to define alert handlers directly in the TICkscript it can become burdensome once you have many tasks. Using topics decouples the definition of the alert from the handling of the alert. Now to change the slack channel is a single API call to update the slack handler and no TICKscripts have to change.</p> <h2 id="going-further">Going further</h2> <h3 id="chaining-topics">Chaining topics</h3> <p>Topics can be chained together using the <code>publish</code> action. This allows you to further group your alerts into various topics.</p> <p>For example the above task could be modified to send alerts to the <code>system</code> topic instead of the <code>cpu</code> topic. This way all system related alerts can be handled in a consitent manner.</p> <p>The new TICKscript:</p> <pre data-language="go">stream
+    |from()
+        .measurement('cpu')
+        .groupBy(*)
+    |alert()
+        .warn(lambda: "usage_idle" &lt; 20)
+        .crit(lambda: "usage_idle" &lt; 10)
+        // Send alerts to the `system` topic
+        .topic('system')
+</pre> <p>To send all system alerts to Slack, create a new handler for the system topic.</p> <pre data-language="yaml">kind: publish
+options:
+  topics:
+    - ops_team
+</pre> <pre data-language="sh">kapacitor define-topic-handler system publish-to-ops_team ./publish-to-ops_team.yaml
+</pre> <p>Since the operations team has a on-call rotation you can setup handling of alerts on the <code>ops_team</code> topic accordingly.</p> <pre data-language="yaml">kind: victorops
+options:
+  routing-key: ops_team
+</pre> <pre data-language="sh">kapacitor define-topic-handler ops_team victorops ./victorops.yaml
+</pre> <p>Now all <code>system</code> related alerts get sent to the <code>ops_team</code> topic which in turn get handled in Victor Ops.</p> <h3 id="match-conditions">Match Conditions</h3> <p>Match conditions can be applied to handlers. Only alerts matching the conditions will be handled by that handler.</p> <p>For example it is typical to only send Slack messages when alerts change state instead of every time an alert is evaluated. Modifing the slack handler definition from the first example we get:</p> <pre data-language="yaml">kind: slack
+match: changed() == TRUE
+options:
+  channel: '#alerts'
+</pre> <p>Now update the handler and only alerts that changed state will be sent to Slack.</p> <pre>kapacitor define-topic-handler cpu slack ./slack.yaml
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015 InfluxData, Inc.<br>Licensed under the MIT license.<br>
+    <a href="https://docs.influxdata.com/kapacitor/v1.3/guides/using_alert_topics/" class="_attribution-link">https://docs.influxdata.com/kapacitor/v1.3/guides/using_alert_topics/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

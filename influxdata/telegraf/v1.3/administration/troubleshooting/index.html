@@ -1,0 +1,132 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Troubleshooting - InfluxData - W3cubDocs</title>
+  
+  <meta name="description" content="This guide will show you how to capture Telegraf’s output, submit sample metrics, and see how Telegraf formats and emits points to its output &hellip;">
+  <meta name="keywords" content="troubleshooting, influxdata">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/influxdata/telegraf/v1.3/administration/troubleshooting/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/influxdata.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/influxdata/" class="_nav-link" title="" style="margin-left:0;">InfluxData</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Troubleshooting</h1>     <p>This guide will show you how to capture Telegraf’s output, submit sample metrics, and see how Telegraf formats and emits points to its output plugins.</p> <h2 id="capture-output">Capture output</h2> <p>A quick way to view Telegraf’s output is by enabling a new UDP output plugin to run in parallel with the existing output plugins. Since each output plugin creates its own stream, the already existing outputs will not be affected. Traffic will be replicated to all active outputs.</p> <blockquote> <p><strong>NOTE:</strong> This approach requires Telegraf to be restarted, which will cause a brief interruption to your metrics collection.</p> </blockquote> <p>The minimal Telegraf configuration required to enable a UDP output is:</p> <pre>[[outputs.influxdb]]
+  urls = ["udp://localhost:8089"]
+</pre> <p>This setup utilizes the UDP format of the <a href="https://github.com/influxdata/telegraf/tree/master/plugins/outputs/influxdb">InfluxDB output plugin</a> and emits points formatted in InfluxDB’s <a href="../../../../influxdb/v1.3/concepts/glossary/index#line-protocol">line protocol</a>. You will need to append this section to Telegraf’s configuration file and restart Telegraf for the change to take effect.</p> <p>Now you are ready to start listening on the destination port (<code>8089</code> in this example) using a simple tool like <code>netcat</code>:</p> <pre>nc -lu 8089
+</pre> <p><code>nc</code> will print the exact Telegraf output on stdout. You can also direct the output to a file for further inspection:</p> <pre>nc -lu 8089 &gt; telegraf_dump.txt
+</pre> <h2 id="submit-test-inputs">Submit test inputs</h2> <p>Once you have Telegraf’s output arriving to your <code>nc</code> socket, you can enable the <a href="https://github.com/influxdata/telegraf/tree/master/plugins/inputs/socket_listener">inputs.socket_listener</a> plugins to submit some sample metrics.</p> <p>Append the TCP or UDP input section to Telegraf’s config file and restart Telegraf for the change to take effect.</p> <pre> [[inputs.socket_listener]]
+   service_address = "tcp://:8094"
+   data_format = "influx"
+</pre> <p>Submit sample data to Telegraf’s socket listener:</p> <pre>echo 'mymeasurement,my_tag_key=mytagvalue my_field="my field value"' | nc localhost 8094
+</pre> <p>The output from your <code>netcat</code> listener will look like the following:</p> <pre>mymeasurement,host=kubuntu,my_tag_key=mytagvalue my_field="my field value" 1478106104713745634
+</pre> <h2 id="testing-other-plugins">Testing other plugins</h2> <p>The same approach can be used to test other plugins, like the <a href="https://github.com/influxdata/telegraf/tree/master/plugins/inputs/statsd">inputs.statsd</a> plugin.</p> <p>Here is a basic configuration example of how to set up Telegraf’s statsd input plugin:</p> <pre> [[inputs.statsd]]
+   service_address = ":8125"
+   metric_separator = "_"
+   allowed_pending_messages = 10000
+</pre> <p>Sending a sample metric to Telegraf’s statsd port:</p> <pre>echo "a.b.c:1|g" | nc -u localhost 8125
+</pre> <p>The output from <code>nc</code> will look like the following:</p> <pre>a_b_c,host=myserver,metric_type=gauge value=1 1478106500000000000
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015 InfluxData, Inc.<br>Licensed under the MIT license.<br>
+    <a href="https://docs.influxdata.com/telegraf/v1.3/administration/troubleshooting/" class="_attribution-link">https://docs.influxdata.com/telegraf/v1.3/administration/troubleshooting/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
