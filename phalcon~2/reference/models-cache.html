@@ -1,0 +1,708 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Caching in the ORM - Phalcon 2 - W3cubDocs</title>
+  
+  <meta name="description" content="Every application is different, we could have models whose data change frequently and others that rarely change. Accessing database systems is often &hellip;">
+  <meta name="keywords" content="caching, orm, phalcon, phalcon~2">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/phalcon~2/reference/models-cache.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/phalcon~2.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/phalcon~2/" class="_nav-link" title="" style="margin-left:0;">Phalcon 2</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _phalcon">
+				
+				
+<h1 id="caching-in-the-orm">Caching in the ORM</h1> <p>Every application is different, we could have models whose data change frequently and others that rarely change. Accessing database systems is often one of the most common bottlenecks in terms of performance. This is due to the complex connection/communication processes that PHP must do in each request to obtain data from the database. Therefore, if we want to achieve good performance we need to add some layers of caching where the application requires it.</p> <p>This chapter explains the possible points where it is possible to implement caching to improve performance. The framework gives you the tools to implement the cache where you demand of it according to the architecture of your application.</p>  <h2 id="caching-resultsets">Caching Resultsets</h2> <p>A well established technique to avoid the continuous access to the database is to cache resultsets that don’t change frequently using a system with faster access (usually memory).</p> <p>When <a class="reference internal" href="../api/phalcon_mvc_model"><em>Phalcon\Mvc\Model</em></a> requires a service to cache resultsets, it will request it to the Dependency Injector Container with the convention name “modelsCache”.</p> <p>As Phalcon provides a component to <a class="reference internal" href="cache"><em>cache</em></a> any kind of data, we’ll explain how to integrate it with Models. First, you must register it as a service in the services container:</p> <pre class="highlight-php" data-language="php">//Set the models cache service
+$di-&gt;set('modelsCache', function() {
+
+    //Cache data for one day by default
+    $frontCache = new \Phalcon\Cache\Frontend\Data(array(
+        "lifetime" =&gt; 86400
+    ));
+
+    //Memcached connection settings
+    $cache = new \Phalcon\Cache\Backend\Memcache($frontCache, array(
+        "host" =&gt; "localhost",
+        "port" =&gt; "11211"
+    ));
+
+    return $cache;
+});
+</pre> <p>You have complete control in creating and customizing the cache before being used by registering the service as an anonymous function. Once the cache setup is properly defined you could cache resultsets as follows:</p> <pre class="highlight-php" data-language="php">// Get products without caching
+$products = Products::find();
+
+// Just cache the resultset. The cache will expire in 1 hour (3600 seconds)
+$products = Products::find(array(
+    "cache" =&gt; array("key" =&gt; "my-cache")
+));
+
+// Cache the resultset for only for 5 minutes
+$products = Products::find(array(
+    "cache" =&gt; array("key" =&gt; "my-cache", "lifetime" =&gt; 300)
+));
+
+// Using a custom cache
+$products = Products::find(array("cache" =&gt; $myCache));
+</pre> <p>Caching could be also applied to resultsets generated using relationships:</p> <pre class="highlight-php" data-language="php">// Query some post
+$post = Post::findFirst();
+
+// Get comments related to a post, also cache it
+$comments = $post-&gt;getComments(array(
+    "cache" =&gt; array("key" =&gt; "my-key")
+));
+
+// Get comments related to a post, setting lifetime
+$comments = $post-&gt;getComments(array(
+    "cache" =&gt; array("key" =&gt; "my-key", "lifetime" =&gt; 3600)
+));
+</pre> <p>When a cached resultset needs to be invalidated, you can simply delete it from the cache using the previously specified key.</p> <p>Note that not all resultsets must be cached. Results that change very frequently should not be cached since they are invalidated very quickly and caching in that case impacts performance. Additionally, large datasets that do not change frequently could be cached, but that is a decision that the developer has to make based on the available caching mechanism and whether the performance impact to simply retrieve that data in the first place is acceptable.</p>   <h2 id="overriding-find-findfirst">Overriding find/findFirst</h2> <p>As seen above, these methods are available in models that inherit <a class="reference internal" href="../api/phalcon_mvc_model"><em>Phalcon\Mvc\Model</em></a>:</p> <pre class="highlight-php" data-language="php">class Robots extends Phalcon\Mvc\Model
+{
+
+    public static function find($parameters=null)
+    {
+        return parent::find($parameters);
+    }
+
+    public static function findFirst($parameters=null)
+    {
+        return parent::findFirst($parameters);
+    }
+
+}
+</pre> <p>By doing this, you’re intercepting all the calls to these methods, this way, you can add a cache layer or run the query if there is no cache. For example, a very basic cache implementation, uses a static property to avoid that a record would be queried several times in a same request:</p> <pre class="highlight-php" data-language="php">class Robots extends Phalcon\Mvc\Model
+{
+
+    protected static $_cache = array();
+
+    /**
+     * Implement a method that returns a string key based
+     * on the query parameters
+     */
+    protected static function _createKey($parameters)
+    {
+        $uniqueKey = array();
+        foreach ($parameters as $key =&gt; $value) {
+            if (is_scalar($value)) {
+                $uniqueKey[] = $key . ':' . $value;
+            } else {
+                if (is_array($value)) {
+                    $uniqueKey[] = $key . ':[' . self::_createKey($value) .']';
+                }
+            }
+        }
+        return join(',', $uniqueKey);
+    }
+
+    public static function find($parameters=null)
+    {
+
+        //Create an unique key based on the parameters
+        $key = self::_createKey($parameters);
+
+        if (!isset(self::$_cache[$key])) {
+            //Store the result in the memory cache
+            self::$_cache[$key] = parent::find($parameters);
+        }
+
+        //Return the result in the cache
+        return self::$_cache[$key];
+    }
+
+    public static function findFirst($parameters=null)
+    {
+        // ...
+    }
+
+}
+</pre> <p>Access the database is several times slower than calculate a cache key, you’re free in implement the key generation strategy you find better for your needs. Note that a good key avoids collisions as much as possible, this means that different keys returns unrelated records to the find parameters.</p> <p>In the above example, we used a cache in memory, it is useful as a first level cache. Once we have the memory cache, we can implement a second level cache layer like APC/XCache or a NoSQL database:</p> <pre class="highlight-php" data-language="php">public static function find($parameters=null)
+{
+
+    //Create an unique key based on the parameters
+    $key = self::_createKey($parameters);
+
+    if (!isset(self::$_cache[$key])) {
+
+        //We're using APC as second cache
+        if (apc_exists($key)) {
+
+            $data = apc_fetch($key);
+
+            //Store the result in the memory cache
+            self::$_cache[$key] = $data;
+
+            return $data;
+        }
+
+        //There are no memory or apc cache
+        $data = parent::find($parameters);
+
+        //Store the result in the memory cache
+        self::$_cache[$key] = $data;
+
+        //Store the result in APC
+        apc_store($key, $data);
+
+        return $data;
+    }
+
+    //Return the result in the cache
+    return self::$_cache[$key];
+}
+</pre> <p>This gives you full control on how the the caches must be implemented for each model, if this strategy is common to several models you can create a base class for all of them:</p> <pre class="highlight-php" data-language="php">class CacheableModel extends Phalcon\Mvc\Model
+{
+
+    protected static function _createKey($parameters)
+    {
+        // .. create a cache key based on the parameters
+    }
+
+    public static function find($parameters=null)
+    {
+        //.. custom caching strategy
+    }
+
+    public static function findFirst($parameters=null)
+    {
+        //.. custom caching strategy
+    }
+}
+</pre> <p>Then use this class as base class for each ‘Cacheable’ model:</p> <pre class="highlight-php" data-language="php">class Robots extends CacheableModel
+{
+
+}
+</pre>   <h2 id="forcing-cache">Forcing Cache</h2> <p>Earlier we saw how Phalcon\Mvc\Model has a built-in integration with the caching component provided by the framework. To make a record/resultset cacheable we pass the key ‘cache’ in the array of parameters:</p> <pre class="highlight-php" data-language="php">// Cache the resultset for only for 5 minutes
+$products = Products::find(array(
+    "cache" =&gt; array("key" =&gt; "my-cache", "lifetime" =&gt; 300)
+));
+</pre> <p>This gives us the freedom to cache specific queries, however if we want to cache globally every query performed over the model, we can override the find/findFirst method to force every query to be cached:</p> <pre class="highlight-php" data-language="php">class Robots extends Phalcon\Mvc\Model
+{
+
+    protected static function _createKey($parameters)
+    {
+        // .. create a cache key based on the parameters
+    }
+
+    public static function find($parameters=null)
+    {
+
+        //Convert the parameters to an array
+        if (!is_array($parameters)) {
+            $parameters = array($parameters);
+        }
+
+        //Check if a cache key wasn't passed
+        //and create the cache parameters
+        if (!isset($parameters['cache'])) {
+            $parameters['cache'] = array(
+                "key" =&gt; self::_createKey($parameters),
+                "lifetime" =&gt; 300
+            );
+        }
+
+        return parent::find($parameters);
+    }
+
+    public static function findFirst($parameters=null)
+    {
+        //...
+    }
+
+}
+</pre>   <h2 id="caching-phql-queries">Caching PHQL Queries</h2> <p>All queries in the ORM, no matter how high level syntax we used to create them are handled internally using PHQL. This language gives you much more freedom to create all kinds of queries. Of course these queries can be cached:</p> <pre class="highlight-php" data-language="php">$phql = "SELECT * FROM Cars WHERE name = :name:";
+
+$query = $this-&gt;modelsManager-&gt;createQuery($phql);
+
+$query-&gt;cache(array(
+    "key" =&gt; "cars-by-name",
+    "lifetime" =&gt; 300
+));
+
+$cars = $query-&gt;execute(array(
+    'name' =&gt; 'Audi'
+));
+</pre> <p>If you don’t want to use the implicit cache just save the resulset into your favorite cache backend:</p> <pre class="highlight-php" data-language="php">$phql = "SELECT * FROM Cars WHERE name = :name:";
+
+$cars = $this-&gt;modelsManager-&gt;executeQuery($phql, array(
+    'name' =&gt; 'Audi'
+));
+
+apc_store('my-cars', $cars);
+</pre>   <h2 id="reusable-related-records">Reusable Related Records</h2> <p>Some models may have relationships to other models. This allows us to easily check the records that relate to instances in memory:</p> <pre class="highlight-php" data-language="php">//Get some invoice
+$invoice = Invoices::findFirst();
+
+//Get the customer related to the invoice
+$customer = $invoice-&gt;customer;
+
+//Print his/her name
+echo $customer-&gt;name, "\n";
+</pre> <p>This example is very simple, a customer is queried and can be used as required, for example, to show its name. This also applies if we retrieve a set of invoices to show customers that correspond to these invoices:</p> <pre class="highlight-php" data-language="php">//Get a set of invoices
+// SELECT * FROM invoices;
+foreach (Invoices::find() as $invoice) {
+
+    //Get the customer related to the invoice
+    // SELECT * FROM customers WHERE id = ?;
+    $customer = $invoice-&gt;customer;
+
+    //Print his/her name
+    echo $customer-&gt;name, "\n";
+}
+</pre> <p>A customer may have one or more bills, this means that the customer may be unnecessarily more than once. To avoid this, we could mark the relationship as reusable, this way, we tell the ORM to automatically reuse the records instead of re-querying them again and again:</p> <pre class="highlight-php" data-language="php">class Invoices extends \Phalcon\Mvc\Model
+{
+
+    public function initialize()
+    {
+        $this-&gt;belongsTo("customers_id", "Customer", "id", array(
+            'reusable' =&gt; true
+        ));
+    }
+
+}
+</pre> <p>This cache works in memory only, this means that cached data are released when the request is terminated. You can add a more sophisticated cache for this scenario overriding the models manager:</p> <pre class="highlight-php" data-language="php">class CustomModelsManager extends \Phalcon\Mvc\Model\Manager
+{
+
+    /**
+     * Returns a reusable object from the cache
+     *
+     * @param string $modelName
+     * @param string $key
+     * @return object
+     */
+    public function getReusableRecords($modelName, $key){
+
+        //If the model is Products use the APC cache
+        if ($modelName == 'Products'){
+            return apc_fetch($key);
+        }
+
+        //For the rest, use the memory cache
+        return parent::getReusableRecords($modelName, $key);
+    }
+
+    /**
+     * Stores a reusable record in the cache
+     *
+     * @param string $modelName
+     * @param string $key
+     * @param mixed $records
+     */
+    public function setReusableRecords($modelName, $key, $records){
+
+        //If the model is Products use the APC cache
+        if ($modelName == 'Products'){
+            apc_store($key, $records);
+            return;
+        }
+
+        //For the rest, use the memory cache
+        parent::setReusableRecords($modelName, $key, $records);
+    }
+}
+</pre> <p>Do not forget to register the custom models manager in the DI:</p> <pre class="highlight-php" data-language="php">$di-&gt;setShared('modelsManager', function() {
+    return new CustomModelsManager();
+});
+</pre>   <h2 id="caching-related-records">Caching Related Records</h2> <p>When a related record is queried, the ORM internally builds the appropriate condition and gets the required records using find/findFirst in the target model according to the following table:</p> <table class="docutils"> <colgroup> <col width="16%"> <col width="84%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">Type</th> <th class="head">Description | Implicit Method</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>Belongs-To</td> <td>Returns a model instance of the related record directly | findFirst</td> </tr> <tr class="row-odd">
+<td>Has-One</td> <td>Returns a model instance of the related record directly | findFirst</td> </tr> <tr class="row-even">
+<td>Has-Many</td> <td>Returns a collection of model instances of the referenced model | find</td> </tr> </tbody> </table> <p>This means that when you get a related record you could intercept how these data are obtained by implementing the corresponding method:</p> <pre class="highlight-php" data-language="php">//Get some invoice
+$invoice = Invoices::findFirst();
+
+//Get the customer related to the invoice
+$customer = $invoice-&gt;customer; // Invoices::findFirst('...');
+
+//Same as above
+$customer = $invoice-&gt;getCustomer(); // Invoices::findFirst('...');
+</pre> <p>Accordingly, we could replace the findFirst method in the model Invoices and implement the cache we consider most appropriate:</p> <pre class="highlight-php" data-language="php">class Invoices extends Phalcon\Mvc\Model
+{
+
+    public static function findFirst($parameters=null)
+    {
+        //.. custom caching strategy
+    }
+}
+</pre>   <h2 id="caching-related-records-recursively">Caching Related Records Recursively</h2> <p>In this scenario, we assume that everytime we query a result we also retrieve their associated records. If we store the records found together with their related entities perhaps we could reduce a bit the overhead required to obtain all entities:</p> <pre class="highlight-php" data-language="php">class Invoices extends Phalcon\Mvc\Model
+{
+
+    protected static function _createKey($parameters)
+    {
+        // .. create a cache key based on the parameters
+    }
+
+    protected static function _getCache($key)
+    {
+        // returns data from a cache
+    }
+
+    protected static function _setCache($key)
+    {
+        // stores data in the cache
+    }
+
+    public static function find($parameters=null)
+    {
+        //Create a unique key
+        $key = self::_createKey($parameters);
+
+        //Check if there are data in the cache
+        $results = self::_getCache($key);
+
+        // Valid data is an object
+        if (is_object($results)) {
+            return $results;
+        }
+
+        $results = array();
+
+        $invoices = parent::find($parameters);
+        foreach ($invoices as $invoice) {
+
+            //Query the related customer
+            $customer = $invoice-&gt;customer;
+
+            //Assign it to the record
+            $invoice-&gt;customer = $customer;
+
+            $results[] = $invoice;
+        }
+
+        //Store the invoices in the cache + their customers
+        self::_setCache($key, $results);
+
+        return $results;
+    }
+
+    public function initialize()
+    {
+        // add relations and initialize other stuff
+    }
+}
+</pre> <p>Getting the invoices from the cache already obtains the customer data in just one hit, reducing the overall overhead of the operation. Note that this process can also be performed with PHQL following an alternative solution:</p> <pre class="highlight-php" data-language="php">class Invoices extends \Phalcon\Mvc\Model
+{
+
+    public function initialize()
+    {
+        // add relations and initialize other stuff
+    }
+
+    protected static function _createKey($conditions, $params)
+    {
+        // .. create a cache key based on the parameters
+    }
+
+    public function getInvoicesCustomers($conditions, $params=null)
+    {
+        $phql = "SELECT Invoices.*, Customers.*
+        FROM Invoices JOIN Customers WHERE " . $conditions;
+
+        $query = $this-&gt;getModelsManager()-&gt;executeQuery($phql);
+
+        $query-&gt;cache(array(
+            "key" =&gt; self::_createKey($conditions, $params),
+            "lifetime" =&gt; 300
+        ));
+
+        return $query-&gt;execute($params);
+    }
+
+}
+</pre>   <h2 id="caching-based-on-conditions">Caching based on Conditions</h2> <p>In this scenario, the cache is implemented conditionally according to current conditions received. According to the range where the primary key is located we choose a different cache backend:</p> <table class="docutils"> <colgroup> <col width="51%"> <col width="49%"> </colgroup> <thead valign="bottom"> <tr class="row-odd">
+<th class="head">Type</th> <th class="head">Cache Backend</th> </tr> </thead> <tbody valign="top"> <tr class="row-even">
+<td>1 - 10000</td> <td>mongo1</td> </tr> <tr class="row-odd">
+<td>10000 - 20000</td> <td>mongo2</td> </tr> <tr class="row-even">
+<td>&gt; 20000</td> <td>mongo3</td> </tr> </tbody> </table> <p>The easiest way is adding an static method to the model that chooses the right cache to be used:</p> <pre class="highlight-php" data-language="php">class Robots extends \Phalcon\Mvc\Model
+{
+
+    public static function queryCache($initial, $final)
+    {
+        if ($initial &gt;= 1 &amp;&amp; $final &lt; 10000) {
+            return self::find(array(
+                'id &gt;= ' . $initial . ' AND id &lt;= '.$final,
+                'cache' =&gt; array('service' =&gt; 'mongo1')
+            ));
+        }
+        if ($initial &gt;= 10000 &amp;&amp; $final &lt;= 20000) {
+            return self::find(array(
+                'id &gt;= ' . $initial . ' AND id &lt;= '.$final,
+                'cache' =&gt; array('service' =&gt; 'mongo2')
+            ));
+        }
+        if ($initial &gt; 20000) {
+            return self::find(array(
+                'id &gt;= ' . $initial,
+                'cache' =&gt; array('service' =&gt; 'mongo3')
+            ));
+        }
+    }
+
+}
+</pre> <p>This approach solves the problem, however, if we want to add other parameters such orders or conditions we would have to create a more complicated method. Additionally, this method does not work if the data is obtained using related records or a find/findFirst:</p> <pre class="highlight-php" data-language="php">$robots = Robots::find('id &lt; 1000');
+$robots = Robots::find('id &gt; 100 AND type = "A"');
+$robots = Robots::find('(id &gt; 100 AND type = "A") AND id &lt; 2000');
+
+$robots = Robots::find(array(
+    '(id &gt; ?0 AND type = "A") AND id &lt; ?1',
+    'bind' =&gt; array(100, 2000),
+    'order' =&gt; 'type'
+));
+</pre> <p>To achieve this we need to intercept the intermediate representation (IR) generated by the PHQL parser and thus customize the cache everything possible:</p> <p>The first is create a custom builder, so we can generate a totally customized query:</p> <pre class="highlight-php" data-language="php">class CustomQueryBuilder extends Phalcon\Mvc\Model\Query\Builder
+{
+
+    public function getQuery()
+    {
+        $query = new CustomQuery($this-&gt;getPhql());
+        $query-&gt;setDI($this-&gt;getDI());
+        return $query;
+    }
+
+}
+</pre> <p>Instead of directly returning a Phalcon\Mvc\Model\Query, our custom builder returns a CustomQuery instance, this class looks like:</p> <pre class="highlight-php" data-language="php">class CustomQuery extends Phalcon\Mvc\Model\Query
+{
+
+    /**
+     * The execute method is overridden
+     */
+    public function execute($params=null, $types=null)
+    {
+        //Parse the intermediate representation for the SELECT
+        $ir = $this-&gt;parse();
+
+        //Check if the query has conditions
+        if (isset($ir['where'])) {
+
+            //The fields in the conditions can have any order
+            //We need to recursively check the conditions tree
+            //to find the info we're looking for
+            $visitor = new CustomNodeVisitor();
+
+            //Recursively visits the nodes
+            $visitor-&gt;visit($ir['where']);
+
+            $initial = $visitor-&gt;getInitial();
+            $final = $visitor-&gt;getFinal();
+
+            //Select the cache according to the range
+            //...
+
+            //Check if the cache has data
+            //...
+        }
+
+        //Execute the query
+        $result = $this-&gt;_executeSelect($ir, $params, $types);
+
+        //cache the result
+        //...
+
+        return $result;
+    }
+
+}
+</pre> <p>Implementing a helper (CustomNodeVisitor) that recursively checks the conditions looking for fields that tell us the possible range to be used in the cache:</p> <pre class="highlight-php" data-language="php">class CustomNodeVisitor
+{
+
+    protected $_initial = 0;
+
+    protected $_final = 25000;
+
+    public function visit($node)
+    {
+        switch ($node['type']) {
+
+            case 'binary-op':
+
+                $left = $this-&gt;visit($node['left']);
+                $right = $this-&gt;visit($node['right']);
+                if (!$left || !$right) {
+                    return false;
+                }
+
+                if ($left=='id') {
+                    if ($node['op'] == '&gt;') {
+                        $this-&gt;_initial = $right;
+                    }
+                    if ($node['op'] == '=') {
+                        $this-&gt;_initial = $right;
+                    }
+                    if ($node['op'] == '&gt;=')    {
+                        $this-&gt;_initial = $right;
+                    }
+                    if ($node['op'] == '&lt;') {
+                        $this-&gt;_final = $right;
+                    }
+                    if ($node['op'] == '&lt;=')    {
+                        $this-&gt;_final = $right;
+                    }
+                }
+                break;
+
+            case 'qualified':
+                if ($node['name'] == 'id') {
+                    return 'id';
+                }
+                break;
+
+            case 'literal':
+                return $node['value'];
+
+            default:
+                return false;
+        }
+    }
+
+    public function getInitial()
+    {
+        return $this-&gt;_initial;
+    }
+
+    public function getFinal()
+    {
+        return $this-&gt;_final;
+    }
+}
+</pre> <p>Finally, we can replace the find method in the Robots model to use the custom classes we’ve created:</p> <pre class="highlight-php" data-language="php">class Robots extends Phalcon\Mvc\Model
+{
+    public static function find($parameters=null)
+    {
+
+        if (!is_array($parameters)) {
+            $parameters = array($parameters);
+        }
+
+        $builder = new CustomQueryBuilder($parameters);
+        $builder-&gt;from(get_called_class());
+
+        if (isset($parameters['bind'])) {
+            return $builder-&gt;getQuery()-&gt;execute($parameters['bind']);
+        } else {
+            return $builder-&gt;getQuery()-&gt;execute();
+        }
+
+    }
+}
+</pre>   <h2 id="caching-of-phql-planning">Caching of PHQL planning</h2> <p>As well as most moderns database systems PHQL internally caches the execution plan, if the same statement is executed several times PHQL reuses the previously generated plan improving performance, for a developer to take better advantage of this is highly recommended build all your SQL statements passing variable parameters as bound parameters:</p> <pre class="highlight-php" data-language="php">for ($i = 1; $i &lt;= 10; $i++) {
+
+    $phql = "SELECT * FROM Store\Robots WHERE id = " . $i;
+    $robots = $this-&gt;modelsManager-&gt;executeQuery($phql);
+
+    //...
+}
+</pre> <p>In the above example, ten plans were generated increasing the memory usage and processing in the application. Rewriting the code to take advantage of bound parameters reduces the processing by both ORM and database system:</p> <pre class="highlight-php" data-language="php">$phql = "SELECT * FROM Store\Robots WHERE id = ?0";
+
+for ($i = 1; $i &lt;= 10; $i++) {
+
+    $robots = $this-&gt;modelsManager-&gt;executeQuery($phql, array($i));
+
+    //...
+}
+</pre> <p>Performance can be also improved reusing the PHQL query:</p> <pre class="highlight-php" data-language="php">$phql = "SELECT * FROM Store\Robots WHERE id = ?0";
+$query = $this-&gt;modelsManager-&gt;createQuery($phql);
+
+for ($i = 1; $i &lt;= 10; $i++) {
+
+    $robots = $query-&gt;execute($phql, array($i));
+
+    //...
+}
+</pre> <p>Execution plans for queries involving <a class="reference external" href="http://en.wikipedia.org/wiki/Prepared_statement">prepared statements</a> are also cached by most database systems reducing the overall execution time, also protecting your application against <a class="reference external" href="http://en.wikipedia.org/wiki/SQL_injection">SQL Injections</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2011–2016 Phalcon Framework Team<br>Licensed under the Creative Commons Attribution License 3.0.<br>
+    <a href="https://docs.phalconphp.com/en/2.0.0/reference/models-cache.html" class="_attribution-link">https://docs.phalconphp.com/en/2.0.0/reference/models-cache.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
