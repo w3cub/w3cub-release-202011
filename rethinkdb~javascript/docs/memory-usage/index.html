@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Memory Requirements - RethinkDB JavaScript - W3cubDocs</title>
+  
+  <meta name="description" content="In this guide we look at what RethinkDB uses memory for, how we can estimate the amount needed, and how to configure the size of RethinkDB’s page &hellip;">
+  <meta name="keywords" content="understanding, rethinkdb, memory, requirements, javascript, rethinkdb~javascript">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rethinkdb~javascript/docs/memory-usage/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rethinkdb~javascript.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rethinkdb~javascript/" class="_nav-link" title="" style="margin-left:0;">RethinkDB JavaScript</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rethinkdb">
+				
+				
+<h1 class="title">Understanding RethinkDB memory requirements</h1> <p>In this guide we look at what RethinkDB uses memory for, how we can estimate the amount needed, and how to configure the size of RethinkDB’s page cache.</p> <p>There are three major sources of memory use in RethinkDB:</p> <ol> <li>
+<em>Running queries and background processes,</em> such as backfilling between nodes in a cluster.</li> <li><em>The page cache.</em></li> <li>
+<em>Internal metadata</em> proportional to the size of the database.</li> </ol> <p>In the case of the first source, every database process uses memory to store intermediate results and to maintain internal state. The memory used varies significantly depending on the type of queries run and the size of documents stored in the database. As a rough estimate, expect each query and background process to use 1–20 MB of memory.</p> <p>We’ll go over the other two sources in more detail.</p> <h2 id="cache-size">Cache size</h2> <p>RethinkDB’s page cache keeps recently used data in memory to minimize disk access. By default, RethinkDB automatically configures the cache size limit according to the formula <code class="highlighter-rouge">(available_mem - 1024 MB) / 2</code>. <code class="highlighter-rouge">available_mem</code> is the amount of available memory at the time RethinkDB starts, including memory that can be freed up by the operating system if needed (such as the operating system’s disk cache). If there is less than 1224 MB of memory available on the system, a minimum cache size limit of 100 MB is used. You can find the actual size limit used by an instance of RethinkDB in its log.</p> <p><img src="https://rethinkdb.com/assets/images/docs/finding-cache-size.png" alt="Finding cache size"></p> <p>The automatically chosen cache size ensures a reliable operation in most scenarios, but the cache size can be tuned manually to accommodate increased memory usage by other processes or to maximize query performance. A larger cache improves the database’s performance, but you must consider other sources of memory consumption to avoid out of memory conditions.</p> <p>Depending on how you start the RethinkDB server process, there are two ways to set the cache size.</p> <ul> <li> <p>When starting RethinkDB from the command line, the cache size limit is set through the <code class="highlighter-rouge">--cache-size &lt;limit in MB&gt;</code> argument:</p> <p><code class="highlighter-rouge">$ rethinkdb --cache-size 2048</code></p> </li> <li> <p>If you are using configuration files to configure RethinkDB (e.g. <code class="highlighter-rouge">/etc/rethinkdb/instances.d/...</code>), add <code class="highlighter-rouge">cache-size=&lt;limit in MB&gt;</code> to the configuration file to set the size limit manually.</p> </li> </ul> <h2 id="internal-metadata">Internal metadata</h2> <p>RethinkDB can handle databases much larger than the amount of main memory available on a server. However, some internal metadata is always kept in memory to guarantee fast access times. Every table has an overhead of 8 MB per server.</p> <p>RethinkDB organizes data into blocks. Blocks in RethinkDB are sized in steps of 512 bytes up to a maximum of 4 KB. While the content of a block itself can be cleared from main memory to free space, metadata of approximately 10–26 bytes per block is always kept in memory. Thus, this memory overhead is directly proportional to the number of blocks that a given data set requires. (This is in addition to the 8 MB overhead mentioned above.)</p> <p>To understand the number of blocks used by a given data set, we must first distinguish two different modes of how a document can be stored.</p> <ul> <li>Small documents of no more than 250 bytes (including encoding overhead) are stored “in line” in the primary index tree. Many such documents can share a single 4 KB block.</li> <li>Larger documents of more than 250 bytes are stored in blocks of their own. Documents up to 4 KB use a single block; larger documents are split across multiple blocks as needed.</li> </ul> <p>Additional blocks are allocated to store index trees for secondary indexes as well as for the primary index of each table. Roughly one block is used per 30 documents for each index; the exact number depends on the sizes of the index keys.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © RethinkDB contributors<br>Licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.<br>
+    <a href="https://rethinkdb.com/docs/memory-usage/" class="_attribution-link">https://rethinkdb.com/docs/memory-usage/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

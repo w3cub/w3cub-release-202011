@@ -1,0 +1,122 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Performance Report - RethinkDB JavaScript - W3cubDocs</title>
+  
+  <meta name="description" content="This report describes a recent effort that the RethinkDB team took to measure our database product, RethinkDB, under different workloads and in &hellip;">
+  <meta name="keywords" content="rethinkdb, performance, &#38;, scaling, report, javascript, rethinkdb~javascript">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rethinkdb~javascript/docs/2-1-5-performance-report/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rethinkdb~javascript.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rethinkdb~javascript/" class="_nav-link" title="" style="margin-left:0;">RethinkDB JavaScript</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rethinkdb">
+				
+				
+<h1 class="title">RethinkDB 2.1.5 performance &amp; scaling report</h1> <div class="toc">  <ul id="markdown-toc"> <li><a href="#a-quick-overview-of-the-results" id="markdown-toc-a-quick-overview-of-the-results">A quick overview of the results</a></li> <li><a href="#selecting-workloads-and-hardware" id="markdown-toc-selecting-workloads-and-hardware">Selecting workloads and hardware</a></li> <li><a href="#hardware" id="markdown-toc-hardware">Hardware</a></li> <li><a href="#configuration" id="markdown-toc-configuration">Configuration</a></li> <li><a href="#detailed-results" id="markdown-toc-detailed-results">Detailed results</a></li> <li><a href="#workload-c" id="markdown-toc-workload-c">Workload C</a></li> <li><a href="#conclusion" id="markdown-toc-conclusion">Conclusion</a></li> <li><a href="#ongoing" id="markdown-toc-ongoing">Ongoing</a></li> </ul> </div> <p>This report describes a recent effort that the RethinkDB team took to measure our database product, RethinkDB, under different workloads and in different clustering configurations. We seek to provide a general overview of RethinkDB’s performance metrics for a variety of workloads and potential use cases. In this report some of the questions we’ll address include:</p> <ul> <li>What sort of performance can I expect from a RethinkDB cluster?</li> <li>How well does RethinkDB scale?</li> <li>Can I trade consistency for performance?</li> </ul> <p>We’ll attempt to answer these questions by using workloads from the YCSB benchmark suite. You can <a href="https://labs.yahoo.com/news/yahoo-cloud-serving-benchmark">learn more about YCSB here</a>, and <a href="https://github.com/rethinkdb/ycsb">review the source code here</a>. Expanding beyond the YCSB workloads we selected, we created an additional test which investigates scalability for analytic workloads.</p> <p>In the results, we’ll see how RethinkDB scales to perform 1.3 million individual reads per second. We will also demonstrate how RethinkDB performs well above 100 thousand operations per second in a mixed 50:50 read/write workload - while at the full level of durability and data integrity guarantees. We performed all benchmarks across a range of cluster sizes, scaling up from one to 16 nodes.</p> <blockquote class="infobox ">
+<p><strong>Note</strong>: This performance report is based on RethinkDB version 2.1.5. It takes a large amount of effort to create a quality performance report that covers multiple use cases. In the future, we plan to update this report for subsequent releases of RethinkDB.</p> </blockquote> <h2 id="a-quick-overview-of-the-results">A quick overview of the results</h2> <p>We found that in a mixed read/write workload, RethinkDB with two servers was able to perform nearly 16K queries per second (QPS) and scaled to almost 120K QPS while in a 16-node cluster. Under a read only workload and synchronous read settings, RethinkDB was able to scale from about 150K QPS on a single node up to over 550K QPS on 16 nodes. Under the same workload, in an asynchronous “outdated read” setting, RethinkDB went from 150K QPS on one server to 1.3M in a 16-node cluster.</p> <p>Finally, we used a MapReduce query to compute word counts across the whole data set. This test evaluates RethinkDB’s scalability for analytic workloads in a simplistic but very common fashion. These types of workloads involve doing information processing on the server itself versus typical single or ranged reads and writes of information processed at the application level.</p> <p>Here we we show how RethinkDB scales up to 16-nodes with these various workloads:</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-a.png" alt=""> <img src="https://rethinkdb.com/assets/images/docs/performance-report/w-c-sync.png" alt=""> <img src="https://rethinkdb.com/assets/images/docs/performance-report/w-c-async.png" alt=""> <img src="https://rethinkdb.com/assets/images/docs/performance-report/analytical.png" alt=""></p> <h2 id="selecting-workloads-and-hardware">Selecting workloads and hardware</h2> <p>YCSB comes with a variety of default workloads, but for the purposes of our testing we chose two of them to run against RethinkDB. Out of the YCSB workload options, we chose to run workload A which comprises 50% reads and 50% update operations, and workload C which performs strictly read operations. All documents stored by the YCSB tests contain 10 fields with randomized 100 byte strings as values, with each document totaling about 1 KB in size.</p> <p>We used a port of YCSB based on our official Java driver and intend to submit a pull request for it in the near future. <a href="https://github.com/rethinkdb/ycsb">Our fork is available for review here</a>.</p> <p>Given the ease of scaling RethinkDB clusters across multiple instances, we deemed it necessary to observe performance when moving from a single RethinkDB instance to a larger cluster. We tested all of our workloads on a single instance of RethinkDB up to a 16-node cluster in varying increments of cluster size.</p> <h2 id="hardware">Hardware</h2> <p>In terms of hardware, we used the <a href="https://www.rackspace.com/en-us/cloud/servers/onmetal">OnMetal offerings from Rackspace</a> to run both RethinkDB server and RethinkDB client nodes. We used different hardware configurations for the server and client nodes as shown below:</p> <table> <thead> <tr> <th>1-16 RethinkDB servers</th> <th>8 RethinkDB clients</th> </tr> </thead> <tbody> <tr> <td>Rackspace OnMetal I/O</td> <td>Rackspace OnMetal Compute</td> </tr> <tr> <td>2x Intel Xeon E5-2680 v2 CPU 2.8 GHz (2x10 cores)</td> <td>Intel Xeon E5-2680 v2 CPU 2.8 GHz (10 cores)</td> </tr> <tr> <td>128 GB RAM</td> <td>32 GB RAM</td> </tr> <tr> <td>10Gbps Ethernet</td> <td>10Gbps Ethernet</td> </tr> <tr> <td>Seagate Nytro WarpDrive BLP4-1600 storage</td> <td> </td> </tr> </tbody> </table> <h2 id="configuration">Configuration</h2> <p>At the time of the test, we used RethinkDB 2.1.5 which was compiled from source on Ubuntu 14.04 LTS. During the performance test we used the RethinkDB Java driver with Oracle Java 1.8.0. A full list of configuration settings follows below:</p> <ul> <li>RethinkDB version 2.1.5</li> <li>Ubuntu 14.04</li> <li>RethinkDB cache size set to 64,000 MB per server, otherwise default parameters</li> <li>Oracle Java 1.8.0 on the client nodes</li> <li>The <a href="https://github.com/rethinkdb/YCSB/tree/a15e249d6b10147e615ddfaf03672bad35e85e7f">RethinkDB port of YCSB</a>
+</li> </ul> <h2 id="detailed-results">Detailed results</h2> <h3 id="workload-a">Workload A</h3> <ul> <li>Simulates a mixed read/write workload with equally many writes as reads</li> <li>Query types: 50% single-document read ops, 50% single-document update ops</li> <li>
+<a href="https://en.wikipedia.org/wiki/Zipf%27s_law">Zipfian</a> key access distribution</li> <li>128 client connections per server</li> <li>Data is replicated to two servers, and sharded across all available servers</li> <li>Writes are performed with “hard” durability (wait for data to be on disk on both replicas)</li> <li>Performs 50 million operations in total</li> </ul> <p>Our first workload from YCSB is workload A. It performs an equal number of get and update operations.</p> <p>The data set generated by YCSB consists of 25 million documents, sized at 1 KB each. All data fits into the server cache in this scenario.</p> <p>Reads and writes are performed by eight client servers, with 128 concurrent connections per database server. This means we have 128 connections with just a single RethinkDB server, and 2048 concurrent connections with a 16-node cluster. We used a replication factor of two per table, meaning each document was replicated to two separate servers.</p> <p>RethinkDB achieves a throughput of 14.6K QPS with two servers, and scales near-linearly as servers are added to the cluster.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-a.png" alt=""></p> <p>Latency is also an important metric to measure when testing performance. We found that in a 16-node cluster, the 95th percentile for Workload A query latencies is 26ms.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-a-reads-latency.png" alt=""></p> <h2 id="workload-c">Workload C</h2> <ul> <li>Simulates a read-only workload</li> <li>Query types: Single-document gets</li> <li>Zipfian key access distribution</li> <li>128 client connections per server</li> <li>Data is replicated and sharded across all available servers</li> <li>In the “synchronous” test, we use the default <code class="highlighter-rouge"><span class="p">{</span><span class="err">readMode</span><span class="p">:</span><span class="err">”single”</span><span class="p">}</span></code> setting</li> <li>In the “asynchronous” test, reads use the <code class="highlighter-rouge"><span class="p">{</span><span class="err">readMode</span><span class="p">:</span><span class="err">”outdated”</span><span class="p">}</span></code> setting</li> <li>Performs 200 million operations in total</li> </ul> <p>This workload exclusively performs read operations to retrieve individual documents from the database (YCSB workload C). In this workload, we use the same setup and data set as workload A above. Reads are also performed identically using 8 client servers with 128 concurrent connections per database server in the cluster.</p> <p>We first tested this workload in the <a href="https://www.rethinkdb.com/api/javascript/run/">default configuration for RethinkDB which forbids stale reads</a>. In this configuration, RethinkDB is able to perform 134.7K QPS on a single server. While the overhead of network communication between the servers becomes visible when increasing the cluster size from one to two servers, adding further servers to the cluster demonstrates the near-linear scalability of RethinkDB, up to over 500K QPS on 16 servers.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-c-sync.png" alt=""></p> <p>As a variation of this workload, we also tested scalability in the outdated read mode. In this mode, we make the compromise of a higher chance of slightly outdated read results for additional performance, as read operations can be handled directly by secondary replicas. A typical application that exemplifies this kind of access pattern would be an asynchronous cache.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-c-async.png" alt=""></p> <p>RethinkDB demonstrates extremely high scalability in this configuration, reaching throughputs of well over a million queries per second. The slightly sub-linear scalability when going from 12 to 16 database servers is caused by the client servers’ CPUs getting saturated at these throughputs.</p> <p>In terms of latency, we found that in a 16-node cluster and forbidding stale reads, the 95th percentile for latency is 3ms. When doing a heavy read workload, a large majority of reads fell between 0ms and 1ms which can be seen in the graph below.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/w-c-reads-latency.png" alt=""></p> <h3 id="analytic-queries">Analytic queries</h3> <ul> <li>Tests the response time for analytic MapReduce queries involving string operations</li> <li>Query types: Count the total number of sentences over a single field: table.map(r.row(“field0”).split(“.”).count()).sum()</li> <li>We run one query at a time. Results show the average over five runs.</li> </ul> <p>Finally, we demonstrate RethinkDB’s automatic query parallelization. Analytic queries are transparently distributed over servers in the cluster in a MapReduce-style pattern.</p> <p>In this example, we count the number of sentences over the whole data set of 25 million documents based on one of the fields. We use the following exact query which utilizes the map and sum (reduce) functions of ReQL:</p> <pre data-language="">table.map( r.row("field0").split(".").count() ).sum()
+</pre>  <p>We run this query five times for every cluster size and then calculate the average runtime. The results table below shows these averages.</p> <table> <thead> <tr> <th>Nodes</th> <th>1</th> <th>2</th> <th>3</th> <th>4</th> <th>8</th> <th>12</th> <th>16</th> </tr> </thead> <tbody> <tr> <td>Query Runtime (seconds)</td> <td>59</td> <td>32</td> <td>23</td> <td>15</td> <td>9.6</td> <td>7.4</td> <td>4.4</td> </tr> </tbody> </table> <p>With a single server, our query takes 59 seconds to complete. The automatic query parallelization in RethinkDB results in practically linear scalability, as the same query is executed in just above 4 seconds on 16 servers. The graph, shown in the results overview section, demonstrates the inverse execution time (queries per second) of the query.</p> <p><img src="https://rethinkdb.com/assets/images/docs/performance-report/analytical.png" alt=""></p> <h2 id="conclusion">Conclusion</h2> <p>We wanted to provide a reasonably comprehensive RethinkDB test that covers a variety of different workloads. We chose to use the YCSB testing framework as a reliable and community-approved means of conducting rigorous testing on our database. We saw that all of the tests resulted in near-linear scalability as we moved from a single RethinkDB instance to a 16 node cluster. Although most of the tests resulted in performance metrics that suggest horizontal scalability, we know that there are plenty of improvements to make as the database evolves.</p> <h2 id="ongoing">Ongoing</h2> <p>Near to the release of this performance report, we are excited to release RethinkDB 2.3 with plenty of new features. Rigorous performance testing, and properly publishing results is a very time-consuming process, but one we will conduct for future releases on an ongoing basis. We plan to publish our next set of metrics during the lifetime of the RethinkDB 2.3 release. We also would like to test RethinkDB performance when scaled to beyond a 16 node cluster during our next testing cycle. Going forward, we will include a summary of previous reports at the end of each report for comparison.</p> <h3 id="notes">Notes</h3> <ul> <li>We were fortunate enough to receive free credits from Rackspace to perform the majority of these tests and are very grateful for their contributions to open source software. All of <a href="https://www.rackspace.com/cloud/servers/onmetal">Rackspace’s OnMetal offerings can be found here</a>.</li> <li>We’d love to answer any questions you have about these tests. Come join us at <a href="http://slack.rethinkdb.com">http://slack.rethinkdb.com</a> and feel free to ask more specific questions we don’t answer here by pinging @danielmewes or @dalanmiller.</li> <li>Recently, the team behind BigchainDB – a scalable blockchain database built on top of RethinkDB – has benchmarked RethinkDB on a 32-server cluster running on Amazon’s EC2. They measured throughput of more than a million writes per second. Their conclusion: “There is linear scaling in write performance with the number of nodes.” The full report is available at <a href="https://www.bigchaindb.com/whitepaper/">https://www.bigchaindb.com/whitepaper/</a>
+</li> <li>We also recently contracted Kyle Kingsbury, known to the Internet as <a href="https://twitter.com/aphyr">@aphyr</a>, as an independent researcher to evaluate RethinkDB. He wrote <a href="https://aphyr.com/tags/RethinkDB">a pair of blog posts</a> on how he tested and confirmed RethinkDB clustering and consistency guarantees.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © RethinkDB contributors<br>Licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.<br>
+    <a href="https://rethinkdb.com/docs/2-1-5-performance-report/" class="_attribution-link">https://rethinkdb.com/docs/2-1-5-performance-report/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

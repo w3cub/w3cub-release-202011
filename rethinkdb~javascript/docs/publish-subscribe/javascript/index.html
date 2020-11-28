@@ -1,0 +1,185 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Publish-subscribe - RethinkDB JavaScript - W3cubDocs</title>
+  
+  <meta name="description" content="The publish-subscribe pattern is a powerful way to decouple applications that need to communicate. RethinkDB changefeeds allow us to implement &hellip;">
+  <meta name="keywords" content="publish-subscribe, with, rethinkdb, javascript, rethinkdb~javascript">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rethinkdb~javascript/docs/publish-subscribe/javascript/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rethinkdb~javascript.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rethinkdb~javascript/" class="_nav-link" title="" style="margin-left:0;">RethinkDB JavaScript</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rethinkdb">
+				
+				
+<h1 class="title">Publish-Subscribe with RethinkDB</h1>    <p>The <a href="http://en.wikipedia.org/wiki/Publish-subscribe">publish-subscribe pattern</a> is a powerful way to decouple applications that need to communicate. RethinkDB <a href="../../changefeeds/javascript/index">changefeeds</a> allow us to implement publish-subscribe with the database acting as a message exchange. We’ve built a small example library called <a href="https://github.com/rethinkdb/example-pubsub/tree/master/javascript">repubsub</a> implementing the pattern for use in JavaScript applications.</p> <blockquote class="infobox ">
+<p>If you haven’t read the <a href="../../changefeeds/javascript/index">article on changefeeds</a> yet, start there! You can subscribe to notifications on tables and queries with changefeeds alone, without using publish-subscribe. If you’d like to see how to implement a message queue with topics using changefeeds, read on!</p> </blockquote> <p>This article will explain how to use repubsub, as well as describe how it’s implemented on top of changefeeds. If your application needs asynchronous broadcast notifications, this may be a good fit.</p> <h2 id="publish-subscribe">Publish-Subscribe</h2> <p>There are different publish-subscribe variations, so here we’ll describe the type using a central topic exchange. In this model, publishers connect to the central exchange and broadcast a message with a given topic. When subscribers connect, they notify the exchange about what kinds of messages they’re interested in. The exchange is then responsible for filtering messages.</p> <p>Because of this decoupled interaction, publishers are free to disconnect whenever they want. There may even be more than one publisher. Likewise, if no subscribers are currently listening for messages with a certain topic, the exchange is free to simply delete them.</p> <h2 id="using-repubsub">Using repubsub</h2> <p>Repubsub implements a simple abstraction on top of RethinkDB to enable publish-subscribe. It uses ReQL as the filtering mechanism, so the full power of the language is at your disposal. This gives a lot more flexibility than traditional message queues.</p> <p>The repubsub library has three classes:</p> <ul> <li>An <code class="highlighter-rouge">Exchange</code> is created by both publishers and subscribers. Publishers put messages into the exchange, and subscribers listen to messages on the exchange.</li> <li>A <code class="highlighter-rouge">Topic</code> is used by publishers. It contains some key that contains meta-data about the messages.</li> <li>A <code class="highlighter-rouge">Queue</code> is used by consumers. It has two purposes: <ol> <li>To buffer messages that the subscriber hasn’t consumed yet (this buffering is actually done in the database server)</li> <li>To filter messages from the <code class="highlighter-rouge">Exchange</code> by their <code class="highlighter-rouge">Topic</code> (again, the server does this filtering)</li> </ol> </li> </ul> <p>To import repubsub and create a connection to an exchange:</p> <pre data-language="">var repubsub = require('repubsub');
+
+var exchange = new repubsub.Exchange('pubsub_demo',
+    {db: 'repubsub', host: 'localhost', port: 28015});
+</pre>  <h3 id="subscribing-to-topics-using-regex">Subscribing to topics using regex</h3> <p>The simplest case is publishing a message with a string for a topic. This lends itself to using regexes for filtering.</p> <p>To publish a message to the exchange, create a topic:</p> <pre data-language="">var topic = exchange.topic('fights.superheroes.batman');
+</pre>  <p>Now we can publish any arbitrary JSON document to the topic:</p> <pre data-language="">topic.publish({
+    opponent: 'Joker',
+    victory: true,
+});
+</pre>  <p>In the subscribing application we need to create a queue to receive and buffer messages. The queue takes a ReQL filtering function as an argument. This is similar to what you would pass to <a href="../../../api/javascript/filter/index">filter</a>. Here we’ll subscribe to all messages about superhero fights:</p> <pre data-language="">function filterFunc(topic){
+    return topic.match('fights\\.superheroes.*')
+};
+var queue = exchange.queue(filterFunc);
+</pre>  <p>Then, to listen to messages, just provide a callback to the <code class="highlighter-rouge">.subscribe()</code> method on the queue:</p> <pre data-language="">queue.subscribe(function(topic, payload){
+    console.log('I got the topic:', topic)
+    console.log('With the message:', payload)
+}
+</pre>  <h3 id="subscribing-to-topics-using-tags">Subscribing to topics using tags</h3> <p>You can also filter messages by tags. We could put the tags into a string and build a regex to match messages with the tags we want, but luckily we have the full power of ReQL at our disposal. Instead, we can make the topic an actual JSON array, and use ReQL’s <a href="../../../api/javascript/contains/index">contains</a> method to do the filtering.</p> <p>So, for example, if we wanted to send a notification that Batman and the Joker had a fight, we might publish with the tags <code class="highlighter-rouge">#superhero</code>, <code class="highlighter-rouge">#fight</code>, and <code class="highlighter-rouge">#supervillain</code>:</p> <pre data-language="">var topic = exchange.topic(['superhero', 'fight', 'supervillain'])
+topic.publish({
+    interactionType: 'tussle',
+    participants: ['Batman', 'Joker'],
+})
+</pre>  <p>Then, subscribers could listen for messages with any combination of tags:</p> <pre data-language="">function filterFunc(tags){
+    return tags.contains('fight', 'superhero');
+}
+
+exchange.queue(filterFunc).subscribe(function(topic, payload){
+    console.log(payload.participants[0],
+        'got in a fight with',
+        payload.participants[1]);
+}
+</pre>  <p>In this case, we would only receive notifications of fights involving a superhero. Fights between supervillains would be ignored.</p> <h3 id="subscribing-to-hierarchical-topics">Subscribing to hierarchical topics</h3> <p>As a final example, we’ll use an object as the topic. Using an object as the topic allows us a richer hierarchical structure, rather than keeping them in a flat structure like an array. This provides us with maximum flexibility in message routing.</p> <p>Let’s say we want to publish the teaming up between Batman, Superman and the Joker:</p> <pre data-language="">var topic = exchange.topic({
+    teamup: {
+        superheroes: ['Batman', 'Superman'],
+        supervillains: ['Joker']
+    },
+    surprising: true
+});
+
+topic.publish('Today Batman, Superman and the Joker teamed up ' +
+              'in a surprising turn of events...');
+</pre>  <p>There are multiple subscriptions we could have set up that would receive this news:</p> <pre data-language="">// Get all surprising messages
+var isSurprising = function(topic){return topic('surprising')};
+
+// Get all messages involving a teamup or a fight
+var isTeamOrFight = function(topic){return topic('teamup').or(topic('fight'))};
+
+// Get all messages talking about a teamup with Batman
+var aboutBatman = function(topic){
+    return topic('teamup')('superheroes').contains('Batman');
+}
+</pre>  <h3 id="try-out-the-repubsub-demo">Try out the repubsub demo</h3> <p>The example documentation includes a <a href="https://github.com/rethinkdb/example-pubsub/blob/master/javascript/demo.js'">demo script</a> that shows off the three topic patterns described above. The script implements both a publisher and a subscriber with each pattern type. You can use this script to try out multiple publishers and multiple subscribers to test out how it works.</p> <p>Run the publisher and corresponding subscribers in different terminal windows, so the output doesn’t run together. For example, to run the publisher for the regex demo:</p> <pre data-language="">$ npm install
+$ ./demo.js regex publish
+</pre>  <p>and in another window run:</p> <pre data-language="">$ ./demo.js regex subscribe
+</pre>  <p>You can run the <code class="highlighter-rouge">tags</code> and <code class="highlighter-rouge">hierarchy</code> demos the same way.</p> <h2 id="how-the-library-is-implemented">How the library is implemented</h2> <p>As mentioned above, the repubsub library is built using RethinkDB changefeeds. Briefly, here’s how it works:</p> <ul> <li>Each exchange is a single RethinkDB table</li> <li>Each document in the table has 4 keys: <code class="highlighter-rouge">id</code>, <code class="highlighter-rouge">topic</code>, <code class="highlighter-rouge">payload</code>, and <code class="highlighter-rouge">updated_on</code>. <ul> <li>For every message sent, repubsub sets the <code class="highlighter-rouge">updated_on</code> key with <code class="highlighter-rouge">r.now</code> to get the current time</li> </ul> </li> <li>When posting a message to a topic, first repubsub attempts to overwrite a document with the exact same topic. If the exact topic isn’t found, it creates a new document with the topic.</li> <li>Subscribers create a changefeed on the <code class="highlighter-rouge">Exchange</code>’s table, filtering for changes that mention documents matching their topic queries.</li> </ul> <p>A key point to notice is that we don’t actually care about the document being stored in the table. We only create and update documents because that forces RethinkDB to create a change notification. These change notifications are the messages we want to send to subscribers. Ultimately, the table ends up with lots of documents that have whatever the last message happened to be inside them. But at no point do we read those documents directly as a subscriber. This is also why we update the <code class="highlighter-rouge">updated_on</code> field, so that even if the document’s payload hasn’t changed, the document as a whole will change and a notification will be generated.</p> <p>The entire query on the exchange is:</p> <pre data-language="">// this.table is the Exchange's underlying table
+// filterFunc is the function passed in by the subscriber
+this.table.changes()('new_val').filter(function(row){
+    return filterFunc(row('topic'));
+};
+</pre>  <p>This query pulls out <code class="highlighter-rouge">new_val</code> from the changefeed, and passes just the topic field from the new value down to the subscriber’s function.</p> <pre data-language="">// iterFunc is the per-message callback supplied by the client
+return this.assertTable().then(function(){
+    return this.fullQuery(filterFunc).run(this.conn);
+}).then(function(cursor){
+    cursor.each(function(err, message){
+        iterFunc(message.topic, message.payload);
+    });
+});
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © RethinkDB contributors<br>Licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.<br>
+    <a href="https://rethinkdb.com/docs/publish-subscribe/javascript/" class="_attribution-link">https://rethinkdb.com/docs/publish-subscribe/javascript/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
