@@ -1,0 +1,371 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>13. Extending and Using GHC as a Library - Haskell 8 - W3cubDocs</title>
+  
+  <meta name="description" content="GHC exposes its internal APIs to users through the built-in ghc package. It allows you to write programs that leverage GHC’s entire compilation &hellip;">
+  <meta name="keywords" content="extending, and, using, ghc, library, haskell, haskell~8">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/haskell~8/users_guide/extending_ghc.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/haskell~8.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/haskell~8/" class="_nav-link" title="" style="margin-left:0;">Haskell 8</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _haskell">
+				
+				
+<h1 id="extending-ghc">13. Extending and using GHC as a Library</h1>
+<div class="_sphinx">   <p id="extending-and-using-ghc-as-a-library">GHC exposes its internal APIs to users through the built-in ghc package. It allows you to write programs that leverage GHC’s entire compilation driver, in order to analyze or compile Haskell code programmatically. Furthermore, GHC gives users the ability to load compiler plugins during compilation - modules which are allowed to view and change GHC’s internal intermediate representation, Core. Plugins are suitable for things like experimental optimizations or analysis, and offer a lower barrier of entry to compiler development for many common cases.</p> <p>Furthermore, GHC offers a lightweight annotation mechanism that you can use to annotate your source code with metadata, which you can later inspect with either the compiler API or a compiler plugin.</p>  <h2 id="annotation-pragmas">13.1. Source annotations</h2> <p id="source-annotations">Annotations are small pragmas that allow you to attach data to identifiers in source code, which are persisted when compiled. These pieces of data can then inspected and utilized when using GHC as a library or writing a compiler plugin.</p>  <h3 id="ann-pragma">13.1.1. Annotating values</h3> <p id="annotating-values">Any expression that has both <code>Typeable</code> and <code>Data</code> instances may be attached to a top-level value binding using an <code>ANN</code> pragma. In particular, this means you can use <code>ANN</code> to annotate data constructors (e.g. <code>Just</code>) as well as normal values (e.g. <code>take</code>). By way of example, to annotate the function <code>foo</code> with the annotation <code>Just "Hello"</code> you would do this:</p> <pre data-language="haskell">{-# ANN foo (Just "Hello") #-}
+foo = ...
+</pre> <p>A number of restrictions apply to use of annotations:</p> <ul> <li>The binder being annotated must be at the top level (i.e. no nested binders) </li> <li>The binder being annotated must be declared in the current module </li> <li>The expression you are annotating with must have a type with <code>Typeable</code> and <code>Data</code> instances </li> <li>
+<p class="first">The <a class="reference internal" href="glasgow_exts#th-usage"><span class="std std-ref">Template Haskell staging restrictions</span></a> apply to the expression being annotated with, so for example you cannot run a function from the module being compiled.</p> <p>To be precise, the annotation <code>{-# ANN x e #-}</code> is well staged if and only if <code>$(e)</code> would be (disregarding the usual type restrictions of the splice syntax, and the usual restriction on splicing inside a splice - <code>$([|1|])</code> is fine as an annotation, albeit redundant).</p> </li> </ul> <p>If you feel strongly that any of these restrictions are too onerous, <a class="reference external" href="https://gitlab.haskell.org/ghc/ghc/wikis/MailingListsAndIRC">please give the GHC team a shout</a>.</p> <p>However, apart from these restrictions, many things are allowed, including expressions which are not fully evaluated! Annotation expressions will be evaluated by the compiler just like Template Haskell splices are. So, this annotation is fine:</p> <pre data-language="haskell">{-# ANN f SillyAnnotation { foo = (id 10) + $([| 20 |]), bar = 'f } #-}
+f = ...
+</pre>   <h3 id="typeann-pragma">13.1.2. Annotating types</h3> <p id="annotating-types">You can annotate types with the <code>ANN</code> pragma by using the <code>type</code> keyword. For example:</p> <pre data-language="haskell">{-# ANN type Foo (Just "A `Maybe String' annotation") #-}
+data Foo = ...
+</pre>   <h3 id="modann-pragma">13.1.3. Annotating modules</h3> <p id="annotating-modules">You can annotate modules with the <code>ANN</code> pragma by using the <code>module</code> keyword. For example:</p> <pre data-language="haskell">{-# ANN module (Just "A `Maybe String' annotation") #-}
+</pre>    <h2 id="ghc-as-a-library">13.2. Using GHC as a Library</h2> <p id="using-ghc-as-a-library">The <code>ghc</code> package exposes most of GHC’s frontend to users, and thus allows you to write programs that leverage it. This library is actually the same library used by GHC’s internal, frontend compilation driver, and thus allows you to write tools that programmatically compile source code and inspect it. Such functionality is useful in order to write things like IDE or refactoring tools. As a simple example, here’s a program which compiles a module, much like ghc itself does by default when invoked:</p> <pre data-language="haskell">import GHC
+import GHC.Paths ( libdir )
+import DynFlags ( defaultFatalMessager, defaultFlushOut )
+
+main =
+    defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
+      runGhc (Just libdir) $ do
+        dflags &lt;- getSessionDynFlags
+        setSessionDynFlags dflags
+        target &lt;- guessTarget "test_main.hs" Nothing
+        setTargets [target]
+        load LoadAllTargets
+</pre> <p>The argument to <code>runGhc</code> is a bit tricky. GHC needs this to find its libraries, so the argument must refer to the directory that is printed by <code>ghc --print-libdir</code> for the same version of GHC that the program is being compiled with. Above we therefore use the <code>ghc-paths</code> package which provides this for us.</p> <p>Compiling it results in:</p> <pre data-language="none">$ cat test_main.hs
+main = putStrLn "hi"
+$ ghc -package ghc simple_ghc_api.hs
+[1 of 1] Compiling Main             ( simple_ghc_api.hs, simple_ghc_api.o )
+Linking simple_ghc_api ...
+$ ./simple_ghc_api
+$ ./test_main
+hi
+$
+</pre> <p>For more information on using the API, as well as more samples and references, please see <a class="reference external" href="http://haskell.org/haskellwiki/GHC/As_a_library">this Haskell.org wiki page</a>.</p>   <h2 id="id1">13.3. Compiler Plugins</h2> <p id="compiler-plugins">GHC has the ability to load compiler plugins at compile time. The feature is similar to the one provided by <a class="reference external" href="http://gcc.gnu.org/wiki/plugins">GCC</a>, and allows users to write plugins that can adjust the behaviour of the constraint solver, inspect and modify the compilation pipeline, as well as transform and inspect GHC’s intermediate language, Core. Plugins are suitable for experimental analysis or optimization, and require no changes to GHC’s source code to use.</p> <p>Plugins cannot optimize/inspect C-\-, nor can they implement things like parser/front-end modifications like GCC, apart from limited changes to the constraint solver. If you feel strongly that any of these restrictions are too onerous, <a class="reference external" href="https://gitlab.haskell.org/ghc/ghc/wikis/MailingListsAndIRC">please give the GHC team a shout</a>.</p> <p>Plugins do not work with <code>-fexternal-interpreter</code>. If you need to run plugins with <code>-fexternal-interpreter</code> let GHC developers know in <a class="reference external" href="https://gitlab.haskell.org/ghc/ghc/issues/14335">Issue #14335</a>.</p>  <h3 id="id2">13.3.1. Using compiler plugins</h3> <p id="using-compiler-plugins">Plugins can be added on the command line with the <a class="reference internal" href="#ghc-flag--fplugin=%E2%9F%A8module%E2%9F%A9"><code>-fplugin=⟨module⟩</code></a> option where ⟨module⟩ is a module in a registered package that exports the plugin. Arguments can be passed to the plugins with the <a class="reference internal" href="#ghc-flag--fplugin-opt=%E2%9F%A8module%E2%9F%A9:%E2%9F%A8args%E2%9F%A9"><code>-fplugin-opt=⟨module⟩:⟨args⟩</code></a> option. The list of enabled plugins can be reset with the <a class="reference internal" href="#ghc-flag--fclear-plugins"><code>-fclear-plugins</code></a> option.</p> <dl class="ghc-flag"> <dt id="ghc-flag--fplugin=⟨module⟩">
+<code>-fplugin=⟨module⟩</code> </dt> <dd>
+<p>Load the plugin in the given module. The module must be a member of a package registered in GHC’s package database.</p> </dd>
+</dl> <dl class="ghc-flag"> <dt id="ghc-flag--fplugin-opt=⟨module⟩:⟨args⟩">
+<code>-fplugin-opt=⟨module⟩:⟨args⟩</code> </dt> <dd>
+<p>Give arguments to a plugin module; module must be specified with <a class="reference internal" href="#ghc-flag--fplugin=%E2%9F%A8module%E2%9F%A9"><code>-fplugin=⟨module⟩</code></a>.</p> </dd>
+</dl> <dl class="ghc-flag"> <dt id="ghc-flag--fclear-plugins">
+<code>-fclear-plugins</code> </dt> <dd>
+<p>Clear the list of plugins previously specified with <code>-fplugin</code>. This is useful in GHCi where simply removing the <code>-fplugin</code> options from the command line is not possible. Instead <code>:set -fclear-plugins</code> can be used.</p> </dd>
+</dl> <p>As an example, in order to load the plugin exported by <code>Foo.Plugin</code> in the package <code>foo-ghc-plugin</code>, and give it the parameter “baz”, we would invoke GHC like this:</p> <pre data-language="none">$ ghc -fplugin Foo.Plugin -fplugin-opt Foo.Plugin:baz Test.hs
+[1 of 1] Compiling Main             ( Test.hs, Test.o )
+Loading package ghc-prim ... linking ... done.
+Loading package integer-gmp ... linking ... done.
+Loading package base ... linking ... done.
+Loading package ffi-1.0 ... linking ... done.
+Loading package foo-ghc-plugin-0.1 ... linking ... done.
+...
+Linking Test ...
+$
+</pre> <p>Alternatively, core plugins can be specified with Template Haskell.</p> <pre data-language="haskell">addCorePlugin "Foo.Plugin"
+</pre> <p>This inserts the plugin as a core-to-core pass. Unlike <code>-fplugin=(module)</code>, the plugin module can’t reside in the same package as the module calling <a class="reference external" href="../libraries/template-haskell-2.15.0.0/language-haskell-th-syntax#v:addCorePlugin">Language.Haskell.TH.Syntax.addCorePlugin</a>. This way, the implementation can expect the plugin to be built by the time it is needed.</p> <p>Plugin modules live in a separate namespace from the user import namespace. By default, these two namespaces are the same; however, there are a few command line options which control specifically plugin packages:</p> <dl class="ghc-flag"> <dt id="ghc-flag--plugin-package ⟨pkg⟩">
+<code>-plugin-package ⟨pkg⟩</code> </dt> <dd>
+<p>This option causes the installed package ⟨pkg⟩ to be exposed for plugins, such as <a class="reference internal" href="#ghc-flag--fplugin=%E2%9F%A8module%E2%9F%A9"><code>-fplugin=⟨module⟩</code></a>. The package ⟨pkg⟩ can be specified in full with its version number (e.g. <code>network-1.0</code>) or the version number can be omitted if there is only one version of the package installed. If there are multiple versions of ⟨pkg⟩ installed and <a class="reference internal" href="#ghc-flag--hide-all-plugin-packages"><code>-hide-all-plugin-packages</code></a> was not specified, then all other versions will become hidden. <a class="reference internal" href="#ghc-flag--plugin-package%20%E2%9F%A8pkg%E2%9F%A9"><code>-plugin-package ⟨pkg⟩</code></a> supports thinning and renaming described in <a class="reference internal" href="packages#package-thinning-and-renaming"><span class="std std-ref">Thinning and renaming modules</span></a>.</p> <p>Unlike <a class="reference internal" href="#"><code>-package ⟨pkg⟩</code></a>, this option does NOT cause package ⟨pkg⟩ to be linked into the resulting executable or shared object.</p> </dd>
+</dl> <dl class="ghc-flag"> <dt id="ghc-flag--plugin-package-id ⟨pkg-id⟩">
+<code>-plugin-package-id ⟨pkg-id⟩</code> </dt> <dd>
+<p>Exposes a package in the plugin namespace like <a class="reference internal" href="#ghc-flag--plugin-package%20%E2%9F%A8pkg%E2%9F%A9"><code>-plugin-package
+⟨pkg⟩</code></a>, but the package is named by its installed package ID rather than by name. This is a more robust way to name packages, and can be used to select packages that would otherwise be shadowed. Cabal passes <a class="reference internal" href="#ghc-flag--plugin-package-id%20%E2%9F%A8pkg-id%E2%9F%A9"><code>-plugin-package-id ⟨pkg-id⟩</code></a> flags to GHC. <a class="reference internal" href="#ghc-flag--plugin-package-id%20%E2%9F%A8pkg-id%E2%9F%A9"><code>-plugin-package-id ⟨pkg-id⟩</code></a> supports thinning and renaming described in <a class="reference internal" href="packages#package-thinning-and-renaming"><span class="std std-ref">Thinning and renaming modules</span></a>.</p> </dd>
+</dl> <dl class="ghc-flag"> <dt id="ghc-flag--hide-all-plugin-packages">
+<code>-hide-all-plugin-packages</code> </dt> <dd>
+<p>By default, all exposed packages in the normal, source import namespace are also available for plugins. This causes those packages to be hidden by default. If you use this flag, then any packages with plugins you require need to be explicitly exposed using <a class="reference internal" href="#ghc-flag--plugin-package%20%E2%9F%A8pkg%E2%9F%A9"><code>-plugin-package ⟨pkg⟩</code></a> options.</p> </dd>
+</dl> <p>At the moment, the only way to specify a dependency on a plugin in Cabal is to put it in <code>build-depends</code> (which uses the conventional <a class="reference internal" href="#"><code>-package-id ⟨unit-id⟩</code></a> flag); however, in the future there will be a separate field for specifying plugin dependencies specifically.</p>   <h3 id="id3">13.3.2. Writing compiler plugins</h3> <p id="writing-compiler-plugins">Plugins are modules that export at least a single identifier, <code>plugin</code>, of type <code>GhcPlugins.Plugin</code>. All plugins should <code>import GhcPlugins</code> as it defines the interface to the compilation pipeline.</p> <p>A <code>Plugin</code> effectively holds a function which installs a compilation pass into the compiler pipeline. By default there is the empty plugin which does nothing, <code>GhcPlugins.defaultPlugin</code>, which you should override with record syntax to specify your installation function. Since the exact fields of the <code>Plugin</code> type are open to change, this is the best way to ensure your plugins will continue to work in the future with minimal interface impact.</p> <p><code>Plugin</code> exports a field, <code>installCoreToDos</code> which is a function of type <code>[CommandLineOption] -&gt; [CoreToDo] -&gt; CoreM [CoreToDo]</code>. A <code>CommandLineOption</code> is effectively just <code>String</code>, and a <code>CoreToDo</code> is basically a function of type <code>Core -&gt; Core</code>. A <code>CoreToDo</code> gives your pass a name and runs it over every compiled module when you invoke GHC.</p> <p>As a quick example, here is a simple plugin that just does nothing and just returns the original compilation pipeline, unmodified, and says ‘Hello’:</p> <pre data-language="haskell">module DoNothing.Plugin (plugin) where
+import GhcPlugins
+
+plugin :: Plugin
+plugin = defaultPlugin {
+  installCoreToDos = install
+  }
+
+install :: [CommandLineOption] -&gt; [CoreToDo] -&gt; CoreM [CoreToDo]
+install _ todo = do
+  putMsgS "Hello!"
+  return todo
+</pre> <p>Provided you compiled this plugin and registered it in a package (with cabal for instance,) you can then use it by just specifying <code>-fplugin=DoNothing.Plugin</code> on the command line, and during the compilation you should see GHC say ‘Hello’.</p>   <h3 id="id4">13.3.3. Core plugins in more detail</h3> <p id="core-plugins-in-more-detail"><code>CoreToDo</code> is effectively a data type that describes all the kinds of optimization passes GHC does on Core. There are passes for simplification, CSE, etc. There is a specific case for plugins, <code>CoreDoPluginPass :: String -&gt; PluginPass -&gt; CoreToDo</code> which should be what you always use when inserting your own pass into the pipeline. The first parameter is the name of the plugin, and the second is the pass you wish to insert.</p> <p><code>CoreM</code> is a monad that all of the Core optimizations live and operate inside of.</p> <p>A plugin’s installation function (<code>install</code> in the above example) takes a list of <code>CoreToDo</code>s and returns a list of <code>CoreToDo</code>. Before GHC begins compiling modules, it enumerates all the needed plugins you tell it to load, and runs all of their installation functions, initially on a list of passes that GHC specifies itself. After doing this for every plugin, the final list of passes is given to the optimizer, and are run by simply going over the list in order.</p> <p>You should be careful with your installation function, because the list of passes you give back isn’t questioned or double checked by GHC at the time of this writing. An installation function like the following:</p> <pre data-language="haskell">install :: [CommandLineOption] -&gt; [CoreToDo] -&gt; CoreM [CoreToDo]
+install _ _ = return []
+</pre> <p>is certainly valid, but also certainly not what anyone really wants.</p>  <h4 id="id5">13.3.3.1. Manipulating bindings</h4> <p id="manipulating-bindings">In the last section we saw that besides a name, a <code>CoreDoPluginPass</code> takes a pass of type <code>PluginPass</code>. A <code>PluginPass</code> is a synonym for <code>(ModGuts -&gt; CoreM ModGuts)</code>. <code>ModGuts</code> is a type that represents the one module being compiled by GHC at any given time.</p> <p>A <code>ModGuts</code> holds all of the module’s top level bindings which we can examine. These bindings are of type <code>CoreBind</code> and effectively represent the binding of a name to body of code. Top-level module bindings are part of a <code>ModGuts</code> in the field <code>mg_binds</code>. Implementing a pass that manipulates the top level bindings merely needs to iterate over this field, and return a new <code>ModGuts</code> with an updated <code>mg_binds</code> field. Because this is such a common case, there is a function provided named <code>bindsOnlyPass</code> which lifts a function of type <code>([CoreBind] -&gt; CoreM [CoreBind])</code> to type <code>(ModGuts -&gt; CoreM ModGuts)</code>.</p> <p>Continuing with our example from the last section, we can write a simple plugin that just prints out the name of all the non-recursive bindings in a module it compiles:</p> <pre data-language="haskell">module SayNames.Plugin (plugin) where
+import GhcPlugins
+
+plugin :: Plugin
+plugin = defaultPlugin {
+  installCoreToDos = install
+  }
+
+install :: [CommandLineOption] -&gt; [CoreToDo] -&gt; CoreM [CoreToDo]
+install _ todo = do
+  return (CoreDoPluginPass "Say name" pass : todo)
+
+pass :: ModGuts -&gt; CoreM ModGuts
+pass guts = do dflags &lt;- getDynFlags
+               bindsOnlyPass (mapM (printBind dflags)) guts
+  where printBind :: DynFlags -&gt; CoreBind -&gt; CoreM CoreBind
+        printBind dflags bndr@(NonRec b _) = do
+          putMsgS $ "Non-recursive binding named " ++ showSDoc dflags (ppr b)
+          return bndr
+        printBind _ bndr = return bndr
+</pre>   <h4 id="getting-annotations">13.3.3.2. Using Annotations</h4> <p id="using-annotations">Previously we discussed annotation pragmas (<a class="reference internal" href="#annotation-pragmas"><span class="std std-ref">Source annotations</span></a>), which we mentioned could be used to give compiler plugins extra guidance or information. Annotations for a module can be retrieved by a plugin, but you must go through the modules <code>ModGuts</code> in order to get it. Because annotations can be arbitrary instances of <code>Data</code> and <code>Typeable</code>, you need to give a type annotation specifying the proper type of data to retrieve from the interface file, and you need to make sure the annotation type used by your users is the same one your plugin uses. For this reason, we advise distributing annotations as part of the package which also provides compiler plugins if possible.</p> <p>To get the annotations of a single binder, you can use <code>getAnnotations</code> and specify the proper type. Here’s an example that will print out the name of any top-level non-recursive binding with the <code>SomeAnn</code> annotation:</p> <pre data-language="haskell">{-# LANGUAGE DeriveDataTypeable #-}
+module SayAnnNames.Plugin (plugin, SomeAnn(..)) where
+import GhcPlugins
+import Control.Monad (unless)
+import Data.Data
+
+data SomeAnn = SomeAnn deriving Data
+
+plugin :: Plugin
+plugin = defaultPlugin {
+  installCoreToDos = install
+  }
+
+install :: [CommandLineOption] -&gt; [CoreToDo] -&gt; CoreM [CoreToDo]
+install _ todo = do
+  return (CoreDoPluginPass "Say name" pass : todo)
+
+pass :: ModGuts -&gt; CoreM ModGuts
+pass g = do
+          dflags &lt;- getDynFlags
+          mapM_ (printAnn dflags g) (mg_binds g) &gt;&gt; return g
+  where printAnn :: DynFlags -&gt; ModGuts -&gt; CoreBind -&gt; CoreM CoreBind
+        printAnn dflags guts bndr@(NonRec b _) = do
+          anns &lt;- annotationsOn guts b :: CoreM [SomeAnn]
+          unless (null anns) $ putMsgS $ "Annotated binding found: " ++  showSDoc dflags (ppr b)
+          return bndr
+        printAnn _ _ bndr = return bndr
+
+annotationsOn :: Data a =&gt; ModGuts -&gt; CoreBndr -&gt; CoreM [a]
+annotationsOn guts bndr = do
+  anns &lt;- getAnnotations deserializeWithData guts
+  return $ lookupWithDefaultUFM anns [] (varUnique bndr)
+</pre> <p>Please see the GHC API documentation for more about how to use internal APIs, etc.</p>    <h3 id="id6">13.3.4. Typechecker plugins</h3> <p id="typechecker-plugins">In addition to Core plugins, GHC has experimental support for typechecker plugins, which allow the behaviour of the constraint solver to be modified. For example, they make it possible to interface the compiler to an SMT solver, in order to support a richer theory of type-level arithmetic expressions than the theory built into GHC (see <a class="reference internal" href="glasgow_exts#typelit-tyfuns"><span class="std std-ref">Computing With Type-Level Naturals</span></a>).</p> <p>The <code>Plugin</code> type has a field <code>tcPlugin</code> of type <code>[CommandLineOption] -&gt; Maybe TcPlugin</code>, where the <code>TcPlugin</code> type is defined thus:</p> <pre data-language="haskell">data TcPlugin = forall s . TcPlugin
+  { tcPluginInit  :: TcPluginM s
+  , tcPluginSolve :: s -&gt; TcPluginSolver
+  , tcPluginStop  :: s -&gt; TcPluginM ()
+  }
+
+type TcPluginSolver = [Ct] -&gt; [Ct] -&gt; [Ct] -&gt; TcPluginM TcPluginResult
+
+data TcPluginResult = TcPluginContradiction [Ct] | TcPluginOk [(EvTerm,Ct)] [Ct]
+</pre> <p>(The details of this representation are subject to change as we gain more experience writing typechecker plugins. It should not be assumed to be stable between GHC releases.)</p> <p>The basic idea is as follows:</p> <ul class="simple"> <li>When type checking a module, GHC calls <code>tcPluginInit</code> once before constraint solving starts. This allows the plugin to look things up in the context, initialise mutable state or open a connection to an external process (e.g. an external SMT solver). The plugin can return a result of any type it likes, and the result will be passed to the other two fields.</li> <li>During constraint solving, GHC repeatedly calls <code>tcPluginSolve</code>. This function is provided with the current set of constraints, and should return a <code>TcPluginResult</code> that indicates whether a contradiction was found or progress was made. If the plugin solver makes progress, GHC will re-start the constraint solving pipeline, looping until a fixed point is reached.</li> <li>Finally, GHC calls <code>tcPluginStop</code> after constraint solving is finished, allowing the plugin to dispose of any resources it has allocated (e.g. terminating the SMT solver process).</li> </ul> <p>Plugin code runs in the <code>TcPluginM</code> monad, which provides a restricted interface to GHC API functionality that is relevant for typechecker plugins, including <code>IO</code> and reading the environment. If you need functionality that is not exposed in the <code>TcPluginM</code> module, you can use <code>unsafeTcPluginTcM :: TcM a -&gt; TcPluginM a</code>, but are encouraged to contact the GHC team to suggest additions to the interface. Note that <code>TcPluginM</code> can perform arbitrary IO via <code>tcPluginIO :: IO a -&gt; TcPluginM a</code>, although some care must be taken with side effects (particularly in <code>tcPluginSolve</code>). In general, it is up to the plugin author to make sure that any IO they do is safe.</p>  <h4 id="id7">13.3.4.1. Constraint solving with plugins</h4> <p id="constraint-solving-with-plugins">The key component of a typechecker plugin is a function of type <code>TcPluginSolver</code>, like this:</p> <pre data-language="haskell">solve :: [Ct] -&gt; [Ct] -&gt; [Ct] -&gt; TcPluginM TcPluginResult
+solve givens deriveds wanteds = ...
+</pre> <p>This function will be invoked at two points in the constraint solving process: after simplification of given constraints, and after unflattening of wanted constraints. The two phases can be distinguished because the deriveds and wanteds will be empty in the first case. In each case, the plugin should either</p> <ul class="simple"> <li>return <code>TcPluginContradiction</code> with a list of impossible constraints (which must be a subset of those passed in), so they can be turned into errors; or</li> <li>return <code>TcPluginOk</code> with lists of solved and new constraints (the former must be a subset of those passed in and must be supplied with corresponding evidence terms).</li> </ul> <p>If the plugin cannot make any progress, it should return <code>TcPluginOk [] []</code>. Otherwise, if there were any new constraints, the main constraint solver will be re-invoked to simplify them, then the plugin will be invoked again. The plugin is responsible for making sure that this process eventually terminates.</p> <p>Plugins are provided with all available constraints (including equalities and typeclass constraints), but it is easy for them to discard those that are not relevant to their domain, because they need return only those constraints for which they have made progress (either by solving or contradicting them).</p> <p>Constraints that have been solved by the plugin must be provided with evidence in the form of an <code>EvTerm</code> of the type of the constraint. This evidence is ignored for given and derived constraints, which GHC “solves” simply by discarding them; typically this is used when they are uninformative (e.g. reflexive equations). For wanted constraints, the evidence will form part of the Core term that is generated after typechecking, and can be checked by <code>-dcore-lint</code>. It is possible for the plugin to create equality axioms for use in evidence terms, but GHC does not check their consistency, and inconsistent axiom sets may lead to segfaults or other runtime misbehaviour.</p>    <h3 id="id8">13.3.5. Source plugins</h3> <p id="source-plugins">In addition to core and type checker plugins, you can install plugins that can access different representations of the source code. The main purpose of these plugins is to make it easier to implement development tools.</p> <p>There are several different access points that you can use for defining plugins that access the representations. All these fields receive the list of <code>CommandLineOption</code> strings that are passed to the compiler using the <code>-fplugin-opt</code> flags.</p> <pre data-language="haskell">plugin :: Plugin
+plugin = defaultPlugin {
+    parsedResultAction = parsed
+  , typeCheckResultAction = typechecked
+  , spliceRunAction = spliceRun
+  , interfaceLoadAction = interfaceLoad
+  , renamedResultAction = renamed
+  }
+</pre>  <h4 id="parsed-representation">13.3.5.1. Parsed representation</h4> <p>When you want to define a plugin that uses the syntax tree of the source code, you would like to override the <code>parsedResultAction</code> field. This access point enables you to get access to information about the lexical tokens and comments in the source code as well as the original syntax tree of the compiled module.</p> <pre data-language="haskell">parsed :: [CommandLineOption] -&gt; ModSummary -&gt; HsParsedModule
+            -&gt; Hsc HsParsedModule
+</pre> <p>The <code>ModSummary</code> contains useful meta-information about the compiled module. The <code>HsParsedModule</code> contains the lexical and syntactical information we mentioned before. The result that you return will change the result of the parsing. If you don’t want to change the result, just return the <code>HsParsedModule</code> that you received as the argument.</p>   <h4 id="type-checked-representation">13.3.5.2. Type checked representation</h4> <p>When you want to define a plugin that needs semantic information about the source code, use the <code>typeCheckResultAction</code> field. For example, if your plugin have to decide if two names are referencing the same definition or it has to check the type of a function it is using semantic information. In this case you need to access the renamed or type checked version of the syntax tree with <code>typeCheckResultAction</code> or <code>renamedResultAction</code>.</p> <pre data-language="haskell">typechecked :: [CommandLineOption] -&gt; ModSummary -&gt; TcGblEnv -&gt; TcM TcGblEnv
+renamed :: [CommandLineOption] -&gt; TcGblEnv -&gt; HsGroup GhcRn -&gt; TcM (TcGblEnv, HsGroup GhcRn)
+</pre> <p>By overriding the <code>renamedResultAction</code> field we can modify each <code>HsGroup</code> after it has been renamed. A source file is separated into groups depending on the location of template haskell splices so the contents of these groups may not be intuitive. In order to save the entire renamed AST for inspection at the end of typechecking you can set <code>renamedResultAction</code> to <code>keepRenamedSource</code> which is provided by the <code>Plugins</code> module. This is important because some parts of the renamed syntax tree (for example, imports) are not found in the typechecked one.</p>   <h4 id="evaluated-code">13.3.5.3. Evaluated code</h4> <p>When the compiler type checks the source code, <a class="reference internal" href="glasgow_exts#template-haskell"><span class="std std-ref">Template Haskell</span></a> Splices and <a class="reference internal" href="glasgow_exts#th-quasiquotation"><span class="std std-ref">Template Haskell Quasi-quotation</span></a> will be replaced by the syntax tree fragments generated from them. However for tools that operate on the source code the code generator is usually more interesting than the generated code. For this reason we included <code>spliceRunAction</code>. This field is invoked on each expression before they are evaluated. The input is type checked, so semantic information is available for these syntax tree fragments. If you return a different expression you can change the code that is generated.</p> <pre data-language="haskell">spliceRun :: [CommandLineOption] -&gt; LHsExpr GhcTc -&gt; TcM (LHsExpr GhcTc)
+</pre> <p>However take care that the generated definitions are still in the input of <code>typeCheckResultAction</code>. If your don’t take care to filter the typechecked input, the behavior of your tool might be inconsistent.</p>   <h4 id="interface-files">13.3.5.4. Interface files</h4> <p>Sometimes when you are writing a tool, knowing the source code is not enough, you also have to know details about the modules that you import. In this case we suggest using the <code>interfaceLoadAction</code>. This will be called each time when the code of an already compiled module is loaded. It will be invoked for modules from installed packages and even modules that are installed with GHC. It will NOT be invoked with your own modules.</p> <pre data-language="haskell">interfaceLoad :: forall lcl . [CommandLineOption] -&gt; ModIface
+                                -&gt; IfM lcl ModIface
+</pre> <p>In the <code>ModIface</code> datatype you can find lots of useful information, including the exported definitions and type class instances.</p>   <h4 id="source-plugin-example">13.3.5.5. Source plugin example</h4> <p>In this example, we inspect all available details of the compiled source code. We don’t change any of the representation, but write out the details to the standard output. The pretty printed representation of the parsed, renamed and type checked syntax tree will be in the output as well as the evaluated splices and quasi quotes. The name of the interfaces that are loaded will also be displayed.</p> <pre data-language="haskell">module SourcePlugin where
+
+import Control.Monad.IO.Class
+import DynFlags (getDynFlags)
+import Plugins
+import HscTypes
+import TcRnTypes
+import HsExtension
+import HsDecls
+import HsExpr
+import HsImpExp
+import Avail
+import Outputable
+import HsDoc
+
+plugin :: Plugin
+plugin = defaultPlugin
+  { parsedResultAction = parsedPlugin
+  , renamedResultAction = renamedAction
+  , typeCheckResultAction = typecheckPlugin
+  , spliceRunAction = metaPlugin
+  , interfaceLoadAction = interfaceLoadPlugin
+  }
+
+parsedPlugin :: [CommandLineOption] -&gt; ModSummary -&gt; HsParsedModule -&gt; Hsc HsParsedModule
+parsedPlugin _ _ pm
+  = do dflags &lt;- getDynFlags
+       liftIO $ putStrLn $ "parsePlugin: \n" ++ (showSDoc dflags $ ppr $ hpm_module pm)
+       return pm
+
+renamedAction :: [CommandLineOption] -&gt; TcGblEnv -&gt; HsGroup GhcRn -&gt; TcM (TcGblEnv, HsGroup GhcRn)
+renamedAction _ tc gr = do
+  dflags &lt;- getDynFlags
+  liftIO $ putStrLn $ "typeCheckPlugin (rn): " ++ (showSDoc dflags $ ppr gr)
+  return (tc, gr)
+
+typecheckPlugin :: [CommandLineOption] -&gt; ModSummary -&gt; TcGblEnv -&gt; TcM TcGblEnv
+typecheckPlugin _ _ tc
+  = do dflags &lt;- getDynFlags
+       liftIO $ putStrLn $ "typeCheckPlugin (rn): \n" ++ (showSDoc dflags $ ppr $ tcg_rn_decls tc)
+       liftIO $ putStrLn $ "typeCheckPlugin (tc): \n" ++ (showSDoc dflags $ ppr $ tcg_binds tc)
+       return tc
+
+metaPlugin :: [CommandLineOption] -&gt; LHsExpr GhcTc -&gt; TcM (LHsExpr GhcTc)
+metaPlugin _ meta
+  = do dflags &lt;- getDynFlags
+       liftIO $ putStrLn $ "meta: " ++ (showSDoc dflags $ ppr meta)
+       return meta
+
+interfaceLoadPlugin :: [CommandLineOption] -&gt; ModIface -&gt; IfM lcl ModIface
+interfaceLoadPlugin _ iface
+  = do dflags &lt;- getDynFlags
+       liftIO $ putStrLn $ "interface loaded: " ++ (showSDoc dflags $ ppr $ mi_module iface)
+       return iface
+</pre> <p>When you compile a simple module that contains Template Haskell splice</p> <pre data-language="haskell">{-# OPTIONS_GHC -fplugin SourcePlugin #-}
+{-# LANGUAGE TemplateHaskell #-}
+module A where
+
+a = ()
+</pre> <p>$(return [])</p> <p>with the compiler flags <code>-fplugin SourcePlugin</code> it will give the following output:</p> <pre data-language="none">parsePlugin:
+module A where
+a = ()
+$(return [])
+interface loaded: Prelude
+interface loaded: GHC.Float
+interface loaded: GHC.Base
+interface loaded: Language.Haskell.TH.Lib.Internal
+interface loaded: Language.Haskell.TH.Syntax
+interface loaded: GHC.Types
+meta: return []
+interface loaded: GHC.Integer.Type
+typeCheckPlugin (rn):
+Just a = ()
+typeCheckPlugin (tc):
+{$trModule = Module (TrNameS "main"#) (TrNameS "A"#), a = ()}
+</pre>    <h3 id="plugin-recompilation">13.3.6. Controlling Recompilation</h3> <p id="controlling-recompilation">By default, modules compiled with plugins are always recompiled even if the source file is unchanged. This most conservative option is taken due to the ability of plugins to perform arbitrary IO actions. In order to control the recompilation behaviour you can modify the <code>pluginRecompile</code> field in <code>Plugin</code>.</p> <pre data-language="haskell">plugin :: Plugin
+plugin = defaultPlugin {
+  installCoreToDos = install,
+  pluginRecompile = purePlugin
+  }
+</pre> <p>By inspecting the example <code>plugin</code> defined above, we can see that it is pure. This means that if the two modules have the same fingerprint then the plugin will always return the same result. Declaring a plugin as pure means that the plugin will never cause a module to be recompiled.</p> <p>In general, the <code>pluginRecompile</code> field has the following type:</p> <pre data-language="haskell">pluginRecompile :: [CommandLineOption] -&gt; IO PluginRecompile
+</pre> <p>The <code>PluginRecompile</code> data type is an enumeration determining how the plugin should affect recompilation.</p> <pre data-language="haskell">data PluginRecompile = ForceRecompile | NoForceRecompile | MaybeRecompile Fingerprint
+</pre> <p>A plugin which declares itself impure using <code>ForceRecompile</code> will always trigger a recompilation of the current module. <code>NoForceRecompile</code> is used for “pure” plugins which don’t need to be rerun unless a module would ordinarily be recompiled. <code>MaybeRecompile</code> computes a <code>Fingerprint</code> and if this <code>Fingerprint</code> is different to a previously computed <code>Fingerprint</code> for the plugin, then we recompile the module.</p> <p>As such, <code>purePlugin</code> is defined as a function which always returns <code>NoForceRecompile</code>.</p> <pre data-language="haskell">purePlugin :: [CommandLineOption] -&gt; IO PluginRecompile
+purePlugin _ = return NoForceRecompile
+</pre> <p>Users can use the same functions that GHC uses internally to compute fingerprints. The <a class="reference external" href="https://hackage.haskell.org/package/base-4.10.1.0/docs/GHC-Fingerprint.html">GHC.Fingerprint</a> module provides useful functions for constructing fingerprints. For example, combining together <code>fingerprintFingerprints</code> and <code>fingerprintString</code> provides an easy to to naively fingerprint the arguments to a plugin.</p> <pre data-language="haskell">pluginFlagRecompile :: [CommandLineOption] -&gt; IO PluginRecompile
+pluginFlagRecompile =
+  return . MaybeRecompile . fingerprintFingerprints . map fingerprintString . sort
+</pre> <p><code>defaultPlugin</code> defines <code>pluginRecompile</code> to be <code>impurePlugin</code> which is the most conservative and backwards compatible option.</p> <pre data-language="haskell">impurePlugin :: [CommandLineOption] -&gt; IO PluginRecompile
+impurePlugin _ = return ForceRecompile
+</pre>   <h3 id="id9">13.3.7. Frontend plugins</h3> <p id="frontend-plugins">A frontend plugin allows you to add new major modes to GHC. You may prefer this over a traditional program which calls the GHC API, as GHC manages a lot of parsing flags and administrative nonsense which can be difficult to manage manually. To load a frontend plugin exported by <code>Foo.FrontendPlugin</code>, we just invoke GHC with the <a class="reference internal" href="#"><code>--frontend ⟨module⟩</code></a> flag as follows:</p> <pre data-language="none">$ ghc --frontend Foo.FrontendPlugin ...other options...
+</pre> <p>Frontend plugins, like compiler plugins, are exported by registered plugins. However, unlike compiler modules, frontend plugins are modules that export at least a single identifier <code>frontendPlugin</code> of type <code>GhcPlugins.FrontendPlugin</code>.</p> <p><code>FrontendPlugin</code> exports a field <code>frontend</code>, which is a function <code>[String] -&gt; [(String, Maybe Phase)] -&gt; Ghc ()</code>. The first argument is a list of extra flags passed to the frontend with <code>-ffrontend-opt</code>; the second argument is the list of arguments, usually source files and module names to be compiled (the <code>Phase</code> indicates if an <code>-x</code> flag was set), and a frontend simply executes some operation in the <code>Ghc</code> monad (which, among other things, has a <code>Session</code>).</p> <p>As a quick example, here is a frontend plugin that prints the arguments that were passed to it, and then exits.</p> <pre data-language="haskell">module DoNothing.FrontendPlugin (frontendPlugin) where
+import GhcPlugins
+
+frontendPlugin :: FrontendPlugin
+frontendPlugin = defaultFrontendPlugin {
+  frontend = doNothing
+  }
+
+doNothing :: [String] -&gt; [(String, Maybe Phase)] -&gt; Ghc ()
+doNothing flags args = do
+    liftIO $ print flags
+    liftIO $ print args
+</pre> <p>Provided you have compiled this plugin and registered it in a package, you can just use it by specifying <code>--frontend DoNothing.FrontendPlugin</code> on the command line to GHC.</p>    </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2002–2007 The University Court of the University of Glasgow. All rights reserved.<br>Licensed under the Glasgow Haskell Compiler License.<br>
+    <a href="https://downloads.haskell.org/~ghc/8.8.3/docs/html/users_guide/extending_ghc.html" class="_attribution-link">https://downloads.haskell.org/~ghc/8.8.3/docs/html/users_guide/extending_ghc.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
