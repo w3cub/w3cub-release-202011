@@ -1,0 +1,223 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Detecting Drift - Terraform - W3cubDocs</title>
+  
+  <meta name="description" content="One of the core challenges of infrastructure as code is keeping an up to date record of all deployed infrastructure and their properties. Terraform &hellip;">
+  <meta name="keywords" content="detecting, drift, terraform">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/terraform/extend/best-practices/detecting-drift.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/terraform.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/terraform/" class="_nav-link" title="" style="margin-left:0;">Terraform</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _terraform">
+				
+				
+<h1 id="detecting-drift">  Detecting Drift </h1> <p>One of the core challenges of infrastructure as code is keeping an up to date record of all deployed infrastructure and their properties. Terraform manages this by maintaining state information in a single file, called the state file.</p> <p>Terraform uses declarative configuration files to define the infrastructure resources to provision. This configuration serves as the target source of truth for what exists on the backend API. Changes to Infrastructure outside of Terraform will be detected as deviation by Terraform and shown as a diff in future runs of <code>terraform plan</code>. This type of change is referred to as "drift", and its detection is an important responsibility of Terraform in order to inform users of changes in their infrastructure. Here are a few techniques for developers to ensure drift is detected</p> <h2 id="capture-all-state-in-read">  Capture all state in READ </h2> <p>A provider's <code>READ</code> method is where state is synchronized from the remote API to Terraform state. It's essential that all attributes defined in the schema are recorded and kept up to date in state. Consider this provider code:</p> <pre>// resource_example_simple.go
+package example
+
+func resourceExampleSimple() *schema.Resource {
+    return &amp;schema.Resource{
+        Read:   resourceExampleSimpleRead,
+        Create: resourceExampleSimpleCreate,
+        Schema: map[string]*schema.Schema{
+            "name": {
+                Type:     schema.TypeString,
+                Required: true,
+                ForceNew: true,
+            },
+            "type": {
+                Type:     schema.TypeString,
+                Optional: true,
+            },
+        },
+    }
+}
+
+func resourceExampleSimpleRead(d *schema.ResourceData, meta interface{}) error {
+   client := meta.(*ProviderApi).client
+   resource, _ := client.GetResource(d.Id())
+   d.Set("name", resource.Name)
+   d.Set("type", resource.Type)
+   return nil
+}
+</pre>
+<p>As defined in the schema, the <code>type</code> attribute is optional, now consider this config:</p> <pre data-language="ruby"># config.tf
+resource "simple" "ex" {
+   name = "example"
+}
+</pre>
+<p>Even though <code>type</code> is omitted from the config, it is vital that we record it into state in the <code>READ</code> function, as the Backend API could set it to a default value. To illustrate the importance of capturing all state consider a configuration that interpolates the optional value into another resource:</p> <pre data-language="ruby">resource "simple" "ex" {
+   name = "example"
+}
+
+resource "another" "ex" {
+  name = "${simple.ex.type}"
+}
+</pre>
+<h2 id="update-state-after-modification">  Update state after modification </h2> <p>A provider's <code>CREATE</code> and <code>UPDATE</code> functions will create or modify resources on the remote API. APIs might perform things like provide default values for unspecified attributes (as described in the above example config/provider code), or normalize inputs (lower or upper casing all characters in a string). The end result is a Backend API containing modified versions of values that Terraform has in its state locally. Immediately after creation or updating of a resource, Terraform will have a stale state, which will result in a detected deviation on subsequent <code>plan</code> or <code>apply</code>s, as Terraform refreshes its state and wants to reconcile the diff. Because of this, it is standard practice to call <code>READ</code> at the end of all modifications to synchronize immediately and avoid that diff.</p> <pre>func resourceExampleSimpleRead(d *schema.ResourceData, meta interface{}) error {
+   client := meta.(*ProviderApi).client
+   resource, _ := client.GetResource(d.Id())
+   d.Set("name", resource.Name)
+   d.Set("type", resource.Type)
+   return nil
+}
+
+func resourceExampleSimpleCreate(d *schema.ResourceData, meta interface{}) error {
+   client := meta.(*ProviderApi).client
+   name := d.Get("name").(string)
+   client.CreateResource(name)
+   d.SetId(name)
+   return resourceExampleSimpleRead(d, meta)
+}
+</pre>
+<h2 id="error-checking-aggregate-types">  Error checking aggregate types </h2> <p>Terraform schema is defined using <a href="../schemas/schema-types#primitive-types">primitive types</a> and <a href="../schemas/schema-types#aggregate-types">aggregate types</a>. The preceding examples featured primitive types which don't require error checking. Aggregate types on the other hand, <code>schema.TypeList</code>, <code>schema.TypeSet</code>, and <code>schema.TypeMap</code>, are converted to key/value pairs when set into state. As a result the <code>Set</code> method must be error checked, otherwise Terraform will think it's operation was successful despite having broken state. The same can be said for error checking API responses.</p> <pre data-language="ruby"># config.tf
+resource "simple" "ex" {
+   name = "example"
+   type = "simple"
+   tags = {
+      name = "example"
+   }
+}
+</pre>
+<pre>// resource_example_simple.go
+package example
+
+func resourceExampleSimple() *schema.Resource {
+    return &amp;schema.Resource{
+        Read:   resourceExampleSimpleRead,
+        Create: resourceExampleSimpleCreate,
+        Schema: map[string]*schema.Schema{
+            "name": {
+                Type:     schema.TypeString,
+                Required: true,
+                ForceNew: true,
+            },
+            "type": {
+                Type:     schema.TypeString,
+                Optional: true,
+            },
+            "tags": {
+                Type:     schema.TypeMap,
+                Optional: true,
+            },
+        },
+    }
+}
+
+func resourceExampleSimpleRead(d *schema.ResourceData, meta interface{}) error {
+   client := meta.(*ProviderApi).client
+   resource, err := client.GetResource(d.Id())
+   if err != nil {
+      return fmt.Errorf("error getting resource %s: %s", d.Id(), err)
+   }
+   d.Set("name", resource.Name)
+   d.Set("type", resource.Type)
+   if err := d.Set("tags", resource.TagMap); err != nil {
+      return fmt.Errorf("error setting tags for resource %s: %s", d.Id(), err)
+   }
+   return nil
+}
+</pre>
+<h2 id="use-schema-helper-methods">  Use Schema Helper methods </h2> <p>As mentioned, remote APIs can often perform mutations to the attributes of a resource outside of Terraform's control. Common examples include data containing uppercase letters and being normalized to lowercase, or complex defaults being set for unset attributes. These situations expectedly result in drift, but can be reconciled by using Terraform's <a href="../schemas/schema-behaviors#function-behaviors">schema functions</a>, such as <code>DiffSuppressFunc</code> or <code>DefaultFunc</code>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 HashiCorpLicensed under the MPL 2.0 License.<br>
+    <a href="https://www.terraform.io/docs/extend/best-practices/detecting-drift.html" class="_attribution-link">https://www.terraform.io/docs/extend/best-practices/detecting-drift.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
