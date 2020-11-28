@@ -1,0 +1,464 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>WP_Recovery_Mode_Email_Service - WordPress - W3cubDocs</title>
+  
+  <meta name="description" content=" Core class used to send an email with a link to begin Recovery Mode. ">
+  <meta name="keywords" content="wp, recovery, mode, email, service, wordpress">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/wordpress/classes/wp_recovery_mode_email_service.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/wordpress.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/wordpress/" class="_nav-link" title="" style="margin-left:0;">WordPress</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _wordpress">
+				
+				
+<h1>WP_Recovery_Mode_Email_Service</h1>  <section class="summary"> <p>Core class used to send an email with a link to begin Recovery Mode.</p> </section> <div class="content-toc">  <section class="source-content"> <h2 class="toc-heading" id="source" tabindex="-1">Source </h2> <p> File: <a href="https://developer.wordpress.org/reference/files/wp-includes/class-wp-recovery-mode-email-service.php/">wp-includes/class-wp-recovery-mode-email-service.php</a> </p> <pre class="source-code-container" data-language="php">final class WP_Recovery_Mode_Email_Service {
+
+	const RATE_LIMIT_OPTION = 'recovery_mode_email_last_sent';
+
+	/**
+	 * Service to generate recovery mode URLs.
+	 *
+	 * @since 5.2.0
+	 * @var WP_Recovery_Mode_Link_Service
+	 */
+	private $link_service;
+
+	/**
+	 * WP_Recovery_Mode_Email_Service constructor.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @param WP_Recovery_Mode_Link_Service $link_service
+	 */
+	public function __construct( WP_Recovery_Mode_Link_Service $link_service ) {
+		$this-&gt;link_service = $link_service;
+	}
+
+	/**
+	 * Sends the recovery mode email if the rate limit has not been sent.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @param int   $rate_limit Number of seconds before another email can be sent.
+	 * @param array $error      Error details from {@see error_get_last()}
+	 * @param array $extension {
+	 *     The extension that caused the error.
+	 *
+	 *     @type string $slug The extension slug. The plugin or theme's directory.
+	 *     @type string $type The extension type. Either 'plugin' or 'theme'.
+	 * }
+	 * @return true|WP_Error True if email sent, WP_Error otherwise.
+	 */
+	public function maybe_send_recovery_mode_email( $rate_limit, $error, $extension ) {
+
+		$last_sent = get_option( self::RATE_LIMIT_OPTION );
+
+		if ( ! $last_sent || time() &gt; $last_sent + $rate_limit ) {
+			if ( ! update_option( self::RATE_LIMIT_OPTION, time() ) ) {
+				return new WP_Error( 'storage_error', __( 'Could not update the email last sent time.' ) );
+			}
+
+			$sent = $this-&gt;send_recovery_mode_email( $rate_limit, $error, $extension );
+
+			if ( $sent ) {
+				return true;
+			}
+
+			return new WP_Error(
+				'email_failed',
+				sprintf(
+					/* translators: %s: mail() */
+					__( 'The email could not be sent. Possible reason: your host may have disabled the %s function.' ),
+					'mail()'
+				)
+			);
+		}
+
+		$err_message = sprintf(
+			/* translators: 1. Last sent as a human time diff, 2. Wait time as a human time diff. */
+			__( 'A recovery link was already sent %1$s ago. Please wait another %2$s before requesting a new email.' ),
+			human_time_diff( $last_sent ),
+			human_time_diff( $last_sent + $rate_limit )
+		);
+
+		return new WP_Error( 'email_sent_already', $err_message );
+	}
+
+	/**
+	 * Clears the rate limit, allowing a new recovery mode email to be sent immediately.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function clear_rate_limit() {
+		return delete_option( self::RATE_LIMIT_OPTION );
+	}
+
+	/**
+	 * Sends the Recovery Mode email to the site admin email address.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @param int   $rate_limit Number of seconds before another email can be sent.
+	 * @param array $error      Error details from {@see error_get_last()}
+	 * @param array $extension  Extension that caused the error.
+	 * @return bool Whether the email was sent successfully.
+	 */
+	private function send_recovery_mode_email( $rate_limit, $error, $extension ) {
+
+		$url      = $this-&gt;link_service-&gt;generate_url();
+		$blogname = wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES );
+
+		$switched_locale = false;
+
+		// The switch_to_locale() function is loaded before it can actually be used.
+		if ( function_exists( 'switch_to_locale' ) &amp;&amp; isset( $GLOBALS['wp_locale_switcher'] ) ) {
+			$switched_locale = switch_to_locale( get_locale() );
+		}
+
+		if ( $extension ) {
+			$cause   = $this-&gt;get_cause( $extension );
+			$details = wp_strip_all_tags( wp_get_extension_error_description( $error ) );
+
+			if ( $details ) {
+				$header  = __( 'Error Details' );
+				$details = "\n\n" . $header . "\n" . str_pad( '', strlen( $header ), '=' ) . "\n" . $details;
+			}
+		} else {
+			$cause   = '';
+			$details = '';
+		}
+
+		/**
+		 * Filters the support message sent with the the fatal error protection email.
+		 *
+		 * @since 5.2.0
+		 *
+		 * @param string $message The Message to include in the email.
+		 */
+		$support = apply_filters( 'recovery_email_support_info', __( 'Please contact your host for assistance with investigating this issue further.' ) );
+
+		/**
+		 * Filters the debug information included in the fatal error protection email.
+		 *
+		 * @since 5.3.0
+		 *
+		 * @param array $message An associative array of debug information.
+		 */
+		$debug = apply_filters( 'recovery_email_debug_info', $this-&gt;get_debug( $extension ) );
+
+		/* translators: Do not translate LINK, EXPIRES, CAUSE, DETAILS, SITEURL, PAGEURL, SUPPORT. DEBUG: those are placeholders. */
+		$message = __(
+			'Howdy!
+
+Since WordPress 5.2 there is a built-in feature that detects when a plugin or theme causes a fatal error on your site, and notifies you with this automated email.
+###CAUSE###
+First, visit your website (###SITEURL###) and check for any visible issues. Next, visit the page where the error was caught (###PAGEURL###) and check for any visible issues.
+
+###SUPPORT###
+
+If your site appears broken and you can\'t access your dashboard normally, WordPress now has a special "recovery mode". This lets you safely login to your dashboard and investigate further.
+
+###LINK###
+
+To keep your site safe, this link will expire in ###EXPIRES###. Don\'t worry about that, though: a new link will be emailed to you if the error occurs again after it expires.
+
+When seeking help with this issue, you may be asked for some of the following information:
+###DEBUG###
+
+###DETAILS###'
+		);
+		$message = str_replace(
+			array(
+				'###LINK###',
+				'###EXPIRES###',
+				'###CAUSE###',
+				'###DETAILS###',
+				'###SITEURL###',
+				'###PAGEURL###',
+				'###SUPPORT###',
+				'###DEBUG###',
+			),
+			array(
+				$url,
+				human_time_diff( time() + $rate_limit ),
+				$cause ? "\n{$cause}\n" : "\n",
+				$details,
+				home_url( '/' ),
+				home_url( $_SERVER['REQUEST_URI'] ),
+				$support,
+				implode( "\r\n", $debug ),
+			),
+			$message
+		);
+
+		$email = array(
+			'to'      =&gt; $this-&gt;get_recovery_mode_email_address(),
+			/* translators: %s: Site title. */
+			'subject' =&gt; __( '[%s] Your Site is Experiencing a Technical Issue' ),
+			'message' =&gt; $message,
+			'headers' =&gt; '',
+		);
+
+		/**
+		 * Filter the contents of the Recovery Mode email.
+		 *
+		 * @since 5.2.0
+		 *
+		 * @param array  $email Used to build wp_mail().
+		 * @param string $url   URL to enter recovery mode.
+		 */
+		$email = apply_filters( 'recovery_mode_email', $email, $url );
+
+		$sent = wp_mail(
+			$email['to'],
+			wp_specialchars_decode( sprintf( $email['subject'], $blogname ) ),
+			$email['message'],
+			$email['headers']
+		);
+
+		if ( $switched_locale ) {
+			restore_previous_locale();
+		}
+
+		return $sent;
+	}
+
+	/**
+	 * Gets the email address to send the recovery mode link to.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @return string Email address to send recovery mode link to.
+	 */
+	private function get_recovery_mode_email_address() {
+		if ( defined( 'RECOVERY_MODE_EMAIL' ) &amp;&amp; is_email( RECOVERY_MODE_EMAIL ) ) {
+			return RECOVERY_MODE_EMAIL;
+		}
+
+		return get_option( 'admin_email' );
+	}
+
+	/**
+	 * Gets the description indicating the possible cause for the error.
+	 *
+	 * @since 5.2.0
+	 *
+	 * @param array $extension The extension that caused the error.
+	 * @return string Message about which extension caused the error.
+	 */
+	private function get_cause( $extension ) {
+
+		if ( 'plugin' === $extension['type'] ) {
+			$plugin = $this-&gt;get_plugin( $extension );
+
+			if ( false === $plugin ) {
+				$name = $extension['slug'];
+			} else {
+				$name = $plugin['Name'];
+			}
+
+			/* translators: %s: Plugin name. */
+			$cause = sprintf( __( 'In this case, WordPress caught an error with one of your plugins, %s.' ), $name );
+		} else {
+			$theme = wp_get_theme( $extension['slug'] );
+			$name  = $theme-&gt;exists() ? $theme-&gt;display( 'Name' ) : $extension['slug'];
+
+			/* translators: %s: Theme name. */
+			$cause = sprintf( __( 'In this case, WordPress caught an error with your theme, %s.' ), $name );
+		}
+
+		return $cause;
+	}
+
+	/**
+	 * Return the details for a single plugin based on the extension data from an error.
+	 *
+	 * @since 5.3.0
+	 *
+	 * @param array $extension The extension that caused the error.
+	 * @return bool|array A plugin array {@see get_plugins()} or `false` if no plugin was found.
+	 */
+	private function get_plugin( $extension ) {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugins = get_plugins();
+
+		// Assume plugin main file name first since it is a common convention.
+		if ( isset( $plugins[ "{$extension['slug']}/{$extension['slug']}.php" ] ) ) {
+			return $plugins[ "{$extension['slug']}/{$extension['slug']}.php" ];
+		} else {
+			foreach ( $plugins as $file =&gt; $plugin_data ) {
+				if ( 0 === strpos( $file, "{$extension['slug']}/" ) || $file === $extension['slug'] ) {
+					return $plugin_data;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Return debug information in an easy to manipulate format.
+	 *
+	 * @since 5.3.0
+	 *
+	 * @param array $extension The extension that caused the error.
+	 * @return array An associative array of debug information.
+	 */
+	private function get_debug( $extension ) {
+		$theme      = wp_get_theme();
+		$wp_version = get_bloginfo( 'version' );
+
+		if ( $extension ) {
+			$plugin = $this-&gt;get_plugin( $extension );
+		} else {
+			$plugin = null;
+		}
+
+		$debug = array(
+			/* translators: %s: Current WordPress version number. */
+			'wp'    =&gt; sprintf(
+				__( 'WordPress version %s' ),
+				$wp_version
+			),
+			'theme' =&gt; sprintf(
+				/* translators: 1: Current active theme name. 2: Current active theme version. */
+				__( 'Current theme: %1$s (version %2$s)' ),
+				$theme-&gt;get( 'Name' ),
+				$theme-&gt;get( 'Version' )
+			),
+		);
+
+		if ( null !== $plugin ) {
+			$debug['plugin'] = sprintf(
+				/* translators: 1: The failing plugins name. 2: The failing plugins version. */
+				__( 'Current plugin: %1$s (version %2$s)' ),
+				$plugin['Name'],
+				$plugin['Version']
+			);
+		}
+
+		$debug['php'] = sprintf(
+			/* translators: %s: The currently used PHP version. */
+			__( 'PHP version %s' ),
+			PHP_VERSION
+		);
+
+		return $debug;
+	}
+}</pre>  </section>  <section class="class-methods"> <h2 class="toc-heading" id="methods" tabindex="-1">Methods </h2> <ul> <li>
+<a href="wp_recovery_mode_email_service/__construct"> __construct</a> — WP_Recovery_Mode_Email_Service constructor. </li> <li>
+<a href="wp_recovery_mode_email_service/clear_rate_limit"> clear_rate_limit</a> — Clears the rate limit, allowing a new recovery mode email to be sent immediately. </li> <li>
+<a href="wp_recovery_mode_email_service/get_cause"> get_cause</a> — Gets the description indicating the possible cause for the error. </li> <li>
+<a href="wp_recovery_mode_email_service/get_debug"> get_debug</a> — Return debug information in an easy to manipulate format. </li> <li>
+<a href="wp_recovery_mode_email_service/get_plugin"> get_plugin</a> — Return the details for a single plugin based on the extension data from an error. </li> <li>
+<a href="wp_recovery_mode_email_service/get_recovery_mode_email_address"> get_recovery_mode_email_address</a> — Gets the email address to send the recovery mode link to. </li> <li>
+<a href="wp_recovery_mode_email_service/maybe_send_recovery_mode_email"> maybe_send_recovery_mode_email</a> — Sends the recovery mode email if the rate limit has not been sent. </li> <li>
+<a href="wp_recovery_mode_email_service/send_recovery_mode_email"> send_recovery_mode_email</a> — Sends the Recovery Mode email to the site admin email address. </li> </ul> </section>  <section class="changelog"> <h2 class="toc-heading" id="changelog" tabindex="-1">Changelog </h2> <table>  <thead> <tr> <th class="changelog-version">Version</th> <th class="changelog-desc">Description</th> </tr> </thead> <tbody> <tr> <td><a href="https://developer.wordpress.org/reference/since/5.2.0/" alt="WordPress 5.2.0">5.2.0</a></td> <td>Introduced.</td> </tr> </tbody> </table> </section>   </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2003–2019 WordPress Foundation<br>Licensed under the GNU GPLv2+ License.<br>
+    <a href="https://developer.wordpress.org/reference/classes/wp_recovery_mode_email_service" class="_attribution-link">https://developer.wordpress.org/reference/classes/wp_recovery_mode_email_service</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
