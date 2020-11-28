@@ -1,0 +1,222 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Automated Testing With a Custom Driver - Electron - W3cubDocs</title>
+  
+  <meta name="description" content="To write automated tests for your Electron app, you will need a way to &#34;drive&#34; your application. Spectron is a commonly-used solution which &hellip;">
+  <meta name="keywords" content="automated, testing, with, custom, driver, electron">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/electron/tutorial/automated-testing-with-a-custom-driver.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/electron.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/electron/" class="_nav-link" title="" style="margin-left:0;">Electron</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="automated-testing-with-a-custom-driver">Automated Testing with a Custom Driver</h1> <p>To write automated tests for your Electron app, you will need a way to "drive" your application. <a href="https://electronjs.org/spectron">Spectron</a> is a commonly-used solution which lets you emulate user actions via <a href="https://webdriver.io/">WebDriver</a>. However, it's also possible to write your own custom driver using node's builtin IPC-over-STDIO. The benefit of a custom driver is that it tends to require less overhead than Spectron, and lets you expose custom methods to your test suite.</p> <p>To create a custom driver, we'll use Node.js' <a href="https://nodejs.org/api/child_process.html">child_process</a> API. The test suite will spawn the Electron process, then establish a simple messaging protocol:</p> <pre data-language="js">const childProcess = require('child_process')
+const electronPath = require('electron')
+
+// spawn the process
+const env = { /* ... */ }
+const stdio = ['inherit', 'inherit', 'inherit', 'ipc']
+const appProcess = childProcess.spawn(electronPath, ['./app'], { stdio, env })
+
+// listen for IPC messages from the app
+appProcess.on('message', (msg) =&gt; {
+  // ...
+})
+
+// send an IPC message to the app
+appProcess.send({ my: 'message' })
+</pre> <p>From within the Electron app, you can listen for messages and send replies using the Node.js <a href="https://nodejs.org/api/process.html">process</a> API:</p> <pre data-language="js">// listen for IPC messages from the test suite
+process.on('message', (msg) =&gt; {
+  // ...
+})
+
+// send an IPC message to the test suite
+process.send({ my: 'message' })
+</pre> <p>We can now communicate from the test suite to the Electron app using the <code>appProcess</code> object.</p> <p>For convenience, you may want to wrap <code>appProcess</code> in a driver object that provides more high-level functions. Here is an example of how you can do this:</p> <pre data-language="js">class TestDriver {
+  constructor ({ path, args, env }) {
+    this.rpcCalls = []
+
+    // start child process
+    env.APP_TEST_DRIVER = 1 // let the app know it should listen for messages
+    this.process = childProcess.spawn(path, args, { stdio: ['inherit', 'inherit', 'inherit', 'ipc'], env })
+
+    // handle rpc responses
+    this.process.on('message', (message) =&gt; {
+      // pop the handler
+      const rpcCall = this.rpcCalls[message.msgId]
+      if (!rpcCall) return
+      this.rpcCalls[message.msgId] = null
+      // reject/resolve
+      if (message.reject) rpcCall.reject(message.reject)
+      else rpcCall.resolve(message.resolve)
+    })
+
+    // wait for ready
+    this.isReady = this.rpc('isReady').catch((err) =&gt; {
+      console.error('Application failed to start', err)
+      this.stop()
+      process.exit(1)
+    })
+  }
+
+  // simple RPC call
+  // to use: driver.rpc('method', 1, 2, 3).then(...)
+  async rpc (cmd, ...args) {
+    // send rpc request
+    const msgId = this.rpcCalls.length
+    this.process.send({ msgId, cmd, args })
+    return new Promise((resolve, reject) =&gt; this.rpcCalls.push({ resolve, reject }))
+  }
+
+  stop () {
+    this.process.kill()
+  }
+}
+</pre> <p>In the app, you'd need to write a simple handler for the RPC calls:</p> <pre data-language="js">if (process.env.APP_TEST_DRIVER) {
+  process.on('message', onMessage)
+}
+
+async function onMessage ({ msgId, cmd, args }) {
+  let method = METHODS[cmd]
+  if (!method) method = () =&gt; new Error('Invalid method: ' + cmd)
+  try {
+    const resolve = await method(...args)
+    process.send({ msgId, resolve })
+  } catch (err) {
+    const reject = {
+      message: err.message,
+      stack: err.stack,
+      name: err.name
+    }
+    process.send({ msgId, reject })
+  }
+}
+
+const METHODS = {
+  isReady () {
+    // do any setup needed
+    return true
+  }
+  // define your RPC-able methods here
+}
+</pre> <p>Then, in your test suite, you can use your test-driver as follows:</p> <pre data-language="js">const test = require('ava')
+const electronPath = require('electron')
+
+const app = new TestDriver({
+  path: electronPath,
+  args: ['./app'],
+  env: {
+    NODE_ENV: 'test'
+  }
+})
+test.before(async t =&gt; {
+  await app.isReady
+})
+test.after.always('cleanup', async t =&gt; {
+  await app.stop()
+})
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © GitHub Inc.<br>Licensed under the MIT license.<br>
+    <a href="https://www.electronjs.org/docs/tutorial/automated-testing-with-a-custom-driver" class="_attribution-link">https://www.electronjs.org/docs/tutorial/automated-testing-with-a-custom-driver</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
