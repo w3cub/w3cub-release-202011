@@ -1,0 +1,170 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Writing Marble Tests - RxJS - W3cubDocs</title>
+  
+  <meta name="description" content="&#34;Marble Tests&#34; are tests that use a specialized VirtualScheduler called the TestScheduler. They enable us to test asynchronous operations in &hellip;">
+  <meta name="keywords" content="writing, marble, tests, rxjs">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rxjs/guide/testing/internal-marble-tests.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rxjs.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rxjs/" class="_nav-link" title="" style="margin-left:0;">RxJS</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rxjs">
+				
+				
+<h1>Writing Marble Tests</h1> <blockquote class="alert is-critical"> <span> This document refers to the writing marble tests for the <b>RxJS repo internals</b> and is intended for anyone wishing to help maintain the RxJS repo. <b>Users of RxJS</b> should instead view the <a href="marble-testing">guide for writing marbles tests for applications</a>. The major difference is that the behavior of the TestScheduler differs between manual usage and using the `testScheduler.run(callback)` helper. </span> </blockquote> <p>"Marble Tests" are tests that use a specialized VirtualScheduler called the <code>TestScheduler</code>. They enable us to test asynchronous operations in a synchronous and dependable manner. The "marble notation" is something that's been adapted from many teachings and documents by people such as <a href="https://twitter.com/jhusain">@jhusain</a>, <a href="https://twitter.com/headinthebox">@headinthebox</a>, <a href="https://twitter.com/mattpodwysocki">@mattpodwysocki</a> and <a href="https://twitter.com/andrestaltz">@andrestaltz</a>. In fact, André Staltz first recommended this as a DSL for creating unit tests, and it has since been altered and adopted.</p> <h2>See also</h2> <ul> <li><a href="https://rxjs.dev/code-of-conduct">Code of Conduct</a></li> </ul> <h2>Basic methods</h2> <p>The unit tests have helper methods that have been added to make creating tests easier.</p> <ul> <li>
+<code>hot(marbles: string, values?: object, error?: any)</code> - creates a "hot" observable (a subject) that will behave as though it's already "running" when the test begins. An interesting difference is that <code>hot</code> marbles allow a <code>^</code> character to signal where the "zero frame" is. That is the point at which the subscription to observables being tested begins.</li> <li>
+<code>cold(marbles: string, values?: object, error?: any)</code> - creates a "cold" observable whose subscription starts when the test begins.</li> <li>
+<code>expectObservable(actual: Observable&lt;T&gt;).toBe(marbles: string, values?: object, error?: any)</code> - schedules an assertion for when the TestScheduler flushes. The TestScheduler will automatically flush at the end of your jasmine <code>it</code> block.</li> <li>
+<code>expectSubscriptions(actualSubscriptionLogs: SubscriptionLog[]).toBe(subscriptionMarbles: string)</code> - like <code>expectObservable</code> schedules an assertion for when the testScheduler flushes. Both <code>cold()</code> and <code>hot()</code> return an observable with a property <code>subscriptions</code> of type <code>SubscriptionLog[]</code>. Give <code>subscriptions</code> as parameter to <code>expectSubscriptions</code> to assert whether it matches the <code>subscriptionsMarbles</code> marble diagram given in <code>toBe()</code>. Subscription marble diagrams are slightly different than Observable marble diagrams. Read more below.</li> </ul> <h3>Ergonomic defaults for <code>hot</code> and <code>cold</code>
+</h3> <p>In both <code>hot</code> and <code>cold</code> methods, value characters specified in marble diagrams are emitted as strings unless a <code>values</code> argument is passed to the method. Therefor:</p> <p><code>hot('--a--b')</code> will emit <code>"a"</code> and <code>"b"</code> whereas</p> <p><code>hot('--a--b', { a: 1, b: 2 })</code> will emit <code>1</code> and <code>2</code>.</p> <p>Likewise, unspecified errors will just default to the string <code>"error"</code>, so:</p> <p><code>hot('---#')</code> will emit error <code>"error"</code> whereas</p> <p><code>hot('---#', null, new SpecialError('test'))</code> will emit <code>new SpecialError('test')</code></p> <h2>Marble Syntax</h2> <p>Marble syntax is a string which represents events happening over "time". The first character of any marble string</p> <p>always represents the "zero frame". A "frame" is somewhat analogous to a virtual millisecond.</p> <ul> <li>
+<code>"-"</code> time: 10 "frames" of time passage.</li> <li>
+<code>"|"</code> complete: The successful completion of an observable. This is the observable producer signaling <code>complete()</code>
+</li> <li>
+<code>"#"</code> error: An error terminating the observable. This is the observable producer signaling <code>error()</code>
+</li> <li>
+<code>"a"</code> any character: All other characters represent a value being emitted by the producer signaling <code>next()</code>
+</li> <li>
+<code>"()"</code> sync groupings: When multiple events need to be in the same frame synchronously, parentheses are used to group those events. You can group nexted values, a completion or an error in this manner. The position of the initial <code>(</code> determines the time at which its values are emitted.</li> <li>
+<code>"^"</code> subscription point: (hot observables only) shows the point at which the tested observables will be subscribed to the hot observable. This is the "zero frame" for that observable, every frame before the <code>^</code> will be negative.</li> </ul> <h3>Examples</h3> <p><code>'-'</code> or <code>'------'</code>: Equivalent to <code>Observable.never()</code>, or an observable that never emits or completes</p> <p><code>|</code>: Equivalent to <code>Observable.empty()</code></p> <p><code>#</code>: Equivalent to <code>Observable.throw()</code></p> <p><code>'--a--'</code>: An observable that waits 20 "frames", emits value <code>a</code> and then never completes.</p> <p><code>'--a--b--|'</code>: On frame 20 emit <code>a</code>, on frame 50 emit <code>b</code>, and on frame 80, <code>complete</code></p> <p><code>'--a--b--#'</code>: On frame 20 emit <code>a</code>, on frame 50 emit <code>b</code>, and on frame 80, <code>error</code></p> <p><code>'-a-^-b--|'</code>: In a hot observable, on frame -20 emit <code>a</code>, then on frame 20 emit <code>b</code>, and on frame 50, <code>complete</code>.</p> <p><code>'--(abc)-|'</code>: on frame 20, emit <code>a</code>, <code>b</code>, and <code>c</code>, then on frame 80 <code>complete</code></p> <p><code>'-----(a|)'</code>: on frame 50, emit <code>a</code> and <code>complete</code>.</p> <h2>Subscription Marble Syntax</h2> <p>The subscription marble syntax is slightly different to conventional marble syntax. It represents the <strong>subscription</strong> and an <strong>unsubscription</strong> points happening over time. There should be no other type of event represented in such diagram.</p> <ul> <li>
+<code>"-"</code> time: 10 "frames" of the passage.</li> <li>
+<code>"^"</code> subscription point: shows the point in time at which a subscription happen.</li> <li>
+<code>"!"</code> unsubscription point: shows the point in time at which a subscription is unsubscribed.</li> </ul> <p>There should be <strong>at most one</strong> <code>^</code> point in a subscription marble diagram, and <strong>at most one</strong> <code>!</code> point. Other than that, the <code>-</code> character is the only one allowed in a subscription marble diagram.</p> <h3>Examples</h3> <p><code>'-'</code> or <code>'------'</code>: no subscription ever happened.</p> <p><code>'--^--'</code>: a subscription happened after 20 "frames" of time passed, and the subscription was not unsubscribed.</p> <p><code>'--^--!-'</code>: on frame 20 a subscription happened, and on frame 50 was unsubscribed.</p> <h2>Anatomy of a Test</h2> <p>A basic test might look as follows:</p> <pre data-language="typescript">const e1 = hot('----a--^--b-------c--|');
+const e2 = hot(  '---d-^--e---------f-----|');
+const expected =      '---(be)----c-f-----|';
+
+expectObservable(e1.merge(e2)).toBe(expected);</pre> <ul> <li>The <code>^</code> characters of <code>hot</code> observables should <strong>always</strong> be aligned.</li> <li>The <strong>first character</strong> of <code>cold</code> observables or expected observables should <strong>always</strong> be aligned with each other, and with the <code>^</code> of hot observables.</li> <li>Use default emission values when you can. Specify <code>values</code> when you have to.</li> </ul> <p>A test example with specified values:</p> <pre data-language="typescript">const values = {
+  a: 1,
+  b: 2,
+  c: 3,
+  d: 4,
+  x: 1 + 3, // a + c
+  y: 2 + 4, // b + d
+}
+const e1 =    hot('---a---b---|', values);
+const e2 =    hot('-----c---d---|', values);
+const expected =  '-----x---y---|';
+
+expectObservable(e1.zip(e2, function(x, y) { return x + y; }))
+  .toBe(expected, values);</pre> <ul> <li>Use the same hash to look up all values, this ensures that multiple uses of the same character have the same value.</li> <li>Make the result values as obvious as possible as to what they represent, these are <em>tests</em> afterall, we want clarity more than efficiency, so <code>x: 1 + 3, // a + c</code> is better than just <code>x: 4</code>. The former conveys <em>why</em> it's 4, the latter does not.</li> </ul> <p>A test example with subscription assertions:</p> <pre data-language="typescript">const x = cold(        '--a---b---c--|');
+const xsubs =    '------^-------!';
+const y = cold(                '---d--e---f---|');
+const ysubs =    '--------------^-------------!';
+const e1 = hot(  '------x-------y------|', { x: x, y: y });
+const expected = '--------a---b----d--e---f---|';
+
+expectObservable(e1.switch()).toBe(expected);
+expectSubscriptions(x.subscriptions).toBe(xsubs);
+expectSubscriptions(y.subscriptions).toBe(ysubs);</pre> <ul> <li>Align the start of <code>xsubs</code> and <code>ysubs</code> diagrams with <code>expected</code> diagram.</li> <li>Notice how the <code>x</code> cold observable is unsubscribed at the same time <code>e1</code> emits <code>y</code>.</li> </ul> <p>In most tests it will be unnecessary to test subscription and unsubscription points, being either obvious or implied from the <code>expected</code> diagram. In those cases do not write subscription assertions. In test cases that have inner subscriptions or cold observables with multiple subscribers, these subscription assertions can be useful.</p> <h2>Generating PNG marble diagrams from tests</h2> <p>Typically, each test case in Jasmine is written as <code>it('should do something', function () { /* ... */ })</code>. To mark a test case for PNG diagram generation, you must use the <code>asDiagram(label)</code> function, like this:</p> <pre data-language="typescript">it.asDiagram(operatorLabel)('should do something', function () {
+});</pre> <p>For instance, with <code>zip</code>, we would write</p> <pre data-language="typescript">it.asDiagram('zip')('should zip by concatenating', function () {
+  const e1 =    hot('---a---b---|');
+  const e2 =    hot('-----c---d---|');
+  const expected =  '-----x---y---|';
+  const values = { x: 'ac', y: 'bd' };
+
+  const result = e1.zip(e2, function(x, y) { return String(x) + String(y); });
+
+  expectObservable(result).toBe(expected, values);
+});</pre> <p>Then, when running <code>npm run tests2png</code>, this test case will be parsed and a PNG file <code>zip.png</code> (filename determined by <code>${operatorLabel}.png</code>) will be created in the <code>img/</code> folder.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2018 Google, Inc., Netflix, Inc., Microsoft Corp. and contributors.<br>Code licensed under an Apache-2.0 License. Documentation licensed under CC BY 4.0.<br>
+    <a href="https://rxjs.dev/guide/testing/internal-marble-tests" class="_attribution-link">https://rxjs.dev/guide/testing/internal-marble-tests</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
