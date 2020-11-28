@@ -1,0 +1,628 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Mutations - Relay - W3cubDocs</title>
+  
+  <meta name="description" content="Up until this point we have only interacted with the GraphQL endpoint to perform queries that fetch data. In this guide, you will learn how to use &hellip;">
+  <meta name="keywords" content="mutations, relay">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/relay/guides-mutations.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/relay.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/relay/" class="_nav-link" title="" style="margin-left:0;">Relay</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Mutations</h1>
+<p>Up until this point we have only interacted with the GraphQL endpoint to perform queries that fetch data. In this guide, you will learn how to use Relay to perform mutations – operations that consist of writes to the data store followed by a fetch of any changed fields.</p>
+<h2 id="a-complete-example">
+A complete example </h2>
+<p>Before taking a deep dive into the mutations API, let's look at a complete example. Here, we subclass <code>Relay.Mutation</code> to create a custom mutation that we can use to like a story.</p>
+<pre class="prism language-javascript" data-language="javascript">
+class LikeStoryMutation extends Relay.Mutation {
+  // This method should return a GraphQL operation that represents
+  // the mutation to be performed. This presumes that the server
+  // implements a mutation type named ‘likeStory’.
+  getMutation() {
+    return Relay.QL`mutation {likeStory}`;
+  }
+  // Use this method to prepare the variables that will be used as
+  // input to the mutation. Our ‘likeStory’ mutation takes exactly
+  // one variable as input – the ID of the story to like.
+  getVariables() {
+    return {storyID: this.props.story.id};
+  }
+  // Use this method to design a ‘fat query’ – one that represents every
+  // field in your data model that could change as a result of this mutation.
+  // Liking a story could affect the likers count, the sentence that
+  // summarizes who has liked a story, and the fact that the viewer likes the
+  // story or not. Relay will intersect this query with a ‘tracked query’
+  // that represents the data that your application actually uses, and
+  // instruct the server to include only those fields in its response.
+  getFatQuery() {
+    return Relay.QL`
+      fragment on LikeStoryPayload {
+        story {
+          likers {
+            count,
+          },
+          likeSentence,
+          viewerDoesLike,
+        },
+      }
+    `;
+  }
+  // These configurations advise Relay on how to handle the LikeStoryPayload
+  // returned by the server. Here, we tell Relay to use the payload to
+  // change the fields of a record it already has in the store. The
+  // key-value pairs of ‘fieldIDs’ associate field names in the payload
+  // with the ID of the record that we want updated.
+  getConfigs() {
+    return [{
+      type: 'FIELDS_CHANGE',
+      fieldIDs: {
+        story: this.props.story.id,
+      },
+    }];
+  }
+  // This mutation has a hard dependency on the story's ID. We specify this
+  // dependency declaratively here as a GraphQL query fragment. Relay will
+  // use this fragment to ensure that the story's ID is available wherever
+  // this mutation is used.
+  static fragments = {
+    story: () =&gt; Relay.QL`
+      fragment on Story {
+        id,
+      }
+    `,
+  };
+}</pre>
+<p>Here's an example of this mutation in use by a <code>LikeButton</code> component:</p>
+<pre class="prism language-javascript" data-language="javascript">
+class LikeButton extends React.Component {
+  _handleLike = () =&gt; {
+    // To perform a mutation, pass an instance of one to
+    // `this.props.relay.commitUpdate`
+    this.props.relay.commitUpdate(
+      new LikeStoryMutation({story: this.props.story})
+    );
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        {this.props.story.viewerDoesLike
+          ? 'You like this'
+          : &lt;button onClick={this._handleLike}&gt;Like this&lt;/button&gt;
+        }
+      &lt;/div&gt;
+    );
+  }
+}
+
+module.exports = Relay.createContainer(LikeButton, {
+  fragments: {
+    // You can compose a mutation's query fragments like you would those
+    // of any other RelayContainer. This ensures that the data depended
+    // upon by the mutation will be fetched and ready for use.
+    story: () =&gt; Relay.QL`
+      fragment on Story {
+        viewerDoesLike,
+        ${LikeStoryMutation.getFragment('story')},
+      }
+    `,
+  },
+});</pre>
+<p>In this particular example, the only field that the <code>LikeButton</code> cares about is <code>viewerDoesLike</code>. That field will form part of the tracked query that Relay will intersect with the fat query of <code>LikeStoryMutation</code> to determine what fields to request as part of the server's response payload for the mutation. Another component elsewhere in the application might be interested in the likers count, or the like sentence. Since those fields will automatically be added to Relay's tracked query, the <code>LikeButton</code> need not worry about requesting them explicitly.</p>
+<h2 id="mutation-props">
+Mutation props </h2>
+<p>Any props that we pass to the constructor of a mutation will become available to its instance methods as <code>this.props</code>. Like in components used within Relay containers, props for which a corresponding fragment has been defined will be populated by Relay with query data:</p>
+<pre class="prism language-javascript" data-language="javascript">
+class LikeStoryMutation extends Relay.Mutation {
+  static fragments = {
+    story: () =&gt; Relay.QL`
+      fragment on Story {
+        id,
+        viewerDoesLike,
+      }
+    `,
+  };
+  getMutation() {
+    // Here, viewerDoesLike is guaranteed to be available.
+    // We can use it to make this mutation polymorphic.
+    return this.props.story.viewerDoesLike
+      ? Relay.QL`mutation {unlikeStory}`
+      : Relay.QL`mutation {likeStory}`;
+  }
+  /* ... */
+}</pre>
+<h2 id="fragment-variables">
+Fragment variables </h2>
+<p>Like it can be done with <a href="guides-containers">Relay containers</a>, we can prepare variables for use by our mutation's fragment builders, based on the previous variables and the runtime environment.</p>
+<pre class="prism language-javascript" data-language="javascript">
+class RentMovieMutation extends Relay.Mutation {
+  static initialVariables = {
+    format: 'hd',
+    lang: 'en-CA',
+  };
+  static prepareVariables = (prevVariables) =&gt; {
+    var overrideVariables = {};
+    if (navigator.language) {
+      overrideVariables.lang = navigator.language;
+    }
+    var formatPreference = localStorage.getItem('formatPreference');
+    if (formatPreference) {
+      overrideVariables.format = formatPreference;
+    }
+    return {...prevVariables, ...overrideVariables};
+  };
+  static fragments = {
+    // Now we can use the variables we've prepared to fetch movies
+    // appropriate for the viewer's locale and preferences
+    movie: () =&gt; Relay.QL`
+      fragment on Movie {
+        posterImage(lang: $lang) { url },
+        trailerVideo(format: $format, lang: $lang) { url },
+      }
+    `,
+  };
+}</pre>
+<h2 id="the-fat-query">
+The fat query </h2>
+<p>Changing one thing in a system can have a ripple effect that causes other things to change in turn. Imagine a mutation that we can use to accept a friend request. This can have wide implications:</p>
+<ul>
+<li>both people's friend count will increment</li>
+<li>an edge representing the new friend will be added to the viewer's <code>friends</code> connection</li>
+<li>an edge representing the viewer will be added to the new friend's <code>friends</code> connection</li>
+<li>the viewer's friendship status with the requester will change</li>
+</ul>
+<p>Design a fat query that covers every possible field that could change:</p>
+<pre class="prism language-javascript" data-language="javascript">
+class AcceptFriendRequestMutation extends Relay.Mutation {
+  getFatQuery() {
+    // This presumes that the server-side implementation of this mutation
+    // returns a payload of type `AcceptFriendRequestPayload` that exposes
+    // `friendEdge`, `friendRequester`, and `viewer` fields.
+    return Relay.QL`
+      fragment on AcceptFriendRequestPayload {
+        friendEdge,
+        friendRequester {
+          friends,
+          friendshipStatusWithViewer,
+        },
+        viewer {
+          friends,
+        },
+      }
+    `;
+  }
+}</pre>
+<p>This fat query looks like any other GraphQL query, with one important distinction. We know some of these fields to be non-scalar (like <code>friendEdge</code> and <code>friends</code>) but notice that we have not named any of their children by way of a subquery. In this way, we indicate to Relay that <em>anything</em> under those non-scalar fields may change as a result of this mutation.</p>
+<blockquote>
+<p>Note</p>
+<p>When designing a fat query, consider <em>all</em> of the data that might change as a result of the mutation – not just the data currently in use by your application. We don't need to worry about overfetching; this query is never executed without first intersecting it with a ‘tracked query’ of the data our application actually needs. If we omit fields in the fat query, we might observe data inconsistencies in the future when we add views with new data dependencies, or add new data dependencies to existing views.</p>
+</blockquote>
+<h2 id="mutator-configuration">
+Mutator configuration </h2>
+<p>We need to give Relay instructions on how to use the response payload from each mutation to update the client-side store. We do this by configuring the mutation with one or more of the following mutation types:</p>
+<h3 id="fields_change">
+<code>FIELDS_CHANGE</code> </h3>
+<p>Any field in the payload that can be correlated by DataID with one or more records in the client-side store will be merged with the record(s) in the store.</p>
+<h4 id="fields-change-arguments">
+Arguments </h4>
+<ul><li>
+<p><code>fieldIDs: {[fieldName: string]: DataID | Array&lt;DataID&gt;}</code></p>
+<p>A map between a <code>fieldName</code> in the response and one or more DataIDs in the store.</p>
+</li></ul>
+<h4 id="fields-change-example">
+Example </h4>
+<pre class="prism language-javascript" data-language="javascript">
+class RenameDocumentMutation extends Relay.Mutation {
+  // This mutation declares a dependency on a document's ID
+  static fragments = {
+    document: () =&gt; Relay.QL`fragment on Document { id }`,
+  };
+  // We know that only the document's name can change as a result
+  // of this mutation, and specify it here in the fat query.
+  getFatQuery() {
+    return Relay.QL`
+      fragment on RenameDocumentMutationPayload { updatedDocument { name } }
+    `;
+  }
+  getVariables() {
+    return {id: this.props.document.id, newName: this.props.newName};
+  }
+  getConfigs() {
+    return [{
+      type: 'FIELDS_CHANGE',
+      // Correlate the `updatedDocument` field in the response
+      // with the DataID of the record we would like updated.
+      fieldIDs: {updatedDocument: this.props.document.id},
+    }];
+  }
+  /* ... */
+}</pre>
+<h3 id="node_delete">
+<code>NODE_DELETE</code> </h3>
+<p>Given a parent, a connection, and one or more DataIDs in the response payload, Relay will remove the node(s) from the connection and delete the associated record(s) from the store.</p>
+<h4 id="node-delete-arguments">
+Arguments </h4>
+<ul>
+<li>
+<p><code>parentName: string</code></p>
+<p>The field name in the response that represents the parent of the connection</p>
+</li>
+<li>
+<p><code>parentID?: string</code></p>
+<p>The DataID of the parent node that contains the connection. This argument is optional.</p>
+</li>
+<li>
+<p><code>connectionName: string</code></p>
+<p>The field name in the response that represents the connection</p>
+</li>
+<li>
+<p><code>deletedIDFieldName: string</code></p>
+<p>The field name in the response that contains the DataID of the deleted node</p>
+</li>
+</ul>
+<h4 id="node-delete-example">
+Example </h4>
+<pre class="prism language-javascript" data-language="javascript">
+class DestroyShipMutation extends Relay.Mutation {
+  // This mutation declares a dependency on an enemy ship's ID
+  // and the ID of the faction that ship belongs to.
+  static fragments = {
+    ship: () =&gt; Relay.QL`fragment on Ship { id, faction { id } }`,
+  };
+  // Destroying a ship will remove it from a faction's fleet, so we
+  // specify the faction's ships connection as part of the fat query.
+  getFatQuery() {
+    return Relay.QL`
+      fragment on DestroyShipMutationPayload {
+        destroyedShipID,
+        faction { ships },
+      }
+    `;
+  }
+  getConfigs() {
+    return [{
+      type: 'NODE_DELETE',
+      parentName: 'faction',
+      parentID: this.props.ship.faction.id,
+      connectionName: 'ships',
+      deletedIDFieldName: 'destroyedShipID',
+    }];
+  }
+  /* ... */
+}</pre>
+<h3 id="range_add">
+<code>RANGE_ADD</code> </h3>
+<p>Given a parent, a connection, and the name of the newly created edge in the response payload Relay will add the node to the store and attach it to the connection according to the range behavior specified.</p>
+<h4 id="range-add-arguments">
+Arguments </h4>
+<ul>
+<li>
+<p><code>parentName: string</code></p>
+<p>The field name in the response that represents the parent of the connection</p>
+</li>
+<li>
+<p><code>parentID?: string</code></p>
+<p>The DataID of the parent node that contains the connection. This argument is optional.</p>
+</li>
+<li>
+<p><code>connectionName: string</code></p>
+<p>The field name in the response that represents the connection</p>
+</li>
+<li>
+<p><code>edgeName: string</code></p>
+<p>The field name in the response that represents the newly created edge</p>
+</li>
+<li>
+<p><code>rangeBehaviors: {[call: string]: GraphQLMutatorConstants.RANGE_OPERATIONS} | (connectionArgs: {[argName: string]: string}) =&gt; $Enum&lt;GraphQLMutatorConstants.RANGE_OPERATIONS&gt;</code></p>
+<p>A map between printed, dot-separated GraphQL calls <em>in alphabetical order</em> and the behavior we want Relay to exhibit when adding the new edge to connections under the influence of those calls or a function accepting an array of connection arguments, returning that behavior.</p>
+</li>
+</ul>
+<p>For example, <code>rangeBehaviors</code> could be written this way:</p>
+<pre class="prism language-javascript" data-language="javascript">
+const rangeBehaviors = {
+  // When the ships connection is not under the influence
+  // of any call, append the ship to the end of the connection
+  '': 'append',
+  // Prepend the ship, wherever the connection is sorted by age
+  'orderby(newest)': 'prepend',
+};</pre>
+<p>Or this way, with the same results:</p>
+<pre class="prism language-javascript" data-language="javascript">
+const rangeBehaviors = ({orderby}) =&gt; {
+  if (orderby === 'newest') {
+    return 'prepend';
+  } else {
+    return 'append';
+  }
+};</pre>
+<p>Behaviors can be one of <code>'append'</code>, <code>'ignore'</code>, <code>'prepend'</code>, <code>'refetch'</code>, or <code>'remove'</code>.</p>
+<h4 id="range-add-example">
+Example </h4>
+<pre class="prism language-javascript" data-language="javascript">
+class IntroduceShipMutation extends Relay.Mutation {
+  // This mutation declares a dependency on the faction
+  // into which this ship is to be introduced.
+  static fragments = {
+    faction: () =&gt; Relay.QL`fragment on Faction { id }`,
+  };
+  // Introducing a ship will add it to a faction's fleet, so we
+  // specify the faction's ships connection as part of the fat query.
+  getFatQuery() {
+    return Relay.QL`
+      fragment on IntroduceShipPayload {
+        faction { ships },
+        newShipEdge,
+      }
+    `;
+  }
+  getConfigs() {
+    return [{
+      type: 'RANGE_ADD',
+      parentName: 'faction',
+      parentID: this.props.faction.id,
+      connectionName: 'ships',
+      edgeName: 'newShipEdge',
+      rangeBehaviors: {
+        // When the ships connection is not under the influence
+        // of any call, append the ship to the end of the connection
+        '': 'append',
+        // Prepend the ship, wherever the connection is sorted by age
+        'orderby(newest)': 'prepend',
+      },
+    }];
+  }
+  /* ... */
+}</pre>
+<h3 id="range_delete">
+<code>RANGE_DELETE</code> </h3>
+<p>Given a connection, one or more DataIDs in the response payload, and a path between the parent and the connection, Relay will remove the node(s) from the connection but leave the associated record(s) in the store.</p>
+<h4 id="range-delete-arguments">
+Arguments </h4>
+<ul>
+<li>
+<p><code>deletedIDFieldName: string | Array&lt;string&gt;</code></p>
+<p>The field name in the response that contains the DataID of the removed node, or the path to the node removed from the connection</p>
+</li>
+<li>
+<p><code>pathToConnection: Array&lt;string&gt;</code></p>
+<p>An array containing the field names between the parent and the connection, including the parent and the connection</p>
+</li>
+</ul>
+<h4 id="range-delete-example">
+Example </h4>
+<pre class="prism language-javascript" data-language="javascript">
+class RemoveTagMutation extends Relay.Mutation {
+  // This mutation declares a dependency on the
+  // todo from which this tag is being removed.
+  static fragments = {
+    todo: () =&gt; Relay.QL`fragment on Todo { id }`,
+  };
+  // Removing a tag from a todo will affect its tags connection
+  // so we specify it here as part of the fat query.
+  getFatQuery() {
+    return Relay.QL`
+      fragment on RemoveTagMutationPayload {
+        todo { tags },
+        removedTagIDs,
+      }
+    `;
+  }
+  getConfigs() {
+    return [{
+      type: 'RANGE_DELETE',
+      deletedIDFieldName: 'removedTagIDs',
+      pathToConnection: ['todo', 'tags'],
+    }];
+  }
+  /* ... */
+}</pre>
+<h3 id="required_children">
+<code>REQUIRED_CHILDREN</code> </h3>
+<p>A <code>REQUIRED_CHILDREN</code> config is used to append additional children to the mutation query. You may need to use this, for example, to fetch fields on a new object created by the mutation (and which Relay would normally not attempt to fetch because it has not previously fetched anything for that object).</p>
+<p>Data fetched as a result of a <code>REQUIRED_CHILDREN</code> config is not written into the client store, but you can add code that processes it in the <code>onSuccess</code> callback that you pass into <code>commitUpdate()</code>:</p>
+<pre class="prism language-javascript" data-language="javascript">
+this.props.relay.commitUpdate(
+  new CreateCouponMutation(),
+  {
+    onSuccess: response =&gt; this.setState({
+      couponCount: response.coupons.length,
+    }),
+  }
+);</pre>
+<h4 id="required-children-arguments">
+Arguments </h4>
+<ul><li><code>children: Array&lt;RelayQuery.Node&gt;</code></li></ul>
+<h4 id="required-children-example">
+Example </h4>
+<pre class="prism language-javascript" data-language="javascript">
+class CreateCouponMutation extends Relay.Mutation&lt;Props&gt; {
+  getMutation() {
+    return Relay.QL`mutation {
+      create_coupon(data: $input)
+    }`;
+  }
+
+  getFatQuery() {
+    return Relay.QL`
+      // Note the use of `pattern: true` here to show that this
+      // connection field is to be used for pattern-matching only
+      // (to determine what to fetch) and that Relay shouldn't
+      // require the usual connection arguments like (`first` etc)
+      // to be present.
+      fragment on CouponCreatePayload @relay(pattern: true) {
+        coupons
+      }
+    `;
+  }
+
+  getConfigs() {
+    return [{
+      // If we haven't shown the coupons in the UI at the time the
+      // mutation runs, they've never been fetched and the `coupons`
+      // field in the fat query would normally be ignored.
+      // `REQUIRED_CHILDREN` forces it to be retrieved anyway.
+      type: RelayMutationType.REQUIRED_CHILDREN,
+      children: [
+        Relay.QL`
+          fragment on CouponCreatePayload {
+            coupons
+          }
+        `,
+      ],
+    }];
+  }
+}</pre>
+<h2 id="optimistic-updates">
+Optimistic updates </h2>
+<p>All of the mutations we've performed so far have waited on a response from the server before updating the client-side store. Relay offers us a chance to craft an optimistic response of the same shape based on what we expect the server's response to be in the event of a successful mutation.</p>
+<p>Let's craft an optimistic response for the <code>LikeStoryMutation</code> example above:</p>
+<pre class="prism language-javascript" data-language="javascript">
+class LikeStoryMutation extends Relay.Mutation {
+  /* ... */
+  // Here's the fat query from before
+  getFatQuery() {
+    return Relay.QL`
+      fragment on LikeStoryPayload {
+        story {
+          likers {
+            count,
+          },
+          likeSentence,
+          viewerDoesLike,
+        },
+      }
+    `;
+  }
+  // Let's craft an optimistic response that mimics the shape of the
+  // LikeStoryPayload, as well as the values we expect to receive.
+  getOptimisticResponse() {
+    return {
+      story: {
+        id: this.props.story.id,
+        likers: {
+          count: this.props.story.likers.count + (this.props.story.viewerDoesLike ? -1 : 1),
+        },
+        viewerDoesLike: !this.props.story.viewerDoesLike,
+      },
+    };
+  }
+  // To be able to increment the likers count, and flip the viewerDoesLike
+  // bit, we need to ensure that those pieces of data will be available to
+  // this mutation, in addition to the ID of the story.
+  static fragments = {
+    story: () =&gt; Relay.QL`
+      fragment on Story {
+        id,
+        likers { count },
+        viewerDoesLike,
+      }
+    `,
+  };
+  /* ... */
+}</pre>
+<p>You don't have to mimic the entire response payload. Here, we've punted on the like sentence, since it's difficult to localize on the client side. When the server responds, Relay will treat its payload as the source of truth, but in the meantime, the optimistic response will be applied right away, allowing the people who use our product to enjoy instant feedback after having taken an action.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2013–present Facebook Inc.<br>Licensed under the BSD License.<br>
+    <a href="https://facebook.github.io/relay/docs/guides-mutations.html" class="_attribution-link">https://facebook.github.io/relay/docs/guides-mutations.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
