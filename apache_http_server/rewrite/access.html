@@ -1,0 +1,162 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using Mod_rewrite to Control Access - Apache HTTP Server - W3cubDocs</title>
+  
+  <meta name="description" content="This document supplements the mod_rewrite reference documentation. It describes how you can use mod_rewrite to control access to various resources, &hellip;">
+  <meta name="keywords" content="using, mod, rewrite, control, access, apache, http, server, apache_http_server">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/apache_http_server/rewrite/access.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/apache_http_server.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/apache_http_server/" class="_nav-link" title="" style="margin-left:0;">Apache HTTP Server</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _apache">
+				
+				
+<h1>Using mod_rewrite to control access</h1>  <p>This document supplements the <code class="module"><a href="../mod/mod_rewrite">mod_rewrite</a></code> <a href="../mod/mod_rewrite">reference documentation</a>. It describes how you can use <code class="module"><a href="../mod/mod_rewrite">mod_rewrite</a></code> to control access to various resources, and other related techniques. This includes many examples of common uses of mod_rewrite, including detailed descriptions of how each works.</p> <div class="warning">Note that many of these examples won't work unchanged in your particular server configuration, so it's important that you understand them, rather than merely cutting and pasting the examples into your configuration.</div>     <h2 id="blocked-inline-images">Forbidding Image "Hotlinking"</h2> <dl> <dt>Description:</dt> <dd> <p>The following technique forbids the practice of other sites including your images inline in their pages. This practice is often referred to as "hotlinking", and results in your bandwidth being used to serve content for someone else's site.</p> </dd> <dt>Solution:</dt> <dd> <p>This technique relies on the value of the <code>HTTP_REFERER</code> variable, which is optional. As such, it's possible for some people to circumvent this limitation. However, most users will experience the failed request, which should, over time, result in the image being removed from that other site.</p> <p>There are several ways that you can handle this situation.</p> <p>In this first example, we simply deny the request, if it didn't initiate from a page on our site. For the purpose of this example, we assume that our site is <code>www.example.com</code>.</p> <pre class="prettyprint lang-config">RewriteCond "%{HTTP_REFERER}" "!^$"
+RewriteCond "%{HTTP_REFERER}" "!www.example.com" [NC]
+RewriteRule "\.(gif|jpg|png)$"    "-"   [F,NC]</pre> <p>In this second example, instead of failing the request, we display an alternate image instead.</p> <pre class="prettyprint lang-config">RewriteCond "%{HTTP_REFERER}" "!^$"
+RewriteCond "%{HTTP_REFERER}" "!www.example.com" [NC]
+RewriteRule "\.(gif|jpg|png)$"    "/images/go-away.png"   [R,NC]</pre> <p>In the third example, we redirect the request to an image on some other site.</p> <pre class="prettyprint lang-config">RewriteCond "%{HTTP_REFERER}" "!^$"
+RewriteCond "%{HTTP_REFERER}" "!www.example.com" [NC]
+RewriteRule "\.(gif|jpg|png)$" "http://other.example.com/image.gif"   [R,NC]</pre> <p>Of these techniques, the last two tend to be the most effective in getting people to stop hotlinking your images, because they will simply not see the image that they expected to see.</p> </dd> <dt>Discussion:</dt> <dd> <p>If all you wish to do is deny access to the resource, rather than redirecting that request elsewhere, this can be accomplished without the use of mod_rewrite:</p> <pre class="prettyprint lang-config">SetEnvIf Referer "example\.com" localreferer
+&lt;FilesMatch "\.(jpg|png|gif)$"&gt;
+    Require env localreferer
+&lt;/FilesMatch&gt;</pre> </dd> </dl>   <h2 id="blocking-of-robots">Blocking of Robots</h2> <dl> <dt>Description:</dt> <dd> <p> In this recipe, we discuss how to block persistent requests from a particular robot, or user agent.</p> <p>The standard for robot exclusion defines a file, <code>/robots.txt</code> that specifies those portions of your website where you wish to exclude robots. However, some robots do not honor these files. </p> <p>Note that there are methods of accomplishing this which do not use mod_rewrite. Note also that any technique that relies on the clients <code>USER_AGENT</code> string can be circumvented very easily, since that string can be changed.</p> </dd> <dt>Solution:</dt> <dd> <p>We use a ruleset that specifies the directory to be protected, and the client <code>USER_AGENT</code> that identifies the malicious or persistent robot.</p> <p>In this example, we are blocking a robot called <code>NameOfBadRobot</code> from a location <code>/secret/files</code>. You may also specify an IP address range, if you are trying to block that user agent only from the particular source.</p> <pre class="prettyprint lang-config">RewriteCond "%{HTTP_USER_AGENT}"   "^NameOfBadRobot"
+RewriteCond "%{REMOTE_ADDR}"       "=123\.45\.67\.[8-9]"
+RewriteRule "^/secret/files/"   "-"   [F]</pre> </dd> <dt>Discussion:</dt> <dd> <p> Rather than using mod_rewrite for this, you can accomplish the same end using alternate means, as illustrated here: </p> <pre class="prettyprint lang-config">SetEnvIfNoCase User-Agent "^NameOfBadRobot" goaway
+&lt;Location "/secret/files"&gt;
+    &lt;RequireAll&gt;
+        Require all granted
+        Require not env goaway
+    &lt;/RequireAll&gt;
+&lt;/Location&gt;</pre> <p> As noted above, this technique is trivial to circumvent, by simply modifying the <code>USER_AGENT</code> request header. If you are experiencing a sustained attack, you should consider blocking it at a higher level, such as at your firewall. </p> </dd> </dl>   <h2 id="host-deny">Denying Hosts in a Blacklist</h2> <dl> <dt>Description:</dt> <dd> <p>We wish to maintain a blacklist of hosts, rather like <code>hosts.deny</code>, and have those hosts blocked from accessing our server.</p> </dd> <dt>Solution:</dt> <dd> <pre class="prettyprint lang-config">RewriteEngine on
+RewriteMap    hosts-deny  "txt:/path/to/hosts.deny"
+RewriteCond   "${hosts-deny:%{REMOTE_ADDR}|NOT-FOUND}" "!=NOT-FOUND" [OR]
+RewriteCond   "${hosts-deny:%{REMOTE_HOST}|NOT-FOUND}" "!=NOT-FOUND"
+RewriteRule   "^"  "-"  [F]</pre> <div class="example"><pre>##
+## hosts.deny
+##
+## ATTENTION! This is a map, not a list, even when we treat it as such.
+## mod_rewrite parses it for key/value pairs, so at least a
+## dummy value "-" must be present for each entry.
+##
+
+193.102.180.41 -
+bsdti1.sdm.de -
+192.76.162.40 -</pre></div> </dd> <dt>Discussion:</dt> <dd> <p> The second RewriteCond assumes that you have HostNameLookups turned on, so that client IP addresses will be resolved. If that's not the case, you should drop the second RewriteCond, and drop the <code>[OR]</code> flag from the first RewriteCond. </p> </dd> </dl>   <h2 id="referer-deflector">Referer-based Deflector</h2> <dl> <dt>Description:</dt> <dd> <p>Redirect requests based on the Referer from which the request came, with different targets per Referer.</p> </dd> <dt>Solution:</dt> <dd> <p>The following ruleset uses a map file to associate each Referer with a redirection target.</p> <pre class="prettyprint lang-config">RewriteMap  deflector "txt:/path/to/deflector.map"
+
+RewriteCond "%{HTTP_REFERER}" !=""
+RewriteCond "${deflector:%{HTTP_REFERER}}" "=-"
+RewriteRule "^" "%{HTTP_REFERER}" [R,L]
+
+RewriteCond "%{HTTP_REFERER}" !=""
+RewriteCond "${deflector:%{HTTP_REFERER}|NOT-FOUND}" "!=NOT-FOUND"
+RewriteRule "^" "${deflector:%{HTTP_REFERER}}" [R,L]</pre> <p>The map file lists redirection targets for each referer, or, if we just wish to redirect back to where they came from, a "-" is placed in the map:</p> <pre class="prettyprint lang-config">##
+##  deflector.map
+##
+
+http://badguys.example.com/bad/index.html    -
+http://badguys.example.com/bad/index2.html   -
+http://badguys.example.com/bad/index3.html   http://somewhere.example.com/</pre> </dd> </dl>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The Apache Software Foundation<br>Licensed under the Apache License, Version 2.0.<br>
+    <a href="https://httpd.apache.org/docs/2.4/en/rewrite/access.html" class="_attribution-link">https://httpd.apache.org/docs/2.4/en/rewrite/access.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
