@@ -1,0 +1,150 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Integrating RabbitMQ - RethinkDB Python - W3cubDocs</title>
+  
+  <meta name="description" content=" RethinkDB supports changefeeds, which allow you to subscribe to changes on a table. The database pushes these changes to you as they happen. ">
+  <meta name="keywords" content="integrating, rethinkdb, with, rabbitmq, python, rethinkdb~python">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rethinkdb~python/docs/rabbitmq/python/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/rethinkdb~python.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rethinkdb~python/" class="_nav-link" title="" style="margin-left:0;">RethinkDB Python</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rethinkdb">
+				
+				
+<h1 class="title">Integrating RethinkDB with RabbitMQ</h1>    <p>RethinkDB supports <a href="../../changefeeds/python/index">changefeeds</a>, which allow you to subscribe to changes on a table. The database pushes these changes to you as they happen.</p> <p>This opens up the possibility of notifying client applications immediately when a change occurs in a table. For real-time applications, this push behavior is essential.</p> <p>RabbitMQ is a natural choice for distributing notifications of change events. It’s designed to efficiently route messages to many listeners, and there are client libraries for most popular languages. In this tutorial we take advantage of RabbitMQ’s <a href="https://www.rabbitmq.com/tutorials/amqp-concepts.html#topic-exchange">topic exchanges</a>. Topic exchanges allow clients to subscribe to the messages they’re interested in, and ignore the rest.</p> <blockquote class="infobox ">
+<p><strong>Before you start</strong></p> <ul> <li>Read the <a href="../../quickstart/index">thirty-second quickstart</a>
+</li> <li>Ensure you have <a href="../../install/index">RethinkDB installed</a> for your platform</li> <li>Install <a href="http://pika.readthedocs.org">pika</a>, a RabbitMQ library for Python</li> </ul> </blockquote> <h2 id="pushing-changes-to-rabbitmq">Pushing changes to RabbitMQ</h2> <p>Let’s write a script that listens for changes in the RethinkDB server and pushes them to RabbitMQ.</p> <p>First we’ll need to set up the connection to the RethinkDB server:</p> <pre data-language="">
+import rethinkdb as r
+import pika
+import json
+
+rethink_conn = r.connect(host='localhost', port=28015)
+</pre>  <p>Next, we’ll connect to the RabbitMQ server using pika:</p> <pre data-language="">rabbit_conn = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost', port=5672)
+)
+channel = rabbit_conn.channel()
+</pre>  <p>Channels multiplex a single TCP connection. All RabbitMQ operations are performed on the channel, rather than directly on a connection. Next, we’ll declare the topic exchange so we have somewhere to send our change notifications:</p> <pre data-language="">channel.exchange_declare('rethinkdb', exchange_type='topic', durable=False)
+</pre>  <p>This asserts that a topic exchange named “rethinkdb” exists, and that it’s set to be non-durable. If the exchange doesn’t exist, it’ll be created. If it does exist and has different properties, an exception will occur. Being non-durable means it won’t persist across RabbitMQ restarts (this is the default).</p> <p>For this tutorial, we’ll assume the RethinkDB server has a database named “change_example” and a table named “mytable.” Here’s the query that watches for changes:</p> <pre data-language="">table_changes = r.db('change_example').table('mytable').changes()
+</pre>  <p>The output of the <code class="highlighter-rouge">changes</code> query adheres to the following protocol:</p> <ul> <li>If <code class="highlighter-rouge">old_val</code> is <code class="highlighter-rouge">None</code>, then <code class="highlighter-rouge">new_val</code> contains the newly created document.</li> <li>If <code class="highlighter-rouge">new_val</code> is <code class="highlighter-rouge">None</code>, then <code class="highlighter-rouge">old_val</code> contains the document that was deleted.</li> <li>Otherwise, a document was updated from <code class="highlighter-rouge">new_val</code> to <code class="highlighter-rouge">old_val</code>
+</li> </ul> <p>Now we can plug our changes directly into Rabbit:</p> <pre data-language="">for change in table_changes.run(rethink_conn):
+    routing_key = 'mytable.' + type_of_change(change)
+    channel.basic_publish(exchange, routing_key, json.dumps(change))
+</pre>  <p><code class="highlighter-rouge">table_changes.run()</code> will block until a change occurs, at which time we push it into the exchange. The <code class="highlighter-rouge">routing_key</code> is the topic we’ll be sending it on. For this example, we have three different topics: <code class="highlighter-rouge">mytable.create</code>, <code class="highlighter-rouge">mytable.update</code>, and <code class="highlighter-rouge">mytable.delete</code>. Each topic contains only changes of the corresponding type. The function <code class="highlighter-rouge">type_of_change</code> does this mapping using the protocol described above.</p> <h2 id="listen-to-rabbitmq-messages">Listen to RabbitMQ messages</h2> <p>The listener is the other side of the interaction: it connects to RabbitMQ, signs up to be notified of messages it’s interested in, and does something when it receives a message.</p> <p>As before, we need to create a RabbitMQ connection and channel, and we’ll need to assert that the exchange exists:</p> <pre data-language="">import pika
+import json
+
+rabbit_conn = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost', port=5672)
+channel = rabbit_conn.channel()
+channel.exchange_declare('rethinkdb', exchange_type='topic', durable=False)
+</pre>  <p>Unlike the script that pushes data into Rabbit, to listen we need to create a <em>queue</em>. Queues are basically mailboxes. You go to an exchange and sign up a queue for different topics from that exchange:</p> <pre data-language="">queue = channel.queue_declare(exclusive=True).method.queue
+</pre>  <p>You can give the queue a name if you want, but since we didn’t pass a name to <code class="highlighter-rouge">queue_declare</code> it’ll create a randomly generated name for us.</p> <p>Now we need to “bind” the queue to the topics we’re interested in. Other listeners can subscribe to the same topic, and Rabbit will copy the message for every queue. Here, we’ll just keep it simple and bind to all events from “mytable”:</p> <pre data-language="">channel.queue_bind(queue, exchange='rethinkdb', routing_key='mytable.*')
+</pre>  <p>Finally, to listen to the queue, we use the <code class="highlighter-rouge">channel.consume</code> generator. Similar to the changefeed cursor from RethinkDB, <code class="highlighter-rouge">consume</code> will block until a message arrives in the queue.</p> <pre data-language="">for method, properties, payload in channel.consume(queue):
+    change = json.loads(payload)
+    tablename, change_type = method.routing_key.split('.')
+
+    print tablename, 'got a change of type:', change_type
+    print json.dumps(change, indent=True, sort_keys=True)
+</pre>  <p>This will deserialize the change message, and pretty print it, along with a short description of what kind of change it is.</p> <h2 id="further-reading">Further reading</h2> <ul> <li><a href="http://github.com/rethinkdb/example-rabbitmq/tree/master/python">Full source code for this tutorial</a></li> <li><a href="https://www.rabbitmq.com/tutorials/amqp-concepts.html">In-depth description of the RabbitMQ model</a></li> <li><a href="../../changefeeds/python/index">RethinkDB changefeeds</a></li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © RethinkDB contributors<br>Licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License.<br>
+    <a href="https://rethinkdb.com/docs/rabbitmq/python/" class="_attribution-link">https://rethinkdb.com/docs/rabbitmq/python/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
