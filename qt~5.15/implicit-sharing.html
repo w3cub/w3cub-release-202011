@@ -1,0 +1,435 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Implicit Sharing - Qt 5.15 - W3cubDocs</title>
+  
+  <meta name="description" content="Many C++ classes in Qt use implicit data sharing to maximize resource usage and minimize copying. Implicitly shared classes are both safe and &hellip;">
+  <meta name="keywords" content="implicit, sharing, qt, qt~5.15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/qt~5.15/implicit-sharing.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/qt~5.15.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/qt~5.15/" class="_nav-link" title="" style="margin-left:0;">Qt 5.15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _qt">
+				
+				
+<h1 class="title">Implicit Sharing</h1>     <p>Many C++ classes in Qt use implicit data sharing to maximize resource usage and minimize copying. Implicitly shared classes are both safe and efficient when passed as arguments, because only a pointer to the data is passed around, and the data is copied only if and when a function writes to it, i.e., <i>copy-on-write</i>.</p>  <h2 id="overview">Overview
+</h2> <p>A shared class consists of a pointer to a shared data block that contains a reference count and the data.</p> <p>When a shared object is created, it sets the reference count to 1. The reference count is incremented whenever a new object references the shared data, and decremented when the object dereferences the shared data. The shared data is deleted when the reference count becomes zero.</p> <p>When dealing with shared objects, there are two ways of copying an object. We usually speak about <i>deep</i> and <i>shallow</i> copies. A deep copy implies duplicating an object. A shallow copy is a reference copy, i.e. just a pointer to a shared data block. Making a deep copy can be expensive in terms of memory and CPU. Making a shallow copy is very fast, because it only involves setting a pointer and incrementing the reference count.</p> <p>Object assignment (with operator=()) for implicitly shared objects is implemented using shallow copies.</p> <p>The benefit of sharing is that a program does not need to duplicate data unnecessarily, which results in lower memory use and less copying of data. Objects can easily be assigned, sent as function arguments, and returned from functions.</p> <p>Implicit sharing mostly takes place behind the scenes; the programmer rarely needs to worry about it. However, Qt's container iterators have different behavior than those from the STL. Read <a href="containers#implicit-sharing-iterator-problem">Implicit sharing iterator problem</a>.</p> <p>In multithreaded applications, implicit sharing takes place, as explained in <a href="https://doc.qt.io/qt-5.15/threads-modules.html#threads-and-implicitly-shared-classes">Threads and Implicitly Shared Classes</a>.</p> <p>When implementing your own implicitly shared classes, use the <a href="qshareddata">QSharedData</a> and <a href="qshareddatapointer">QSharedDataPointer</a> classes.</p>  <h2 id="implicit-sharing-in-detail">Implicit Sharing in Detail
+</h2> <p>Implicit sharing automatically detaches the object from a shared block if the object is about to change and the reference count is greater than one. (This is often called <i>copy-on-write</i> or <i>value semantics</i>.)</p> <p>An implicitly shared class has control of its internal data. In any member functions that modify its data, it automatically detaches before modifying the data. Notice, however, the special case with container iterators; see <a href="containers#implicit-sharing-iterator-problem">Implicit sharing iterator problem</a>.</p> <p>The <a href="qpen">QPen</a> class, which uses implicit sharing, detaches from the shared data in all member functions that change the internal data.</p> <p>Code fragment:</p> <pre data-language="cpp">void QPen::setStyle(Qt::PenStyle style)
+{
+    detach();           // detach from common data
+    d-&gt;style = style;   // set the style member
+}
+
+void QPen::detach()
+{
+    if (d-&gt;ref != 1) {
+        ...             // perform a deep copy
+    }
+}</pre>  <h2 id="list-of-classes">List of Classes
+</h2> <p>The classes listed below automatically detach from common data if an object is about to be changed. The programmer will not even notice that the objects are shared. Thus you should treat separate instances of them as separate objects. They will always behave as separate objects but with the added benefit of sharing data whenever possible. For this reason, you can pass instances of these classes as arguments to functions by value without concern for the copying overhead.</p> <p>Example:</p> <pre data-language="cpp">QPixmap p1, p2;
+p1.load("image.bmp");
+p2 = p1;                        // p1 and p2 share data
+
+QPainter paint;
+paint.begin(&amp;p2);               // cuts p2 loose from p1
+paint.drawText(0,50, "Hi");
+paint.end();</pre> <p>In this example, <code>p1</code> and <code>p2</code> share data until <a href="qpainter#begin">QPainter::begin</a>() is called for <code>p2</code>, because painting a pixmap will modify it.</p> <p><b>Warning:</b> Be careful with copying an implicitly shared container (<a href="qmap">QMap</a>, <a href="qvector">QVector</a>, etc.) while you use <a href="containers#stl-style-iterators">STL-style iterator</a>. See <a href="containers#implicit-sharing-iterator-problem">Implicit sharing iterator problem</a>.</p> <table class="annotated"> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qbitarray">QBitArray</a></p></td>
+<td class="tblDescr"><p>Array of bits</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qbitmap">QBitmap</a></p></td>
+<td class="tblDescr"><p>Monochrome (1-bit depth) pixmaps</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qbrush">QBrush</a></p></td>
+<td class="tblDescr"><p>Defines the fill pattern of shapes drawn by QPainter</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qbytearray">QByteArray</a></p></td>
+<td class="tblDescr"><p>Array of bytes</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qbytearraylist">QByteArrayList</a></p></td>
+<td class="tblDescr"><p>List of byte arrays</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qcache">QCache</a></p></td>
+<td class="tblDescr"><p>Template class that provides a cache</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qcollator">QCollator</a></p></td>
+<td class="tblDescr"><p>Compares strings according to a localized collation algorithm</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qcollatorsortkey">QCollatorSortKey</a></p></td>
+<td class="tblDescr"><p>Can be used to speed up string collation</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qcommandlineoption">QCommandLineOption</a></p></td>
+<td class="tblDescr"><p>Defines a possible command-line option</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qcontiguouscache">QContiguousCache</a></p></td>
+<td class="tblDescr"><p>Template class that provides a contiguous cache</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qcursor">QCursor</a></p></td>
+<td class="tblDescr"><p>Mouse cursor with an arbitrary shape</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qdbuspendingcall">QDBusPendingCall</a></p></td>
+<td class="tblDescr"><p>Refers to one pending asynchronous call</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qdbusunixfiledescriptor">QDBusUnixFileDescriptor</a></p></td>
+<td class="tblDescr"><p>Holds one Unix file descriptor</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qdatetime">QDateTime</a></p></td>
+<td class="tblDescr"><p>Date and time functions</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qdebug">QDebug</a></p></td>
+<td class="tblDescr"><p>Output stream for debugging information</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qdir">QDir</a></p></td>
+<td class="tblDescr"><p>Access to directory structures and their contents</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qdnsdomainnamerecord">QDnsDomainNameRecord</a></p></td>
+<td class="tblDescr"><p>Stores information about a domain name record</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qdnshostaddressrecord">QDnsHostAddressRecord</a></p></td>
+<td class="tblDescr"><p>Stores information about a host address record</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qdnsmailexchangerecord">QDnsMailExchangeRecord</a></p></td>
+<td class="tblDescr"><p>Stores information about a DNS MX record</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qdnsservicerecord">QDnsServiceRecord</a></p></td>
+<td class="tblDescr"><p>Stores information about a DNS SRV record</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qdnstextrecord">QDnsTextRecord</a></p></td>
+<td class="tblDescr"><p>Stores information about a DNS TXT record</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qfileinfo">QFileInfo</a></p></td>
+<td class="tblDescr"><p>System-independent file information</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qfont">QFont</a></p></td>
+<td class="tblDescr"><p>Specifies a query for a font used for drawing text</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qfontinfo">QFontInfo</a></p></td>
+<td class="tblDescr"><p>General information about fonts</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qfontmetrics">QFontMetrics</a></p></td>
+<td class="tblDescr"><p>Font metrics information</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qfontmetricsf">QFontMetricsF</a></p></td>
+<td class="tblDescr"><p>Font metrics information</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="https://doc.qt.io/qt-5.15/qglyphrun.html">QGlyphRun</a></p></td>
+<td class="tblDescr"><p>Direct access to the internal glyphs in a font</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qgradient">QGradient</a></p></td>
+<td class="tblDescr"><p>Used in combination with QBrush to specify gradient fills</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qhash">QHash</a></p></td>
+<td class="tblDescr"><p>Template class that provides a hash-table-based dictionary</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qhostaddress">QHostAddress</a></p></td>
+<td class="tblDescr"><p>IP address</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qhttp2configuration">QHttp2Configuration</a></p></td>
+<td class="tblDescr"><p>Controls HTTP/2 parameters and settings</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qhttppart">QHttpPart</a></p></td>
+<td class="tblDescr"><p>Holds a body part to be used inside a HTTP multipart MIME message</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qicon">QIcon</a></p></td>
+<td class="tblDescr"><p>Scalable icons in different modes and states</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qimage">QImage</a></p></td>
+<td class="tblDescr"><p>Hardware-independent image representation that allows direct access to the pixel data, and can be used as a paint device</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qjsonarray">QJsonArray</a></p></td>
+<td class="tblDescr"><p>Encapsulates a JSON array</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qjsondocument">QJsonDocument</a></p></td>
+<td class="tblDescr"><p>Way to read and write JSON documents</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qjsonobject">QJsonObject</a></p></td>
+<td class="tblDescr"><p>Encapsulates a JSON object</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qjsonparseerror">QJsonParseError</a></p></td>
+<td class="tblDescr"><p>Used to report errors during JSON parsing</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qjsonvalue">QJsonValue</a></p></td>
+<td class="tblDescr"><p>Encapsulates a value in JSON</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qkeysequence">QKeySequence</a></p></td>
+<td class="tblDescr"><p>Encapsulates a key sequence as used by shortcuts</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qlist">QList</a></p></td>
+<td class="tblDescr"><p>Template class that provides lists</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qlocale">QLocale</a></p></td>
+<td class="tblDescr"><p>Converts between numbers and their string representations in various languages</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qmap">QMap</a></p></td>
+<td class="tblDescr"><p>Template class that provides a red-black-tree-based dictionary</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qmimetype">QMimeType</a></p></td>
+<td class="tblDescr"><p>Describes types of file or data, represented by a MIME type string</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qmultihash">QMultiHash</a></p></td>
+<td class="tblDescr"><p>Convenience QHash subclass that provides multi-valued hashes</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qmultimap">QMultiMap</a></p></td>
+<td class="tblDescr"><p>Convenience QMap subclass that provides multi-valued maps</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qnetworkaddressentry">QNetworkAddressEntry</a></p></td>
+<td class="tblDescr"><p>Stores one IP address supported by a network interface, along with its associated netmask and broadcast address</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qnetworkcachemetadata">QNetworkCacheMetaData</a></p></td>
+<td class="tblDescr"><p>Cache information</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qnetworkcookie">QNetworkCookie</a></p></td>
+<td class="tblDescr"><p>Holds one network cookie</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qnetworkinterface">QNetworkInterface</a></p></td>
+<td class="tblDescr"><p>Listing of the host's IP addresses and network interfaces</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qnetworkproxy">QNetworkProxy</a></p></td>
+<td class="tblDescr"><p>Network layer proxy</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qnetworkproxyquery">QNetworkProxyQuery</a></p></td>
+<td class="tblDescr"><p>Used to query the proxy settings for a socket</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qnetworkrequest">QNetworkRequest</a></p></td>
+<td class="tblDescr"><p>Holds a request to be sent with QNetworkAccessManager</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qopengldebugmessage">QOpenGLDebugMessage</a></p></td>
+<td class="tblDescr"><p>Wraps an OpenGL debug message</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qpainterpath">QPainterPath</a></p></td>
+<td class="tblDescr"><p>Container for painting operations, enabling graphical shapes to be constructed and reused</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qpalette">QPalette</a></p></td>
+<td class="tblDescr"><p>Contains color groups for each widget state</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qpen">QPen</a></p></td>
+<td class="tblDescr"><p>Defines how a QPainter should draw lines and outlines of shapes</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qpersistentmodelindex">QPersistentModelIndex</a></p></td>
+<td class="tblDescr"><p>Used to locate data in a data model</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qpicture">QPicture</a></p></td>
+<td class="tblDescr"><p>Paint device that records and replays QPainter commands</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qpixmap">QPixmap</a></p></td>
+<td class="tblDescr"><p>Off-screen image representation that can be used as a paint device</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qpolygon">QPolygon</a></p></td>
+<td class="tblDescr"><p>Vector of points using integer precision</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qpolygonf">QPolygonF</a></p></td>
+<td class="tblDescr"><p>Vector of points using floating point precision</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qprocessenvironment">QProcessEnvironment</a></p></td>
+<td class="tblDescr"><p>Holds the environment variables that can be passed to a program</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qqueue">QQueue</a></p></td>
+<td class="tblDescr"><p>Generic container that provides a queue</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qrawfont">QRawFont</a></p></td>
+<td class="tblDescr"><p>Access to a single physical instance of a font</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qregexp">QRegExp</a></p></td>
+<td class="tblDescr"><p>Pattern matching using regular expressions</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qregion">QRegion</a></p></td>
+<td class="tblDescr"><p>Specifies a clip region for a painter</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qregularexpression">QRegularExpression</a></p></td>
+<td class="tblDescr"><p>Pattern matching using regular expressions</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qregularexpressionmatch">QRegularExpressionMatch</a></p></td>
+<td class="tblDescr"><p>The results of a matching a QRegularExpression against a string</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qregularexpressionmatchiterator">QRegularExpressionMatchIterator</a></p></td>
+<td class="tblDescr"><p>Iterator on the results of a global match of a QRegularExpression object against a string</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qset">QSet</a></p></td>
+<td class="tblDescr"><p>Template class that provides a hash-table-based set</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qsslcertificate">QSslCertificate</a></p></td>
+<td class="tblDescr"><p>Convenient API for an X509 certificate</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qsslcertificateextension">QSslCertificateExtension</a></p></td>
+<td class="tblDescr"><p>API for accessing the extensions of an X509 certificate</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qsslcipher">QSslCipher</a></p></td>
+<td class="tblDescr"><p>Represents an SSL cryptographic cipher</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qsslconfiguration">QSslConfiguration</a></p></td>
+<td class="tblDescr"><p>Holds the configuration and state of an SSL connection</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qssldiffiehellmanparameters">QSslDiffieHellmanParameters</a></p></td>
+<td class="tblDescr"><p>Interface for Diffie-Hellman parameters for servers</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qsslerror">QSslError</a></p></td>
+<td class="tblDescr"><p>SSL error</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qsslkey">QSslKey</a></p></td>
+<td class="tblDescr"><p>Interface for private and public keys</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qsslpresharedkeyauthenticator">QSslPreSharedKeyAuthenticator</a></p></td>
+<td class="tblDescr"><p>Authentication data for pre shared keys (PSK) ciphersuites</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qstack">QStack</a></p></td>
+<td class="tblDescr"><p>Template class that provides a stack</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qstatictext">QStaticText</a></p></td>
+<td class="tblDescr"><p>Enables optimized drawing of text when the text and its layout is updated rarely</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qstorageinfo">QStorageInfo</a></p></td>
+<td class="tblDescr"><p>Provides information about currently mounted storage and drives</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qstring">QString</a></p></td>
+<td class="tblDescr"><p>Unicode character string</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qstringlist">QStringList</a></p></td>
+<td class="tblDescr"><p>List of strings</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtextblockformat">QTextBlockFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for blocks of text in a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qtextboundaryfinder">QTextBoundaryFinder</a></p></td>
+<td class="tblDescr"><p>Way of finding Unicode text boundaries in a string</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtextcharformat">QTextCharFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for characters in a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qtextcursor">QTextCursor</a></p></td>
+<td class="tblDescr"><p>Offers an API to access and modify QTextDocuments</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtextdocumentfragment">QTextDocumentFragment</a></p></td>
+<td class="tblDescr"><p>Represents a piece of formatted text from a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qtextformat">QTextFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for a QTextDocument</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtextframeformat">QTextFrameFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for frames in a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qtextimageformat">QTextImageFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for images in a QTextDocument</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtextlistformat">QTextListFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for lists in a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qtexttablecellformat">QTextTableCellFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for table cells in a QTextDocument</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qtexttableformat">QTextTableFormat</a></p></td>
+<td class="tblDescr"><p>Formatting information for tables in a QTextDocument</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qurl">QUrl</a></p></td>
+<td class="tblDescr"><p>Convenient interface for working with URLs</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qurlquery">QUrlQuery</a></p></td>
+<td class="tblDescr"><p>Way to manipulate a key-value pairs in a URL's query</p></td>
+</tr> <tr class="even topAlign">
+<td class="tblName"><p><a href="qvariant">QVariant</a></p></td>
+<td class="tblDescr"><p>Acts like a union for the most common Qt data types</p></td>
+</tr> <tr class="odd topAlign">
+<td class="tblName"><p><a href="qvector">QVector</a></p></td>
+<td class="tblDescr"><p>Template class that provides a dynamic array</p></td>
+</tr> </table>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © The Qt Company Ltd<br>Licensed under the GNU Free Documentation License, Version 1.3.<br>
+    <a href="https://doc.qt.io/qt-5.15/implicit-sharing.html" class="_attribution-link">https://doc.qt.io/qt-5.15/implicit-sharing.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
