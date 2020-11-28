@@ -1,0 +1,371 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>WebSockets API&#58; WebSocket Server Vb.NET - DOM - W3cubDocs</title>
+  
+  <meta name="description" content=" Draft This page is not complete. ">
+  <meta name="keywords" content="websockets, api, websocket, server, vb, net, dom">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/dom/websockets_api/websocket_server_vb.net.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/dom.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">DOM</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mdn">
+				
+				
+<h1>WebSockets API: WebSocket Server Vb.NET</h1>
+<div class="overheadIndicator draft"> <p><strong>Draft</strong><br> This page is not complete.</p> </div> <p>The following sample is not optimized. It does not make use of .NET 4.5 Websocket support.<br> <br> The current version:</p> <ul> <li>contains A Generic Collection of a class that wraps System.Net.Sockets.TcpClient</li> <li>features Custom Events and Delegate Handlers</li> <li>features Threading and implements Timers.Timer</li> <li>demonstrates how to write a frame back to the client using the Network Stream (opCode 0001)</li> <li>is intended to be a starting point for this tutorial and for other contributors</li> </ul>  <pre>Imports System.Net.Sockets
+Imports System.Net
+Imports System
+Imports System.Text
+Imports System.Text.RegularExpressions
+
+
+Namespace TypeDef.WebSocket
+
+    Public Class Client
+        Dim _TcpClient As System.Net.Sockets.TcpClient
+
+        Public Delegate Sub OnClientDisconnectDelegateHandler()
+        Public Event onClientDisconnect As OnClientDisconnectDelegateHandler
+
+
+        Sub New(ByVal tcpClient As System.Net.Sockets.TcpClient)
+            Me._TcpClient = tcpClient
+        End Sub
+
+
+        Function isConnected() As Boolean
+            Return Me._TcpClient.Connected
+        End Function
+
+
+        Sub HandShake()
+            Dim stream As NetworkStream = Me._TcpClient.GetStream()
+            Dim bytes As Byte()
+            Dim data As String
+
+            While Me._TcpClient.Connected
+                While (stream.DataAvailable)
+                    ReDim bytes(Me._TcpClient.Client.Available)
+                    stream.Read(bytes, 0, bytes.Length)
+                    data = System.Text.Encoding.UTF8.GetString(bytes)
+
+                    If (New System.Text.RegularExpressions.Regex("^GET").IsMatch(data)) Then
+
+                        Dim response As Byte() = System.Text.Encoding.UTF8.GetBytes("HTTP/1.1 101 Switching Protocols" &amp; Environment.NewLine &amp; "Connection: Upgrade" &amp; Environment.NewLine &amp; "Upgrade: websocket" &amp; Environment.NewLine &amp; "Sec-WebSocket-Accept: " &amp; Convert.ToBase64String(System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(New Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups(1).Value.Trim() &amp; "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))) &amp; Environment.NewLine &amp; Environment.NewLine)
+
+                        stream.Write(response, 0, response.Length)
+                        Exit Sub
+                    Else
+                        'We're going to disconnect the client here, because he's not handshacking properly (or at least to the scope of this code sample)
+                        Me._TcpClient.Close() 'The next While Me._TcpClient.Connected Loop Check should fail.. and raise the onClientDisconnect Event Thereafter
+                    End If
+                End While
+            End While
+            RaiseEvent onClientDisconnect()
+        End Sub
+
+
+        Sub CheckForDataAvailability()
+            If (Me._TcpClient.GetStream().DataAvailable) Then
+                Dim stream As NetworkStream = Me._TcpClient.GetStream()
+                Dim frameCount = 2
+                Dim bytes As Byte()
+                Dim data As String
+                ReDim bytes(Me._TcpClient.Client.Available)
+                stream.Read(bytes, 0, bytes.Length) 'Read the stream, don't close it.. 
+
+                Try
+                    Dim length As UInteger = bytes(1) - 128 'this should obviously be a byte (unsigned 8bit value)
+
+                    If length &gt; -1 Then
+                        If length = 126 Then
+                            length = 4
+                        ElseIf length = 127 Then
+                            length = 10
+                        End If
+                    End If
+
+                    'the following is very inefficient and likely unnecessary.. 
+                    'the main purpose is to just get the lower 4 bits of byte(0) - which is the OPCODE
+
+                    Dim value As Integer = bytes(0)
+                    Dim bitArray As BitArray = New BitArray(8)
+
+                    For c As Integer = 0 To 7 Step 1
+                        If value - (2 ^ (7 - c)) &gt;= 0 Then
+                            bitArray.Item(c) = True
+                            value -= (2 ^ (7 - c))
+                        Else
+                            bitArray.Item(c) = False
+                        End If
+                    Next
+
+
+                    Dim FRRR_OPCODE As String = ""
+
+                    For Each bit As Boolean In bitArray
+                        If bit Then
+                            FRRR_OPCODE &amp;= "1"
+                        Else
+                            FRRR_OPCODE &amp;= "0"
+                        End If
+                    Next
+
+
+                    Dim FIN As Integer = FRRR_OPCODE.Substring(0, 1)
+                    Dim RSV1 As Integer = FRRR_OPCODE.Substring(1, 1)
+                    Dim RSV2 As Integer = FRRR_OPCODE.Substring(2, 1)
+                    Dim RSV3 As Integer = FRRR_OPCODE.Substring(3, 1)
+                    Dim opCode As Integer = Convert.ToInt32(FRRR_OPCODE.Substring(4, 4), 2)
+
+
+
+                    Dim decoded(bytes.Length - (frameCount + 4)) As Byte
+                    Dim key As Byte() = {bytes(frameCount), bytes(frameCount+1), bytes(frameCount+2), bytes(frameCount+3)}
+
+                    Dim j As Integer = 0
+                    For i As Integer = (frameCount + 4) To (bytes.Length - 2) Step 1
+                        decoded(j) = Convert.ToByte((bytes(i) Xor masks(j Mod 4)))
+                        j += 1
+                    Next
+
+
+
+                    Select Case opCode
+                        Case Is = 1
+                            'Text Data Sent From Client
+
+                            data = System.Text.Encoding.UTF8.GetString(decoded)
+                            'handle this data
+
+                            Dim Payload As Byte() = System.Text.Encoding.UTF8.GetBytes("Text Recieved")
+                            Dim FRRROPCODE As Byte() = Convert.ToByte("10000001", 2) 'FIN is set, and OPCODE is 1 or Text
+                            Dim header as byte() = {FRRROPCODE, Convert.ToByte(Payload.Length)}
+
+
+                            Dim ResponseData As Byte()
+                            ReDim ResponseData((header.length + Payload.Length) - 1) 
+                            'NOTEWORTHY: if you Redim ResponseData(header.length + Payload.Length).. you'll add a 0 value byte at the end of the response data.. 
+                            'which tells the client that your next stream write will be a continuation frame..
+
+                            Dim index as integer = 0
+
+                            Buffer.BlockCopy(header, 0, ResponseData, index, header.length)
+                            index += header.length
+
+                            Buffer.BlockCopy(payload, 0, ResponseData, index, payload.length)
+                            index += payload.length
+                            stream.Write(ResponseData, 0, ResponseData.Length) 
+                      Case Is = 2 
+                            '// Binary Data Sent From Client 
+                            data = System.Text.Encoding.UTF8.GetString(decoded) 
+                            Dim response As Byte() = System.Text.Encoding.UTF8.GetBytes("Binary Recieved") 
+                             stream.Write(response, 0, response.Length) 
+                      Case Is = 9 '// Ping Sent From Client 
+                      Case Is = 10 '// Pong Sent From Client 
+                      Case Else '// Improper opCode.. disconnect the client 
+                            _TcpClient.Close() 
+                            RaiseEvent onClientDisconnect() 
+                      End Select 
+                Catch ex As Exception 
+                    _TcpClient.Close() 
+                    RaiseEvent onClientDisconnect() 
+                End Try 
+            End If 
+        End Sub 
+    End Class
+                           
+
+
+    Public Class Server
+        Inherits System.Net.Sockets.TcpListener
+
+        Delegate Sub OnClientConnectDelegate(ByVal sender As Object, ByRef Client As WebSocket.Client)
+        Event OnClientConnect As OnClientConnectDelegate
+
+
+        Dim WithEvents PendingCheckTimer As Timers.Timer = New Timers.Timer(500)
+        Dim WithEvents ClientDataAvailableTimer As Timers.Timer = New Timers.Timer(50)
+        Property ClientCollection As List(Of WebSocket.Client) = New List(Of WebSocket.Client)
+
+
+
+        Sub New(ByVal url As String, ByVal port As Integer)
+            MyBase.New(IPAddress.Parse(url), port)
+        End Sub
+
+
+        Sub startServer()
+            Me.Start()
+            PendingCheckTimer.Start()
+        End Sub
+
+
+
+        Sub Client_Connected(ByVal sender As Object, ByRef client As WebSocket.Client) Handles Me.OnClientConnect
+            Me.ClientCollection.Add(client)
+            AddHandler client.onClientDisconnect, AddressOf Client_Disconnected
+            client.HandShake()
+            ClientDataAvailableTimer.Start()
+        End Sub
+
+
+        Sub Client_Disconnected()
+
+        End Sub
+
+
+        Function isClientDisconnected(ByVal client As WebSocket.Client) As Boolean
+            isClientDisconnected = False
+            If Not client.isConnected Then
+                Return True
+            End If
+        End Function
+
+
+        Function isClientConnected(ByVal client As WebSocket.Client) As Boolean
+            isClientConnected = False
+            If client.isConnected Then
+                Return True
+            End If
+        End Function
+
+
+        Private Sub PendingCheckTimer_Elapsed(ByVal sender As Object, ByVal e As System.Timers.ElapsedEventArgs) Handles PendingCheckTimer.Elapsed
+            If Pending() Then
+                RaiseEvent OnClientConnect(Me, New CORE.TypeDef.WebSocket.Client(Me.AcceptTcpClient()))
+            End If
+        End Sub
+
+
+        Private Sub ClientDataAvailableTimer_Elapsed(ByVal sender As Object, ByVal e As System.Timers.ElapsedEventArgs) Handles ClientDataAvailableTimer.Elapsed
+            Me.ClientCollection.RemoveAll(AddressOf isClientDisconnected)
+            If Me.ClientCollection.Count &lt; 1 Then ClientDataAvailableTimer.Stop()
+
+            For Each Client As WebSocket.Client In Me.ClientCollection
+                Client.CheckForDataAvailability()
+            Next
+        End Sub
+    End Class
+End Namespace
+
+Sub Main()  'Program Entry point
+    Dim thread As System.Threading.Thread = New System.Threading.Thread(AddressOf StartWebSocketServer)
+    'Application.Add("WebSocketServerThread", thread) 'Global.asax - context.Application .. I left this part in for web application developers  
+    thread.Start()
+End Sub
+
+Public Shared WebSocketServer As TypeDef.WebSocket.Server
+Public Shared Sub StartWebSocketServer()
+    WebSocketServer = New TypeDef.WebSocket.Server("127.0.0.1", 8000)
+    WebSocketServer.startServer()
+End Sub
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/WebSocket_Server_Vb.NET%24edit" class="_attribution-link">Edit this page on MDN</a>
+  </p>
+</div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2005–2018 Mozilla Developer Network and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/WebSocket_Server_Vb.NET" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/WebSocket_Server_Vb.NET</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
