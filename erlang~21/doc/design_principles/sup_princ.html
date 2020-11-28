@@ -1,0 +1,187 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>5. Supervisor Behaviour - Erlang 21 - W3cubDocs</title>
+  
+  <meta name="description" content=" This section should be read with the supervisor(3) manual page in STDLIB, where all details about the supervisor behaviour is given. ">
+  <meta name="keywords" content="supervisor, behaviour, erlang, erlang~21">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/erlang~21/doc/design_principles/sup_princ.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/erlang~21.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/erlang~21/" class="_nav-link" title="" style="margin-left:0;">Erlang 21</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _erlang">
+				
+				
+<h1>5 Supervisor Behaviour</h1> <p>This section should be read with the <code>supervisor(3)</code> manual page in STDLIB, where all details about the supervisor behaviour is given.</p> <h2><span onmouseover="document.getElementById('ghlink-supervision-principles-id82501').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-supervision-principles-id82501').style.visibility = 'hidden';" id="supervision-principles">5.1 Supervision Principles</span></h2> <p>A supervisor is responsible for starting, stopping, and monitoring its child processes. The basic idea of a supervisor is that it is to keep its child processes alive by restarting them when necessary.</p> <p>Which child processes to start and monitor is specified by a list of <code><a href="#spec">child specifications</a></code>. The child processes are started in the order specified by this list, and terminated in the reversed order.</p> <h2><span onmouseover="document.getElementById('ghlink-example-id82527').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-example-id82527').style.visibility = 'hidden';" id="example">5.2 Example</span></h2> <p>The callback module for a supervisor starting the server from <code><a href="gen_server_concepts#ex">gen_server Behaviour</a></code> can look as follows:</p>  <pre id="ex" data-language="erlang">-module(ch_sup).
+-behaviour(supervisor).
+
+-export([start_link/0]).
+-export([init/1]).
+
+start_link() -&gt;
+    supervisor:start_link(ch_sup, []).
+
+init(_Args) -&gt;
+    SupFlags = #{strategy =&gt; one_for_one, intensity =&gt; 1, period =&gt; 5},
+    ChildSpecs = [#{id =&gt; ch3,
+                    start =&gt; {ch3, start_link, []},
+                    restart =&gt; permanent,
+                    shutdown =&gt; brutal_kill,
+                    type =&gt; worker,
+                    modules =&gt; [cg3]}],
+    {ok, {SupFlags, ChildSpecs}}.</pre> <p>The <code class="code">SupFlags</code> variable in the return value from <code class="code">init/1</code> represents the <code><a href="#flags">supervisor flags</a></code>.</p> <p>The <code class="code">ChildSpecs</code> variable in the return value from <code class="code">init/1</code> is a list of <code><a href="#spec">child specifications</a></code>.</p> <h2> <span onmouseover="document.getElementById('ghlink-supervisor-flags-id82597').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-supervisor-flags-id82597').style.visibility = 'hidden';" id="flags">5.3 Supervisor Flags</span> </h2> <p>This is the type definition for the supervisor flags:</p> <pre data-language="erlang">sup_flags() = #{strategy =&gt; strategy(),         % optional
+                intensity =&gt; non_neg_integer(), % optional
+                period =&gt; pos_integer()}        % optional
+    strategy() = one_for_all
+               | one_for_one
+               | rest_for_one
+               | simple_one_for_one</pre> <ul> <li> <p><code class="code">strategy</code> specifies the <code><a href="#strategy">restart strategy</a></code>.</p> </li> <li> <p><code class="code">intensity</code> and <code class="code">period</code> specify the <code><a href="#max_intensity">maximum restart intensity</a></code>.</p> </li> </ul> <h2> <span onmouseover="document.getElementById('ghlink-restart-strategy-id82666').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-restart-strategy-id82666').style.visibility = 'hidden';" id="strategy">5.4 Restart Strategy</span> </h2> <p> The restart strategy is specified by the <code class="code">strategy</code> key in the supervisor flags map returned by the callback function <code class="code">init</code>:</p> <pre data-language="erlang">SupFlags = #{strategy =&gt; Strategy, ...}</pre> <p>The <code class="code">strategy</code> key is optional in this map. If it is not given, it defaults to <code class="code">one_for_one</code>.</p> <h4><span onmouseover="document.getElementById('ghlink-one_for_one-id82709').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-one_for_one-id82709').style.visibility = 'hidden';" id="one_for_one">one_for_one</span></h4> <p>If a child process terminates, only that process is restarted.</p>  <div class="doc-image-wrapper" id="sup4">  <p class="doc-image-caption">Figure 5.1: One_For_One Supervision</p> </div> <h4><span onmouseover="document.getElementById('ghlink-one_for_all-id82738').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-one_for_all-id82738').style.visibility = 'hidden';" id="one_for_all">one_for_all</span></h4> <p>If a child process terminates, all other child processes are terminated, and then all child processes, including the terminated one, are restarted.</p>  <div class="doc-image-wrapper" id="sup5">  <p class="doc-image-caption">Figure 5.2: One_For_All Supervision</p> </div> <h4><span onmouseover="document.getElementById('ghlink-rest_for_one-id82767').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-rest_for_one-id82767').style.visibility = 'hidden';" id="rest_for_one">rest_for_one</span></h4> <p>If a child process terminates, the rest of the child processes (that is, the child processes after the terminated process in start order) are terminated. Then the terminated child process and the rest of the child processes are restarted.</p> <h4><span onmouseover="document.getElementById('ghlink-simple_one_for_one-id82783').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-simple_one_for_one-id82783').style.visibility = 'hidden';" id="simple_one_for_one">simple_one_for_one</span></h4> <p>See <code><a href="#simple">simple-one-for-one supervisors</a></code>.</p> <h2> <span onmouseover="document.getElementById('ghlink-maximum-restart-intensity-id82804').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-maximum-restart-intensity-id82804').style.visibility = 'hidden';" id="max_intensity">5.5 Maximum Restart Intensity</span> </h2> <p>The supervisors have a built-in mechanism to limit the number of restarts which can occur in a given time interval. This is specified by the two keys <code class="code">intensity</code> and <code class="code">period</code> in the supervisor flags map returned by the callback function <code class="code">init</code>:</p> <pre data-language="erlang">SupFlags = #{intensity =&gt; MaxR, period =&gt; MaxT, ...}</pre> <p>If more than <code class="code">MaxR</code> number of restarts occur in the last <code class="code">MaxT</code> seconds, the supervisor terminates all the child processes and then itself. The termination reason for the supervisor itself in that case will be <code class="code">shutdown</code>.</p> <p>When the supervisor terminates, then the next higher-level supervisor takes some action. It either restarts the terminated supervisor or terminates itself.</p> <p>The intention of the restart mechanism is to prevent a situation where a process repeatedly dies for the same reason, only to be restarted again.</p> <p>The keys <code class="code">intensity</code> and <code class="code">period</code> are optional in the supervisor flags map. If they are not given, they default to <code class="code">1</code> and <code class="code">5</code>, respectively.</p> <h4><span onmouseover="document.getElementById('ghlink-tuning-the-intensity-and-period-id82886').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-tuning-the-intensity-and-period-id82886').style.visibility = 'hidden';" id="tuning-the-intensity-and-period">Tuning the intensity and period</span></h4> <p>The default values are 1 restart per 5 seconds. This was chosen to be safe for most systems, even with deep supervision hierarchies, but you will probably want to tune the settings for your particular use case.</p> <p>First, the intensity decides how big bursts of restarts you want to tolerate. For example, you might want to accept a burst of at most 5 or 10 attempts, even within the same second, if it results in a successful restart.</p> <p>Second, you need to consider the sustained failure rate, if crashes keep happening but not often enough to make the supervisor give up. If you set intensity to 10 and set the period as low as 1, the supervisor will allow child processes to keep restarting up to 10 times per second, forever, filling your logs with crash reports until someone intervenes manually.</p> <p>You should therefore set the period to be long enough that you can accept that the supervisor keeps going at that rate. For example, if you have picked an intensity value of 5, then setting the period to 30 seconds will give you at most one restart per 6 seconds for any longer period of time, which means that your logs won't fill up too quickly, and you will have a chance to observe the failures and apply a fix.</p> <p>These choices depend a lot on your problem domain. If you don't have real time monitoring and ability to fix problems quickly, for example in an embedded system, you might want to accept at most one restart per minute before the supervisor should give up and escalate to the next level to try to clear the error automatically. On the other hand, if it is more important that you keep trying even at a high failure rate, you might want a sustained rate of as much as 1-2 restarts per second.</p> <p>Avoiding common mistakes:</p> <ul> <li> <p>Do not forget to consider the burst rate. If you set intensity to 1 and period to 6, it gives the same sustained error rate as 5/30 or 10/60, but will not allow even 2 restart attempts in quick succession. This is probably not what you wanted.</p> </li> <li> <p>Do not set the period to a very high value if you want to tolerate bursts. If you set intensity to 5 and period to 3600 (one hour), the supervisor will allow a short burst of 5 restarts, but then gives up if it sees another single restart almost an hour later. You probably want to regard those crashes as separate incidents, so setting the period to 5 or 10 minutes will be more reasonable.</p> </li> <li> <p>If your application has multiple levels of supervision, then do not simply set the restart intensities to the same values on all levels. Keep in mind that the total number of restarts (before the top level supervisor gives up and terminates the application) will be the product of the intensity values of all the supervisors above the failing child process.</p> <p>For example, if the top level allows 10 restarts, and the next level also allows 10, a crashing child below that level will be restarted 100 times, which is probably excessive. Allowing at most 3 restarts for the top level supervisor might be a better choice in this case.</p> </li> </ul> <h2> <span onmouseover="document.getElementById('ghlink-child-specification-id82979').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-child-specification-id82979').style.visibility = 'hidden';" id="spec">5.6 Child Specification</span> </h2> <p>The type definition for a child specification is as follows:</p> <pre data-language="erlang">child_spec() = #{id =&gt; child_id(),       % mandatory
+                 start =&gt; mfargs(),      % mandatory
+                 restart =&gt; restart(),   % optional
+                 shutdown =&gt; shutdown(), % optional
+                 type =&gt; worker(),       % optional
+                 modules =&gt; modules()}   % optional
+    child_id() = term()
+    mfargs() = {M :: module(), F :: atom(), A :: [term()]}
+    modules() = [module()] | dynamic
+    restart() = permanent | transient | temporary
+    shutdown() = brutal_kill | timeout()
+    worker() = worker | supervisor</pre> <ul> <li> <p><code class="code">id</code> is used to identify the child specification internally by the supervisor.</p> <p>The <code class="code">id</code> key is mandatory.</p> <p>Note that this identifier occasionally has been called "name". As far as possible, the terms "identifier" or "id" are now used but in order to keep backwards compatibility, some occurences of "name" can still be found, for example in error messages.</p> </li> <li> <p><code class="code">start</code> defines the function call used to start the child process. It is a module-function-arguments tuple used as <code class="code">apply(M, F, A)</code>.</p> <p>It is to be (or result in) a call to any of the following:</p> <ul> <li><code class="code">supervisor:start_link</code></li> <li><code class="code">gen_server:start_link</code></li> <li><code class="code">gen_statem:start_link</code></li> <li><code class="code">gen_event:start_link</code></li> <li>A function compliant with these functions. For details, see the <code class="code">supervisor(3)</code> manual page.</li> </ul> <p>The <code class="code">start</code> key is mandatory.</p> </li> <li> <p><code class="code">restart</code> defines when a terminated child process is to be restarted.</p> <ul> <li>A <code class="code">permanent</code> child process is always restarted.</li> <li>A <code class="code">temporary</code> child process is never restarted (not even when the supervisor restart strategy is <code class="code">rest_for_one</code> or <code class="code">one_for_all</code> and a sibling death causes the temporary process to be terminated).</li> <li>A <code class="code">transient</code> child process is restarted only if it terminates abnormally, that is, with an exit reason other than <code class="code">normal</code>, <code class="code">shutdown</code>, or <code class="code">{shutdown,Term}</code>.</li> </ul> <p>The <code class="code">restart</code> key is optional. If it is not given, the default value <code class="code">permanent</code> will be used.</p> </li> <li>  <p id="shutdown"><code class="code">shutdown</code> defines how a child process is to be terminated.</p> <ul> <li> <code class="code">brutal_kill</code> means that the child process is unconditionally terminated using <code class="code">exit(Child, kill)</code>.</li> <li>An integer time-out value means that the supervisor tells the child process to terminate by calling <code class="code">exit(Child, shutdown)</code> and then waits for an exit signal back. If no exit signal is received within the specified time, the child process is unconditionally terminated using <code class="code">exit(Child, kill)</code>.</li> <li>If the child process is another supervisor, it is to be set to <code class="code">infinity</code> to give the subtree enough time to shut down. It is also allowed to set it to <code class="code">infinity</code>, if the child process is a worker. See the warning below:</li> </ul> <div class="warning"> <div class="label">Warning</div> <div class="content">
+
+<p>Be careful when setting the shutdown time to <code class="code">infinity</code> when the child process is a worker. Because, in this situation, the termination of the supervision tree depends on the child process; it must be implemented in a safe way and its cleanup procedure must always return.</p> </div> </div> <p>The <code class="code">shutdown</code> key is optional. If it is not given, and the child is of type <code class="code">worker</code>, the default value <code class="code">5000</code> will be used; if the child is of type <code class="code">supervisor</code>, the default value <code class="code">infinity</code> will be used.</p> </li> <li> <p><code class="code">type</code> specifies if the child process is a supervisor or a worker.</p> <p>The <code class="code">type</code> key is optional. If it is not given, the default value <code class="code">worker</code> will be used.</p> </li> <li> <p><code class="code">modules</code> are to be a list with one element <code class="code">[Module]</code>, where <code class="code">Module</code> is the name of the callback module, if the child process is a supervisor, gen_server, gen_statem. If the child process is a gen_event, the value shall be <code class="code">dynamic</code>.</p> <p>This information is used by the release handler during upgrades and downgrades, see <code><a href="release_handling">Release Handling</a></code>.</p> <p>The <code class="code">modules</code> key is optional. If it is not given, it defaults to <code class="code">[M]</code>, where <code class="code">M</code> comes from the child's start <code class="code">{M,F,A}</code>.</p> </li> </ul> <p><strong>Example:</strong> The child specification to start the server <code class="code">ch3</code> in the previous example look as follows:</p> <pre data-language="erlang">#{id =&gt; ch3,
+  start =&gt; {ch3, start_link, []},
+  restart =&gt; permanent,
+  shutdown =&gt; brutal_kill,
+  type =&gt; worker,
+  modules =&gt; [ch3]}</pre> <p>or simplified, relying on the default values:</p> <pre data-language="erlang">#{id =&gt; ch3,
+  start =&gt; {ch3, start_link, []}
+  shutdown =&gt; brutal_kill}</pre> <p>Example: A child specification to start the event manager from the chapter about <code><a href="events#mgr">gen_event</a></code>:</p> <pre data-language="erlang">#{id =&gt; error_man,
+  start =&gt; {gen_event, start_link, [{local, error_man}]},
+  modules =&gt; dynamic}</pre> <p>Both server and event manager are registered processes which can be expected to be always accessible. Thus they are specified to be <code class="code">permanent</code>.</p> <p><code class="code">ch3</code> does not need to do any cleaning up before termination. Thus, no shutdown time is needed, but <code class="code">brutal_kill</code> is sufficient. <code class="code">error_man</code> can need some time for the event handlers to clean up, thus the shutdown time is set to 5000 ms (which is the default value).</p> <p>Example: A child specification to start another supervisor:</p> <pre data-language="erlang">#{id =&gt; sup,
+  start =&gt; {sup, start_link, []},
+  restart =&gt; transient,
+  type =&gt; supervisor} % will cause default shutdown=&gt;infinity</pre> <h2> <span onmouseover="document.getElementById('ghlink-starting-a-supervisor-id83417').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-starting-a-supervisor-id83417').style.visibility = 'hidden';" id="super_tree">5.7 Starting a Supervisor</span> </h2> <p>In the previous example, the supervisor is started by calling <code class="code">ch_sup:start_link()</code>:</p> <pre data-language="erlang">start_link() -&gt;
+    supervisor:start_link(ch_sup, []).</pre> <p><code class="code">ch_sup:start_link</code> calls function <code class="code">supervisor:start_link/2</code>, which spawns and links to a new process, a supervisor.</p> <ul> <li>The first argument, <code class="code">ch_sup</code>, is the name of the callback module, that is, the module where the <code class="code">init</code> callback function is located.</li> <li>The second argument, <code class="code">[]</code>, is a term that is passed as is to the callback function <code class="code">init</code>. Here, <code class="code">init</code> does not need any indata and ignores the argument.</li> </ul> <p>In this case, the supervisor is not registered. Instead its pid must be used. A name can be specified by calling <code class="code">supervisor:start_link({local, Name}, Module, Args)</code> or <code class="code">supervisor:start_link({global, Name}, Module, Args)</code>.</p> <p>The new supervisor process calls the callback function <code class="code">ch_sup:init([])</code>. <code class="code">init</code> shall return <code class="code">{ok, {SupFlags, ChildSpecs}}</code>:</p> <pre data-language="erlang">init(_Args) -&gt;
+    SupFlags = #{},
+    ChildSpecs = [#{id =&gt; ch3,
+                    start =&gt; {ch3, start_link, []},
+                    shutdown =&gt; brutal_kill}],
+    {ok, {SupFlags, ChildSpecs}}.</pre> <p>The supervisor then starts all its child processes according to the child specifications in the start specification. In this case there is one child process, <code class="code">ch3</code>.</p> <p><code class="code">supervisor:start_link</code> is synchronous. It does not return until all child processes have been started.</p> <h2><span onmouseover="document.getElementById('ghlink-adding-a-child-process-id83541').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-adding-a-child-process-id83541').style.visibility = 'hidden';" id="adding-a-child-process">5.8 Adding a Child Process</span></h2> <p>In addition to the static supervision tree, dynamic child processes can be added to an existing supervisor with the following call:</p> <pre data-language="erlang">supervisor:start_child(Sup, ChildSpec)</pre> <p><code class="code">Sup</code> is the pid, or name, of the supervisor. <code class="code">ChildSpec</code> is a <code><a href="#spec">child specification</a></code>.</p> <p>Child processes added using <code class="code">start_child/2</code> behave in the same way as the other child processes, with the an important exception: if a supervisor dies and is recreated, then all child processes that were dynamically added to the supervisor are lost.</p> <h2><span onmouseover="document.getElementById('ghlink-stopping-a-child-process-id83587').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-stopping-a-child-process-id83587').style.visibility = 'hidden';" id="stopping-a-child-process">5.9 Stopping a Child Process</span></h2> <p>Any child process, static or dynamic, can be stopped in accordance with the shutdown specification:</p> <pre data-language="erlang">supervisor:terminate_child(Sup, Id)</pre> <p>The child specification for a stopped child process is deleted with the following call:</p> <pre data-language="erlang">supervisor:delete_child(Sup, Id)</pre> <p><code class="code">Sup</code> is the pid, or name, of the supervisor. <code class="code">Id</code> is the value associated with the <code class="code">id</code> key in the <code><a href="#spec">child specification</a></code>.</p> <p>As with dynamically added child processes, the effects of deleting a static child process is lost if the supervisor itself restarts.</p> <h2> <span onmouseover="document.getElementById('ghlink-simplified-one_for_one-supervisors-id83644').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-simplified-one_for_one-supervisors-id83644').style.visibility = 'hidden';" id="simple">5.10 Simplified one_for_one Supervisors</span> </h2> <p>A supervisor with restart strategy <code class="code">simple_one_for_one</code> is a simplified <code class="code">one_for_one</code> supervisor, where all child processes are dynamically added instances of the same process.</p> <p>The following is an example of a callback module for a <code class="code">simple_one_for_one</code> supervisor:</p> <pre data-language="erlang">-module(simple_sup).
+-behaviour(supervisor).
+
+-export([start_link/0]).
+-export([init/1]).
+
+start_link() -&gt;
+    supervisor:start_link(simple_sup, []).
+
+init(_Args) -&gt;
+    SupFlags = #{strategy =&gt; simple_one_for_one,
+                 intensity =&gt; 0,
+                 period =&gt; 1},
+    ChildSpecs = [#{id =&gt; call,
+                    start =&gt; {call, start_link, []},
+                    shutdown =&gt; brutal_kill}],
+    {ok, {SupFlags, ChildSpecs}}.</pre> <p>When started, the supervisor does not start any child processes. Instead, all child processes are added dynamically by calling:</p> <pre data-language="erlang">supervisor:start_child(Sup, List)</pre> <p><code class="code">Sup</code> is the pid, or name, of the supervisor. <code class="code">List</code> is an arbitrary list of terms, which are added to the list of arguments specified in the child specification. If the start function is specified as <code class="code">{M, F, A}</code>, the child process is started by calling <code class="code">apply(M, F, A++List)</code>.</p> <p>For example, adding a child to <code class="code">simple_sup</code> above:</p> <pre data-language="erlang">supervisor:start_child(Pid, [id1])</pre> <p>The result is that the child process is started by calling <code class="code">apply(call, start_link, []++[id1])</code>, or actually:</p> <pre data-language="erlang">call:start_link(id1)</pre> <p>A child under a <code class="code">simple_one_for_one</code> supervisor can be terminated with the following:</p> <pre data-language="erlang">supervisor:terminate_child(Sup, Pid)</pre> <p><code class="code">Sup</code> is the pid, or name, of the supervisor and <code class="code">Pid</code> is the pid of the child.</p> <p>Because a <code class="code">simple_one_for_one</code> supervisor can have many children, it shuts them all down asynchronously. This means that the children will do their cleanup in parallel and therefore the order in which they are stopped is not defined.</p> <h2><span onmouseover="document.getElementById('ghlink-stopping-id83779').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-stopping-id83779').style.visibility = 'hidden';" id="stopping">5.11 Stopping</span></h2> <p>Since the supervisor is part of a supervision tree, it is automatically terminated by its supervisor. When asked to shut down, it terminates all child processes in reversed start order according to the respective shutdown specifications, and then terminates itself.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2017 Ericsson AB<br>Licensed under the Apache License, Version 2.0.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

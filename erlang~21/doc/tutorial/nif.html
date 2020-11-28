@@ -1,0 +1,174 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>8. NIFs - Erlang 21 - W3cubDocs</title>
+  
+  <meta name="description" content=" This section outlines an example of how to solve the example problem in Problem Example by using Native Implemented Functions (NIFs). ">
+  <meta name="keywords" content="nifs, erlang, erlang~21">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/erlang~21/doc/tutorial/nif.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/erlang~21.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/erlang~21/" class="_nav-link" title="" style="margin-left:0;">Erlang 21</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _erlang">
+				
+				
+<h1>8 NIFs</h1> <p>This section outlines an example of how to solve the example problem in <code><a href="example">Problem Example</a></code> by using Native Implemented Functions (NIFs).</p> <p>NIFs were introduced in Erlang/OTP R13B03 as an experimental feature. It is a simpler and more efficient way of calling C-code than using port drivers. NIFs are most suitable for synchronous functions, such as <code class="code">foo</code> and <code class="code">bar</code> in the example, that do some relatively short calculations without side effects and return the result.</p> <p>A NIF is a function that is implemented in C instead of Erlang. NIFs appear as any other functions to the callers. They belong to a module and are called like any other Erlang functions. The NIFs of a module are compiled and linked into a dynamic loadable, shared library (SO in UNIX, DLL in Windows). The NIF library must be loaded in runtime by the Erlang code of the module.</p> <p>As a NIF library is dynamically linked into the emulator process, this is the fastest way of calling C-code from Erlang (alongside port drivers). Calling NIFs requires no context switches. But it is also the least safe, because a crash in a NIF brings the emulator down too.</p> <h2><span onmouseover="document.getElementById('ghlink-erlang-program-id68224').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-erlang-program-id68224').style.visibility = 'hidden';" id="erlang-program">8.1 Erlang Program</span></h2> <p>Even if all functions of a module are NIFs, an Erlang module is still needed for two reasons:</p> <ul> <li>The NIF library must be explicitly loaded by Erlang code in the same module.</li> <li>All NIFs of a module must have an Erlang implementation as well.</li> </ul> <p>Normally these are minimal stub implementations that throw an exception. But they can also be used as fallback implementations for functions that do not have native implemenations on some architectures.</p> <p>NIF libraries are loaded by calling <code class="code">erlang:load_nif/2</code>, with the name of the shared library as argument. The second argument can be any term that will be passed on to the library and used for initialization:</p> <pre data-language="erlang">-module(complex6).
+-export([foo/1, bar/1]).
+-on_load(init/0).
+
+init() -&gt;
+    ok = erlang:load_nif("./complex6_nif", 0).
+
+foo(_X) -&gt;
+    exit(nif_library_not_loaded).
+bar(_Y) -&gt;
+    exit(nif_library_not_loaded).</pre> <p>Here, the directive <code class="code">on_load</code> is used to get function <code class="code">init</code> to be automatically called when the module is loaded. If <code class="code">init</code> returns anything other than <code class="code">ok</code>, such when the loading of the NIF library fails in this example, the module is unloaded and calls to functions within it, fail.</p> <p>Loading the NIF library overrides the stub implementations and cause calls to <code class="code">foo</code> and <code class="code">bar</code> to be dispatched to the NIF implementations instead.</p> <h2><span onmouseover="document.getElementById('ghlink-nif-library-code-id68307').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-nif-library-code-id68307').style.visibility = 'hidden';" id="nif-library-code">8.2 NIF Library Code</span></h2> <p>The NIFs of the module are compiled and linked into a shared library. Each NIF is implemented as a normal C function. The macro <code class="code">ERL_NIF_INIT</code> together with an array of structures defines the names, arity, and function pointers of all the NIFs in the module. The header file <code class="code">erl_nif.h</code> must be included. As the library is a shared module, not a program, no main function is to be present.</p> <p>The function arguments passed to a NIF appears in an array <code class="code">argv</code>, with <code class="code">argc</code> as the length of the array, and thus the arity of the function. The Nth argument of the function can be accessed as <code class="code">argv[N-1]</code>. NIFs also take an environment argument that serves as an opaque handle that is needed to be passed on to most API functions. The environment contains information about the calling Erlang process:</p> <pre data-language="erlang">#include &lt;erl_nif.h&gt;
+
+extern int foo(int x);
+extern int bar(int y);
+
+static ERL_NIF_TERM foo_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    int x, ret;
+    if (!enif_get_int(env, argv[0], &amp;x)) {
+	return enif_make_badarg(env);
+    }
+    ret = foo(x);
+    return enif_make_int(env, ret);
+}
+
+static ERL_NIF_TERM bar_nif(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    int y, ret;
+    if (!enif_get_int(env, argv[0], &amp;y)) {
+	return enif_make_badarg(env);
+    }
+    ret = bar(y);
+    return enif_make_int(env, ret);
+}
+
+static ErlNifFunc nif_funcs[] = {
+    {"foo", 1, foo_nif},
+    {"bar", 1, bar_nif}
+};
+
+ERL_NIF_INIT(complex6, nif_funcs, NULL, NULL, NULL, NULL)</pre> <p>Here,<code class="code">ERL_NIF_INIT</code> has the following arguments:</p> <ul> <li> <p>The first argument must be the name of the Erlang module as a C-identifier. It will be stringified by the macro.</p> </li> <li>The second argument is the array of <code class="code">ErlNifFunc</code> structures containing name, arity, and function pointer of each NIF.</li> <li>The remaining arguments are pointers to callback functions that can be used to initialize the library. They are not used in this simple example, hence they are all set to <code class="code">NULL</code>.</li> </ul> <p>Function arguments and return values are represented as values of type <code class="code">ERL_NIF_TERM</code>. Here, functions like <code class="code">enif_get_int</code> and <code class="code">enif_make_int</code> are used to convert between Erlang term and C-type. If the function argument <code class="code">argv[0]</code> is not an integer, <code class="code">enif_get_int</code> returns false, in which case it returns by throwing a <code class="code">badarg</code>-exception with <code class="code">enif_make_badarg</code>.</p> <h2><span onmouseover="document.getElementById('ghlink-running-the-example-id68430').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-running-the-example-id68430').style.visibility = 'hidden';" id="running-the-example">8.3 Running the Example</span></h2> <p><strong>Step 1.</strong> Compile the C code:</p> <pre data-language="erlang">
+unix&gt; gcc -o complex6_nif.so -fpic -shared complex.c complex6_nif.c
+windows&gt; cl -LD -MD -Fe complex6_nif.dll complex.c complex6_nif.c</pre> <p><strong>Step 2:</strong> Start Erlang and compile the Erlang code:</p> <pre data-language="erlang">
+&gt; erl
+Erlang R13B04 (erts-5.7.5) [64-bit] [smp:4:4] [rq:4] [async-threads:0] [kernel-poll:false]
+
+Eshell V5.7.5  (abort with ^G)
+1&gt; c(complex6).
+{ok,complex6}</pre> <p><strong>Step 3:</strong> Run the example:</p> <pre data-language="erlang">
+3&gt; complex6:foo(3).
+4
+4&gt; complex6:bar(5).
+10
+5&gt; complex6:foo("not an integer").
+** exception error: bad argument
+     in function  complex6:foo/1
+        called as comlpex6:foo("not an integer")
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2017 Ericsson AB<br>Licensed under the Apache License, Version 2.0.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

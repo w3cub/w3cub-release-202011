@@ -1,0 +1,173 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>5. List Handling - Erlang 21 - W3cubDocs</title>
+  
+  <meta name="description" content="Lists can only be built starting from the end and attaching list elements at the beginning. If you use the &#34;++&#34; operator as follows, a new &hellip;">
+  <meta name="keywords" content="list, handling, erlang, erlang~21">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/erlang~21/doc/efficiency_guide/listhandling.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/erlang~21.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/erlang~21/" class="_nav-link" title="" style="margin-left:0;">Erlang 21</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _erlang">
+				
+				
+<h1>5 List Handling</h1> <h2><span onmouseover="document.getElementById('ghlink-creating-a-list-id69149').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-creating-a-list-id69149').style.visibility = 'hidden';" id="creating-a-list">5.1 Creating a List</span></h2> <p>Lists can only be built starting from the end and attaching list elements at the beginning. If you use the "<code class="code">++</code>" operator as follows, a new list is created that is a copy of the elements in <code class="code">List1</code>, followed by <code class="code">List2</code>:</p> <pre data-language="erlang">List1 ++ List2</pre> <p>Looking at how <code class="code">lists:append/1</code> or <code class="code">++</code> would be implemented in plain Erlang, clearly the first list is copied:</p> <pre data-language="erlang">append([H|T], Tail) -&gt;
+    [H|append(T, Tail)];
+append([], Tail) -&gt;
+    Tail.</pre> <p>When recursing and building a list, it is important to ensure that you attach the new elements to the beginning of the list. In this way, you will build <strong>one</strong> list, not hundreds or thousands of copies of the growing result list.</p> <p>Let us first see how it is not to be done:</p> <p><strong>DO NOT</strong></p> <pre data-language="erlang">bad_fib(N) -&gt;
+    bad_fib(N, 0, 1, []).
+
+bad_fib(0, _Current, _Next, Fibs) -&gt;
+    Fibs;
+bad_fib(N, Current, Next, Fibs) -&gt; 
+    bad_fib(N - 1, Next, Current + Next, Fibs ++ [Current]).</pre> <p>Here more than one list is built. In each iteration step a new list is created that is one element longer than the new previous list.</p> <p>To avoid copying the result in each iteration, build the list in reverse order and reverse the list when you are done:</p> <p><strong>DO</strong></p> <pre data-language="erlang">tail_recursive_fib(N) -&gt;
+    tail_recursive_fib(N, 0, 1, []).
+
+tail_recursive_fib(0, _Current, _Next, Fibs) -&gt;
+    lists:reverse(Fibs);
+tail_recursive_fib(N, Current, Next, Fibs) -&gt; 
+    tail_recursive_fib(N - 1, Next, Current + Next, [Current|Fibs]).</pre> <h2><span onmouseover="document.getElementById('ghlink-list-comprehensions-id69248').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-list-comprehensions-id69248').style.visibility = 'hidden';" id="list-comprehensions">5.2 List Comprehensions</span></h2> <p>Lists comprehensions still have a reputation for being slow. They used to be implemented using funs, which used to be slow.</p> <p>A list comprehension:</p> <pre data-language="erlang">[Expr(E) || E &lt;- List]</pre> <p>is basically translated to a local function:</p> <pre data-language="erlang">'lc^0'([E|Tail], Expr) -&gt;
+    [Expr(E)|'lc^0'(Tail, Expr)];
+'lc^0'([], _Expr) -&gt; [].</pre> <p>If the result of the list comprehension will <strong>obviously</strong> not be used, a list will not be constructed. For example, in this code:</p> <pre data-language="erlang">[io:put_chars(E) || E &lt;- List],
+ok.</pre> <p>or in this code:</p> <pre data-language="erlang">...
+case Var of
+    ... -&gt;
+        [io:put_chars(E) || E &lt;- List];
+    ... -&gt;
+end,
+some_function(...),
+...</pre> <p>the value is not assigned to a variable, not passed to another function, and not returned. This means that there is no need to construct a list and the compiler will simplify the code for the list comprehension to:</p> <pre data-language="erlang">'lc^0'([E|Tail], Expr) -&gt;
+    Expr(E),
+    'lc^0'(Tail, Expr);
+'lc^0'([], _Expr) -&gt; [].</pre> <p>The compiler also understands that assigning to '_' means that the value will not used. Therefore, the code in the following example will also be optimized:</p> <pre data-language="erlang">_ = [io:put_chars(E) || E &lt;- List],
+ok.</pre> <h2><span onmouseover="document.getElementById('ghlink-deep-and-flat-lists-id70145').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-deep-and-flat-lists-id70145').style.visibility = 'hidden';" id="deep-and-flat-lists">5.3 Deep and Flat Lists</span></h2> <p><code>lists:flatten/1</code> builds an entirely new list. It is therefore expensive, and even <strong>more</strong> expensive than the <code class="code">++</code> operator (which copies its left argument, but not its right argument).</p> <p>In the following situations, you can easily avoid calling <code class="code">lists:flatten/1</code>:</p> <ul> <li>When sending data to a port. Ports understand deep lists so there is no reason to flatten the list before sending it to the port.</li> <li>When calling BIFs that accept deep lists, such as <code>list_to_binary/1</code> or <code>iolist_to_binary/1</code>.</li> <li>When you know that your list is only one level deep, you can use <code>lists:append/1</code>.</li> </ul> <h4><span onmouseover="document.getElementById('ghlink-port-example-id70216').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-port-example-id70216').style.visibility = 'hidden';" id="port-example">Port Example</span></h4> <p><strong>DO</strong></p> <pre data-language="erlang">
+...
+port_command(Port, DeepList)
+...</pre> <p><strong>DO NOT</strong></p> <pre data-language="erlang">
+...
+port_command(Port, lists:flatten(DeepList))
+...</pre> <p>A common way to send a zero-terminated string to a port is the following:</p> <p><strong>DO NOT</strong></p> <pre data-language="erlang">
+...
+TerminatedStr = String ++ [0], % String="foo" =&gt; [$f, $o, $o, 0]
+port_command(Port, TerminatedStr)
+...</pre> <p>Instead:</p> <p><strong>DO</strong></p> <pre data-language="erlang">
+...
+TerminatedStr = [String, 0], % String="foo" =&gt; [[$f, $o, $o], 0]
+port_command(Port, TerminatedStr) 
+...</pre> <h4><span onmouseover="document.getElementById('ghlink-append-example-id70270').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-append-example-id70270').style.visibility = 'hidden';" id="append-example">Append Example</span></h4> <p><strong>DO</strong></p> <pre data-language="erlang">
+&gt; lists:append([[1], [2], [3]]).
+[1,2,3]
+&gt;</pre> <p><strong>DO NOT</strong></p> <pre data-language="erlang">
+&gt; lists:flatten([[1], [2], [3]]).
+[1,2,3]
+&gt;</pre> <h2><span onmouseover="document.getElementById('ghlink-recursive-list-functions-id70300').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-recursive-list-functions-id70300').style.visibility = 'hidden';" id="recursive-list-functions">5.4 Recursive List Functions</span></h2> <p>In section about myths, the following myth was exposed: <code><a href="myths#tail_recursive">Tail-Recursive Functions are Much Faster Than Recursive Functions</a></code>.</p> <p>There is usually not much difference between a body-recursive list function and tail-recursive function that reverses the list at the end. Therefore, concentrate on writing beautiful code and forget about the performance of your list functions. In the time-critical parts of your code (and only there), <strong>measure</strong> before rewriting your code.</p> <div class="note"> <div class="label">Note</div> <div class="content">
+
+<p>This section is about list functions that <strong>construct</strong> lists. A tail-recursive function that does not construct a list runs in constant space, while the corresponding body-recursive function uses stack space proportional to the length of the list.</p>
+</div> </div> <p>For example, a function that sums a list of integers, is <strong>not</strong> to be written as follows:</p> <p><strong>DO NOT</strong></p> <pre data-language="erlang">recursive_sum([H|T]) -&gt; H+recursive_sum(T);
+recursive_sum([])    -&gt; 0.</pre> <p>Instead:</p> <p><strong>DO</strong></p> <pre data-language="erlang">sum(L) -&gt; sum(L, 0).
+
+sum([H|T], Sum) -&gt; sum(T, Sum + H);
+sum([], Sum)    -&gt; Sum.</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2017 Ericsson AB<br>Licensed under the Apache License, Version 2.0.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

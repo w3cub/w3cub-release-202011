@@ -1,0 +1,414 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Migrating to v2.0.0 - ESLint - W3cubDocs</title>
+  
+  <meta name="description" content="ESLint v2.0.0 is the second major version release. As a result, there are some significant changes between how ESLint worked during its life in 0.x &hellip;">
+  <meta name="keywords" content="migrating, eslint">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/eslint/user-guide/migrating-to-2.0.0.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/eslint.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/eslint/" class="_nav-link" title="" style="margin-left:0;">ESLint</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="migrating-to-v200">Migrating to v2.0.0</h1>
+<p>ESLint v2.0.0 is the second major version release. As a result, there are some significant changes between how ESLint worked during its life in 0.x and 1.x and how it will work going forward. These changes are the direct result of feedback from the ESLint community of users and were not made without due consideration for the upgrade path. We believe that these changes make ESLint even better, and while some work is necessary to upgrade, we hope the pain of this upgrade is small enough that you will see the benefit of upgrading.</p>
+<p><strong>Important:</strong> If you are upgrading from 0.x, please refer to <a href="migrating-to-1.0.0">Migrating to 1.0.0</a> as your starting point.</p>
+<h2 id="rule-schema-changes">Rule Schema Changes</h2>
+<p>Due to a quirk in the way rule schemas worked, it was possible that you'd need to account for the rule severity (0, 1, or 2) in a rule schema if the options were sufficiently complex. That would result in a schema such as:</p>
+<pre data-language="js">module.exports = {
+    "type": "array",
+    "items": [
+        {
+            "enum": [0, 1, 2]
+        },
+        {
+            "enum": ["always", "never"]
+        }
+    ],
+    "minItems": 1,
+    "maxItems": 2
+};</pre>
+<p>This was confusing to rule developers as it seemed that rules shouldn't be in charge of validating their own severity. In 2.0.0, rules no longer need to check their own severity.</p>
+<p><strong>To address:</strong> If you are exporting a rule schema that checks severity, you need to make several changes:</p>
+<ol>
+<li>Remove the severity from the schema</li>
+<li>Adjust <code>minItems</code> from 1 to 0</li>
+<li>Adjust <code>maxItems</code> by subtracting 1</li>
+</ol>
+<p>Here's what the schema from above looks like when properly converted:</p>
+<pre data-language="js">module.exports = {
+    "type": "array",
+    "items": [
+        {
+            "enum": ["always", "never"]
+        }
+    ],
+    "minItems": 0,
+    "maxItems": 1
+};</pre>
+<h2 id="removed-rules">Removed Rules</h2>
+<p>The following rules have been deprecated with new rules created to take their place. The following is a list of the removed rules and their replacements:</p>
+<ul>
+<li>
+<a href="../rules/no-arrow-condition">no-arrow-condition</a> is replaced by a combination of <a href="../rules/no-confusing-arrow">no-confusing-arrow</a> and <a href="../rules/no-constant-condition">no-constant-condition</a>. Turn on both of these rules to get the same functionality as <code>no-arrow-condition</code>.</li>
+<li>
+<a href="../rules/no-empty-label">no-empty-label</a> is replaced by <a href="../rules/no-labels">no-labels</a> with <code>{"allowLoop": true, "allowSwitch": true}</code> option.</li>
+<li>
+<a href="../rules/space-after-keywords">space-after-keywords</a> is replaced by <a href="../rules/keyword-spacing">keyword-spacing</a>.</li>
+<li>
+<a href="../rules/space-before-keywords">space-before-keywords</a> is replaced by <a href="../rules/keyword-spacing">keyword-spacing</a>.</li>
+<li>
+<a href="../rules/space-return-throw-case">space-return-throw-case</a> is replaced by <a href="../rules/keyword-spacing">keyword-spacing</a>.</li>
+</ul>
+<p><strong>To address:</strong> You'll need to update your rule configurations to use the new rules. ESLint v2.0.0 will also warn you when you're using a rule that has been removed and will suggest the replacement rules. Hopefully, this will result in few surprises during the upgrade process.</p>
+<h2 id="configuration-cascading-changes">Configuration Cascading Changes</h2>
+<p>Prior to 2.0.0, if a directory contained both an <code>.eslintrc</code> file and a <code>package.json</code> file with ESLint configuration information, the settings from the two files would be merged together. In 2.0.0, only the settings from the <code>.eslintrc.*</code> file are used and the ones in <code>package.json</code> are ignored when both are present. Otherwise, <code>package.json</code> can still be used with ESLint configuration, but only if no other <code>.eslintrc.*</code> files are present.</p>
+<p><strong>To address:</strong> If you have both an <code>.eslintrc.*</code> and <code>package.json</code> with ESLint configuration information in the same directory, combine your configurations into just one of those files.</p>
+<h2 id="built-in-global-variables">Built-In Global Variables</h2>
+<p>Prior to 2.0.0, new global variables that were standardized as part of ES6 such as <code>Promise</code>, <code>Map</code>, <code>Set</code>, and <code>Symbol</code> were included in the built-in global environment. This could lead to potential issues when, for example, <code>no-undef</code> permitted use of the <code>Promise</code> constructor even in ES5 code where promises are unavailable. In 2.0.0, the built-in environment only includes the standard ES5 global variables, and the new ES6 global variables have been moved to the <code>es6</code> environment.</p>
+<p><strong>To address:</strong> If you are writing ES6 code, enable the <code>es6</code> environment if you have not already done so:</p>
+<pre data-language="js">// In your .eslintrc
+{
+    env: {
+        es6: true
+    }
+}
+
+// Or in a configuration comment
+/*eslint-env es6*/</pre>
+<h2 id="language-options">Language Options</h2>
+<p>Prior to 2.0.0, the way to enable language options was by using <code>ecmaFeatures</code> in your configuration. In 2.0.0:</p>
+<ul>
+<li>The <code>ecmaFeatures</code> property is now under a top-level <code>parserOptions</code> property.</li>
+<li>All ECMAScript 6 <code>ecmaFeatures</code> flags have been removed in favor of a <code>ecmaVersion</code> property under <code>parserOptions</code> that can be set to 3, 5 (default), or 6.</li>
+<li>The <code>ecmaFeatures.modules</code> flag has been replaced by a <code>sourceType</code> property under <code>parserOptions</code> which can be set to <code>"script"</code> (default) or <code>"module"</code> for ES6 modules.</li>
+</ul>
+<p><strong>To address:</strong> If you are using any ECMAScript 6 feature flags in <code>ecmaFeatures</code>, you'll need to use <code>ecmaVersion: 6</code> instead. The ECMAScript 6 feature flags are:</p>
+<ul>
+<li>
+<code>arrowFunctions</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-arrow-functions">arrow functions</a>
+</li>
+<li>
+<code>binaryLiterals</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-octal-and-binary-literals">binary literals</a>
+</li>
+<li>
+<code>blockBindings</code> - enable <code>let</code> and <code>const</code> (aka <a href="https://leanpub.com/understandinges6/read#leanpub-auto-block-bindings">block bindings</a>)</li>
+<li>
+<code>classes</code> - enable classes</li>
+<li>
+<code>defaultParams</code> - enable <a href="https://leanpub.com/understandinges6/read/#leanpub-auto-default-parameters">default function parameters</a>
+</li>
+<li>
+<code>destructuring</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-destructuring-assignment">destructuring</a>
+</li>
+<li>
+<code>forOf</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-iterables-and-for-of"><code>for-of</code> loops</a>
+</li>
+<li>
+<code>generators</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-generators">generators</a>
+</li>
+<li>
+<code>modules</code> - enable modules and global strict mode</li>
+<li>
+<code>objectLiteralComputedProperties</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-computed-property-names">computed object literal property names</a>
+</li>
+<li>
+<code>objectLiteralDuplicateProperties</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-duplicate-object-literal-properties">duplicate object literal properties</a> in strict mode</li>
+<li>
+<code>objectLiteralShorthandMethods</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-method-initializer-shorthand">object literal shorthand methods</a>
+</li>
+<li>
+<code>objectLiteralShorthandProperties</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-property-initializer-shorthand">object literal shorthand properties</a>
+</li>
+<li>
+<code>octalLiterals</code> - enable <a href="https://leanpub.com/understandinges6/read#leanpub-auto-octal-and-binary-literals">octal literals</a>
+</li>
+<li>
+<code>regexUFlag</code> - enable the <a href="https://leanpub.com/understandinges6/read#leanpub-auto-the-regular-expression-u-flag">regular expression <code>u</code> flag</a>
+</li>
+<li>
+<code>regexYFlag</code> - enable the <a href="https://leanpub.com/understandinges6/read#leanpub-auto-the-regular-expression-y-flag">regular expression <code>y</code> flag</a>
+</li>
+<li>
+<code>restParams</code> - enable the <a href="https://leanpub.com/understandinges6/read#leanpub-auto-rest-parameters">rest parameters</a>
+</li>
+<li>
+<code>spread</code> - enable the <a href="https://leanpub.com/understandinges6/read#leanpub-auto-the-spread-operator">spread operator</a> for arrays</li>
+<li>
+<code>superInFunctions</code> - enable <code>super</code> references inside of functions</li>
+<li>
+<code>templateStrings</code> - enable <a href="https://leanpub.com/understandinges6/read/#leanpub-auto-template-strings">template strings</a>
+</li>
+<li>
+<code>unicodeCodePointEscapes</code> - enable <a href="https://leanpub.com/understandinges6/read/#leanpub-auto-escaping-non-bmp-characters">code point escapes</a>
+</li>
+</ul>
+<p>If you're using any of these flags, such as:</p>
+<pre data-language="js">{
+    ecmaFeatures: {
+        arrowFunctions: true
+    }
+}</pre>
+<p>Then you should enable ES6 using <code>ecmaVersion</code>:</p>
+<pre data-language="js">{
+    parserOptions: {
+        ecmaVersion: 6
+    }
+}</pre>
+<p>If you're using any non-ES6 flags in <code>ecmaFeatures</code>, you need to move those inside of <code>parserOptions</code>. For instance:</p>
+<pre data-language="js">{
+    ecmaFeatures: {
+        jsx: true
+    }
+}</pre>
+<p>Then you should move <code>ecmaFeatures</code> under <code>parserOptions</code>:</p>
+<pre data-language="js">{
+    parserOptions: {
+        ecmaFeatures: {
+            jsx: true
+        }
+    }
+}</pre>
+<p>If you were using <code>ecmaFeatures.modules</code> to enable ES6 module support like this:</p>
+<pre data-language="js">{
+    ecmaFeatures: {
+        modules: true
+    }
+}</pre>
+<pre data-language="js">{
+    parserOptions: {
+        sourceType: "module"
+    }
+}</pre>
+<p>Additionally, if you are using <code>context.ecmaFeatures</code> inside of your rules, then you'll need to update your code in the following ways:</p>
+<ol>
+<li>If you're using an ES6 feature flag such as <code>context.ecmaFeatures.blockBindings</code>, rewrite to check for <code>context.parserOptions.ecmaVersion &gt; 5</code>.</li>
+<li>If you're using <code>context.ecmaFeatures.modules</code>, rewrite to check that the <code>sourceType</code> property of the Program node is <code>"module"</code>.</li>
+<li>If you're using a non-ES6 feature flag such as <code>context.ecmaFeatures.jsx</code>, rewrite to check for <code>context.parserOptions.ecmaFeatures.jsx</code>.</li>
+</ol>
+<p>If you have a plugin with rules and you are using RuleTester, then you also need to update the options you pass for rules that use <code>ecmaFeatures</code>. For example:</p>
+<pre data-language="js">var ruleTester = new RuleTester();
+ruleTester.run("no-var", rule, {
+    valid: [
+        {
+            code: "let x;",
+            parserOptions: { ecmaVersion: 6 }
+        }
+    ]
+});</pre>
+<p>If you're not using <code>ecmaFeatures</code> in your configuration or your custom/plugin rules and tests, then no change is needed.</p>
+<h2 id="new-rules-in-eslintrecommended">New Rules in <code>"eslint:recommended"</code>
+</h2>
+<pre data-language="json">{
+    "extends": "eslint:recommended"
+}</pre>
+<p>In 2.0.0, the following 11 rules were added to <code>"eslint:recommended"</code>.</p>
+<ul>
+<li><a href="../rules/constructor-super">constructor-super</a></li>
+<li><a href="../rules/no-case-declarations">no-case-declarations</a></li>
+<li><a href="../rules/no-class-assign">no-class-assign</a></li>
+<li><a href="../rules/no-const-assign">no-const-assign</a></li>
+<li><a href="../rules/no-dupe-class-members">no-dupe-class-members</a></li>
+<li><a href="../rules/no-empty-pattern">no-empty-pattern</a></li>
+<li><a href="../rules/no-new-symbol">no-new-symbol</a></li>
+<li><a href="../rules/no-self-assign">no-self-assign</a></li>
+<li><a href="../rules/no-this-before-super">no-this-before-super</a></li>
+<li><a href="../rules/no-unexpected-multiline">no-unexpected-multiline</a></li>
+<li><a href="../rules/no-unused-labels">no-unused-labels</a></li>
+</ul>
+<p><strong>To address:</strong> If you don't want to be notified by those rules, you can simply disable those rules.</p>
+<pre data-language="json">{
+    "extends": "eslint:recommended",
+    "rules": {
+        "no-case-declarations": 0,
+        "no-class-assign": 0,
+        "no-const-assign": 0,
+        "no-dupe-class-members": 0,
+        "no-empty-pattern": 0,
+        "no-new-symbol": 0,
+        "no-self-assign": 0,
+        "no-this-before-super": 0,
+        "no-unexpected-multiline": 0,
+        "no-unused-labels": 0,
+        "constructor-super": 0
+    }
+}</pre>
+<h2 id="scope-analysis-changes">Scope Analysis Changes</h2>
+<p>We found some bugs in our scope analysis that needed to be addressed. Specifically, we were not properly accounting for global variables in all the ways they are defined.</p>
+<p>Originally, <code>Variable</code> objects and <code>Reference</code> objects refer each other:</p>
+<ul>
+<li>
+<code>Variable#references</code> property is an array of <code>Reference</code> objects which are referencing the variable.</li>
+<li>
+<code>Reference#resolved</code> property is a <code>Variable</code> object which are referenced.</li>
+</ul>
+<p>But until 1.x, the following variables and references had the wrong value (empty) in those properties:</p>
+<ul>
+<li>
+<code>var</code> declarations in the global.</li>
+<li>
+<code>function</code> declarations in the global.</li>
+<li>Variables defined in config files.</li>
+<li>Variables defined in <code>/* global */</code> comments.</li>
+</ul>
+<p>Now, those variables and references have correct values in these properties.</p>
+<p><code>Scope#through</code> property has references where <code>Reference#resolved</code> is <code>null</code>. So as a result of this change, the value of <code>Scope#through</code> property was changed also.</p>
+<p><strong>To address:</strong> If you are using <code>Scope#through</code> to find references of a built-in global variable, you need to make several changes.</p>
+<p>For example, this is how you might locate the <code>window</code> global variable in 1.x:</p>
+<pre data-language="js">var globalScope = context.getScope();
+globalScope.through.forEach(function(reference) {
+    if (reference.identifier.name === "window") {
+        checkForWindow(reference);
+    }
+});</pre>
+<p>This was a roundabout way to find the variable because it was added after the fact by ESLint. The <code>window</code> variable was in <code>Scope#through</code> because the definition couldn't be found.</p>
+<p>In 2.0.0, <code>window</code> is no longer located in <code>Scope#through</code> because we have added back the correct declaration. That means you can reference the <code>window</code> object (or any other global object) directly. So the previous example would change to this:</p>
+<pre data-language="js">var globalScope = context.getScope();
+var variable = globalScope.set.get("window");
+if (variable) {
+    variable.references.forEach(checkForWindow);
+}</pre>
+<p>Further Reading: https://estools.github.io/escope/</p>
+<h2 id="default-changes-when-using-eslintrecommended">Default Changes When Using <code>eslint:recommended</code>
+</h2>
+<p>This will affect you if you are extending from <code>eslint:recommended</code>, and are enabling <a href="../rules/no-multiple-empty-lines"><code>no-multiple-empty-lines</code></a> or <a href="../rules/func-style"><code>func-style</code></a> with only a severity, such as:</p>
+<pre data-language="json">{
+    "extends": "eslint:recommended",
+    "rules": {
+        "no-multiple-empty-lines": 2,
+        "func-style": 2
+    }
+}</pre>
+<p>The rule <code>no-multiple-empty-lines</code> has no default exceptions, but in ESLint <code>1.x</code>, a default from <code>eslint:recommended</code> was applied such that a maximum of two empty lines would be permitted.</p>
+<p>The rule <code>func-style</code> has a default configuration of <code>"expression"</code>, but in ESLint <code>1.x</code>, <code>eslint:recommended</code> defaulted it to <code>"declaration"</code>.</p>
+<p>ESLint 2.0.0 removes these conflicting defaults, and so you may begin seeing linting errors related to these rules.</p>
+<p><strong>To address:</strong> If you would like to maintain the previous behavior, update your configuration for <code>no-multiple-empty-lines</code> by adding <code>{"max": 2}</code>, and change <code>func-style</code> to <code>"declaration"</code>. For example:</p>
+<pre data-language="json">{
+    "extends": "eslint:recommended",
+    "rules": {
+        "no-multiple-empty-lines": [2, {"max": 2}],
+        "func-style": [2, "declaration"]
+    }
+}</pre>
+<h2 id="sourcecode-constructor-node-api-changes">SourceCode constructor (Node API) changes</h2>
+<p><code>SourceCode</code> constructor got to handle Unicode BOM. If the first argument <code>text</code> has BOM, <code>SourceCode</code> constructor sets <code>true</code> to <code>this.hasBOM</code> and strips BOM from the text.</p>
+<pre data-language="js">var SourceCode = require("eslint").SourceCode;
+
+var code = new SourceCode("\uFEFFvar foo = bar;", ast);
+
+assert(code.hasBOM === true);
+assert(code.text === "var foo = bar;");</pre>
+<p>So the second argument <code>ast</code> also should be parsed from stripped text.</p>
+<p><strong>To address:</strong> If you are using <code>SourceCode</code> constructor in your code, please parse the source code after it stripped BOM:</p>
+<pre data-language="js">var ast = yourParser.parse(text.replace(/^\uFEFF/, ""), options);
+var sourceCode = new SourceCode(text, ast);</pre>
+<h2 id="rule-changes">Rule Changes</h2>
+<ul><li>
+<a href="../rules/strict"><code>strict</code></a> - defaults to <code>"safe"</code> (previous default was <code>"function"</code>)</li></ul>
+<h2 id="plugins-no-longer-have-default-configurations">Plugins No Longer Have Default Configurations</h2>
+<p>Prior to v2.0.0, plugins could specify a <code>rulesConfig</code> for the plugin. The <code>rulesConfig</code> would automatically be applied whenever someone uses the plugin, which is the opposite of what ESLint does in every other situation (where nothing is on by default). To bring plugins behavior in line, we have removed support for <code>rulesConfig</code> in plugins.</p>
+<p><strong>To address:</strong> If you are using a plugin in your configuration file, you will need to manually enable the plugin rules in the configuration file.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © JS Foundation and other contributors<br>Licensed under the MIT License.<br>
+    <a href="https://eslint.org/docs/user-guide/migrating-to-2.0.0" class="_attribution-link">https://eslint.org/docs/user-guide/migrating-to-2.0.0</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

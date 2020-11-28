@@ -1,0 +1,229 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>11. Appendix C&#58; Fragmented Table Hashing Callback Interface - Erlang 21 - W3cubDocs</title>
+  
+  <meta name="description" content=" © 2010–2017 Ericsson ABLicensed under the Apache License, Version 2.0. ">
+  <meta name="keywords" content="appendix, c, fragmented, table, hashing, callback, interface, erlang, erlang~21">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/erlang~21/lib/mnesia-4.15.4/doc/html/mnesia_app_c.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/erlang~21.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/erlang~21/" class="_nav-link" title="" style="margin-left:0;">Erlang 21</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _erlang">
+				
+				
+<h1>11 Appendix C: Fragmented Table Hashing Callback Interface</h1> <h2><span onmouseover="document.getElementById('ghlink-mnesia_frag_hash-callback-behavior-id87627').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-mnesia_frag_hash-callback-behavior-id87627').style.visibility = 'hidden';" id="mnesia_frag_hash-callback-behavior">11.1 mnesia_frag_hash Callback Behavior</span></h2>  <pre data-language="erlang">-module(mnesia_frag_hash).
+
+%% Fragmented Table Hashing callback functions
+-export([
+	 init_state/2,
+	 add_frag/1,
+	 del_frag/1,
+	 key_to_frag_number/2,
+	 match_spec_to_frag_numbers/2
+	]).</pre>  <pre data-language="erlang">-record(hash_state,
+	{n_fragments,
+	 next_n_to_split,
+	 n_doubles,
+	 function}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+init_state(_Tab, State) when State == undefined -&gt;
+    #hash_state{n_fragments     = 1,
+		next_n_to_split = 1,
+		n_doubles       = 0,
+		function        = phash2}.
+
+convert_old_state({hash_state, N, P, L}) -&gt;
+    #hash_state{n_fragments     = N,
+		next_n_to_split = P,
+		n_doubles       = L,
+		function        = phash}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+add_frag(#hash_state{next_n_to_split = SplitN, n_doubles = L, n_fragments = N} = State) -&gt;
+    P = SplitN + 1,
+    NewN = N + 1,
+    State2 = case power2(L) + 1 of
+		 P2 when P2 == P -&gt;
+		     State#hash_state{n_fragments      = NewN,
+				      n_doubles        = L + 1,
+				      next_n_to_split = 1};
+		 _ -&gt;
+		     State#hash_state{n_fragments     = NewN,
+				      next_n_to_split = P}
+	     end,
+    {State2, [SplitN], [NewN]};
+add_frag(OldState) -&gt;
+    State = convert_old_state(OldState),
+    add_frag(State).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+del_frag(#hash_state{next_n_to_split = SplitN, n_doubles = L, n_fragments = N} = State) -&gt;
+    P = SplitN - 1,
+    if
+	P &lt; 1 -&gt;
+	    L2 = L - 1,
+	    MergeN = power2(L2),
+	    State2 = State#hash_state{n_fragments     = N - 1,
+				      next_n_to_split = MergeN,
+				      n_doubles       = L2},
+	    {State2, [N], [MergeN]};
+	true -&gt;
+	    MergeN = P,
+	    State2 = State#hash_state{n_fragments     = N - 1,
+				      next_n_to_split = MergeN},
+	    {State2, [N], [MergeN]}
+	end;
+del_frag(OldState) -&gt;
+    State = convert_old_state(OldState),
+    del_frag(State).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+key_to_frag_number(#hash_state{function = phash, n_fragments = N, n_doubles = L}, Key) -&gt;
+    A = erlang:phash(Key, power2(L + 1)),
+    if
+	A &gt; N -&gt;
+	    A - power2(L);
+	true -&gt;
+	    A
+    end;
+key_to_frag_number(#hash_state{function = phash2, n_fragments = N, n_doubles = L}, Key) -&gt;
+    A = erlang:phash2(Key, power2(L + 1)) + 1,
+    if
+	A &gt; N -&gt;
+	    A - power2(L);
+	true -&gt;
+	    A
+    end;
+key_to_frag_number(OldState, Key) -&gt;
+    State = convert_old_state(OldState),
+    key_to_frag_number(State, Key).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+match_spec_to_frag_numbers(#hash_state{n_fragments = N} = State, MatchSpec) -&gt;
+    case MatchSpec of
+	[{HeadPat, _, _}] when is_tuple(HeadPat), tuple_size(HeadPat) &gt; 2 -&gt;
+	    KeyPat = element(2, HeadPat),
+	    case has_var(KeyPat) of
+		false -&gt;
+		    [key_to_frag_number(State, KeyPat)];
+		true -&gt;
+		    lists:seq(1, N)
+	    end;
+	_ -&gt; 
+	    lists:seq(1, N)
+    end;
+match_spec_to_frag_numbers(OldState, MatchSpec) -&gt;
+    State = convert_old_state(OldState),
+    match_spec_to_frag_numbers(State, MatchSpec).
+
+power2(Y) -&gt;
+    1 bsl Y. % trunc(math:pow(2, Y)).</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2017 Ericsson AB<br>Licensed under the Apache License, Version 2.0.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

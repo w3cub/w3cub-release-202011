@@ -1,0 +1,369 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>5. Erl_Interface - Erlang 21 - W3cubDocs</title>
+  
+  <meta name="description" content="This section outlines an example of how to solve the example problem in Problem Example by using a port and Erl_Interface. It is necessary to read &hellip;">
+  <meta name="keywords" content="erl, interface, erlang, erlang~21">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/erlang~21/doc/tutorial/erl_interface.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/erlang~21.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/erlang~21/" class="_nav-link" title="" style="margin-left:0;">Erlang 21</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _erlang">
+				
+				
+<h1>5 Erl_Interface</h1> <p>This section outlines an example of how to solve the example problem in <code><a href="example">Problem Example</a></code> by using a port and Erl_Interface. It is necessary to read the port example in <code><a href="c_port">Ports</a></code> before reading this section.</p> <h2><span onmouseover="document.getElementById('ghlink-erlang-program-id65851').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-erlang-program-id65851').style.visibility = 'hidden';" id="erlang-program">5.1 Erlang Program</span></h2> <p>The following example shows an Erlang program communicating with a C program over a plain port with home made encoding:</p> <pre data-language="erlang">-module(complex1).
+-export([start/1, stop/0, init/1]).
+-export([foo/1, bar/1]).
+
+start(ExtPrg) -&gt;
+    spawn(?MODULE, init, [ExtPrg]).
+stop() -&gt;
+    complex ! stop.
+
+foo(X) -&gt;
+    call_port({foo, X}).
+bar(Y) -&gt;
+    call_port({bar, Y}).
+
+call_port(Msg) -&gt;
+    complex ! {call, self(), Msg},
+    receive
+	{complex, Result} -&gt;
+	    Result
+    end.
+
+init(ExtPrg) -&gt;
+    register(complex, self()),
+    process_flag(trap_exit, true),
+    Port = open_port({spawn, ExtPrg}, [{packet, 2}]),
+    loop(Port).
+
+loop(Port) -&gt;
+    receive
+	{call, Caller, Msg} -&gt;
+	    Port ! {self(), {command, encode(Msg)}},
+	    receive
+		{Port, {data, Data}} -&gt;
+		    Caller ! {complex, decode(Data)}
+	    end,
+	    loop(Port);
+	stop -&gt;
+	    Port ! {self(), close},
+	    receive
+		{Port, closed} -&gt;
+		    exit(normal)
+	    end;
+	{'EXIT', Port, Reason} -&gt;
+	    exit(port_terminated)
+    end.
+
+encode({foo, X}) -&gt; [1, X];
+encode({bar, Y}) -&gt; [2, Y].
+
+decode([Int]) -&gt; Int.</pre> <p>There are two differences when using Erl_Interface on the C side compared to the example in <code><a href="c_port">Ports</a></code>, using only the plain port:</p> <ul> <li>As Erl_Interface operates on the Erlang external term format, the port must be set to use binaries.</li> <li>Instead of inventing an encoding/decoding scheme, the <code class="code">term_to_binary/1</code> and <code class="code">binary_to_term/1</code> BIFs are to be used.</li> </ul> <p>That is:</p> <pre data-language="erlang">
+open_port({spawn, ExtPrg}, [{packet, 2}])</pre> <p>is replaced with:</p> <pre data-language="erlang">
+open_port({spawn, ExtPrg}, [{packet, 2}, binary])</pre> <p>And:</p> <pre data-language="erlang">
+Port ! {self(), {command, encode(Msg)}},
+receive
+  {Port, {data, Data}} -&gt;
+    Caller ! {complex, decode(Data)}
+end</pre> <p>is replaced with:</p> <pre data-language="erlang">
+Port ! {self(), {command, term_to_binary(Msg)}},
+receive
+  {Port, {data, Data}} -&gt;
+    Caller ! {complex, binary_to_term(Data)}
+end</pre> <p>The resulting Erlang program is as follows:</p> <pre data-language="erlang">-module(complex2).
+-export([start/1, stop/0, init/1]).
+-export([foo/1, bar/1]).
+
+start(ExtPrg) -&gt;
+    spawn(?MODULE, init, [ExtPrg]).
+stop() -&gt;
+    complex ! stop.
+
+foo(X) -&gt;
+    call_port({foo, X}).
+bar(Y) -&gt;
+    call_port({bar, Y}).
+
+call_port(Msg) -&gt;
+    complex ! {call, self(), Msg},
+    receive
+	{complex, Result} -&gt;
+	    Result
+    end.
+
+init(ExtPrg) -&gt;
+    register(complex, self()),
+    process_flag(trap_exit, true),
+    Port = open_port({spawn, ExtPrg}, [{packet, 2}, binary]),
+    loop(Port).
+
+loop(Port) -&gt;
+    receive
+	{call, Caller, Msg} -&gt;
+	    Port ! {self(), {command, term_to_binary(Msg)}},
+	    receive
+		{Port, {data, Data}} -&gt;
+		    Caller ! {complex, binary_to_term(Data)}
+	    end,
+	    loop(Port);
+	stop -&gt;
+	    Port ! {self(), close},
+	    receive
+		{Port, closed} -&gt;
+		    exit(normal)
+	    end;
+	{'EXIT', Port, Reason} -&gt;
+	    exit(port_terminated)
+    end.</pre> <p>Notice that calling <code class="code">complex2:foo/1</code> and <code class="code">complex2:bar/1</code> results in the tuple <code class="code">{foo,X}</code> or <code class="code">{bar,Y}</code> being sent to the <code class="code">complex</code> process, which codes them as binaries and sends them to the port. This means that the C program must be able to handle these two tuples.</p> <h2><span onmouseover="document.getElementById('ghlink-c-program-id65984').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-c-program-id65984').style.visibility = 'hidden';" id="c-program">5.2 C Program</span></h2> <p>The following example shows a C program communicating with an Erlang program over a plain port with home made encoding:</p> <pre data-language="erlang">/* port.c */
+
+typedef unsigned char byte;
+
+int main() {
+  int fn, arg, res;
+  byte buf[100];
+
+  while (read_cmd(buf) &gt; 0) {
+    fn = buf[0];
+    arg = buf[1];
+    
+    if (fn == 1) {
+      res = foo(arg);
+    } else if (fn == 2) {
+      res = bar(arg);
+    }
+
+    buf[0] = res;
+    write_cmd(buf, 1);
+  }
+}</pre> <p>Compared to the C program in <code><a href="c_port">Ports</a></code>, using only the plain port, the <code class="code">while</code>-loop must be rewritten. Messages coming from the port is on the Erlang external term format. They must be converted into an <code class="code">ETERM</code> struct, which is a C struct similar to an Erlang term. The result of calling <code class="code">foo()</code> or <code class="code">bar()</code> must be converted to the Erlang external term format before being sent back to the port. But before calling any other Erl_Interface function, the memory handling must be initiated:</p> <pre data-language="erlang">
+erl_init(NULL, 0);</pre> <p>The following functions, <code class="code">read_cmd()</code> and <code class="code">write_cmd()</code>, from the <code class="code">erl_comm.c</code> example in <code><a href="c_port">Ports</a></code> can still be used for reading from and writing to the port: </p> <pre data-language="erlang">/* erl_comm.c */
+
+typedef unsigned char byte;
+
+read_cmd(byte *buf)
+{
+  int len;
+
+  if (read_exact(buf, 2) != 2)
+    return(-1);
+  len = (buf[0] &lt;&lt; 8) | buf[1];
+  return read_exact(buf, len);
+}
+
+write_cmd(byte *buf, int len)
+{
+  byte li;
+
+  li = (len &gt;&gt; 8) &amp; 0xff;
+  write_exact(&amp;li, 1);
+  
+  li = len &amp; 0xff;
+  write_exact(&amp;li, 1);
+
+  return write_exact(buf, len);
+}
+
+read_exact(byte *buf, int len)
+{
+  int i, got=0;
+
+  do {
+    if ((i = read(0, buf+got, len-got)) &lt;= 0)
+      return(i);
+    got += i;
+  } while (got&lt;len);
+
+  return(len);
+}
+
+write_exact(byte *buf, int len)
+{
+  int i, wrote = 0;
+
+  do {
+    if ((i = write(1, buf+wrote, len-wrote)) &lt;= 0)
+      return (i);
+    wrote += i;
+  } while (wrote&lt;len);
+
+  return (len);
+}</pre> <p>The function <code class="code">erl_decode()</code> from <code class="code">erl_marshal</code> converts the binary into an <code class="code">ETERM</code> struct:</p> <pre data-language="erlang">
+int main() {
+  ETERM *tuplep;
+
+  while (read_cmd(buf) &gt; 0) {
+    tuplep = erl_decode(buf);</pre> <p>Here, <code class="code">tuplep</code> points to an <code class="code">ETERM</code> struct representing a tuple with two elements; the function name (atom) and the argument (integer). Using the function <code class="code">erl_element()</code> from <code class="code">erl_eterm</code>, these elements can be extracted, but they must also be declared as pointers to an <code class="code">ETERM</code> struct:</p> <pre data-language="erlang">
+fnp = erl_element(1, tuplep);
+argp = erl_element(2, tuplep);</pre> <p>The macros <code class="code">ERL_ATOM_PTR</code> and <code class="code">ERL_INT_VALUE</code> from <code class="code">erl_eterm</code> can be used to obtain the actual values of the atom and the integer. The atom value is represented as a string. By comparing this value with the strings "foo" and "bar", it can be decided which function to call:</p> <pre data-language="erlang">
+if (strncmp(ERL_ATOM_PTR(fnp), "foo", 3) == 0) {
+  res = foo(ERL_INT_VALUE(argp));
+} else if (strncmp(ERL_ATOM_PTR(fnp), "bar", 3) == 0) {
+  res = bar(ERL_INT_VALUE(argp));
+}</pre> <p>Now an <code class="code">ETERM</code> struct that represents the integer result can be constructed using the function <code class="code">erl_mk_int()</code> from <code class="code">erl_eterm</code>. The function <code class="code">erl_format()</code> from the module <code class="code">erl_format</code> can also be used:</p> <pre data-language="erlang">
+intp = erl_mk_int(res);</pre> <p>The resulting <code class="code">ETERM</code> struct is converted into the Erlang external term format using the function <code class="code">erl_encode()</code> from <code class="code">erl_marshal</code> and sent to Erlang using <code class="code">write_cmd()</code>:</p> <pre data-language="erlang">
+erl_encode(intp, buf);
+write_cmd(buf, erl_eterm_len(intp));</pre> <p>Finally, the memory allocated by the <code class="code">ETERM</code> creating functions must be freed:</p> <pre data-language="erlang">
+erl_free_compound(tuplep);
+erl_free_term(fnp);
+erl_free_term(argp);
+erl_free_term(intp);</pre> <p>The resulting C program is as follows:</p> <pre data-language="erlang">/* ei.c */
+
+#include "erl_interface.h"
+#include "ei.h"
+
+typedef unsigned char byte;
+
+int main() {
+  ETERM *tuplep, *intp;
+  ETERM *fnp, *argp;
+  int res;
+  byte buf[100];
+  long allocated, freed;
+
+  erl_init(NULL, 0);
+
+  while (read_cmd(buf) &gt; 0) {
+    tuplep = erl_decode(buf);
+    fnp = erl_element(1, tuplep);
+    argp = erl_element(2, tuplep);
+    
+    if (strncmp(ERL_ATOM_PTR(fnp), "foo", 3) == 0) {
+      res = foo(ERL_INT_VALUE(argp));
+    } else if (strncmp(ERL_ATOM_PTR(fnp), "bar", 3) == 0) {
+      res = bar(ERL_INT_VALUE(argp));
+    }
+
+    intp = erl_mk_int(res);
+    erl_encode(intp, buf);
+    write_cmd(buf, erl_term_len(intp));
+
+    erl_free_compound(tuplep);
+    erl_free_term(fnp);
+    erl_free_term(argp);
+    erl_free_term(intp);
+  }
+}</pre> <h2><span onmouseover="document.getElementById('ghlink-running-the-example-id66813').style.visibility = 'visible';" onmouseout="document.getElementById('ghlink-running-the-example-id66813').style.visibility = 'hidden';" id="running-the-example">5.3 Running the Example</span></h2> <p><strong>Step 1.</strong> Compile the C code. This provides the paths to the include files <code class="code">erl_interface.h</code> and <code class="code">ei.h</code>, and also to the libraries <code class="code">erl_interface</code> and <code class="code">ei</code>:</p> <pre data-language="erlang">
+unix&gt; gcc -o extprg -I/usr/local/otp/lib/erl_interface-3.9.2/include \\
+-L/usr/local/otp/lib/erl_interface-3.9.2/lib \\
+complex.c erl_comm.c ei.c -lerl_interface -lei -lpthread</pre> <p>In Erlang/OTP R5B and later versions of OTP, the <code class="code">include</code> and <code class="code">lib</code> directories are situated under <code class="code">OTPROOT/lib/erl_interface-VSN</code>, where <code class="code">OTPROOT</code> is the root directory of the OTP installation (<code class="code">/usr/local/otp</code> in the recent example) and <code class="code">VSN</code> is the version of the Erl_interface application (3.2.1 in the recent example).</p> <p>In R4B and earlier versions of OTP, <code class="code">include</code> and <code class="code">lib</code> are situated under <code class="code">OTPROOT/usr</code>.</p> <p><strong>Step 2.</strong> Start Erlang and compile the Erlang code:</p> <pre data-language="erlang">
+unix&gt; erl
+Erlang (BEAM) emulator version 4.9.1.2
+
+Eshell V4.9.1.2 (abort with ^G)
+1&gt; c(complex2).
+{ok,complex2}</pre> <p><strong>Step 3.</strong> Run the example:</p> <pre data-language="erlang">
+2&gt; complex2:start("./extprg").
+&lt;0.34.0&gt;
+3&gt; complex2:foo(3).
+4
+4&gt; complex2:bar(5).
+10
+5&gt; complex2:bar(352).
+704
+6&gt; complex2:stop().
+stop</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2017 Ericsson AB<br>Licensed under the Apache License, Version 2.0.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
