@@ -1,0 +1,140 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Rebasing Changesets - SQLite - W3cubDocs</title>
+  
+  <meta name="description" content=" Important&#58; This interface is experimental and is subject to change without notice. ">
+  <meta name="keywords" content="rebasing, changesets, sqlite">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/sqlite/session/rebaser.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/sqlite.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/sqlite/" class="_nav-link" title="" style="margin-left:0;">SQLite</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sqlite">
+				
+				
+<h1>Rebasing changesets</h1>
+<pre data-language="sql">typedef struct sqlite3_rebaser sqlite3_rebaser;
+</pre>
+<p><b>Important:</b> This interface is <a href="../c3ref/experimental">experimental</a> and is subject to change without notice.</p>
+<p> Suppose there is a site hosting a database in state S0. And that modifications are made that move that database to state S1 and a changeset recorded (the "local" changeset). Then, a changeset based on S0 is received from another site (the "remote" changeset) and applied to the database. The database is then in state (S1+"remote"), where the exact state depends on any conflict resolution decisions (OMIT or REPLACE) made while applying "remote". Rebasing a changeset is to update it to take those conflict resolution decisions into account, so that the same conflicts do not have to be resolved elsewhere in the network. </p> <p>For example, if both the local and remote changesets contain an INSERT of the same key on "CREATE TABLE t1(a PRIMARY KEY, b)":</p> <p> local: INSERT INTO t1 VALUES(1, 'v1'); remote: INSERT INTO t1 VALUES(1, 'v2');</p> <p>and the conflict resolution is REPLACE, then the INSERT change is removed from the local changeset (it was overridden). Or, if the conflict resolution was "OMIT", then the local changeset is modified to instead contain:</p> <p> UPDATE t1 SET b = 'v2' WHERE a=1;</p> <p>Changes within the local changeset are rebased as follows:</p> 
+<dl> <dt>Local INSERT</dt>
+<dd> This may only conflict with a remote INSERT. If the conflict resolution was OMIT, then add an UPDATE change to the rebased changeset. Or, if the conflict resolution was REPLACE, add nothing to the rebased changeset. 
+</dd>
+<dt>Local DELETE</dt>
+<dd> This may conflict with a remote UPDATE or DELETE. In both cases the only possible resolution is OMIT. If the remote operation was a DELETE, then add no change to the rebased changeset. If the remote operation was an UPDATE, then the old.* fields of change are updated to reflect the new.* values in the UPDATE. 
+</dd>
+<dt>Local UPDATE</dt>
+<dd> This may conflict with a remote UPDATE or DELETE. If it conflicts with a DELETE, and the conflict resolution was OMIT, then the update is changed into an INSERT. Any undefined values in the new.* record from the update change are filled in using the old.* values from the conflicting DELETE. Or, if the conflict resolution was REPLACE, the UPDATE change is simply omitted from the rebased changeset. <p> If conflict is with a remote UPDATE and the resolution is OMIT, then the old.* values are rebased using the new.* values in the remote change. Or, if the resolution is REPLACE, then the change is copied into the rebased changeset with updates to columns also updated by the conflicting remote UPDATE removed. If this means no columns would be updated, the change is omitted. </p>
+</dd>
+</dl> <p>A local change may be rebased against multiple remote changes simultaneously. If a single key is modified by multiple remote changesets, they are combined as follows before the local changeset is rebased:</p> 
+<ul> <li> If there has been one or more REPLACE resolutions on a key, it is rebased according to a REPLACE. 
+</li>
+<li> If there have been no REPLACE resolutions on a key, then the local changeset is rebased according to the most recent of the OMIT resolutions. </li>
+</ul> <p>Note that conflict resolutions from multiple remote changesets are combined on a per-field basis, not per-row. This means that in the case of multiple remote UPDATE operations, some fields of a single local change may be rebased for REPLACE while others are rebased for OMIT.</p> <p>In order to rebase a local changeset, the remote changeset must first be applied to the local database using sqlite3changeset_apply_v2() and the buffer of rebase information captured. Then:</p> 
+<ol> <li> An sqlite3_rebaser object is created by calling sqlite3rebaser_create(). </li>
+<li> The new object is configured with the rebase buffer obtained from sqlite3changeset_apply_v2() by calling sqlite3rebaser_configure(). If the local changeset is to be rebased against multiple remote changesets, then sqlite3rebaser_configure() should be called multiple times, in the same order that the multiple sqlite3changeset_apply_v2() calls were made. </li>
+<li> Each local changeset is rebased by calling sqlite3rebaser_rebase(). </li>
+<li> The sqlite3_rebaser object is deleted by calling sqlite3rebaser_delete(). </li>
+</ol> <p>See also lists of <a href="objlist">Objects</a>, <a href="constlist">Constants</a>, and <a href="funclist">Functions</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    SQLite is in the Public Domain.<br>
+    <a href="https://sqlite.org/session/rebaser.html" class="_attribution-link">https://sqlite.org/session/rebaser.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
