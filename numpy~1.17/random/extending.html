@@ -1,0 +1,211 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Extending - NumPy 1.17 - W3cubDocs</title>
+  
+  <meta name="description" content="The BitGenerators have been designed to be extendable using standard tools for high-performance Python – numba and Cython. The Generator object can &hellip;">
+  <meta name="keywords" content="extending, numpy, numpy~1.17">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/numpy~1.17/random/extending.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/numpy~1.17.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/numpy~1.17/" class="_nav-link" title="" style="margin-left:0;">NumPy 1.17</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="extending">Extending</h1> <p>The BitGenerators have been designed to be extendable using standard tools for high-performance Python – numba and Cython. The <a class="reference internal" href="generator#numpy.random.Generator" title="numpy.random.Generator"><code>Generator</code></a> object can also be used with user-provided BitGenerators as long as these export a small set of required functions.</p>  <h2 id="numba">Numba</h2> <p>Numba can be used with either CTypes or CFFI. The current iteration of the BitGenerators all export a small set of functions through both interfaces.</p> <p>This example shows how numba can be used to produce Box-Muller normals using a pure Python implementation which is then compiled. The random numbers are provided by <code>ctypes.next_double</code>.</p> <pre data-language="python">from numpy.random import PCG64
+import numpy as np
+import numba as nb
+
+x = PCG64()
+f = x.ctypes.next_double
+s = x.ctypes.state
+state_addr = x.ctypes.state_address
+
+def normals(n, state):
+    out = np.empty(n)
+    for i in range((n+1)//2):
+        x1 = 2.0*f(state) - 1.0
+        x2 = 2.0*f(state) - 1.0
+        r2 = x1*x1 + x2*x2
+        while r2 &gt;= 1.0 or r2 == 0.0:
+            x1 = 2.0*f(state) - 1.0
+            x2 = 2.0*f(state) - 1.0
+            r2 = x1*x1 + x2*x2
+        g = np.sqrt(-2.0*np.log(r2)/r2)
+        out[2*i] = g*x1
+        if 2*i+1 &lt; n:
+            out[2*i+1] = g*x2
+    return out
+
+# Compile using Numba
+print(normals(10, s).var())
+# Warm up
+normalsj = nb.jit(normals, nopython=True)
+# Must use state address not state with numba
+normalsj(1, state_addr)
+%timeit normalsj(1000000, state_addr)
+print('1,000,000 Box-Muller (numba/PCG64) randoms')
+%timeit np.random.standard_normal(1000000)
+print('1,000,000 Box-Muller (NumPy) randoms')
+</pre> <p>Both CTypes and CFFI allow the more complicated distributions to be used directly in Numba after compiling the file distributions.c into a DLL or so. An example showing the use of a more complicated distribution is in the examples folder.</p>   <h2 id="randomgen-cython">Cython</h2> <p id="cython">Cython can be used to unpack the <code>PyCapsule</code> provided by a BitGenerator. This example uses <a class="reference internal" href="bit_generators/pcg64#numpy.random.pcg64.PCG64" title="numpy.random.pcg64.PCG64"><code>PCG64</code></a> and <code>random_gauss_zig</code>, the Ziggurat-based generator for normals, to fill an array. The usual caveats for writing high-performance code using Cython – removing bounds checks and wrap around, providing array alignment information – still apply.</p> <pre data-language="cython">import numpy as np
+cimport numpy as np
+cimport cython
+from cpython.pycapsule cimport PyCapsule_IsValid, PyCapsule_GetPointer
+from numpy.random.common cimport *
+from numpy.random.distributions cimport random_gauss_zig
+from numpy.random import PCG64
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normals_zig(Py_ssize_t n):
+    cdef Py_ssize_t i
+    cdef bitgen_t *rng
+    cdef const char *capsule_name = "BitGenerator"
+    cdef double[::1] random_values
+
+    x = PCG64()
+    capsule = x.capsule
+    if not PyCapsule_IsValid(capsule, capsule_name):
+        raise ValueError("Invalid pointer to anon_func_state")
+    rng = &lt;bitgen_t *&gt; PyCapsule_GetPointer(capsule, capsule_name)
+    random_values = np.empty(n)
+    # Best practice is to release GIL and acquire the lock
+    with x.lock, nogil:
+        for i in range(n):
+            random_values[i] = random_gauss_zig(rng)
+    randoms = np.asarray(random_values)
+    return randoms
+</pre> <p>The BitGenerator can also be directly accessed using the members of the basic RNG structure.</p> <pre data-language="cython">@cython.boundscheck(False)
+@cython.wraparound(False)
+def uniforms(Py_ssize_t n):
+    cdef Py_ssize_t i
+    cdef bitgen_t *rng
+    cdef const char *capsule_name = "BitGenerator"
+    cdef double[::1] random_values
+
+    x = PCG64()
+    capsule = x.capsule
+    # Optional check that the capsule if from a BitGenerator
+    if not PyCapsule_IsValid(capsule, capsule_name):
+        raise ValueError("Invalid pointer to anon_func_state")
+    # Cast the pointer
+    rng = &lt;bitgen_t *&gt; PyCapsule_GetPointer(capsule, capsule_name)
+    random_values = np.empty(n)
+    with x.lock, nogil:
+        for i in range(n):
+            # Call the function
+            random_values[i] = rng.next_double(rng.state)
+    randoms = np.asarray(random_values)
+    return randoms
+</pre> <p>These functions along with a minimal setup file are included in the examples folder.</p>   <h2 id="new-basic-rngs">New Basic RNGs</h2> <p><a class="reference internal" href="generator#numpy.random.Generator" title="numpy.random.Generator"><code>Generator</code></a> can be used with other user-provided BitGenerators. The simplest way to write a new BitGenerator is to examine the pyx file of one of the existing BitGenerators. The key structure that must be provided is the <code>capsule</code> which contains a <code>PyCapsule</code> to a struct pointer of type <code>bitgen_t</code>,</p> <pre data-language="c">typedef struct bitgen {
+  void *state;
+  uint64_t (*next_uint64)(void *st);
+  uint32_t (*next_uint32)(void *st);
+  double (*next_double)(void *st);
+  uint64_t (*next_raw)(void *st);
+} bitgen_t;
+</pre> <p>which provides 5 pointers. The first is an opaque pointer to the data structure used by the BitGenerators. The next three are function pointers which return the next 64- and 32-bit unsigned integers, the next random double and the next raw value. This final function is used for testing and so can be set to the next 64-bit unsigned integer function if not needed. Functions inside <code>Generator</code> use this structure as in</p> <pre data-language="c">bitgen_state-&gt;next_uint64(bitgen_state-&gt;state)
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2005–2019 NumPy Developers<br>Licensed under the 3-clause BSD License.<br>
+    <a href="https://docs.scipy.org/doc/numpy-1.17.0/reference/random/extending.html" class="_attribution-link">https://docs.scipy.org/doc/numpy-1.17.0/reference/random/extending.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
