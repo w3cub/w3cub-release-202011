@@ -1,0 +1,164 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Migration From 0.9 - Socket.IO - W3cubDocs</title>
+  
+  <meta name="description" content="For most applications, the transition to 1.0 should be completely seamless and devoid of any hiccups. That said, we’ve done some work to streamline &hellip;">
+  <meta name="keywords" content="migration, from, socket, io, socketio">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/socketio/migrating-from-0-9.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/socketio.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/socketio/" class="_nav-link" title="" style="margin-left:0;">Socket.IO</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _socketio">
+				
+				
+<h1>Migration from 0.9</h1> <p>For most applications, the transition to 1.0 should be completely seamless and devoid of any hiccups. That said, we’ve done some work to streamline some APIs, and we have changed some internals, so this is a recommended read for most existing users.</p> <h3 id="authentication-differences">Authentication differences</h3> <h4 id="socket-io-uses-middleware-now">Socket.io uses middleware now</h4> <p>You can give a Socket.io server arbitrary functions via <code>io.use()</code> that are run when a socket is created. Check out this example:</p> <pre data-language="javascript">var srv = require('http').createServer();
+var io = require('socket.io')(srv);
+var run = 0;
+io.use(function(socket, next){
+  run++; // 0 -&gt; 1
+  next();
+});
+io.use(function(socket, next) {
+  run++; // 1 -&gt; 2
+  next();
+});
+var socket = require('socket.io-client')();
+socket.on('connect', function(){
+  // run == 2 at this time
+});</pre> <h4 id="so-its-cleaner-to-do-auth-via-middleware-now">… so its cleaner to do auth via middleware now</h4> <p>The old <code>io.set()</code> and <code>io.get()</code> methods are deprecated and only supported for backwards compatibility. Here is a translation of an old authorization example into middleware-style.</p> <pre data-language="javascript">io.set('authorization', function (handshakeData, callback) {
+  // make sure the handshake data looks good
+  callback(null, true); // error first, 'authorized' boolean second 
+});</pre> <p>vs.</p> <pre data-language="javascript">io.use(function(socket, next) {
+  var handshakeData = socket.request;
+  // make sure the handshake data looks good as before
+  // if error do this:
+    // next(new Error('not authorized');
+  // else just call next
+  next();
+});</pre> <h4 id="namespace-authorization">Namespace authorization?</h4> <pre data-language="javascript">io.of('/namespace').use(function(socket, next) {
+  var handshakeData = socket.request;
+  next();
+});</pre> <h3 id="log-differences">Log differences</h3> <h4 id="logging-is-now-based-on-debug">Logging is now based on debug</h4> <p>To print all debug logging, set the environment variable DEBUG to *. ie: <code>DEBUG=* node index.js</code></p> <p>To print only socket.io related logging: <code>DEBUG=socket.io:* node index.js</code>.</p> <p>To print logging only from the socket object: <code>DEBUG=socket.io:socket node index.js</code>.</p> <p>This pattern should hopefully be making sense at this point. The names of the files in socket.io/lib are equivalent to their debug names.</p> <p>Debug also works in the browser; logs are persisted to localstorage. To use: open the developer console and type <code>localStorage.debug = 'socket.io:*'</code> (or any debug level) and then refresh the page. Everything is logged until you run <code>localStorage.debug = ''</code></p> <p>See more at the debug documentation <a href="https://www.npmjs.org/package/debug">here</a>.</p> <h3 id="shortcuts">Shortcuts</h3> <p>In general there are some new shortcuts for common things. The old versions should still work, but shortcuts are nice.</p> <h4 id="broadcasting-to-all-clients-in-default-namespace">Broadcasting to all clients in default namespace</h4> <p>Previously:</p> <pre data-language="javascript">io.sockets.emit('eventname', 'eventdata');</pre> <p>Now:</p> <pre data-language="javascript">io.emit('eventname', 'eventdata');</pre> <p>Neat. Note that in both cases, these messages reach all clients connected to the default ‘/’ namespace, but not clients in other namespaces.</p> <h4 id="starting-the-server">Starting the server</h4> <p>Previously:</p> <pre data-language="javascript">var io = require('socket.io');
+var socket = io.listen(80, { /* options */ });</pre> <p>Now:</p> <pre data-language="javascript">var io = require('socket.io');
+var socket = io({ /* options */ });</pre> <h3 id="configuration-differences">Configuration differences</h3> <h4 id="io-set-is-gone">io.set is gone</h4> <p>Instead do configuration in server initialization like this:</p> <pre data-language="javascript">var socket = require('socket.io')({
+  // options go here
+});</pre> <p>Options like log-level are gone. <code>io.set('transports')</code>, <code>io.set('heartbeat interval')</code>, <code>io.set('heartbeat timeout'</code>, and <code>io.set('resource')</code> are still supported for backwards compatibility.</p> <h4 id="setting-resource-path">Setting resource path</h4> <p>The previous <code>resource</code> option is equivalent to the new <code>path</code> option, but needs a <code>/</code> in the beginning. For example, the following configuration</p> <pre data-language="javascript">var socket = io.connect('localhost:3000', {
+  'resource': 'path/to/socket.io';
+});</pre> <p>becomes</p> <pre data-language="javascript">var socket = io.connect('localhost:3000', {
+  'path': '/path/to/socket.io';
+});</pre> <h3 id="parser-protocol-differences">Parser / Protocol differences</h3> <p>This is only relevant for updating things like socket.io implementations in other languages, custom socket.io clients, etc.</p> <h4 id="difference-1-packet-encoding">Difference 1 – packet encoding</h4> <p>Parsing is now class based and asynchronous. Instead of returning a single encoded string, encode calls callback with an array of encodings as the only argument. Each encoding should be written to the transport in order. This is more flexible and makes binary data transport work. Here’s an example:</p> <pre data-language="javascript">var encoding = parser.encode(packet);
+console.log(encoding); // fully encoded packet</pre> <p>vs.</p> <pre data-language="javascript">var encoder = new parser.Encoder();
+encoder.encode(packet, function(encodings) {
+  for (var i = 0; i &lt; encodings.length; i++) {
+    console.log(encodings[i]); // encoded parts of the packet
+  }
+});</pre> <h4 id="difference-2-packet-decoding">Difference 2 – packet decoding</h4> <p>Decoding takes things a step further and is event-based. This is done because some objects (binary-containing) are both encoded and decoded in multiple parts. This example should help:</p> <pre data-language="javascript">var packet = parser.decode(decoding);
+console.log(packet); // formed socket.io packet to handle</pre> <p>vs.</p> <pre data-language="javascript">var decoder = new parser.Decoder();
+decoder.on('decoded', function(packet) {
+  console.log(packet); // formed socket.io packet to handle
+});
+decoder.add(encodings[0]); // say encodings is array of two encodings received from transport
+decoder.add(encodings[1]); // after adding the last element, 'decoded' is emitted from decoder</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2014–2015 Automattic<br>Licensed under the MIT License.<br>
+    <a href="http://socket.io/docs/migrating-from-0-9" class="_attribution-link">http://socket.io/docs/migrating-from-0-9</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

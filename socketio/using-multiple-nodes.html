@@ -1,0 +1,136 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using Multiple Nodes - Socket.IO - W3cubDocs</title>
+  
+  <meta name="description" content="If you plan to distribute the load of connections among different processes or machines, you have to make sure that requests associated with a &hellip;">
+  <meta name="keywords" content="using, multiple, nodes, socket, io, socketio">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/socketio/using-multiple-nodes.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/socketio.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/socketio/" class="_nav-link" title="" style="margin-left:0;">Socket.IO</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _socketio">
+				
+				
+<h1>Using multiple nodes</h1> <h3 id="sticky-load-balancing">Sticky load balancing</h3> <p>If you plan to distribute the load of connections among different processes or machines, you have to make sure that requests associated with a particular session id connect to the process that originated them.</p> <p>This is due to certain transports like XHR Polling or JSONP Polling relying on firing several requests during the lifetime of the “socket”.</p> <p>To illustrate why this is needed, consider the example of emitting an event to all connected clients:</p> <pre data-language="javascript">io.emit('hi', 'all sockets');</pre> <p>Chances are that some of those clients might have an active bi-directional communication channel like <code>WebSocket</code> that we can write to immediately, but some of them might be using long-polling.</p> <p>If they’re using long polling, they might or might not have sent a request that we can write to. They could be “in between” those requests. In those situations, it means we have to buffer messages in the process. In order for the client to successfully claim those messages when he sends his request, the easiest way is for him to connect to be routed to that same process.</p> <p>An easy way to do that is by routing clients based on their originating address. An example follows using the NginX server:</p> <h3 id="nginx-configuration">NginX configuration</h3> <p>Within the <code>http { }</code> section of your <code>nginx.conf</code> file, you can declare a <code>upstream</code> section with a list of Socket.IO process you want to balance load between:</p> <pre data-language="javascript">upstream io_nodes {
+  ip_hash;
+  server 127.0.0.1:6001;
+  server 127.0.0.1:6002;
+  server 127.0.0.1:6003;
+  server 127.0.0.1:6004;
+}</pre> <p>Notice the <code>ip_hash</code> instruction that indicates the connections will be sticky.</p> <p>In the same <code>http { }</code> section, you can declare a <code>server { }</code> that points to this upstream. In order for NginX to support and forward the <code>WebSocket</code> protocol, we explicitly pass along the required <code>Upgrade</code> headers:</p> <pre data-language="javascript">server {
+  listen 3000;
+  server_name io.yourhost.com;
+  location / {
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Host $host;
+    proxy_http_version 1.1;
+    proxy_pass http://io_nodes;
+  }
+}</pre> <p>Make sure you also configure <code>worker_processes</code> in the topmost level to indicate how many workers NginX should use. You might also want to look into tweaking the <code>worker_connections</code> setting within the <code>events { }</code> block.</p> <h3 id="using-node-js-cluster">Using Node.JS Cluster</h3> <p>Just like NginX, Node.JS comes with built-in clustering support through the <code>cluster</code> module.</p> <p>Fedor Indutny has created a module called <a href="https://github.com/indutny/sticky-session">sticky session</a> that ensures file descriptors (ie: connections) are routed based on the originating <code>remoteAddress</code> (ie: IP).</p> <h3 id="passing-events-between-nodes">Passing events between nodes</h3> <p>Now that you have multiple Socket.IO nodes accepting connections, if you want to broadcast events to everyone (or even everyone in a certain <a href="http://new.socket.io/docs/rooms-and-namespaces/">room</a>) you’ll need some way of passing messages between processes or computers.</p> <p>The interface in charge of routing messages is what we call the <code>Adapter</code>. You can implement your own on top of the <a href="https://github.com/automattic/socket.io-adapter">socket.io-adapter</a> (by inheriting from it) or you can use the one we provide on top of <a href="http://redis.io">Redis</a>: <a href="https://github.com/automattic/socket.io-redis">socket.io-redis</a>:</p> <pre data-language="javascript">var io = require('socket.io')(3000);
+var redis = require('socket.io-redis');
+io.adapter(redis({ host: 'localhost', port: 6379 }));</pre> <p>If you want to pass messages to it from non-socket.io processes, you should look into <a href="rooms-and-namespaces#sending-messages-from-the-outside-world">“Sending messages from the outside-world”</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2014–2015 Automattic<br>Licensed under the MIT License.<br>
+    <a href="http://socket.io/docs/using-multiple-nodes" class="_attribution-link">http://socket.io/docs/using-multiple-nodes</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
