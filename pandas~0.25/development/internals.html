@@ -1,0 +1,152 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>6. Internals - Pandas 0.25 - W3cubDocs</title>
+  
+  <meta name="description" content=" This section will provide a look into some of pandas internals. It’s primarily intended for developers of pandas itself. ">
+  <meta name="keywords" content="internals, pandas, pandas~0.25">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/pandas~0.25/development/internals.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-EpkDeu98lN/jPKijllzVWdRg/dUSSMCaldYZNFz6bcNoBvpWRNz0HSTRQJ3ENmQc5Cuj1zDW1vHd7b0DzpOgyA==" crossorigin="anonymous" src="/assets/application-1299037aef7c94dfe33ca8a3965cd559d460fdd51248c09a95d619345cfa6dc36806fa5644dcf41d24d1409dc436641ce42ba3d730d6d6f1ddedbd03ce93a0c8.js"></script>
+  <script src="/json/pandas~0.25.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/pandas~0.25/" class="_nav-link" title="" style="margin-left:0;">pandas 0.25</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="id1">Internals</h1> <p id="internals">This section will provide a look into some of pandas internals. It’s primarily intended for developers of pandas itself.</p>  <h2 id="indexing">Indexing</h2> <p>In pandas there are a few objects implemented which can serve as valid containers for the axis labels:</p> <ul class="simple"> <li>
+<code>Index</code>: the generic “ordered set” object, an ndarray of object dtype assuming nothing about its contents. The labels must be hashable (and likely immutable) and unique. Populates a dict of label to location in Cython to do <code>O(1)</code> lookups.</li> <li>
+<code>Int64Index</code>: a version of <code>Index</code> highly optimized for 64-bit integer data, such as time stamps</li> <li>
+<code>Float64Index</code>: a version of <code>Index</code> highly optimized for 64-bit float data</li> <li>
+<code>MultiIndex</code>: the standard hierarchical index object</li> <li>
+<code>DatetimeIndex</code>: An Index object with <code>Timestamp</code> boxed elements (impl are the int64 values)</li> <li>
+<code>TimedeltaIndex</code>: An Index object with <code>Timedelta</code> boxed elements (impl are the in64 values)</li> <li>
+<code>PeriodIndex</code>: An Index object with Period elements</li> </ul> <p>There are functions that make the creation of a regular index easy:</p> <ul class="simple"> <li>
+<code>date_range</code>: fixed frequency date range generated from a time rule or DateOffset. An ndarray of Python datetime objects</li> <li>
+<code>period_range</code>: fixed frequency date range generated from a time rule or DateOffset. An ndarray of <code>Period</code> objects, representing timespans</li> </ul> <p>The motivation for having an <code>Index</code> class in the first place was to enable different implementations of indexing. This means that it’s possible for you, the user, to implement a custom <code>Index</code> subclass that may be better suited to a particular application than the ones provided in pandas.</p> <p>From an internal implementation point of view, the relevant methods that an <code>Index</code> must define are one or more of the following (depending on how incompatible the new object internals are with the <code>Index</code> functions):</p> <ul class="simple"> <li>
+<code>get_loc</code>: returns an “indexer” (an integer, or in some cases a slice object) for a label</li> <li>
+<code>slice_locs</code>: returns the “range” to slice between two labels</li> <li>
+<code>get_indexer</code>: Computes the indexing vector for reindexing / data alignment purposes. See the source / docstrings for more on this</li> <li>
+<code>get_indexer_non_unique</code>: Computes the indexing vector for reindexing / data alignment purposes when the index is non-unique. See the source / docstrings for more on this</li> <li>
+<code>reindex</code>: Does any pre-conversion of the input index then calls <code>get_indexer</code>
+</li> <li>
+<code>union</code>, <code>intersection</code>: computes the union or intersection of two Index objects</li> <li>
+<code>insert</code>: Inserts a new label into an Index, yielding a new object</li> <li>
+<code>delete</code>: Delete a label, yielding a new object</li> <li>
+<code>drop</code>: Deletes a set of labels</li> <li>
+<code>take</code>: Analogous to ndarray.take</li> </ul>  <h3 id="multiindex">MultiIndex</h3> <p>Internally, the <code>MultiIndex</code> consists of a few things: the <strong>levels</strong>, the integer <strong>codes</strong> (until version 0.24 named <em>labels</em>), and the level <strong>names</strong>:</p> <pre data-language="python">In [1]: index = pd.MultiIndex.from_product([range(3), ['one', 'two']],
+   ...:                                    names=['first', 'second'])
+   ...: 
+
+In [2]: index
+Out[2]: 
+MultiIndex([(0, 'one'),
+            (0, 'two'),
+            (1, 'one'),
+            (1, 'two'),
+            (2, 'one'),
+            (2, 'two')],
+           names=['first', 'second'])
+
+In [3]: index.levels
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2008–2012, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team<br>Licensed under the 3-clause BSD License.<br>
+    <a href="https://pandas.pydata.org/pandas-docs/version/0.25.0/development/internals.html" class="_attribution-link">https://pandas.pydata.org/pandas-docs/version/0.25.0/development/internals.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
