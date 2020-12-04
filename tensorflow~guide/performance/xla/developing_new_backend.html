@@ -1,0 +1,121 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Developing a New Backend for XLA - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="This preliminary guide is for early adopters that want to easily retarget TensorFlow to their hardware in an efficient manner. The guide is not step &hellip;">
+  <meta name="keywords" content="developing, new, backend, for, xla, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/performance/xla/developing_new_backend.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Developing a new backend for XLA </h1>     <p>This preliminary guide is for early adopters that want to easily retarget TensorFlow to their hardware in an efficient manner. The guide is not step-by-step and assumes knowledge of <a href="http://llvm.org">LLVM</a>, <a href="https://bazel.build/">Bazel</a>, and TensorFlow.</p> <p>XLA provides an abstract interface that a new architecture or accelerator can implement to create a backend to run TensorFlow graphs. Retargeting XLA should be significantly simpler and scalable than implementing every existing TensorFlow Op for new hardware.</p> <p>Most implementations will fall into one of the following scenarios:</p> <ol> <li>Existing CPU architecture not yet officially supported by XLA, with or without an existing <a href="http://llvm.org">LLVM</a> backend.</li> <li>Non-CPU-like hardware with an existing LLVM backend.</li> <li>Non-CPU-like hardware without an existing LLVM backend.</li> </ol> <blockquote> <strong>Note:</strong><span> An LLVM backend can mean either one of the officially released LLVM backends or a custom LLVM backend developed in-house.</span> </blockquote> <h2 id="scenario_1_existing_cpu_architecture_not_yet_officially_supported_by_xla">Scenario 1: Existing CPU architecture not yet officially supported by XLA</h2> <p>In this scenario, start by looking at the existing <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/cpu/">XLA CPU backend</a> . XLA makes it easy to retarget TensorFlow to different CPUs by using LLVM, since the main difference between XLA backends for CPUs is the code generated by LLVM. Google tests XLA for x64 and ARM64 architectures.</p> <p>If the hardware vendor has an LLVM backend for their hardware, it is simple to link the backend with the LLVM built with XLA. In JIT mode, the XLA CPU backend emits code for the host CPU. For ahead-of-time compilation, <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/compiler.h"><code>xla::AotCompilationOptions</code></a> can provide an LLVM triple to configure the target architecture.</p> <p>If there is no existing LLVM backend but another kind of code generator exists, it should be possible to reuse most of the existing CPU backend.</p> <h2 id="scenario_2_non-cpu-like_hardware_with_an_existing_llvm_backend">Scenario 2: Non-CPU-like hardware with an existing LLVM backend</h2> <p>It is possible to model a new <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/compiler.h"><code>xla::Compiler</code></a> implementation on the existing <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/cpu/cpu_compiler.cc"><code>xla::CPUCompiler</code></a> and <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/gpu/gpu_compiler.cc"><code>xla::GPUCompiler</code></a> classes, since these already emit LLVM IR. Depending on the nature of the hardware, it is possible that many of the LLVM IR generation aspects will have to be changed, but a lot of code can be shared with the existing backends.</p> <p>A good example to follow is the <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/gpu/">GPU backend</a> of XLA. The GPU backend targets a non-CPU-like ISA, and therefore some aspects of its code generation are unique to the GPU domain. Other kinds of hardware, e.g. DSPs like Hexagon (which has an upstream LLVM backend), can reuse parts of the LLVM IR emission logic, but other parts will be unique.</p> <h2 id="scenario_3_non-cpu-like_hardware_without_an_existing_llvm_backend">Scenario 3: Non-CPU-like hardware without an existing LLVM backend</h2> <p>If it is not possible to utilize LLVM, then the best option is to implement a new backend for XLA for the desired hardware. This option requires the most effort. The classes that need to be implemented are as follows:</p> <ul> <li>
+<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/stream_executor/stream_executor.h"><code>StreamExecutor</code></a>: For many devices not all methods of <code>StreamExecutor</code> are needed. See existing <code>StreamExecutor</code> implementations for details.</li> <li>
+<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/compiler.h"><code>xla::Compiler</code></a>: This class encapsulates the compilation of an HLO computation into an <code>xla::Executable</code>.</li> <li>
+<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/executable.h"><code>xla::Executable</code></a>: This class is used to launch a compiled computation on the platform.</li> <li>
+<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/service/transfer_manager.h"><code>xla::TransferManager</code></a>: This class enables backends to provide platform-specific mechanisms for constructing XLA literal data from given device memory handles. In other words, it helps encapsulate the transfer of data from the host to the device and back.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/performance/xla/developing_new_backend" class="_attribution-link">https://www.tensorflow.org/performance/xla/developing_new_backend</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,151 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Broadcasting Semantics - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content=" This document describes how the broadcasting semantics in XLA work. ">
+  <meta name="keywords" content="broadcasting, semantics, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/performance/xla/broadcasting.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Broadcasting semantics </h1>     <p>This document describes how the broadcasting semantics in XLA work.</p> <h2 id="what_is_broadcasting">What is broadcasting?</h2> <p>Broadcasting is the process of making arrays with different shapes have compatible shapes for arithmetic operations. The terminology is borrowed from Numpy <a href="http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html">(broadcasting)</a>.</p> <p>Broadcasting may be required for operations between multi-dimensional arrays of different ranks, or between multi-dimensional arrays with different but compatible shapes. Consider the addition <code>X+v</code> where <code>X</code> is a matrix (an array of rank 2) and <code>v</code> is a vector (an array of rank 1). To perform element-wise addition, XLA needs to "broadcast" the vector <code>v</code> to the same rank as the matrix <code>X</code>, by replicating <code>v</code> a certain number of times. The vector's length has to match at least one of the dimensions of the matrix.</p> <p>For example:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 2 3| + |7 8 9|
+|4 5 6|
+</pre> <p>The matrix's dimensions are (2,3), the vector's are (3). The vector is broadcast by replicating it over rows to get:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 2 3| + |7 8 9| = |8  10 12|
+|4 5 6|   |7 8 9|   |11 13 15|
+</pre> <p>In Numpy, this is called <a href="http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html">broadcasting</a> .</p> <h2 id="principles">Principles</h2> <p>The XLA language is as strict and explicit as possible, avoiding implicit and "magical" features. Such features may make some computations slightly easier to define, at the cost of more assumptions baked into user code that will be difficult to change in the long term. If necessary, implicit and magical features can be added in client-level wrappers.</p> <p>In regards to broadcasting, explicit broadcasting specifications on operations between arrays of different ranks is required. This is different from Numpy, which infers the specification when possible.</p> <h2 id="broadcasting_a_lower-rank_array_onto_a_higher-rank_array">Broadcasting a lower-rank array onto a higher-rank array</h2> <p><em>Scalars</em> can always be broadcast over arrays without an explicit specification of broadcasting dimensions. An element-wise binary operation between a scalar and an array means applying the operation with the scalar for each element in the array. For example, adding a scalar to a matrix means producing a matrix each element of which is a sum of the scalar with the corresponding input matrix's element.</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 2 3| + 7 = |8  9  10|
+|4 5 6|       |11 12 13|
+</pre> <p>Most broadcasting needs can be captured by using a tuple of dimensions on a binary operation. When the inputs to the operation have different ranks, this broadcasting tuple specifies which dimension(s) in the <strong>higher-rank</strong> array to match with the <strong>lower-rank</strong> array.</p> <p>Consider the previous example, instead of adding a scalar to a (2,3) matrix, add a vector of dimension (3) to a matrix of dimensions (2,3). <em>Without specifying broadcasting, this operation is invalid.</em> To correctly request matrix-vector addition, specify the broadcasting dimension to be (1), meaning the vector's dimension is matched to dimension 1 of the matrix. In 2D, if dimension 0 is considered as rows and dimension 1 as columns, this means that each element of the vector becomes a column of a size matching the number of rows in the matrix:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|7 8 9| ==&gt; |7 8 9|
+            |7 8 9|
+</pre> <p>As a more complex example, consider adding a 3-element vector (dimension (3)) to a 3x3 matrix (dimensions (3,3)). There are two ways broadcasting can happen for this example:</p> <p>(1) A broadcasting dimension of 1 can be used. Each vector element becomes a column and the vector is duplicated for each row in the matrix.</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|7 8 9| ==&gt; |7 8 9|
+            |7 8 9|
+            |7 8 9|
+</pre> <p>(2) A broadcasting dimension of 0 can be used. Each vector element becomes a row and the vector is duplicated for each column in the matrix.</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|7| ==&gt; |7 7 7|
+|8|     |8 8 8|
+|9|     |9 9 9|
+</pre> <blockquote> <strong>Note:</strong><span> when adding a 2x3 matrix to a 3-element vector, a broadcasting dimension of 0 is invalid.</span> </blockquote> <p>The broadcasting dimensions can be a tuple that describes how a smaller rank shape is broadcast into a larger rank shape. For example, given a 2x3x4 cuboid and a 3x4 matrix, a broadcasting tuple (1,2) means matching the matrix to dimensions 1 and 2 of the cuboid.</p> <p>This type of broadcast is used in the binary ops in <code>ComputationBuilder</code>, if the <code>broadcast_dimensions</code> argument is given. For example, see <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/xla/client/computation_builder.cc">ComputationBuilder::Add</a>. In the XLA source code, this type of broadcasting is sometimes called "InDim" broadcasting.</p> <h3 id="formal_definition">Formal definition</h3> <p>The broadcasting attribute allows matching a lower-rank array to a higher-rank array, by specifying which dimensions of the higher-rank array to match. For example, for an array with dimensions MxNxPxQ, a vector with dimension T can be matched as follows:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">          MxNxPxQ
+
+dim 3:          T
+dim 2:        T
+dim 1:      T
+dim 0:    T
+</pre> <p>In each case, T has to be equal to the matching dimension of the higher-rank array. The vector's values are then broadcast from the matched dimension to all the other dimensions.</p> <p>To match a TxV matrix onto the MxNxPxQ array, a pair of broadcasting dimensions are used:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">          MxNxPxQ
+dim 2,3:      T V
+dim 1,2:    T V
+dim 0,3:  T     V
+etc...
+</pre> <p>The order of dimensions in the broadcasting tuple has to be the order in which the lower-rank array's dimensions are expected to match the higher-rank array's dimensions. The first element in the tuple says which dimension in the higher-rank array has to match dimension 0 in the lower-rank array. The second element for dimension 1, and so on. The order of broadcast dimensions has to be strictly increasing. For example, in the previous example it is illegal to match V to N and T to P; it is also illegal to match V to both P and N.</p> <h2 id="broadcasting_similar-rank_arrays_with_degenerate_dimensions">Broadcasting similar-rank arrays with degenerate dimensions</h2> <p>A related broadcasting problem is broadcasting two arrays that have the same rank but different dimension sizes. Similarly to Numpy's rules, this is only possible when the arrays are <em>compatible</em>. Two arrays are compatible when all their dimensions are compatible. Two dimensions are compatible if:</p> <ul> <li>They are equal, or</li> <li>One of them is 1 (a "degenerate" dimension)</li> </ul> <p>When two compatible arrays are encountered, the result shape has the maximum among the two inputs at every dimension index.</p> <p>Examples:</p> <ol> <li>(2,1) and (2,3) broadcast to (2,3).</li> <li>(1,2,5) and (7,2,5) broadcast to (7,2,5)</li> <li>(7,2,5) and (7,1,5) broadcast to (7,2,5)</li> <li>(7,2,5) and (7,2,6) are incompatible and cannot be broadcast.</li> </ol> <p>A special case arises, and is also supported, where each of the input arrays has a degenerate dimension at a different index. In this case, the result is an "outer operation": (2,1) and (1,3) broadcast to (2,3). For more examples, consult the <a href="http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html">Numpy documentation on broadcasting</a>.</p> <h2 id="broadcast_composition">Broadcast composition</h2> <p>Broadcasting of a lower-rank array to a higher-rank array <strong>and</strong> broadcasting using degenerate dimensions can both be performed in the same binary operation. For example, a vector of size 4 and an matrix of size 1x2 can be added together using broadcast dimensions value of (0):</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 2 3 4| + [5 6]    // [5 6] is a 1x2 matrix, not a vector.
+</pre> <p>First the vector is broadcast up to rank 2 (matrix) using the broadcast dimensions. The single value (0) in the broadcast dimensions indicates that dimension zero of the vector matches to dimension zero of the matrix. This produces an matrix of size 4xM where the value M is chosen to match the corresponding dimension size in the 1x2 array. Therefore, a 4x2 matrix is produced:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 1| + [5 6]
+|2 2|
+|3 3|
+|4 4|
+</pre> <p>Then "degenerate dimension broadcasting" broadcasts dimension zero of the 1x2 matrix to match the corresponding dimension size of the right hand side:</p> <pre class="prettyprint notranslate" translate="no" data-language="cpp">|1 1| + |5 6|     |6  7|
+|2 2| + |5 6|  =  |7  8|
+|3 3| + |5 6|     |8  9|
+|4 4| + |5 6|     |9 10|
+</pre> <p>A more complicated example is a matrix of size 1x2 added to an array of size 4x3x1 using broadcast dimensions of (1, 2). First the 1x2 matrix is broadcast up to rank 3 using the broadcast dimensions to produces an intermediate Mx1x2 array where the dimension size M is determined by the size of the larger operand (the 4x3x1 array) producing a 4x1x2 intermediate array. The M is at dimension 0 (left-most dimension) because the dimensions 1 and 2 are mapped to the dimensions of the original 1x2 matrix as the broadcast dimension are (1, 2). This intermediate array can be added to the 4x3x1 matrix using broadcasting of degenerate dimensions to produce a 4x3x2 array result.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/performance/xla/broadcasting" class="_attribution-link">https://www.tensorflow.org/performance/xla/broadcasting</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

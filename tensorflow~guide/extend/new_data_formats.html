@@ -1,0 +1,312 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Reading Custom File and Record Formats - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content=" PREREQUISITES&#58; ">
+  <meta name="keywords" content="reading, custom, file, and, record, formats, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/extend/new_data_formats.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Reading custom file and record formats </h1>     <p>PREREQUISITES:</p> <ul> <li>Some familiarity with C++.</li> <li>Must have <a href="https://www.tensorflow.org/install/install_sources">downloaded TensorFlow source</a>, and be able to build it.</li> </ul> <p>We divide the task of supporting a file format into two pieces:</p> <ul> <li>File formats: We use a reader <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> to read raw <em>records</em> (which are typically represented by scalar string tensors, but can have more structure) from a file.</li> <li>Record formats: We use decoder or parsing ops to turn a string record into tensors usable by TensorFlow.</li> </ul> <p>For example, to read a <a href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV file</a>, we use <a href="https://www.tensorflow.org/api_docs/python/tf/data/TextLineDataset">a dataset for reading text files line-by-line</a> and then <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#map">map</a> an <a href="https://www.tensorflow.org/api_docs/python/tf/decode_csv">op</a> that parses CSV data from each line of text in the dataset.</p> <h2 id="writing_a_dataset_for_a_file_format">Writing a <code>Dataset</code> for a file format</h2> <p>A <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> represents a sequence of <em>elements</em>, which can be the individual records in a file. There are several examples of "reader" datasets that are already built into TensorFlow:</p> <ul> <li>
+<a href="https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset"><code>tf.data.TFRecordDataset</code></a> (<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/core/kernels/data/reader_dataset_ops.cc">source in <code>kernels/data/reader_dataset_ops.cc</code></a>)</li> <li>
+<a href="https://www.tensorflow.org/api_docs/python/tf/data/FixedLengthRecordDataset"><code>tf.data.FixedLengthRecordDataset</code></a> (<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/core/kernels/data/reader_dataset_ops.cc">source in <code>kernels/data/reader_dataset_ops.cc</code></a>)</li> <li>
+<a href="https://www.tensorflow.org/api_docs/python/tf/data/TextLineDataset"><code>tf.data.TextLineDataset</code></a> (<a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/core/kernels/data/reader_dataset_ops.cc">source in <code>kernels/data/reader_dataset_ops.cc</code></a>)</li> </ul> <p>Each of these implementations comprises three related classes:</p> <ul> <li> <p>A <code>tensorflow::DatasetOpKernel</code> subclass (e.g. <code>TextLineDatasetOp</code>), which tells TensorFlow how to construct a dataset object from the inputs to and attrs of an op, in its <code>MakeDataset()</code> method.</p> </li> <li> <p>A <code>tensorflow::GraphDatasetBase</code> subclass (e.g. <code>TextLineDatasetOp::Dataset</code>), which represents the <em>immutable</em> definition of the dataset itself, and tells TensorFlow how to construct an iterator object over that dataset, in its <code>MakeIterator()</code> method.</p> </li> <li> <p>A <code>tensorflow::DatasetIterator&lt;Dataset&gt;</code> subclass (e.g. <code>TextLineDatasetOp::Dataset::Iterator</code>), which represents the <em>mutable</em> state of an iterator over a particular dataset, and tells TensorFlow how to get the next element from the iterator, in its <code>GetNextInternal()</code> method.</p> </li> </ul> <p>The most important method is the <code>GetNextInternal()</code> method, since it defines how to actually read records from the file and represent them as one or more <code>Tensor</code> objects.</p> <p>To create a new reader dataset called (for example) <code>MyReaderDataset</code>, you will need to:</p> <ol> <li>In C++, define subclasses of <code>tensorflow::DatasetOpKernel</code>, <code>tensorflow::GraphDatasetBase</code>, and <code>tensorflow::DatasetIterator&lt;Dataset&gt;</code> that implement the reading logic.</li> <li>In C++, register a new reader op and kernel with the name <code>"MyReaderDataset"</code>.</li> <li>In Python, define a subclass of <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> called <code>MyReaderDataset</code>.</li> </ol> <p>You can put all the C++ code in a single file, such as <code>my_reader_dataset_op.cc</code>. It will help if you are familiar with <a href="adding_an_op">the adding an op how-to</a>. The following skeleton can be used as a starting point for your implementation:</p> <pre class="prettyprint" data-language="cpp">#include "tensorflow/core/framework/common_shape_fns.h"
+#include "tensorflow/core/framework/dataset.h"
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/shape_inference.h"
+
+namespace tensorflow {
+namespace {
+
+class MyReaderDatasetOp : public DatasetOpKernel {
+ public:
+
+  MyReaderDatasetOp(OpKernelConstruction* ctx) : DatasetOpKernel(ctx) {
+    // Parse and validate any attrs that define the dataset using
+    // `ctx-&gt;GetAttr()`, and store them in member variables.
+  }
+
+  void MakeDataset(OpKernelContext* ctx, DatasetBase** output) override {
+    // Parse and validate any input tensors 0that define the dataset using
+    // `ctx-&gt;input()` or the utility function
+    // `ParseScalarArgument&lt;T&gt;(ctx, &amp;arg)`.
+
+    // Create the dataset object, passing any (already-validated) arguments from
+    // attrs or input tensors.
+    *output = new Dataset(ctx);
+  }
+
+ private:
+  class Dataset : public GraphDatasetBase {
+   public:
+    Dataset(OpKernelContext* ctx) : GraphDatasetBase(ctx) {}
+
+    std::unique_ptr&lt;IteratorBase&gt; MakeIterator(
+        const string&amp; prefix) const override {
+      return std::unique_ptr&lt;IteratorBase&gt;(
+          new Iterator({this, strings::StrCat(prefix, "::MyReader")}));
+    }
+
+    // Record structure: Each record is represented by a scalar string tensor.
+    //
+    // Dataset elements can have a fixed number of components of different
+    // types and shapes; replace the following two methods to customize this
+    // aspect of the dataset.
+    const DataTypeVector&amp; output_dtypes() const override {
+      static DataTypeVector* dtypes = new DataTypeVector({DT_STRING});
+      return *dtypes;
+    }
+    const std::vector&lt;PartialTensorShape&gt;&amp; output_shapes() const override {
+      static std::vector&lt;PartialTensorShape&gt;* shapes =
+          new std::vector&lt;PartialTensorShape&gt;({ {}});
+      return *shapes;
+    }
+
+    string DebugString() override { return "MyReaderDatasetOp::Dataset"; }
+
+   protected:
+    // Optional: Implementation of `GraphDef` serialization for this dataset.
+    //
+    // Implement this method if you want to be able to save and restore
+    // instances of this dataset (and any iterators over it).
+    Status AsGraphDefInternal(DatasetGraphDefBuilder* b,
+                              Node** output) const override {
+      // Construct nodes to represent any of the input tensors from this
+      // object's member variables using `b-&gt;AddScalar()` and `b-&gt;AddVector()`.
+      std::vector&lt;Node*&gt; input_tensors;
+      TF_RETURN_IF_ERROR(b-&gt;AddDataset(this, input_tensors, output));
+      return Status::OK();
+    }
+
+   private:
+    class Iterator : public DatasetIterator&lt;Dataset&gt; {
+     public:
+      explicit Iterator(const Params&amp; params)
+          : DatasetIterator&lt;Dataset&gt;(params), i_(0) {}
+
+      // Implementation of the reading logic.
+      //
+      // The example implementation in this file yields the string "MyReader!"
+      // ten times. In general there are three cases:
+      //
+      // 1. If an element is successfully read, store it as one or more tensors
+      //    in `*out_tensors`, set `*end_of_sequence = false` and return
+      //    `Status::OK()`.
+      // 2. If the end of input is reached, set `*end_of_sequence = true` and
+      //    return `Status::OK()`.
+      // 3. If an error occurs, return an error status using one of the helper
+      //    functions from "tensorflow/core/lib/core/errors.h".
+      Status GetNextInternal(IteratorContext* ctx,
+                             std::vector&lt;Tensor&gt;* out_tensors,
+                             bool* end_of_sequence) override {
+        // NOTE: `GetNextInternal()` may be called concurrently, so it is
+        // recommended that you protect the iterator state with a mutex.
+        mutex_lock l(mu_);
+        if (i_ &lt; 10) {
+          // Create a scalar string tensor and add it to the output.
+          Tensor record_tensor(ctx-&gt;allocator({}), DT_STRING, {});
+          record_tensor.scalar&lt;string&gt;()() = "MyReader!";
+          out_tensors-&gt;emplace_back(std::move(record_tensor));
+          ++i_;
+          *end_of_sequence = false;
+        } else {
+          *end_of_sequence = true;
+        }
+        return Status::OK();
+      }
+
+     protected:
+      // Optional: Implementation of iterator state serialization for this
+      // iterator.
+      //
+      // Implement these two methods if you want to be able to save and restore
+      // instances of this iterator.
+      Status SaveInternal(IteratorStateWriter* writer) override {
+        mutex_lock l(mu_);
+        TF_RETURN_IF_ERROR(writer-&gt;WriteScalar(full_name("i"), i_));
+        return Status::OK();
+      }
+      Status RestoreInternal(IteratorContext* ctx,
+                             IteratorStateReader* reader) override {
+        mutex_lock l(mu_);
+        TF_RETURN_IF_ERROR(reader-&gt;ReadScalar(full_name("i"), &amp;i_));
+        return Status::OK();
+      }
+
+     private:
+      mutex mu_;
+      int64 i_ GUARDED_BY(mu_);
+    };
+  };
+};
+
+// Register the op definition for MyReaderDataset.
+//
+// Dataset ops always have a single output, of type `variant`, which represents
+// the constructed `Dataset` object.
+//
+// Add any attrs and input tensors that define the dataset here.
+REGISTER_OP("MyReaderDataset")
+    .Output("handle: variant")
+    .SetIsStateful()
+    .SetShapeFn(shape_inference::ScalarShape);
+
+// Register the kernel implementation for MyReaderDataset.
+REGISTER_KERNEL_BUILDER(Name("MyReaderDataset").Device(DEVICE_CPU),
+                        MyReaderDatasetOp);
+
+}  // namespace
+}  // namespace tensorflow
+</pre> <p>The last step is to build the C++ code and add a Python wrapper. The easiest way to do this is by <a href="adding_an_op#build_the_op_library">compiling a dynamic library</a> (e.g. called <code>"my_reader_dataset_op.so"</code>), and adding a Python class that subclasses <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> to wrap it. An example Python program is given here:</p> <pre class="prettyprint lang-python" data-language="python">import tensorflow as tf
+
+# Assumes the file is in the current working directory.
+my_reader_dataset_module = tf.load_op_library("./my_reader_dataset_op.so")
+
+class MyReaderDataset(tf.data.Dataset):
+
+  def __init__(self):
+    super(MyReaderDataset, self).__init__()
+    # Create any input attrs or tensors as members of this class.
+
+  def _as_variant_tensor(self):
+    # Actually construct the graph node for the dataset op.
+    #
+    # This method will be invoked when you create an iterator on this dataset
+    # or a dataset derived from it.
+    return my_reader_dataset_module.my_reader_dataset()
+
+  # The following properties define the structure of each element: a scalar
+  # &lt;a href="../api_docs/python/tf/string"&gt;&lt;code&gt;tf.string&lt;/code&gt;&lt;/a&gt; tensor. Change these properties to match the `output_dtypes()`
+  # and `output_shapes()` methods of `MyReaderDataset::Dataset` if you modify
+  # the structure of each element.
+  @property
+  def output_types(self):
+    return tf.string
+
+  @property
+  def output_shapes(self):
+    return tf.TensorShape([])
+
+  @property
+  def output_classes(self):
+    return tf.Tensor
+
+if __name__ == "__main__":
+  # Create a MyReaderDataset and print its elements.
+  with tf.Session() as sess:
+    iterator = MyReaderDataset().make_one_shot_iterator()
+    next_element = iterator.get_next()
+    try:
+      while True:
+        print(sess.run(next_element))  # Prints "MyReader!" ten times.
+    except tf.errors.OutOfRangeError:
+      pass
+</pre> <p>You can see some examples of <code>Dataset</code> wrapper classes in <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/python/data/ops/dataset_ops.py"><code>tensorflow/python/data/ops/dataset_ops.py</code></a>.</p> <h2 id="writing_an_op_for_a_record_format">Writing an Op for a record format</h2> <p>Generally this is an ordinary op that takes a scalar string record as input, and so follow <a href="adding_an_op">the instructions to add an Op</a>. You may optionally take a scalar string key as input, and include that in error messages reporting improperly formatted data. That way users can more easily track down where the bad data came from.</p> <p>Examples of Ops useful for decoding records:</p> <ul> <li>
+<a href="https://www.tensorflow.org/api_docs/python/tf/parse_single_example"><code>tf.parse_single_example</code></a> (and <a href="https://www.tensorflow.org/api_docs/python/tf/parse_example"><code>tf.parse_example</code></a>)</li> <li><a href="https://www.tensorflow.org/api_docs/python/tf/decode_csv"><code>tf.decode_csv</code></a></li> <li><a href="https://www.tensorflow.org/api_docs/python/tf/decode_raw"><code>tf.decode_raw</code></a></li> </ul> <p>Note that it can be useful to use multiple Ops to decode a particular record format. For example, you may have an image saved as a string in <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/core/example/example.proto">a </a><a href="https://www.tensorflow.org/api_docs/python/tf/train/Example"><code>tf.train.Example</code></a> protocol buffer. Depending on the format of that image, you might take the corresponding output from a <a href="https://www.tensorflow.org/api_docs/python/tf/parse_single_example"><code>tf.parse_single_example</code></a> op and call <a href="https://www.tensorflow.org/api_docs/python/tf/image/decode_jpeg"><code>tf.image.decode_jpeg</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/image/decode_png"><code>tf.image.decode_png</code></a>, or <a href="https://www.tensorflow.org/api_docs/python/tf/decode_raw"><code>tf.decode_raw</code></a>. It is common to take the output of <a href="https://www.tensorflow.org/api_docs/python/tf/decode_raw"><code>tf.decode_raw</code></a> and use <a href="https://www.tensorflow.org/api_docs/python/tf/slice"><code>tf.slice</code></a> and <a href="https://www.tensorflow.org/api_docs/python/tf/reshape"><code>tf.reshape</code></a> to extract pieces.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/extend/new_data_formats" class="_attribution-link">https://www.tensorflow.org/extend/new_data_formats</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

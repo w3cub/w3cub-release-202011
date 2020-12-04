@@ -1,0 +1,268 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>How to Build a Simple Text Classifier With TF-Hub - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="TF-Hub is a platform to share machine learning expertise packaged in reusable resources, notably pre-trained modules. This tutorial is organized &hellip;">
+  <meta name="keywords" content="how, build, simple, text, classifier, with, tf-hub, getting, startedpredictionfurther, improvementsadvanced, transfer, learning, analysis, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/tutorials/text_classification_with_tf_hub.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> How to build a simple text classifier with TF-Hub </h1>     <blockquote class="note">
+<strong>Note:</strong><span> You can run this notebook <a href="#">live in Colab</a> with zero setup.</span>
+</blockquote> <p>TF-Hub is a platform to share machine learning expertise packaged in reusable resources, notably pre-trained <strong>modules</strong>. This tutorial is organized into two main parts.</p> <p><strong> <em>Introduction:</em> Training a text classifier with TF-Hub</strong></p> <p>We will use a TF-Hub text embedding module to train a simple sentiment classifier with a reasonable baseline accuracy. We will then analyze the predictions to make sure our model is reasonable and propose improvements to increase the accuracy.</p> <p><strong> <em>Advanced:</em> Transfer learning analysis </strong></p> <p>In this section, we will use various TF-Hub modules to compare their effect on the accuracy of the estimator and demonstrate advantages and pitfalls of transfer learning.</p> <h2 id="optional_prerequisites">Optional prerequisites</h2> <ul> <li>Basic understanding of Tensorflow <a href="../get_started/premade_estimators">premade estimator framework</a>.</li> <li>Familiarity with <a href="https://pandas.pydata.org/">Pandas</a> library.</li> </ul> <h2 id="preparing_the_enviroment">Preparing the enviroment</h2> <pre class="prettyprint" data-language="cpp"># Install the latest Tensorflow version.
+!pip install --quiet "tensorflow&gt;=1.7"
+# Install TF-Hub.
+!pip install -q tensorflow-hub
+</pre> <p>More detailed information about installing Tensorflow can be found at <a href="https://www.tensorflow.org/install/">https://www.tensorflow.org/install/</a>.</p> <pre class="prettyprint" data-language="cpp">import tensorflow as tf
+import tensorflow_hub as hub
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pandas as pd
+import re
+import seaborn as sns
+</pre> <pre data-language="cpp">
+/usr/local/lib/python2.7/dist-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+</pre> <h1 class="page-title" id="getting_started">Getting started</h1> <h2 id="data">Data</h2> <p>We will try to solve the <a href="http://ai.stanford.edu/~amaas/data/sentiment/">Large Movie Review Dataset v1.0</a> task from Mass et al. The dataset consists of IMDB movie reviews labeled by positivity from 1 to 10. The task is to label the reviews as <strong>negative</strong> or <strong>positive</strong>.</p> <pre class="prettyprint" data-language="cpp"># Load all files from a directory in a DataFrame.
+def load_directory_data(directory):
+  data = {}
+  data["sentence"] = []
+  data["sentiment"] = []
+  for file_path in os.listdir(directory):
+    with tf.gfile.GFile(os.path.join(directory, file_path), "r") as f:
+      data["sentence"].append(f.read())
+      data["sentiment"].append(re.match("\d+_(\d+)\.txt", file_path).group(1))
+  return pd.DataFrame.from_dict(data)
+
+# Merge positive and negative examples, add a polarity column and shuffle.
+def load_dataset(directory):
+  pos_df = load_directory_data(os.path.join(directory, "pos"))
+  neg_df = load_directory_data(os.path.join(directory, "neg"))
+  pos_df["polarity"] = 1
+  neg_df["polarity"] = 0
+  return pd.concat([pos_df, neg_df]).sample(frac=1).reset_index(drop=True)
+
+# Download and process the dataset files.
+def download_and_load_datasets(force_download=False):
+  dataset = tf.keras.utils.get_file(
+      fname="aclImdb.tar.gz", 
+      origin="http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz", 
+      extract=True)
+
+  train_df = load_dataset(os.path.join(os.path.dirname(dataset), 
+                                       "aclImdb", "train"))
+  test_df = load_dataset(os.path.join(os.path.dirname(dataset), 
+                                      "aclImdb", "test"))
+
+  return train_df, test_df
+
+# Reduce logging output.
+tf.logging.set_verbosity(tf.logging.ERROR)
+
+train_df, test_df = download_and_load_datasets()
+train_df.head()
+</pre> <pre data-language="cpp">
+Downloading data from http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz
+84131840/84125825 [==============================] - 1s 0us/step
+84140032/84125825 [==============================] - 1s 0us/step
+</pre> <div>  <table border="1" class="dataframe"> <thead> <tr style="text-align: right;"> <th></th> <th>sentence</th> <th>sentiment</th> <th>polarity</th> </tr> </thead> <tbody> <tr> <th>0</th> <td>Next to "Star Wars" and "The Wizard of Oz," th...</td> <td>10</td> <td>1</td> </tr> <tr> <th>1</th> <td>I can't help but laugh at the people who prais...</td> <td>1</td> <td>0</td> </tr> <tr> <th>2</th> <td>Based on a true story, this series is a gem wi...</td> <td>10</td> <td>1</td> </tr> <tr> <th>3</th> <td>Van Dien must cringe with embarrassment at the...</td> <td>1</td> <td>0</td> </tr> <tr> <th>4</th> <td>This film had such promise!! What a great idea...</td> <td>4</td> <td>0</td> </tr> </tbody> </table> </div> <h2 id="model">Model</h2> <h3 id="input_functions">Input functions</h3> <p><a href="#">Estimator framework</a> provides <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/inputs/pandas_input_fn">input functions</a> that wrap Pandas dataframes.</p> <pre class="prettyprint" data-language="cpp"># Training input on the whole training set with no limit on training epochs.
+train_input_fn = tf.estimator.inputs.pandas_input_fn(
+    train_df, train_df["polarity"], num_epochs=None, shuffle=True)
+
+# Prediction on the whole training set.
+predict_train_input_fn = tf.estimator.inputs.pandas_input_fn(
+    train_df, train_df["polarity"], shuffle=False)
+# Prediction on the test set.
+predict_test_input_fn = tf.estimator.inputs.pandas_input_fn(
+    test_df, test_df["polarity"], shuffle=False)
+</pre> <h3 id="feature_columns">Feature columns</h3> <p>TF-Hub provides a <a href="#">feature column</a> that applies a module on the given text feature and passes further the outputs of the module. In this tutorial we will be using the <a href="https://tfhub.dev/google/nnlm-en-dim128/1">nnlm-en-dim128 module</a>. For the purpose of this tutorial, the most important facts are:</p> <ul> <li>The module takes <strong>a batch of sentences in a 1-D tensor of strings</strong> as input.</li> <li>The module is responsible for <strong>preprocessing of sentences</strong> (e.g. removal of punctuation and splitting on spaces).</li> <li>The module works with any input (e.g. <strong>nnlm-en-dim128</strong> hashes words not present in vocabulary into ~20.000 buckets).</li> </ul> <pre class="prettyprint" data-language="cpp">embedded_text_feature_column = hub.text_embedding_column(
+    key="sentence", 
+    module_spec="https://tfhub.dev/google/nnlm-en-dim128/1")
+</pre> <h3 id="estimator">Estimator</h3> <p>For classification we can use a <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/DNNClassifier">DNN Classifier</a> (note further remarks about different modelling of the label function at the end of the tutorial).</p> <pre class="prettyprint" data-language="cpp">estimator = tf.estimator.DNNClassifier(
+    hidden_units=[500, 100],
+    feature_columns=[embedded_text_feature_column],
+    n_classes=2,
+    optimizer=tf.train.AdagradOptimizer(learning_rate=0.003))
+</pre> <h3 id="training">Training</h3> <p>Train the estimator for a reasonable amount of steps.</p> <pre class="prettyprint" data-language="cpp"># Training for 1,000 steps means 128,000 training examples with the default
+# batch size. This is roughly equivalent to 5 epochs since the training dataset
+# contains 25,000 examples.
+estimator.train(input_fn=train_input_fn, steps=1000);
+</pre> <h1 class="page-title" id="prediction">Prediction</h1> <p>Run predictions for both training and test set.</p> <pre class="prettyprint" data-language="cpp">train_eval_result = estimator.evaluate(input_fn=predict_train_input_fn)
+test_eval_result = estimator.evaluate(input_fn=predict_test_input_fn)
+
+print "Training set accuracy: {accuracy}".format(**train_eval_result)
+print "Test set accuracy: {accuracy}".format(**test_eval_result)
+</pre> <pre data-language="cpp">
+Training set accuracy: 0.801320016384
+Test set accuracy: 0.793600022793
+</pre> <h2 id="confusion_matrix">Confusion matrix</h2> <p>We can visually check the confusion matrix to undestand the distribution of misclassifications.</p> <pre class="prettyprint" data-language="cpp">def get_predictions(estimator, input_fn):
+  return [x["class_ids"][0] for x in estimator.predict(input_fn=input_fn)]
+
+LABELS = [
+    "negative", "positive"
+]
+
+# Create a confusion matrix on training data.
+with tf.Graph().as_default():
+  cm = tf.confusion_matrix(train_df["polarity"], 
+                           get_predictions(estimator, predict_train_input_fn))
+  with tf.Session() as session:
+    cm_out = session.run(cm)
+
+# Normalize the confusion matrix so that each row sums to 1.
+cm_out = cm_out.astype(float) / cm_out.sum(axis=1)[:, np.newaxis]
+
+sns.heatmap(cm_out, annot=True, xticklabels=LABELS, yticklabels=LABELS);
+plt.xlabel("Predicted");
+plt.ylabel("True");
+</pre> <p><img alt="png" src="data:image/png;base64,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"></p> <h1 class="page-title" id="further_improvements">Further improvements</h1> <ol> <li>
+<strong>Regression on sentiment</strong>: we used a classifier to assign each example into a polarity class. But we actually have another categorical feature at our disposal - sentiment. Here classes actually represent a scale and the underlying value (positive/negative) could be well mapped into a continuous range. We could make use of this property by computing a regression (<a href="https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNRegressor">DNN Regressor</a>) instead of a classification (<a href="https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNClassifier">DNN Classifier</a>).</li> <li>
+<strong>Larger module</strong>: for the purposes of this tutorial we used a small module to restrict the memory use. There are modules with larger vocabularies and larger embedding space that could give additional accuracy points.</li> <li>
+<strong>Parameter tuning</strong>: we can improve the accuracy by tuning the meta-parameters like the learning rate or the number of steps, especially if we use a different module. A validation set is very important if we want to get any reasonable results, because it is very easy to set-up a model that learns to predict the training data without generalizing well to the test set.</li> <li>
+<strong>More complex model</strong>: we used a module that computes a sentence embedding by embedding each individual word and then combining them with average. One could also use a sequential module (e.g. <a href="https://tfhub.dev/google/universal-sentence-encoder/1">Universal Sentence Encoder</a> module) to better capture the nature of sentences. Or an ensemble of two or more TF-Hub modules.</li> <li>
+<strong>Regularization</strong>: to prevent overfitting, we could try to use an optimizer that does some sort of regularization, for example <a href="https://www.tensorflow.org/api_docs/python/tf/train/ProximalAdagradOptimizer">Proximal Adagrad Optimizer</a>.</li> </ol> <h1 class="page-title" id="advanced_transfer_learning_analysis">Advanced: Transfer learning analysis</h1> <p>Transfer learning makes it possible to <strong>save training resources</strong> and to achieve good model generalization even when <strong>training on a small dataset</strong>. In this part, we will demonstrate this by training with two different TF-Hub modules:</p> <ul> <li>
+<strong><a href="https://tfhub.dev/google/nnlm-en-dim128/1">nnlm-en-dim128</a></strong> - pretrained text embedding module,</li> <li>
+<strong><a href="https://tfhub.dev/google/random-nnlm-en-dim128/1">random-nnlm-en-dim128</a></strong> - text embedding module that has same vocabulary and network as <strong>nnlm-en-dim128</strong>, but the weights were just randomly initialized and never trained on real data.</li> </ul> <p>And by training in two modes:</p> <ul> <li>training <strong>only the classifier</strong> (i.e. freezing the module), and</li> <li>training the <strong>classifier together with the module</strong>.</li> </ul> <p>Let's run a couple of trainings and evaluations to see how using a various modules can affect the accuracy.</p> <pre class="prettyprint" data-language="cpp">def train_and_evaluate_with_module(hub_module, train_module=False):
+  embedded_text_feature_column = hub.text_embedding_column(
+      key="sentence", module_spec=hub_module, trainable=train_module)
+
+  estimator = tf.estimator.DNNClassifier(
+      hidden_units=[500, 100],
+      feature_columns=[embedded_text_feature_column],
+      n_classes=2,
+      optimizer=tf.train.AdagradOptimizer(learning_rate=0.003))
+
+  estimator.train(input_fn=train_input_fn, steps=1000)
+
+  train_eval_result = estimator.evaluate(input_fn=predict_train_input_fn)
+  test_eval_result = estimator.evaluate(input_fn=predict_test_input_fn)
+
+  training_set_accuracy = train_eval_result["accuracy"]
+  test_set_accuracy = test_eval_result["accuracy"]
+
+  return {
+      "Training accuracy": training_set_accuracy,
+      "Test accuracy": test_set_accuracy
+  }
+
+results = {}
+results["nnlm-en-dim128"] = train_and_evaluate_with_module(
+    "https://tfhub.dev/google/nnlm-en-dim128/1")
+results["nnlm-en-dim128-with-module-training"] = train_and_evaluate_with_module(
+    "https://tfhub.dev/google/nnlm-en-dim128/1", True)
+results["random-nnlm-en-dim128"] = train_and_evaluate_with_module(
+    "https://tfhub.dev/google/random-nnlm-en-dim128/1")
+results["random-nnlm-en-dim128-with-module-training"] = train_and_evaluate_with_module(
+    "https://tfhub.dev/google/random-nnlm-en-dim128/1", True)
+</pre> <p>Let's look at the results.</p> <pre class="prettyprint" data-language="cpp">pd.DataFrame.from_dict(results, orient="index")
+</pre> <div>  <table border="1" class="dataframe"> <thead> <tr style="text-align: right;"> <th></th> <th>Training accuracy</th> <th>Test accuracy</th> </tr> </thead> <tbody> <tr> <th>nnlm-en-dim128</th> <td>0.80148</td> <td>0.79384</td> </tr> <tr> <th>nnlm-en-dim128-with-module-training</th> <td>0.94212</td> <td>0.86792</td> </tr> <tr> <th>random-nnlm-en-dim128</th> <td>0.72072</td> <td>0.67664</td> </tr> <tr> <th>random-nnlm-en-dim128-with-module-training</th> <td>0.76124</td> <td>0.71944</td> </tr> </tbody> </table> </div> <p>We can already see some patterns, but first we should establish the baseline accuracy of the test set - the lower bound that can be achieved by outputting only the label of the most represented class:</p> <pre class="prettyprint" data-language="cpp">estimator.evaluate(input_fn=predict_test_input_fn)["accuracy_baseline"]
+</pre> <pre class="prettyprint notranslate" translate="no" data-language="cpp">0.5
+</pre> <p>Assigning the most represented class will give us accuracy of <strong>50%</strong>. There are a couple of things to notice here:</p> <ol> <li>Maybe surprisingly, <strong>a model can still be learned on top of fixed, random embeddings</strong>. The reason is that even if every word in the dictionary is mapped to a random vector, the estimator can separate the space purely using its fully connected layers.</li> <li>Allowing training of the module with <strong>random embeddings</strong> increases both training and test accuracy as oposed to training just the classifier.</li> <li>Training of the module with <strong>pre-trained embeddings</strong> also increases both accuracies. Note however the overfitting on the training set. Training a pre-trained module can be dangerous even with regularization in the sense that the embedding weights no longer represent the language model trained on diverse data, instead they converge to the ideal representation of the new dataset.</li> </ol>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/tutorials/text_classification_with_tf_hub" class="_attribution-link">https://www.tensorflow.org/tutorials/text_classification_with_tf_hub</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

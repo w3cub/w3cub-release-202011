@@ -1,0 +1,272 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Performance Guide - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content=" This guide contains a collection of best practices for optimizing TensorFlow code. The guide is divided into a few sections&#58; ">
+  <meta name="keywords" content="performance, guide, tensorflow, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/performance/performance_guide.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Performance Guide </h1>     <p>This guide contains a collection of best practices for optimizing TensorFlow code. The guide is divided into a few sections:</p> <ul> <li>
+<a href="#general_best_practices">General best practices</a> covers topics that are common across a variety of model types and hardware.</li> <li>
+<a href="#optimizing_for_gpu">Optimizing for GPU</a> details tips specifically relevant to GPUs.</li> <li>
+<a href="#optimizing_for_cpu">Optimizing for CPU</a> details CPU specific information.</li> </ul> <h2 id="general_best_practices">General best practices</h2> <p>The sections below cover best practices that are relevant to a variety of hardware and models. The best practices section is broken down into the following sections:</p> <ul> <li><a href="#input_pipeline_optimization">Input pipeline optimizations</a></li> <li><a href="#data_formats">Data formats</a></li> <li><a href="#common_fused_ops">Common fused Ops</a></li> <li><a href="#rnn_performance">RNN Performance</a></li> <li><a href="#building_and_installing_from_source">Building and installing from source</a></li> </ul> <h3 id="input_pipeline_optimization">Input pipeline optimization</h3> <p>Typical models retrieve data from disk and preprocess it before sending the data through the network. For example, models that process JPEG images will follow this flow: load image from disk, decode JPEG into a tensor, crop and pad, possibly flip and distort, and then batch. This flow is referred to as the input pipeline. As GPUs and other hardware accelerators get faster, preprocessing of data can be a bottleneck.</p> <p>Determining if the input pipeline is the bottleneck can be complicated. One of the most straightforward methods is to reduce the model to a single operation (trivial model) after the input pipeline and measure the examples per second. If the difference in examples per second for the full model and the trivial model is minimal then the input pipeline is likely a bottleneck. Below are some other approaches to identifying issues:</p> <ul> <li>Check if a GPU is underutilized by running <code>nvidia-smi -l 2</code>. If GPU utilization is not approaching 80-100%, then the input pipeline may be the bottleneck.</li> <li>Generate a timeline and look for large blocks of white space (waiting). An example of generating a timeline exists as part of the <a href="xla/jit">XLA JIT</a> tutorial.</li> <li>Check CPU usage. It is possible to have an optimized input pipeline and lack the CPU cycles to process the pipeline.</li> <li>Estimate the throughput needed and verify the disk used is capable of that level of throughput. Some cloud solutions have network attached disks that start as low as 50 MB/sec, which is slower than spinning disks (150 MB/sec), SATA SSDs (500 MB/sec), and PCIe SSDs (2,000+ MB/sec).</li> </ul> <h4 id="preprocessing_on_the_cpu">Preprocessing on the CPU</h4> <p>Placing input pipeline operations on the CPU can significantly improve performance. Utilizing the CPU for the input pipeline frees the GPU to focus on training. To ensure preprocessing is on the CPU, wrap the preprocessing operations as shown below:</p> <pre class="prettyprint lang-python" data-language="python">with tf.device('/cpu:0'):
+  # function to get and process images or data.
+  distorted_inputs = load_and_distort_images()
+</pre> <p>If using <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator"><code>tf.estimator.Estimator</code></a> the input function is automatically placed on the CPU.</p> <h4 id="using_the_tfdata_api">Using the tf.data API</h4> <p>The <a href="../programmers_guide/datasets">tf.data API</a> is replacing <code>queue_runner</code> as the recommended API for building input pipelines. This <a href="https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10_estimator/cifar10_main.py">ResNet example</a> (<a href="https://arxiv.org/abs/1512.03385">arXiv:1512.03385</a>) training CIFAR-10 illustrates the use of the <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API along with <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator"><code>tf.estimator.Estimator</code></a>.</p> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API utilizes C++ multi-threading and has a much lower overhead than the Python-based <code>queue_runner</code> that is limited by Python's multi-threading performance. A detailed performance guide for the <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API can be found <a href="a%20href=" pipeline performance guide>here</a>.</p> <p>While feeding data using a <code>feed_dict</code> offers a high level of flexibility, in general <code>feed_dict</code> does not provide a scalable solution. If only a single GPU is used, the difference between the <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API and <code>feed_dict</code> performance may be negligible. Our recommendation is to avoid using <code>feed_dict</code> for all but trivial examples. In particular, avoid using <code>feed_dict</code> with large inputs:</p> <pre class="prettyprint lang-python" data-language="python"># feed_dict often results in suboptimal performance when using large inputs.
+sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
+</pre> <h4 id="fused_decode_and_crop">Fused decode and crop</h4> <p>If inputs are JPEG images that also require cropping, use fused <a href="https://www.tensorflow.org/api_docs/python/tf/image/decode_and_crop_jpeg"><code>tf.image.decode_and_crop_jpeg</code></a> to speed up preprocessing. <a href="https://www.tensorflow.org/api_docs/python/tf/image/decode_and_crop_jpeg"><code>tf.image.decode_and_crop_jpeg</code></a> only decodes the part of the image within the crop window. This significantly speeds up the process if the crop window is much smaller than the full image. For imagenet data, this approach could speed up the input pipeline by up to 30%.</p> <p>Example Usage:</p> <pre class="prettyprint lang-python" data-language="python">def _image_preprocess_fn(image_buffer):
+    # image_buffer 1-D string Tensor representing the raw JPEG image buffer.
+
+    # Extract image shape from raw JPEG image buffer.
+    image_shape = tf.image.extract_jpeg_shape(image_buffer)
+
+    # Get a crop window with distorted bounding box.
+    sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(
+      image_shape, ...)
+    bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
+
+    # Decode and crop image.
+    offset_y, offset_x, _ = tf.unstack(bbox_begin)
+    target_height, target_width, _ = tf.unstack(bbox_size)
+    crop_window = tf.stack([offset_y, offset_x, target_height, target_width])
+    cropped_image = tf.image.decode_and_crop_jpeg(image, crop_window)
+</pre> <p><a href="https://www.tensorflow.org/api_docs/python/tf/image/decode_and_crop_jpeg"><code>tf.image.decode_and_crop_jpeg</code></a> is available on all platforms. There is no speed up on Windows due to the use of <code>libjpeg</code> vs. <code>libjpeg-turbo</code> on other platforms.</p> <h4 id="use_large_files">Use large files</h4> <p>Reading large numbers of small files significantly impacts I/O performance. One approach to get maximum I/O throughput is to preprocess input data into larger (~100MB) <code>TFRecord</code> files. For smaller data sets (200MB-1GB), the best approach is often to load the entire data set into memory. The document <a href="https://github.com/tensorflow/models/tree/master/research/slim#downloading-and-converting-to-tfrecord-format">Downloading and converting to TFRecord format</a> includes information and scripts for creating <code>TFRecords</code> and this <a href="https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10_estimator/generate_cifar10_tfrecords.py">script</a> converts the CIFAR-10 data set into <code>TFRecords</code>.</p> <h3 id="data_formats">Data formats</h3> <p>Data formats refers to the structure of the Tensor passed to a given Op. The discussion below is specifically about 4D Tensors representing images. In TensorFlow the parts of the 4D tensor are often referred to by the following letters:</p> <ul> <li>N refers to the number of images in a batch.</li> <li>H refers to the number of pixels in the vertical (height) dimension.</li> <li>W refers to the number of pixels in the horizontal (width) dimension.</li> <li>C refers to the channels. For example, 1 for black and white or grayscale and 3 for RGB.</li> </ul> <p>Within TensorFlow there are two naming conventions representing the two most common data formats:</p> <ul> <li>
+<code>NCHW</code> or <code>channels_first</code>
+</li> <li>
+<code>NHWC</code> or <code>channels_last</code>
+</li> </ul> <p><code>NHWC</code> is the TensorFlow default and <code>NCHW</code> is the optimal format to use when training on NVIDIA GPUs using <a href="https://developer.nvidia.com/cudnn">cuDNN</a>.</p> <p>The best practice is to build models that work with both data formats. This simplifies training on GPUs and then running inference on CPUs. If TensorFlow is compiled with the <a href="#tensorflow_with_intel_mkl_dnn">Intel MKL</a> optimizations, many operations, especially those related to CNN based models, will be optimized and support <code>NCHW</code>. If not using the MKL, some operations are not supported on CPU when using <code>NCHW</code>.</p> <p>The brief history of these two formats is that TensorFlow started by using <code>NHWC</code> because it was a little faster on CPUs. In the long term, we are working on tools to auto rewrite graphs to make switching between the formats transparent and take advantages of micro optimizations where a GPU Op may be faster using <code>NHWC</code> than the normally most efficient <code>NCHW</code>.</p> <h3 id="common_fused_ops">Common fused Ops</h3> <p>Fused Ops combine multiple operations into a single kernel for improved performance. There are many fused Ops within TensorFlow and <a href="xla/index">XLA</a> will create fused Ops when possible to automatically improve performance. Collected below are select fused Ops that can greatly improve performance and may be overlooked.</p> <h4 id="fused_batch_norm">Fused batch norm</h4> <p>Fused batch norm combines the multiple operations needed to do batch normalization into a single kernel. Batch norm is an expensive process that for some models makes up a large percentage of the operation time. Using fused batch norm can result in a 12%-30% speedup.</p> <p>There are two commonly used batch norms and both support fusing. The core <a href="https://www.tensorflow.org/api_docs/python/tf/layers/batch_normalization"><code>tf.layers.batch_normalization</code></a> added fused starting in TensorFlow 1.3.</p> <pre class="prettyprint lang-python" data-language="python">bn = tf.layers.batch_normalization(
+    input_layer, fused=True, data_format='NCHW')
+</pre> <p>The contrib <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/layers/batch_norm"><code>tf.contrib.layers.batch_norm</code></a> method has had fused as an option since before TensorFlow 1.0.</p> <pre class="prettyprint lang-python" data-language="python">bn = tf.contrib.layers.batch_norm(input_layer, fused=True, data_format='NCHW')
+</pre> <h3 id="rnn_performance">RNN Performance</h3> <p>There are many ways to specify an RNN computation in TensorFlow and they have trade-offs with respect to model flexibility and performance. The <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/BasicLSTMCell"><code>tf.nn.rnn_cell.BasicLSTMCell</code></a> should be considered a reference implementation and used only as a last resort when no other options will work.</p> <p>When using one of the cells, rather than the fully fused RNN layers, you have a choice of whether to use <a href="https://www.tensorflow.org/api_docs/python/tf/nn/static_rnn"><code>tf.nn.static_rnn</code></a> or <a href="https://www.tensorflow.org/api_docs/python/tf/nn/dynamic_rnn"><code>tf.nn.dynamic_rnn</code></a>. There shouldn't generally be a performance difference at runtime, but large unroll amounts can increase the graph size of the <a href="https://www.tensorflow.org/api_docs/python/tf/nn/static_rnn"><code>tf.nn.static_rnn</code></a> and cause long compile times. An additional advantage of <a href="https://www.tensorflow.org/api_docs/python/tf/nn/dynamic_rnn"><code>tf.nn.dynamic_rnn</code></a> is that it can optionally swap memory from the GPU to the CPU to enable training of very long sequences. Depending on the model and hardware configuration, this can come at a performance cost. It is also possible to run multiple iterations of <a href="https://www.tensorflow.org/api_docs/python/tf/nn/dynamic_rnn"><code>tf.nn.dynamic_rnn</code></a> and the underlying <a href="https://www.tensorflow.org/api_docs/python/tf/while_loop"><code>tf.while_loop</code></a> construct in parallel, although this is rarely useful with RNN models as they are inherently sequential.</p> <p>On NVIDIA GPUs, the use of <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/cudnn_rnn"><code>tf.contrib.cudnn_rnn</code></a> should always be preferred unless you want layer normalization, which it doesn't support. It is often at least an order of magnitude faster than <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/BasicLSTMCell"><code>tf.contrib.rnn.BasicLSTMCell</code></a> and <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/LSTMBlockCell"><code>tf.contrib.rnn.LSTMBlockCell</code></a> and uses 3-4x less memory than <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/BasicLSTMCell"><code>tf.contrib.rnn.BasicLSTMCell</code></a>.</p> <p>If you need to run one step of the RNN at a time, as might be the case in reinforcement learning with a recurrent policy, then you should use the <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/LSTMBlockCell"><code>tf.contrib.rnn.LSTMBlockCell</code></a> with your own environment interaction loop inside a <a href="https://www.tensorflow.org/api_docs/python/tf/while_loop"><code>tf.while_loop</code></a> construct. Running one step of the RNN at a time and returning to Python is possible, but it will be slower.</p> <p>On CPUs, mobile devices, and if <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/cudnn_rnn"><code>tf.contrib.cudnn_rnn</code></a> is not available on your GPU, the fastest and most memory efficient option is <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/LSTMBlockFusedCell"><code>tf.contrib.rnn.LSTMBlockFusedCell</code></a>.</p> <p>For all of the less common cell types like <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/NASCell"><code>tf.contrib.rnn.NASCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/PhasedLSTMCell"><code>tf.contrib.rnn.PhasedLSTMCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/UGRNNCell"><code>tf.contrib.rnn.UGRNNCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/GLSTMCell"><code>tf.contrib.rnn.GLSTMCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/Conv1DLSTMCell"><code>tf.contrib.rnn.Conv1DLSTMCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/Conv2DLSTMCell"><code>tf.contrib.rnn.Conv2DLSTMCell</code></a>, <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/LayerNormBasicLSTMCell"><code>tf.contrib.rnn.LayerNormBasicLSTMCell</code></a>, etc., one should be aware that they are implemented in the graph like <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/BasicLSTMCell"><code>tf.contrib.rnn.BasicLSTMCell</code></a> and as such will suffer from the same poor performance and high memory usage. One should consider whether or not those trade-offs are worth it before using these cells. For example, while layer normalization can speed up convergence, because cuDNN is 20x faster the fastest wall clock time to convergence is usually obtained without it.</p> <h3 id="building_and_installing_from_source">Building and installing from source</h3> <p>The default TensorFlow binaries target the broadest range of hardware to make TensorFlow accessible to everyone. If using CPUs for training or inference, it is recommended to compile TensorFlow with all of the optimizations available for the CPU in use. Speedups for training and inference on CPU are documented below in <a href="#comparing_compiler_optimizations">Comparing compiler optimizations</a>.</p> <p>To install the most optimized version of TensorFlow, <a href="https://www.tensorflow.org/install/install_sources">build and install</a> from source. If there is a need to build TensorFlow on a platform that has different hardware than the target, then cross-compile with the highest optimizations for the target platform. The following command is an example of using <code>bazel</code> to compile for a specific platform:</p> <pre class="prettyprint lang-python" data-language="python"># This command optimizes for Intel’s Broadwell processor
+bazel build -c opt --copt=-march="broadwell" --config=cuda //tensorflow/tools/pip_package:build_pip_package
+
+</pre> <h4 id="environment_build_and_install_tips">Environment, build, and install tips</h4> <ul> <li>
+<code>./configure</code> asks which compute capability to include in the build. This does not impact overall performance but does impact initial startup. After running TensorFlow once, the compiled kernels are cached by CUDA. If using a docker container, the data is not cached and the penalty is paid each time TensorFlow starts. The best practice is to include the <a href="http://developer.nvidia.com/cuda-gpus">compute capabilities</a> of the GPUs that will be used, e.g. P100: 6.0, Titan X (Pascal): 6.1, Titan X (Maxwell): 5.2, and K80: 3.7.</li> <li>Use a version of gcc that supports all of the optimizations of the target CPU. The recommended minimum gcc version is 4.8.3. On OS X, upgrade to the latest Xcode version and use the version of clang that comes with Xcode.</li> <li>Install the latest stable CUDA platform and cuDNN libraries supported by TensorFlow.</li> </ul> <h2 id="optimizing_for_gpu">Optimizing for GPU</h2> <p>This section contains GPU-specific tips that are not covered in the <a href="#general_best_practices">General best practices</a>. Obtaining optimal performance on multi-GPUs is a challenge. A common approach is to use data parallelism. Scaling through the use of data parallelism involves making multiple copies of the model, which are referred to as "towers", and then placing one tower on each of the GPUs. Each tower operates on a different mini-batch of data and then updates variables, also known as parameters, that need to be shared between each of the towers. How each tower gets the updated variables and how the gradients are applied has an impact on the performance, scaling, and convergence of the model. The rest of this section provides an overview of variable placement and the towering of a model on multiple GPUs. <a href="performance_models">High-Performance Models</a> gets into more details regarding more complex methods that can be used to share and update variables between towers.</p> <p>The best approach to handling variable updates depends on the model, hardware, and even how the hardware has been configured. An example of this, is that two systems can be built with NVIDIA Tesla P100s but one may be using PCIe and the other <a href="http://www.nvidia.com/object/nvlink.html">NVLink</a>. In that scenario, the optimal solution for each system may be different. For real world examples, read the <a href="benchmarks">benchmark</a> page which details the settings that were optimal for a variety of platforms. Below is a summary of what was learned from benchmarking various platforms and configurations:</p> <ul> <li> <p><strong>Tesla K80</strong>: If the GPUs are on the same PCI Express root complex and are able to use <a href="https://developer.nvidia.com/gpudirect">NVIDIA GPUDirect</a> Peer to Peer, then placing the variables equally across the GPUs used for training is the best approach. If the GPUs cannot use GPUDirect, then placing the variables on the CPU is the best option.</p> </li> <li> <p><strong>Titan X (Maxwell and Pascal), M40, P100, and similar</strong>: For models like ResNet and InceptionV3, placing variables on the CPU is the optimal setting, but for models with a lot of variables like AlexNet and VGG, using GPUs with <code>NCCL</code> is better.</p> </li> </ul> <p>A common approach to managing where variables are placed, is to create a method to determine where each Op is to be placed and use that method in place of a specific device name when calling <code>with tf.device():</code>. Consider a scenario where a model is being trained on 2 GPUs and the variables are to be placed on the CPU. There would be a loop for creating and placing the "towers" on each of the 2 GPUs. A custom device placement method would be created that watches for Ops of type <code>Variable</code>, <code>VariableV2</code>, and <code>VarHandleOp</code> and indicates that they are to be placed on the CPU. All other Ops would be placed on the target GPU. The building of the graph would proceed as follows:</p> <ul> <li> <p>On the first loop a "tower" of the model would be created for <code>gpu:0</code>. During the placement of the Ops, the custom device placement method would indicate that variables are to be placed on <code>cpu:0</code> and all other Ops on <code>gpu:0</code>.</p> </li> <li> <p>On the second loop, <code>reuse</code> is set to <code>True</code> to indicate that variables are to be reused and then the "tower" is created on <code>gpu:1</code>. During the placement of the Ops associated with the "tower", the variables that were placed on <code>cpu:0</code> are reused and all other Ops are created and placed on <code>gpu:1</code>.</p> </li> </ul> <p>The final result is all of the variables are placed on the CPU with each GPU having a copy of all of the computational Ops associated with the model.</p> <p>The code snippet below illustrates two different approaches for variable placement: one is placing variables on the CPU; the other is placing variables equally across the GPUs.</p> <pre class="prettyprint lang-python" data-language="python">
+class GpuParamServerDeviceSetter(object):
+  """Used with tf.device() to place variables on the least loaded GPU.
+
+    A common use for this class is to pass a list of GPU devices, e.g. ['gpu:0',
+    'gpu:1','gpu:2'], as ps_devices.  When each variable is placed, it will be
+    placed on the least loaded gpu. All other Ops, which will be the computation
+    Ops, will be placed on the worker_device.
+  """
+
+  def __init__(self, worker_device, ps_devices):
+    """Initializer for GpuParamServerDeviceSetter.
+    Args:
+      worker_device: the device to use for computation Ops.
+      ps_devices: a list of devices to use for Variable Ops. Each variable is
+      assigned to the least loaded device.
+    """
+    self.ps_devices = ps_devices
+    self.worker_device = worker_device
+    self.ps_sizes = [0] * len(self.ps_devices)
+
+  def __call__(self, op):
+    if op.device:
+      return op.device
+    if op.type not in ['Variable', 'VariableV2', 'VarHandleOp']:
+      return self.worker_device
+
+    # Gets the least loaded ps_device
+    device_index, _ = min(enumerate(self.ps_sizes), key=operator.itemgetter(1))
+    device_name = self.ps_devices[device_index]
+    var_size = op.outputs[0].get_shape().num_elements()
+    self.ps_sizes[device_index] += var_size
+
+    return device_name
+
+def _create_device_setter(is_cpu_ps, worker, num_gpus):
+  """Create device setter object."""
+  if is_cpu_ps:
+    # tf.train.replica_device_setter supports placing variables on the CPU, all
+    # on one GPU, or on ps_servers defined in a cluster_spec.
+    return tf.train.replica_device_setter(
+        worker_device=worker, ps_device='/cpu:0', ps_tasks=1)
+  else:
+    gpus = ['/gpu:%d' % i for i in range(num_gpus)]
+    return ParamServerDeviceSetter(worker, gpus)
+
+# The method below is a modified snippet from the full example.
+def _resnet_model_fn():
+    # When set to False, variables are placed on the least loaded GPU. If set
+    # to True, the variables will be placed on the CPU.
+    is_cpu_ps = False
+
+    # Loops over the number of GPUs and creates a copy ("tower") of the model on
+    # each GPU.
+    for i in range(num_gpus):
+      worker = '/gpu:%d' % i
+      # Creates a device setter used to determine where Ops are to be placed.
+      device_setter = _create_device_setter(is_cpu_ps, worker, FLAGS.num_gpus)
+      # Creates variables on the first loop.  On subsequent loops reuse is set
+      # to True, which results in the "towers" sharing variables.
+      with tf.variable_scope('resnet', reuse=bool(i != 0)):
+        with tf.name_scope('tower_%d' % i) as name_scope:
+          # tf.device calls the device_setter for each Op that is created.
+          # device_setter returns the device the Op is to be placed on.
+          with tf.device(device_setter):
+            # Creates the "tower".
+            _tower_fn(is_training, weight_decay, tower_features[i],
+                      tower_labels[i], tower_losses, tower_gradvars,
+                      tower_preds, False)
+
+</pre> <p>In the near future the above code will be for illustration purposes only as there will be easy to use high level methods to support a wide range of popular approaches. This <a href="https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10_estimator">example</a> will continue to get updated as the API expands and evolves to address multi-GPU scenarios.</p> <h2 id="optimizing_for_cpu">Optimizing for CPU</h2> <p>CPUs, which includes Intel® Xeon Phi™, achieve optimal performance when TensorFlow is <a href="https://www.tensorflow.org/install/install_sources">built from source</a> with all of the instructions supported by the target CPU.</p> <p>Beyond using the latest instruction sets, Intel® has added support for the Intel® Math Kernel Library for Deep Neural Networks (Intel® MKL-DNN) to TensorFlow. While the name is not completely accurate, these optimizations are often simply referred to as 'MKL' or 'TensorFlow with MKL'. <a href="#tensorflow_with_intel_mkl_dnn">TensorFlow with Intel® MKL-DNN</a> contains details on the MKL optimizations.</p> <p>The two configurations listed below are used to optimize CPU performance by adjusting the thread pools.</p> <ul> <li>
+<code>intra_op_parallelism_threads</code>: Nodes that can use multiple threads to parallelize their execution will schedule the individual pieces into this pool.</li> <li>
+<code>inter_op_parallelism_threads</code>: All ready nodes are scheduled in this pool.</li> </ul> <p>These configurations are set via the <a href="https://www.tensorflow.org/api_docs/python/tf/ConfigProto"><code>tf.ConfigProto</code></a> and passed to <a href="https://www.tensorflow.org/api_docs/python/tf/Session"><code>tf.Session</code></a> in the <code>config</code> attribute as shown in the snippet below. For both configuration options, if they are unset or set to 0, will default to the number of logical CPU cores. Testing has shown that the default is effective for systems ranging from one CPU with 4 cores to multiple CPUs with 70+ combined logical cores. A common alternative optimization is to set the number of threads in both pools equal to the number of physical cores rather than logical cores.</p> <pre class="prettyprint lang-python" data-language="python">
+config = tf.ConfigProto()
+config.intra_op_parallelism_threads = 44
+config.inter_op_parallelism_threads = 44
+tf.session(config=config)
+
+</pre> <p>The <a href="#comparing_compiler_optimizations">Comparing compiler optimizations</a> section contains the results of tests that used different compiler optimizations.</p> <h3 id="tensorflow_with_intel_mkl_dnn">TensorFlow with Intel® MKL DNN</h3> <p>Intel® has added optimizations to TensorFlow for Intel® Xeon® and Intel® Xeon Phi™ though the use of Intel® Math Kernel Library for Deep Neural Networks (Intel® MKL-DNN) optimized primitives. The optimizations also provide speedups for the consumer line of processors, e.g. i5 and i7 Intel processors. The Intel published paper <a href="https://software.intel.com/en-us/articles/tensorflow-optimizations-on-modern-intel-architecture">TensorFlow* Optimizations on Modern Intel® Architecture</a> contains additional details on the implementation.</p> <blockquote> <strong>Note:</strong><span> MKL was added as of TensorFlow 1.2 and currently only works on Linux. It also does not work when also using <code>--config=cuda</code>.</span> </blockquote> <p>In addition to providing significant performance improvements for training CNN based models, compiling with the MKL creates a binary that is optimized for AVX and AVX2. The result is a single binary that is optimized and compatible with most modern (post-2011) processors.</p> <p>TensorFlow can be compiled with the MKL optimizations using the following commands that depending on the version of the TensorFlow source used.</p> <p>For TensorFlow source versions after 1.3.0:</p> <pre class="prettyprint lang-bash" data-language="cpp">./configure
+# Pick the desired options
+bazel build --config=mkl --config=opt //tensorflow/tools/pip_package:build_pip_package
+
+</pre> <p>For TensorFlow versions 1.2.0 through 1.3.0:</p> <pre class="prettyprint lang-bash" data-language="cpp">./configure
+Do you wish to build TensorFlow with MKL support? [y/N] Y
+Do you wish to download MKL LIB from the web? [Y/n] Y
+# Select the defaults for the rest of the options.
+
+bazel build --config=mkl --copt="-DEIGEN_USE_VML" -c opt //tensorflow/tools/pip_package:build_pip_package
+
+</pre> <h4 id="tuning_mkl_for_the_best_performance">Tuning MKL for the best performance</h4> <p>This section details the different configurations and environment variables that can be used to tune the MKL to get optimal performance. Before tweaking various environment variables make sure the model is using the <code>NCHW</code> (<code>channels_first</code>) <a href="#data_formats">data format</a>. The MKL is optimized for <code>NCHW</code> and Intel is working to get near performance parity when using <code>NHWC</code>.</p> <p>MKL uses the following environment variables to tune performance:</p> <ul> <li>KMP_BLOCKTIME - Sets the time, in milliseconds, that a thread should wait, after completing the execution of a parallel region, before sleeping.</li> <li>KMP_AFFINITY - Enables the run-time library to bind threads to physical processing units.</li> <li>KMP_SETTINGS - Enables (true) or disables (false) the printing of OpenMP* run-time library environment variables during program execution.</li> <li>OMP_NUM_THREADS - Specifies the number of threads to use.</li> </ul> <p>More details on the KMP variables are on <a href="https://software.intel.com/en-us/node/522775">Intel's</a> site and the OMP variables on <a href="https://gcc.gnu.org/onlinedocs/libgomp/Environment-Variables.html">gnu.org</a></p> <p>While there can be substantial gains from adjusting the environment variables, which is discussed below, the simplified advice is to set the <code>inter_op_parallelism_threads</code> equal to the number of physical CPUs and to set the following environment variables:</p> <ul> <li>KMP_BLOCKTIME=0</li> <li>KMP_AFFINITY=granularity=fine,verbose,compact,1,0</li> </ul> <p>Example setting MKL variables with command-line arguments:</p> <pre class="prettyprint lang-bash" data-language="cpp">KMP_BLOCKTIME=0 KMP_AFFINITY=granularity=fine,verbose,compact,1,0 \
+KMP_SETTINGS=1 python your_python_script.py
+</pre> <p>Example setting MKL variables with python <code>os.environ</code>:</p> <pre class="prettyprint lang-python" data-language="python">os.environ["KMP_BLOCKTIME"] = str(FLAGS.kmp_blocktime)
+os.environ["KMP_SETTINGS"] = str(FLAGS.kmp_settings)
+os.environ["KMP_AFFINITY"]= FLAGS.kmp_affinity
+if FLAGS.num_intra_threads &gt; 0:
+  os.environ["OMP_NUM_THREADS"]= str(FLAGS.num_intra_threads)
+
+</pre> <p>There are models and hardware platforms that benefit from different settings. Each variable that impacts performance is discussed below.</p> <ul> <li> <p><strong>KMP_BLOCKTIME</strong>: The MKL default is 200ms, which was not optimal in our testing. 0 (0ms) was a good default for CNN based models that were tested. The best performance for AlexNex was achieved at 30ms and both GoogleNet and VGG11 performed best set at 1ms.</p> </li> <li> <p><strong>KMP_AFFINITY</strong>: The recommended setting is <code>granularity=fine,verbose,compact,1,0</code>.</p> </li> <li> <p><strong>OMP_NUM_THREADS</strong>: This defaults to the number of physical cores. Adjusting this parameter beyond matching the number of cores can have an impact when using Intel® Xeon Phi™ (Knights Landing) for some models. See <a href="https://software.intel.com/en-us/articles/tensorflow-optimizations-on-modern-intel-architecture">TensorFlow* Optimizations on Modern Intel® Architecture</a> for optimal settings.</p> </li> <li> <p><strong>intra_op_parallelism_threads</strong>: Setting this equal to the number of physical cores is recommended. Setting the value to 0, which is the default and will result in the value being set to the number of logical cores, is an option to try for some architectures. This value and <code>OMP_NUM_THREADS</code> should be equal.</p> </li> <li> <p><strong>inter_op_parallelism_threads</strong>: Setting this equal to the number of sockets is recommended. Setting the value to 0, which is the default, results in the value being set to the number of logical cores.</p> </li> </ul> <h3 id="comparing_compiler_optimizations">Comparing compiler optimizations</h3> <p>Collected below are performance results running training and inference on different types of CPUs on different platforms with various compiler optimizations. The models used were ResNet-50 (<a href="https://arxiv.org/abs/1512.03385">arXiv:1512.03385</a>) and InceptionV3 (<a href="https://arxiv.org/abs/1512.00567">arXiv:1512.00567</a>).</p> <p>For each test, when the MKL optimization was used the environment variable KMP_BLOCKTIME was set to 0 (0ms) and KMP_AFFINITY to <code>granularity=fine,verbose,compact,1,0</code>.</p> <h4 id="inference_inceptionv3">Inference InceptionV3</h4> <p><strong>Environment</strong></p> <ul> <li>Instance Type: AWS EC2 m4.xlarge</li> <li>CPU: Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz (Broadwell)</li> <li>Dataset: ImageNet</li> <li>TensorFlow Version: 1.2.0 RC2</li> <li>Test Script: <a href="https://github.com/tensorflow/benchmarks/blob/mkl_experiment/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py">tf_cnn_benchmarks.py</a>
+</li> </ul> <p><strong>Batch Size: 1</strong></p> <p>Command executed for the MKL test:</p> <pre class="prettyprint lang-bash" data-language="cpp">python tf_cnn_benchmarks.py --forward_only=True --device=cpu --mkl=True \
+--kmp_blocktime=0 --nodistortions --model=inception3 --data_format=NCHW \
+--batch_size=1 --num_inter_threads=1 --num_intra_threads=4 \
+--data_dir=&lt;path to ImageNet TFRecords&gt;
+</pre> <table> <thead> <tr> <th>Optimization</th> <th>Data Format</th> <th>Images/Sec (step time)</th> <th>Intra threads</th> <th>Inter Threads</th> </tr> </thead> <tbody> <tr> <td>AVX2</td> <td>NHWC</td> <td>7.0 (142ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>MKL</td> <td>NCHW</td> <td>6.6 (152ms)</td> <td>4</td> <td>1</td> </tr> <tr> <td>AVX</td> <td>NHWC</td> <td>5.0 (202ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>SSE3</td> <td>NHWC</td> <td>2.8 (361ms)</td> <td>4</td> <td>0</td> </tr> </tbody> </table> <p><strong>Batch Size: 32</strong></p> <p>Command executed for the MKL test:</p> <pre class="prettyprint lang-bash" data-language="cpp">python tf_cnn_benchmarks.py --forward_only=True --device=cpu --mkl=True \
+--kmp_blocktime=0 --nodistortions --model=inception3 --data_format=NCHW \
+--batch_size=32 --num_inter_threads=1 --num_intra_threads=4 \
+--data_dir=&lt;path to ImageNet TFRecords&gt;
+</pre> <table> <thead> <tr> <th>Optimization</th> <th>Data Format</th> <th>Images/Sec (step time)</th> <th>Intra threads</th> <th>Inter Threads</th> </tr> </thead> <tbody> <tr> <td>MKL</td> <td>NCHW</td> <td>10.3 (3,104ms)</td> <td>4</td> <td>1</td> </tr> <tr> <td>AVX2</td> <td>NHWC</td> <td>7.5 (4,255ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>AVX</td> <td>NHWC</td> <td>5.1 (6,275ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>SSE3</td> <td>NHWC</td> <td>2.8 (11,428ms)</td> <td>4</td> <td>0</td> </tr> </tbody> </table> <h4 id="inference_resnet-50">Inference ResNet-50</h4> <p><strong>Environment</strong></p> <ul> <li>Instance Type: AWS EC2 m4.xlarge</li> <li>CPU: Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz (Broadwell)</li> <li>Dataset: ImageNet</li> <li>TensorFlow Version: 1.2.0 RC2</li> <li>Test Script: <a href="https://github.com/tensorflow/benchmarks/blob/mkl_experiment/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py">tf_cnn_benchmarks.py</a>
+</li> </ul> <p><strong>Batch Size: 1</strong></p> <p>Command executed for the MKL test:</p> <pre class="prettyprint lang-bash" data-language="cpp">python tf_cnn_benchmarks.py --forward_only=True --device=cpu --mkl=True \
+--kmp_blocktime=0 --nodistortions --model=resnet50 --data_format=NCHW \
+--batch_size=1 --num_inter_threads=1 --num_intra_threads=4 \
+--data_dir=&lt;path to ImageNet TFRecords&gt;
+</pre> <table> <thead> <tr> <th>Optimization</th> <th>Data Format</th> <th>Images/Sec (step time)</th> <th>Intra threads</th> <th>Inter Threads</th> </tr> </thead> <tbody> <tr> <td>AVX2</td> <td>NHWC</td> <td>8.8 (113ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>MKL</td> <td>NCHW</td> <td>8.5 (120ms)</td> <td>4</td> <td>1</td> </tr> <tr> <td>AVX</td> <td>NHWC</td> <td>6.4 (157ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>SSE3</td> <td>NHWC</td> <td>3.7 (270ms)</td> <td>4</td> <td>0</td> </tr> </tbody> </table> <p><strong>Batch Size: 32</strong></p> <p>Command executed for the MKL test:</p> <pre class="prettyprint lang-bash" data-language="cpp">python tf_cnn_benchmarks.py --forward_only=True --device=cpu --mkl=True \
+--kmp_blocktime=0 --nodistortions --model=resnet50 --data_format=NCHW \
+--batch_size=32 --num_inter_threads=1 --num_intra_threads=4 \
+--data_dir=&lt;path to ImageNet TFRecords&gt;
+</pre> <table> <thead> <tr> <th>Optimization</th> <th>Data Format</th> <th>Images/Sec (step time)</th> <th>Intra threads</th> <th>Inter Threads</th> </tr> </thead> <tbody> <tr> <td>MKL</td> <td>NCHW</td> <td>12.4 (2,590ms)</td> <td>4</td> <td>1</td> </tr> <tr> <td>AVX2</td> <td>NHWC</td> <td>10.4 (3,079ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>AVX</td> <td>NHWC</td> <td>7.3 (4,4416ms)</td> <td>4</td> <td>0</td> </tr> <tr> <td>SSE3</td> <td>NHWC</td> <td>4.0 (8,054ms)</td> <td>4</td> <td>0</td> </tr> </tbody> </table> <h4 id="training_inceptionv3">Training InceptionV3</h4> <p><strong>Environment</strong></p> <ul> <li>Instance Type: Dedicated AWS EC2 r4.16xlarge (Broadwell)</li> <li>CPU: Intel Xeon E5-2686 v4 (Broadwell) Processors</li> <li>Dataset: ImageNet</li> <li>TensorFlow Version: 1.2.0 RC2</li> <li>Test Script: <a href="https://github.com/tensorflow/benchmarks/blob/mkl_experiment/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py">tf_cnn_benchmarks.py</a>
+</li> </ul> <p>Command executed for MKL test:</p> <pre class="prettyprint lang-bash" data-language="cpp">python tf_cnn_benchmarks.py --device=cpu --mkl=True --kmp_blocktime=0 \
+--nodistortions --model=resnet50 --data_format=NCHW --batch_size=32 \
+--num_inter_threads=2 --num_intra_threads=36 \
+--data_dir=&lt;path to ImageNet TFRecords&gt;
+</pre> <table> <thead> <tr> <th>Optimization</th> <th>Data Format</th> <th>Images/Sec</th> <th>Intra threads</th> <th>Inter Threads</th> </tr> </thead> <tbody> <tr> <td>MKL</td> <td>NCHW</td> <td>20.8</td> <td>36</td> <td>2</td> </tr> <tr> <td>AVX2</td> <td>NHWC</td> <td>6.2</td> <td>36</td> <td>0</td> </tr> <tr> <td>AVX</td> <td>NHWC</td> <td>5.7</td> <td>36</td> <td>0</td> </tr> <tr> <td>SSE3</td> <td>NHWC</td> <td>4.3</td> <td>36</td> <td>0</td> </tr> </tbody> </table> <p>ResNet and <a href="http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf">AlexNet</a> were also run on this configuration but in an ad hoc manner. There were not enough runs executed to publish a coherent table of results. The incomplete results strongly indicated the final result would be similar to the table above with MKL providing significant 3x+ gains over AVX2.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/performance/performance_guide" class="_attribution-link">https://www.tensorflow.org/performance/performance_guide</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

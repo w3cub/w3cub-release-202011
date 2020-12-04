@@ -1,0 +1,191 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Partial Differential Equations - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="TensorFlow isn&#39;t just for machine learning. Here we give a (somewhat pedestrian) example of using TensorFlow for simulating the behavior of a &hellip;">
+  <meta name="keywords" content="partial, differential, equations, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/tutorials/pdes.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Partial Differential Equations </h1>     <p>TensorFlow isn't just for machine learning. Here we give a (somewhat pedestrian) example of using TensorFlow for simulating the behavior of a <a href="https://en.wikipedia.org/wiki/Partial_differential_equation">partial differential equation</a>. We'll simulate the surface of square pond as a few raindrops land on it.</p> <h2 id="basic_setup">Basic Setup</h2> <p>A few imports we'll need.</p> <pre class="prettyprint lang-python" data-language="python">#Import libraries for simulation
+import tensorflow as tf
+import numpy as np
+
+#Imports for visualization
+import PIL.Image
+from io import BytesIO
+from IPython.display import clear_output, Image, display
+</pre> <p>A function for displaying the state of the pond's surface as an image.</p> <pre class="prettyprint lang-python" data-language="python">def DisplayArray(a, fmt='jpeg', rng=[0,1]):
+  """Display an array as a picture."""
+  a = (a - rng[0])/float(rng[1] - rng[0])*255
+  a = np.uint8(np.clip(a, 0, 255))
+  f = BytesIO()
+  PIL.Image.fromarray(a).save(f, fmt)
+  clear_output(wait = True)
+  display(Image(data=f.getvalue()))
+</pre> <p>Here we start an interactive TensorFlow session for convenience in playing around. A regular session would work as well if we were doing this in an executable .py file.</p> <pre class="prettyprint lang-python" data-language="python">sess = tf.InteractiveSession()
+</pre> <h2 id="computational_convenience_functions">Computational Convenience Functions</h2> <pre class="prettyprint lang-python" data-language="python">def make_kernel(a):
+  """Transform a 2D array into a convolution kernel"""
+  a = np.asarray(a)
+  a = a.reshape(list(a.shape) + [1,1])
+  return tf.constant(a, dtype=1)
+
+def simple_conv(x, k):
+  """A simplified 2D convolution operation"""
+  x = tf.expand_dims(tf.expand_dims(x, 0), -1)
+  y = tf.nn.depthwise_conv2d(x, k, [1, 1, 1, 1], padding='SAME')
+  return y[0, :, :, 0]
+
+def laplace(x):
+  """Compute the 2D laplacian of an array"""
+  laplace_k = make_kernel([[0.5, 1.0, 0.5],
+                           [1.0, -6., 1.0],
+                           [0.5, 1.0, 0.5]])
+  return simple_conv(x, laplace_k)
+</pre> <h2 id="define_the_pde">Define the PDE</h2> <p>Our pond is a perfect 500 x 500 square, as is the case for most ponds found in nature.</p> <pre class="prettyprint lang-python" data-language="python">N = 500
+</pre> <p>Here we create our pond and hit it with some rain drops.</p> <pre class="prettyprint lang-python" data-language="python"># Initial Conditions -- some rain drops hit a pond
+
+# Set everything to zero
+u_init = np.zeros([N, N], dtype=np.float32)
+ut_init = np.zeros([N, N], dtype=np.float32)
+
+# Some rain drops hit a pond at random points
+for n in range(40):
+  a,b = np.random.randint(0, N, 2)
+  u_init[a,b] = np.random.uniform()
+
+DisplayArray(u_init, rng=[-0.1, 0.1])
+</pre> <p><img alt="jpeg" src="data:image/jpeg;base64,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"></p> <p>Now let's specify the details of the differential equation.</p> <pre class="prettyprint lang-python" data-language="python"># Parameters:
+# eps -- time resolution
+# damping -- wave damping
+eps = tf.placeholder(tf.float32, shape=())
+damping = tf.placeholder(tf.float32, shape=())
+
+# Create variables for simulation state
+U  = tf.Variable(u_init)
+Ut = tf.Variable(ut_init)
+
+# Discretized PDE update rules
+U_ = U + eps * Ut
+Ut_ = Ut + eps * (laplace(U) - damping * Ut)
+
+# Operation to update the state
+step = tf.group(
+  U.assign(U_),
+  Ut.assign(Ut_))
+</pre> <h2 id="run_the_simulation">Run The Simulation</h2> <p>This is where it gets fun -- running time forward with a simple for loop.</p> <pre class="prettyprint lang-python" data-language="python"># Initialize state to initial conditions
+tf.global_variables_initializer().run()
+
+# Run 1000 steps of PDE
+for i in range(1000):
+  # Step simulation
+  step.run({eps: 0.03, damping: 0.04})
+  DisplayArray(U.eval(), rng=[-0.1, 0.1])
+</pre> <p><img alt="jpeg" src="data:image/jpeg;base64,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"></p> <p>Look! Ripples!</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/tutorials/pdes" class="_attribution-link">https://www.tensorflow.org/tutorials/pdes</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

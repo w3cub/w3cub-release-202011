@@ -1,0 +1,262 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using AOT Compilation - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="tfcompile is a standalone tool that ahead-of-time (AOT) compiles TensorFlow graphs into executable code. It can reduce total binary size, and also &hellip;">
+  <meta name="keywords" content="using, aot, compilation, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/performance/xla/tfcompile.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Using AOT compilation </h1>     <h2 id="what_is_tfcompile">What is tfcompile?</h2> <p><code>tfcompile</code> is a standalone tool that ahead-of-time (AOT) compiles TensorFlow graphs into executable code. It can reduce total binary size, and also avoid some runtime overheads. A typical use-case of <code>tfcompile</code> is to compile an inference graph into executable code for mobile devices.</p> <p>The TensorFlow graph is normally executed by the TensorFlow runtime. This incurs some runtime overhead for execution of each node in the graph. This also leads to a larger total binary size, since the code for the TensorFlow runtime needs to be available, in addition to the graph itself. The executable code produced by <code>tfcompile</code> does not use the TensorFlow runtime, and only has dependencies on kernels that are actually used in the computation.</p> <p>The compiler is built on top of the XLA framework. The code bridging TensorFlow to the XLA framework resides under <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/">tensorflow/compiler</a>, which also includes support for <a href="jit">just-in-time (JIT) compilation</a> of TensorFlow graphs.</p> <h2 id="what_does_tfcompile_do">What does tfcompile do?</h2> <p><code>tfcompile</code> takes a subgraph, identified by the TensorFlow concepts of feeds and fetches, and generates a function that implements that subgraph. The <code>feeds</code> are the input arguments for the function, and the <code>fetches</code> are the output arguments for the function. All inputs must be fully specified by the feeds; the resulting pruned subgraph cannot contain Placeholder or Variable nodes. It is common to specify all Placeholders and Variables as feeds, which ensures the resulting subgraph no longer contains these nodes. The generated function is packaged as a <code>cc_library</code>, with a header file exporting the function signature, and an object file containing the implementation. The user writes code to invoke the generated function as appropriate.</p> <h2 id="using_tfcompile">Using tfcompile</h2> <p>This section details high level steps for generating an executable binary with <code>tfcompile</code> from a TensorFlow subgraph. The steps are:</p> <ul> <li>Step 1: Configure the subgraph to compile</li> <li>Step 2: Use the <code>tf_library</code> build macro to compile the subgraph</li> <li>Step 3: Write code to invoke the subgraph</li> <li>Step 4: Create the final binary</li> </ul> <h3 id="step_1_configure_the_subgraph_to_compile">Step 1: Configure the subgraph to compile</h3> <p>Identify the feeds and fetches that correspond to the input and output arguments for the generated function. Then configure the <code>feeds</code> and <code>fetches</code> in a <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/tf2xla/tf2xla.proto"><code>tensorflow.tf2xla.Config</code></a> proto.</p> <pre class="prettyprint lang-textproto" data-language="cpp"># Each feed is a positional input argument for the generated function.  The order
+# of each entry matches the order of each input argument.  Here “x_hold” and “y_hold”
+# refer to the names of placeholder nodes defined in the graph.
+feed {
+  id { node_name: "x_hold" }
+  shape {
+    dim { size: 2 }
+    dim { size: 3 }
+  }
+}
+feed {
+  id { node_name: "y_hold" }
+  shape {
+    dim { size: 3 }
+    dim { size: 2 }
+  }
+}
+
+# Each fetch is a positional output argument for the generated function.  The order
+# of each entry matches the order of each output argument.  Here “x_y_prod”
+# refers to the name of a matmul node defined in the graph.
+fetch {
+  id { node_name: "x_y_prod" }
+}
+</pre> <h3 id="step_2_use_tf_library_build_macro_to_compile_the_subgraph">Step 2: Use tf_library build macro to compile the subgraph</h3> <p>This step converts the graph into a <code>cc_library</code> using the <code>tf_library</code> build macro. The <code>cc_library</code> consists of an object file containing the code generated from the graph, along with a header file that gives access to the generated code. <code>tf_library</code> utilizes <code>tfcompile</code> to compile the TensorFlow graph into executable code.</p> <pre class="prettyprint lang-build" data-language="cpp">load("//third_party/tensorflow/compiler/aot:tfcompile.bzl", "tf_library")
+
+# Use the tf_library macro to compile your graph into executable code.
+tf_library(
+    # name is used to generate the following underlying build rules:
+    # &lt;name&gt;           : cc_library packaging the generated header and object files
+    # &lt;name&gt;_test      : cc_test containing a simple test and benchmark
+    # &lt;name&gt;_benchmark : cc_binary containing a stand-alone benchmark with minimal deps;
+    #                    can be run on a mobile device
+    name = "test_graph_tfmatmul",
+    # cpp_class specifies the name of the generated C++ class, with namespaces allowed.
+    # The class will be generated in the given namespace(s), or if no namespaces are
+    # given, within the global namespace.
+    cpp_class = "foo::bar::MatMulComp",
+    # graph is the input GraphDef proto, by default expected in binary format.  To
+    # use the text format instead, just use the ‘.pbtxt’ suffix.  A subgraph will be
+    # created from this input graph, with feeds as inputs and fetches as outputs.
+    # No Placeholder or Variable ops may exist in this subgraph.
+    graph = "test_graph_tfmatmul.pb",
+    # config is the input Config proto, by default expected in binary format.  To
+    # use the text format instead, use the ‘.pbtxt’ suffix.  This is where the
+    # feeds and fetches were specified above, in the previous step.
+    config = "test_graph_tfmatmul.config.pbtxt",
+)
+</pre> <blockquote> <p>To generate the GraphDef proto (test_graph_tfmatmul.pb) for this example, run <a href="https://www.tensorflow.org" title="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/tests/make_test_graphs.py">make_test_graphs.py</a> and specify the output location with the --out_dir flag.</p> </blockquote> <p>Typical graphs contain <a href="https://www.tensorflow.org/api_guides/python/state_ops"><code>Variables</code></a> representing the weights that are learned via training, but <code>tfcompile</code> cannot compile a subgraph that contain <code>Variables</code>. The <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/python/tools/freeze_graph.py">freeze_graph.py</a> tool converts variables into constants, using values stored in a checkpoint file. As a convenience, the <code>tf_library</code> macro supports the <code>freeze_checkpoint</code> argument, which runs the tool. For more examples see <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/tests/BUILD">tensorflow/compiler/aot/tests/BUILD</a>.</p> <blockquote> <p>Constants that show up in the compiled subgraph are compiled directly into the generated code. To pass the constants into the generated function, rather than having them compiled-in, simply pass them in as feeds.</p> </blockquote> <p>For details on the <code>tf_library</code> build macro, see <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/tfcompile.bzl">tfcompile.bzl</a>.</p> <p>For details on the underlying <code>tfcompile</code> tool, see <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/tfcompile_main.cc">tfcompile_main.cc</a>.</p> <h3 id="step_3_write_code_to_invoke_the_subgraph">Step 3: Write code to invoke the subgraph</h3> <p>This step uses the header file (<code>test_graph_tfmatmul.h</code>) generated by the <code>tf_library</code> build macro in the previous step to invoke the generated code. The header file is located in the <code>bazel-genfiles</code> directory corresponding to the build package, and is named based on the name attribute set on the <code>tf_library</code> build macro. For example, the header generated for <code>test_graph_tfmatmul</code> would be <code>test_graph_tfmatmul.h</code>. Below is an abbreviated version of what is generated. The generated file, in <code>bazel-genfiles</code>, contains additional useful comments.</p> <pre class="prettyprint" data-language="cpp">namespace foo {
+namespace bar {
+
+// MatMulComp represents a computation previously specified in a
+// TensorFlow graph, now compiled into executable code.
+class MatMulComp {
+ public:
+  // AllocMode controls the buffer allocation mode.
+  enum class AllocMode {
+    ARGS_RESULTS_AND_TEMPS,  // Allocate arg, result and temp buffers
+    RESULTS_AND_TEMPS_ONLY,  // Only allocate result and temp buffers
+  };
+
+  MatMulComp(AllocMode mode = AllocMode::ARGS_RESULTS_AND_TEMPS);
+  ~MatMulComp();
+
+  // Runs the computation, with inputs read from arg buffers, and outputs
+  // written to result buffers. Returns true on success and false on failure.
+  bool Run();
+
+  // Arg methods for managing input buffers. Buffers are in row-major order.
+  // There is a set of methods for each positional argument.
+  void** args();
+
+  void set_arg0_data(float* data);
+  float* arg0_data();
+  float&amp; arg0(size_t dim0, size_t dim1);
+
+  void set_arg1_data(float* data);
+  float* arg1_data();
+  float&amp; arg1(size_t dim0, size_t dim1);
+
+  // Result methods for managing output buffers. Buffers are in row-major order.
+  // Must only be called after a successful Run call. There is a set of methods
+  // for each positional result.
+  void** results();
+
+  float* result0_data();
+  float&amp; result0(size_t dim0, size_t dim1);
+};
+
+}  // end namespace bar
+}  // end namespace foo
+</pre> <p>The generated C++ class is called <code>MatMulComp</code> in the <code>foo::bar</code> namespace, because that was the <code>cpp_class</code> specified in the <code>tf_library</code> macro. All generated classes have a similar API, with the only difference being the methods to handle arg and result buffers. Those methods differ based on the number and types of the buffers, which were specified by the <code>feed</code> and <code>fetch</code> arguments to the <code>tf_library</code> macro.</p> <p>There are three types of buffers managed within the generated class: <code>args</code> representing the inputs, <code>results</code> representing the outputs, and <code>temps</code> representing temporary buffers used internally to perform the computation. By default, each instance of the generated class allocates and manages all of these buffers for you. The <code>AllocMode</code> constructor argument may be used to change this behavior. A convenience library is provided in <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/runtime.h"><code>tensorflow/compiler/aot/runtime.h</code></a> to help with manual buffer allocation; usage of this library is optional. All buffers should be aligned to 32-byte boundaries.</p> <p>The generated C++ class is just a wrapper around the low-level code generated by XLA.</p> <p>Example of invoking the generated function based on <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/compiler/aot/tests/tfcompile_test.cc"><code>tfcompile_test.cc</code></a>:</p> <pre class="prettyprint" data-language="cpp">#define EIGEN_USE_THREADS
+#define EIGEN_USE_CUSTOM_THREAD_POOL
+
+#include &lt;iostream&gt;
+#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
+#include "tensorflow/compiler/aot/tests/test_graph_tfmatmul.h" // generated
+
+int main(int argc, char** argv) {
+  Eigen::ThreadPool tp(2);  // Size the thread pool as appropriate.
+  Eigen::ThreadPoolDevice device(&amp;tp, tp.NumThreads());
+
+  foo::bar::MatMulComp matmul;
+  matmul.set_thread_pool(&amp;device);
+
+  // Set up args and run the computation.
+  const float args[12] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  std::copy(args + 0, args + 6, matmul.arg0_data());
+  std::copy(args + 6, args + 12, matmul.arg1_data());
+  matmul.Run();
+
+  // Check result
+  if (matmul.result0(0, 0) == 58) {
+    std::cout &lt;&lt; "Success" &lt;&lt; std::endl;
+  } else {
+    std::cout &lt;&lt; "Failed. Expected value 58 at 0,0. Got:"
+              &lt;&lt; matmul.result0(0, 0) &lt;&lt; std::endl;
+  }
+
+  return 0;
+}
+</pre> <h3 id="step_4_create_the_final_binary">Step 4: Create the final binary</h3> <p>This step combines the library generated by <code>tf_library</code> in step 2 and the code written in step 3 to create a final binary. Below is an example <code>bazel</code> BUILD file.</p> <pre class="prettyprint lang-build" data-language="cpp"># Example of linking your binary
+# Also see //third_party/tensorflow/compiler/aot/tests/BUILD
+load("//third_party/tensorflow/compiler/aot:tfcompile.bzl", "tf_library")
+
+# The same tf_library call from step 2 above.
+tf_library(
+    name = "test_graph_tfmatmul",
+    ...
+)
+
+# The executable code generated by tf_library can then be linked into your code.
+cc_binary(
+    name = "my_binary",
+    srcs = [
+        "my_code.cc",  # include test_graph_tfmatmul.h to access the generated header
+    ],
+    deps = [
+        ":test_graph_tfmatmul",  # link in the generated object file
+        "//third_party/eigen3",
+    ],
+    linkopts = [
+          "-lpthread",
+    ]
+)
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/performance/xla/tfcompile" class="_attribution-link">https://www.tensorflow.org/performance/xla/tfcompile</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

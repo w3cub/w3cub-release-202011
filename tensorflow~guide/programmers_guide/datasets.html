@@ -1,0 +1,496 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Importing Data - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="The tf.data API enables you to build complex input pipelines from simple, reusable pieces. For example, the pipeline for an image model might &hellip;">
+  <meta name="keywords" content="importing, data, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/programmers_guide/datasets.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Importing Data </h1>     <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API enables you to build complex input pipelines from simple, reusable pieces. For example, the pipeline for an image model might aggregate data from files in a distributed file system, apply random perturbations to each image, and merge randomly selected images into a batch for training. The pipeline for a text model might involve extracting symbols from raw text data, converting them to embedding identifiers with a lookup table, and batching together sequences of different lengths. The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API makes it easy to deal with large amounts of data, different data formats, and complicated transformations.</p> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API introduces two new abstractions to TensorFlow:</p> <ul> <li> <p>A <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> represents a sequence of elements, in which each element contains one or more <code>Tensor</code> objects. For example, in an image pipeline, an element might be a single training example, with a pair of tensors representing the image data and a label. There are two distinct ways to create a dataset:</p> <ul> <li> <p>Creating a <strong>source</strong> (e.g. <code>Dataset.from_tensor_slices()</code>) constructs a dataset from one or more <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects.</p> </li> <li> <p>Applying a <strong>transformation</strong> (e.g. <code>Dataset.batch()</code>) constructs a dataset from one or more <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> objects.</p> </li> </ul> </li> <li> <p>A <a href="https://www.tensorflow.org/api_docs/python/tf/data/Iterator"><code>tf.data.Iterator</code></a> provides the main way to extract elements from a dataset. The operation returned by <code>Iterator.get_next()</code> yields the next element of a <code>Dataset</code> when executed, and typically acts as the interface between input pipeline code and your model. The simplest iterator is a "one-shot iterator", which is associated with a particular <code>Dataset</code> and iterates through it once. For more sophisticated uses, the <code>Iterator.initializer</code> operation enables you to reinitialize and parameterize an iterator with different datasets, so that you can, for example, iterate over training and validation data multiple times in the same program.</p> </li> </ul> <h2 id="basic_mechanics">Basic mechanics</h2> <p>This section of the guide describes the fundamentals of creating different kinds of <code>Dataset</code> and <code>Iterator</code> objects, and how to extract data from them.</p> <p>To start an input pipeline, you must define a <em>source</em>. For example, to construct a <code>Dataset</code> from some tensors in memory, you can use <code>tf.data.Dataset.from_tensors()</code> or <code>tf.data.Dataset.from_tensor_slices()</code>. Alternatively, if your input data are on disk in the recommended TFRecord format, you can construct a <a href="https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset"><code>tf.data.TFRecordDataset</code></a>.</p> <p>Once you have a <code>Dataset</code> object, you can <em>transform</em> it into a new <code>Dataset</code> by chaining method calls on the <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> object. For example, you can apply per-element transformations such as <code>Dataset.map()</code> (to apply a function to each element), and multi-element transformations such as <code>Dataset.batch()</code>. See the documentation for <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> for a complete list of transformations.</p> <p>The most common way to consume values from a <code>Dataset</code> is to make an <strong>iterator</strong> object that provides access to one element of the dataset at a time (for example, by calling <code>Dataset.make_one_shot_iterator()</code>). A <a href="https://www.tensorflow.org/api_docs/python/tf/data/Iterator"><code>tf.data.Iterator</code></a> provides two operations: <code>Iterator.initializer</code>, which enables you to (re)initialize the iterator's state; and <code>Iterator.get_next()</code>, which returns <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects that correspond to the symbolic next element. Depending on your use case, you might choose a different type of iterator, and the options are outlined below.</p> <h3 id="dataset_structure">Dataset structure</h3> <p>A dataset comprises elements that each have the same structure. An element contains one or more <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects, called <em>components</em>. Each component has a <a href="https://www.tensorflow.org/api_docs/python/tf/DType"><code>tf.DType</code></a> representing the type of elements in the tensor, and a <a href="https://www.tensorflow.org/api_docs/python/tf/TensorShape"><code>tf.TensorShape</code></a> representing the (possibly partially specified) static shape of each element. The <code>Dataset.output_types</code> and <code>Dataset.output_shapes</code> properties allow you to inspect the inferred types and shapes of each component of a dataset element. The <em>nested structure</em> of these properties map to the structure of an element, which may be a single tensor, a tuple of tensors, or a nested tuple of tensors. For example:</p> <pre class="prettyprint lang-python" data-language="python">dataset1 = tf.data.Dataset.from_tensor_slices(tf.random_uniform([4, 10]))
+print(dataset1.output_types)  # ==&gt; "tf.float32"
+print(dataset1.output_shapes)  # ==&gt; "(10,)"
+
+dataset2 = tf.data.Dataset.from_tensor_slices(
+   (tf.random_uniform([4]),
+    tf.random_uniform([4, 100], maxval=100, dtype=tf.int32)))
+print(dataset2.output_types)  # ==&gt; "(tf.float32, tf.int32)"
+print(dataset2.output_shapes)  # ==&gt; "((), (100,))"
+
+dataset3 = tf.data.Dataset.zip((dataset1, dataset2))
+print(dataset3.output_types)  # ==&gt; (tf.float32, (tf.float32, tf.int32))
+print(dataset3.output_shapes)  # ==&gt; "(10, ((), (100,)))"
+</pre> <p>It is often convenient to give names to each component of an element, for example if they represent different features of a training example. In addition to tuples, you can use <code>collections.namedtuple</code> or a dictionary mapping strings to tensors to represent a single element of a <code>Dataset</code>.</p> <pre class="prettyprint lang-python" data-language="python">dataset = tf.data.Dataset.from_tensor_slices(
+   {"a": tf.random_uniform([4]),
+    "b": tf.random_uniform([4, 100], maxval=100, dtype=tf.int32)})
+print(dataset.output_types)  # ==&gt; "{'a': tf.float32, 'b': tf.int32}"
+print(dataset.output_shapes)  # ==&gt; "{'a': (), 'b': (100,)}"
+</pre> <p>The <code>Dataset</code> transformations support datasets of any structure. When using the <code>Dataset.map()</code>, <code>Dataset.flat_map()</code>, and <code>Dataset.filter()</code> transformations, which apply a function to each element, the element structure determines the arguments of the function:</p> <pre class="prettyprint lang-python" data-language="python">dataset1 = dataset1.map(lambda x: ...)
+
+dataset2 = dataset2.flat_map(lambda x, y: ...)
+
+# Note: Argument destructuring is not available in Python 3.
+dataset3 = dataset3.filter(lambda x, (y, z): ...)
+</pre> <h3 id="creating_an_iterator">Creating an iterator</h3> <p>Once you have built a <code>Dataset</code> to represent your input data, the next step is to create an <code>Iterator</code> to access elements from that dataset. The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API currently supports the following iterators, in increasing level of sophistication:</p> <ul> <li>
+<strong>one-shot</strong>,</li> <li>
+<strong>initializable</strong>,</li> <li>
+<strong>reinitializable</strong>, and</li> <li>
+<strong>feedable</strong>.</li> </ul> <p>A <strong>one-shot</strong> iterator is the simplest form of iterator, which only supports iterating once through a dataset, with no need for explicit initialization. One-shot iterators handle almost all of the cases that the existing queue-based input pipelines support, but they do not support parameterization. Using the example of <code>Dataset.range()</code>:</p> <pre class="prettyprint lang-python" data-language="python">dataset = tf.data.Dataset.range(100)
+iterator = dataset.make_one_shot_iterator()
+next_element = iterator.get_next()
+
+for i in range(100):
+  value = sess.run(next_element)
+  assert i == value
+</pre> <blockquote class="note">
+<strong>Note:</strong><span> Currently, one-shot iterators are the only type that is easily usable with an <code>Estimator</code>.</span>
+</blockquote> <p>An <strong>initializable</strong> iterator requires you to run an explicit <code>iterator.initializer</code> operation before using it. In exchange for this inconvenience, it enables you to <em>parameterize</em> the definition of the dataset, using one or more <code>tf.placeholder()</code> tensors that can be fed when you initialize the iterator. Continuing the <code>Dataset.range()</code> example:</p> <pre class="prettyprint lang-python" data-language="python">max_value = tf.placeholder(tf.int64, shape=[])
+dataset = tf.data.Dataset.range(max_value)
+iterator = dataset.make_initializable_iterator()
+next_element = iterator.get_next()
+
+# Initialize an iterator over a dataset with 10 elements.
+sess.run(iterator.initializer, feed_dict={max_value: 10})
+for i in range(10):
+  value = sess.run(next_element)
+  assert i == value
+
+# Initialize the same iterator over a dataset with 100 elements.
+sess.run(iterator.initializer, feed_dict={max_value: 100})
+for i in range(100):
+  value = sess.run(next_element)
+  assert i == value
+</pre> <p>A <strong>reinitializable</strong> iterator can be initialized from multiple different <code>Dataset</code> objects. For example, you might have a training input pipeline that uses random perturbations to the input images to improve generalization, and a validation input pipeline that evaluates predictions on unmodified data. These pipelines will typically use different <code>Dataset</code> objects that have the same structure (i.e. the same types and compatible shapes for each component).</p> <pre class="prettyprint lang-python" data-language="python"># Define training and validation datasets with the same structure.
+training_dataset = tf.data.Dataset.range(100).map(
+    lambda x: x + tf.random_uniform([], -10, 10, tf.int64))
+validation_dataset = tf.data.Dataset.range(50)
+
+# A reinitializable iterator is defined by its structure. We could use the
+# `output_types` and `output_shapes` properties of either `training_dataset`
+# or `validation_dataset` here, because they are compatible.
+iterator = tf.data.Iterator.from_structure(training_dataset.output_types,
+                                           training_dataset.output_shapes)
+next_element = iterator.get_next()
+
+training_init_op = iterator.make_initializer(training_dataset)
+validation_init_op = iterator.make_initializer(validation_dataset)
+
+# Run 20 epochs in which the training dataset is traversed, followed by the
+# validation dataset.
+for _ in range(20):
+  # Initialize an iterator over the training dataset.
+  sess.run(training_init_op)
+  for _ in range(100):
+    sess.run(next_element)
+
+  # Initialize an iterator over the validation dataset.
+  sess.run(validation_init_op)
+  for _ in range(50):
+    sess.run(next_element)
+</pre> <p>A <strong>feedable</strong> iterator can be used together with <a href="https://www.tensorflow.org/api_docs/python/tf/placeholder"><code>tf.placeholder</code></a> to select what <code>Iterator</code> to use in each call to <a href="https://www.tensorflow.org/api_docs/python/tf/InteractiveSession#run"><code>tf.Session.run</code></a>, via the familiar <code>feed_dict</code> mechanism. It offers the same functionality as a reinitializable iterator, but it does not require you to initialize the iterator from the start of a dataset when you switch between iterators. For example, using the same training and validation example from above, you can use <a href="https://www.tensorflow.org/api_docs/python/tf/data/Iterator#from_string_handle"><code>tf.data.Iterator.from_string_handle</code></a> to define a feedable iterator that allows you to switch between the two datasets:</p> <pre class="prettyprint lang-python" data-language="python"># Define training and validation datasets with the same structure.
+training_dataset = tf.data.Dataset.range(100).map(
+    lambda x: x + tf.random_uniform([], -10, 10, tf.int64)).repeat()
+validation_dataset = tf.data.Dataset.range(50)
+
+# A feedable iterator is defined by a handle placeholder and its structure. We
+# could use the `output_types` and `output_shapes` properties of either
+# `training_dataset` or `validation_dataset` here, because they have
+# identical structure.
+handle = tf.placeholder(tf.string, shape=[])
+iterator = tf.data.Iterator.from_string_handle(
+    handle, training_dataset.output_types, training_dataset.output_shapes)
+next_element = iterator.get_next()
+
+# You can use feedable iterators with a variety of different kinds of iterator
+# (such as one-shot and initializable iterators).
+training_iterator = training_dataset.make_one_shot_iterator()
+validation_iterator = validation_dataset.make_initializable_iterator()
+
+# The `Iterator.string_handle()` method returns a tensor that can be evaluated
+# and used to feed the `handle` placeholder.
+training_handle = sess.run(training_iterator.string_handle())
+validation_handle = sess.run(validation_iterator.string_handle())
+
+# Loop forever, alternating between training and validation.
+while True:
+  # Run 200 steps using the training dataset. Note that the training dataset is
+  # infinite, and we resume from where we left off in the previous `while` loop
+  # iteration.
+  for _ in range(200):
+    sess.run(next_element, feed_dict={handle: training_handle})
+
+  # Run one pass over the validation dataset.
+  sess.run(validation_iterator.initializer)
+  for _ in range(50):
+    sess.run(next_element, feed_dict={handle: validation_handle})
+</pre> <h3 id="consuming_values_from_an_iterator">Consuming values from an iterator</h3> <p>The <code>Iterator.get_next()</code> method returns one or more <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects that correspond to the symbolic next element of an iterator. Each time these tensors are evaluated, they take the value of the next element in the underlying dataset. (Note that, like other stateful objects in TensorFlow, calling <code>Iterator.get_next()</code> does not immediately advance the iterator. Instead you must use the returned <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects in a TensorFlow expression, and pass the result of that expression to <code>tf.Session.run()</code> to get the next elements and advance the iterator.)</p> <p>If the iterator reaches the end of the dataset, executing the <code>Iterator.get_next()</code> operation will raise a <a href="https://www.tensorflow.org/api_docs/python/tf/errors/OutOfRangeError"><code>tf.errors.OutOfRangeError</code></a>. After this point the iterator will be in an unusable state, and you must initialize it again if you want to use it further.</p> <pre class="prettyprint lang-python" data-language="python">dataset = tf.data.Dataset.range(5)
+iterator = dataset.make_initializable_iterator()
+next_element = iterator.get_next()
+
+# Typically `result` will be the output of a model, or an optimizer's
+# training operation.
+result = tf.add(next_element, next_element)
+
+sess.run(iterator.initializer)
+print(sess.run(result))  # ==&gt; "0"
+print(sess.run(result))  # ==&gt; "2"
+print(sess.run(result))  # ==&gt; "4"
+print(sess.run(result))  # ==&gt; "6"
+print(sess.run(result))  # ==&gt; "8"
+try:
+  sess.run(result)
+except tf.errors.OutOfRangeError:
+  print("End of dataset")  # ==&gt; "End of dataset"
+</pre> <p>A common pattern is to wrap the "training loop" in a <code>try</code>-<code>except</code> block:</p> <pre class="prettyprint lang-python" data-language="python">sess.run(iterator.initializer)
+while True:
+  try:
+    sess.run(result)
+  except tf.errors.OutOfRangeError:
+    break
+</pre> <p>If each element of the dataset has a nested structure, the return value of <code>Iterator.get_next()</code> will be one or more <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects in the same nested structure:</p> <pre class="prettyprint lang-python" data-language="python">dataset1 = tf.data.Dataset.from_tensor_slices(tf.random_uniform([4, 10]))
+dataset2 = tf.data.Dataset.from_tensor_slices((tf.random_uniform([4]), tf.random_uniform([4, 100])))
+dataset3 = tf.data.Dataset.zip((dataset1, dataset2))
+
+iterator = dataset3.make_initializable_iterator()
+
+sess.run(iterator.initializer)
+next1, (next2, next3) = iterator.get_next()
+</pre> <p>Note that <code>next1</code>, <code>next2</code>, and <code>next3</code> are tensors produced by the same op/node (created by <code>Iterator.get_next()</code>). Therefore, evaluating <em>any</em> of these tensors will advance the iterator for all components. A typical consumer of an iterator will include all components in a single expression.</p> <h3 id="saving_iterator_state">Saving iterator state</h3> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/data/make_saveable_from_iterator"><code>tf.contrib.data.make_saveable_from_iterator</code></a> function creates a <code>SaveableObject</code> from an iterator, which can be used to save and restore the current state of the iterator (and, effectively, the whole input pipeline). A saveable object thus created can be added to <a href="https://www.tensorflow.org/api_docs/python/tf/train/Saver"><code>tf.train.Saver</code></a> variables list or the <a href="https://www.tensorflow.org/api_docs/python/tf/GraphKeys#SAVEABLE_OBJECTS"><code>tf.GraphKeys.SAVEABLE_OBJECTS</code></a> collection for saving and restoring in the same manner as a <a href="https://www.tensorflow.org/api_docs/python/tf/Variable"><code>tf.Variable</code></a>. Refer to <a href="saved_model">Saving and Restoring</a> for details on how to save and restore variables.</p> <pre class="prettyprint lang-python" data-language="python"># Create saveable object from iterator.
+saveable = tf.contrib.data.make_saveable_from_iterator(iterator)
+
+# Save the iterator state by adding it to the saveable objects collection.
+tf.add_to_collection(tf.GraphKeys.SAVEABLE_OBJECTS, saveable)
+saver = tf.train.Saver()
+
+with tf.Session() as sess:
+
+  if should_checkpoint:
+    saver.save(path_to_checkpoint)
+
+# Restore the iterator state.
+with tf.Session() as sess:
+  saver.restore(sess, path_to_checkpoint)
+</pre> <h2 id="reading_input_data">Reading input data</h2> <h3 id="consuming_numpy_arrays">Consuming NumPy arrays</h3> <p>If all of your input data fit in memory, the simplest way to create a <code>Dataset</code> from them is to convert them to <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects and use <code>Dataset.from_tensor_slices()</code>.</p> <pre class="prettyprint lang-python" data-language="python"># Load the training data into two NumPy arrays, for example using `np.load()`.
+with np.load("/var/data/training_data.npy") as data:
+  features = data["features"]
+  labels = data["labels"]
+
+# Assume that each row of `features` corresponds to the same row as `labels`.
+assert features.shape[0] == labels.shape[0]
+
+dataset = tf.data.Dataset.from_tensor_slices((features, labels))
+</pre> <p>Note that the above code snippet will embed the <code>features</code> and <code>labels</code> arrays in your TensorFlow graph as <code>tf.constant()</code> operations. This works well for a small dataset, but wastes memory---because the contents of the array will be copied multiple times---and can run into the 2GB limit for the <a href="https://www.tensorflow.org/api_docs/python/tf/GraphDef"><code>tf.GraphDef</code></a> protocol buffer.</p> <p>As an alternative, you can define the <code>Dataset</code> in terms of <code>tf.placeholder()</code> tensors, and <em>feed</em> the NumPy arrays when you initialize an <code>Iterator</code> over the dataset.</p> <pre class="prettyprint lang-python" data-language="python"># Load the training data into two NumPy arrays, for example using `np.load()`.
+with np.load("/var/data/training_data.npy") as data:
+  features = data["features"]
+  labels = data["labels"]
+
+# Assume that each row of `features` corresponds to the same row as `labels`.
+assert features.shape[0] == labels.shape[0]
+
+features_placeholder = tf.placeholder(features.dtype, features.shape)
+labels_placeholder = tf.placeholder(labels.dtype, labels.shape)
+
+dataset = tf.data.Dataset.from_tensor_slices((features_placeholder, labels_placeholder))
+# [Other transformations on `dataset`...]
+dataset = ...
+iterator = dataset.make_initializable_iterator()
+
+sess.run(iterator.initializer, feed_dict={features_placeholder: features,
+                                          labels_placeholder: labels})
+</pre> <h3 id="consuming_tfrecord_data">Consuming TFRecord data</h3> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API supports a variety of file formats so that you can process large datasets that do not fit in memory. For example, the TFRecord file format is a simple record-oriented binary format that many TensorFlow applications use for training data. The <a href="https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset"><code>tf.data.TFRecordDataset</code></a> class enables you to stream over the contents of one or more TFRecord files as part of an input pipeline.</p> <pre class="prettyprint lang-python" data-language="python"># Creates a dataset that reads all of the examples from two files.
+filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+</pre> <p>The <code>filenames</code> argument to the <code>TFRecordDataset</code> initializer can either be a string, a list of strings, or a <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> of strings. Therefore if you have two sets of files for training and validation purposes, you can use a <code>tf.placeholder(tf.string)</code> to represent the filenames, and initialize an iterator from the appropriate filenames:</p> <pre class="prettyprint lang-python" data-language="python">filenames = tf.placeholder(tf.string, shape=[None])
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(...)  # Parse the record into tensors.
+dataset = dataset.repeat()  # Repeat the input indefinitely.
+dataset = dataset.batch(32)
+iterator = dataset.make_initializable_iterator()
+
+# You can feed the initializer with the appropriate filenames for the current
+# phase of execution, e.g. training vs. validation.
+
+# Initialize `iterator` with training data.
+training_filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+sess.run(iterator.initializer, feed_dict={filenames: training_filenames})
+
+# Initialize `iterator` with validation data.
+validation_filenames = ["/var/data/validation1.tfrecord", ...]
+sess.run(iterator.initializer, feed_dict={filenames: validation_filenames})
+</pre> <h3 id="consuming_text_data">Consuming text data</h3> <p>Many datasets are distributed as one or more text files. The <a href="https://www.tensorflow.org/api_docs/python/tf/data/TextLineDataset"><code>tf.data.TextLineDataset</code></a> provides an easy way to extract lines from one or more text files. Given one or more filenames, a <code>TextLineDataset</code> will produce one string-valued element per line of those files. Like a <code>TFRecordDataset</code>, <code>TextLineDataset</code> accepts <code>filenames</code> as a <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a>, so you can parameterize it by passing a <code>tf.placeholder(tf.string)</code>.</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.txt", "/var/data/file2.txt"]
+dataset = tf.data.TextLineDataset(filenames)
+</pre> <p>By default, a <code>TextLineDataset</code> yields <em>every</em> line of each file, which may not be desirable, for example if the file starts with a header line, or contains comments. These lines can be removed using the <code>Dataset.skip()</code> and <code>Dataset.filter()</code> transformations. To apply these transformations to each file separately, we use <code>Dataset.flat_map()</code> to create a nested <code>Dataset</code> for each file.</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.txt", "/var/data/file2.txt"]
+
+dataset = tf.data.Dataset.from_tensor_slices(filenames)
+
+# Use `Dataset.flat_map()` to transform each file as a separate nested dataset,
+# and then concatenate their contents sequentially into a single "flat" dataset.
+# * Skip the first line (header row).
+# * Filter out lines beginning with "#" (comments).
+dataset = dataset.flat_map(
+    lambda filename: (
+        tf.data.TextLineDataset(filename)
+        .skip(1)
+        .filter(lambda line: tf.not_equal(tf.substr(line, 0, 1), "#"))))
+</pre>  <h2 id="preprocessing_data_with_datasetmap">Preprocessing data with <code>Dataset.map()</code>
+</h2> <p>The <code>Dataset.map(f)</code> transformation produces a new dataset by applying a given function <code>f</code> to each element of the input dataset. It is based on the <a href="https://en.wikipedia.org/wiki/Map_(higher-order_function)"><code>map()</code> function</a> that is commonly applied to lists (and other structures) in functional programming languages. The function <code>f</code> takes the <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects that represent a single element in the input, and returns the <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> objects that will represent a single element in the new dataset. Its implementation uses standard TensorFlow operations to transform one element into another.</p> <p>This section covers common examples of how to use <code>Dataset.map()</code>.</p> <h3 id="parsing_tfexample_protocol_buffer_messages">Parsing <code>tf.Example</code> protocol buffer messages</h3> <p>Many input pipelines extract <a href="https://www.tensorflow.org/api_docs/python/tf/train/Example"><code>tf.train.Example</code></a> protocol buffer messages from a TFRecord-format file (written, for example, using <a href="https://www.tensorflow.org/api_docs/python/tf/python_io/TFRecordWriter"><code>tf.python_io.TFRecordWriter</code></a>). Each <a href="https://www.tensorflow.org/api_docs/python/tf/train/Example"><code>tf.train.Example</code></a> record contains one or more "features", and the input pipeline typically converts these features into tensors.</p> <pre class="prettyprint lang-python" data-language="python"># Transforms a scalar string `example_proto` into a pair of a scalar string and
+# a scalar integer, representing an image and its label, respectively.
+def _parse_function(example_proto):
+  features = {"image": tf.FixedLenFeature((), tf.string, default_value=""),
+              "label": tf.FixedLenFeature((), tf.int32, default_value=0)}
+  parsed_features = tf.parse_single_example(example_proto, features)
+  return parsed_features["image"], parsed_features["label"]
+
+# Creates a dataset that reads all of the examples from two files, and extracts
+# the image and label features.
+filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(_parse_function)
+</pre> <h3 id="decoding_image_data_and_resizing_it">Decoding image data and resizing it</h3> <p>When training a neural network on real-world image data, it is often necessary to convert images of different sizes to a common size, so that they may be batched into a fixed size.</p> <pre class="prettyprint lang-python" data-language="python"># Reads an image from a file, decodes it into a dense tensor, and resizes it
+# to a fixed shape.
+def _parse_function(filename, label):
+  image_string = tf.read_file(filename)
+  image_decoded = tf.image.decode_image(image_string)
+  image_resized = tf.image.resize_images(image_decoded, [28, 28])
+  return image_resized, label
+
+# A vector of filenames.
+filenames = tf.constant(["/var/data/image1.jpg", "/var/data/image2.jpg", ...])
+
+# `labels[i]` is the label for the image in `filenames[i].
+labels = tf.constant([0, 37, ...])
+
+dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
+dataset = dataset.map(_parse_function)
+</pre> <h3 id="applying_arbitrary_python_logic_with_tfpy_func">Applying arbitrary Python logic with <code>tf.py_func()</code>
+</h3> <p>For performance reasons, we encourage you to use TensorFlow operations for preprocessing your data whenever possible. However, it is sometimes useful to call upon external Python libraries when parsing your input data. To do so, invoke, the <code>tf.py_func()</code> operation in a <code>Dataset.map()</code> transformation.</p> <pre class="prettyprint lang-python" data-language="python">import cv2
+
+# Use a custom OpenCV function to read the image, instead of the standard
+# TensorFlow `tf.read_file()` operation.
+def _read_py_function(filename, label):
+  image_decoded = cv2.imread(filename.decode(), cv2.IMREAD_GRAYSCALE)
+  return image_decoded, label
+
+# Use standard TensorFlow operations to resize the image to a fixed shape.
+def _resize_function(image_decoded, label):
+  image_decoded.set_shape([None, None, None])
+  image_resized = tf.image.resize_images(image_decoded, [28, 28])
+  return image_resized, label
+
+filenames = ["/var/data/image1.jpg", "/var/data/image2.jpg", ...]
+labels = [0, 37, 29, 1, ...]
+
+dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
+dataset = dataset.map(
+    lambda filename, label: tuple(tf.py_func(
+        _read_py_function, [filename, label], [tf.uint8, label.dtype])))
+dataset = dataset.map(_resize_function)
+</pre>  <h2 id="batching_dataset_elements">Batching dataset elements</h2> <h3 id="simple_batching">Simple batching</h3> <p>The simplest form of batching stacks <code>n</code> consecutive elements of a dataset into a single element. The <code>Dataset.batch()</code> transformation does exactly this, with the same constraints as the <code>tf.stack()</code> operator, applied to each component of the elements: i.e. for each component <em>i</em>, all elements must have a tensor of the exact same shape.</p> <pre class="prettyprint lang-python" data-language="python">inc_dataset = tf.data.Dataset.range(100)
+dec_dataset = tf.data.Dataset.range(0, -100, -1)
+dataset = tf.data.Dataset.zip((inc_dataset, dec_dataset))
+batched_dataset = dataset.batch(4)
+
+iterator = batched_dataset.make_one_shot_iterator()
+next_element = iterator.get_next()
+
+print(sess.run(next_element))  # ==&gt; ([0, 1, 2,   3],   [ 0, -1,  -2,  -3])
+print(sess.run(next_element))  # ==&gt; ([4, 5, 6,   7],   [-4, -5,  -6,  -7])
+print(sess.run(next_element))  # ==&gt; ([8, 9, 10, 11],   [-8, -9, -10, -11])
+</pre> <h3 id="batching_tensors_with_padding">Batching tensors with padding</h3> <p>The above recipe works for tensors that all have the same size. However, many models (e.g. sequence models) work with input data that can have varying size (e.g. sequences of different lengths). To handle this case, the <code>Dataset.padded_batch()</code> transformation enables you to batch tensors of different shape by specifying one or more dimensions in which they may be padded.</p> <pre class="prettyprint lang-python" data-language="python">dataset = tf.data.Dataset.range(100)
+dataset = dataset.map(lambda x: tf.fill([tf.cast(x, tf.int32)], x))
+dataset = dataset.padded_batch(4, padded_shapes=[None])
+
+iterator = dataset.make_one_shot_iterator()
+next_element = iterator.get_next()
+
+print(sess.run(next_element))  # ==&gt; [[0, 0, 0], [1, 0, 0], [2, 2, 0], [3, 3, 3]]
+print(sess.run(next_element))  # ==&gt; [[4, 4, 4, 4, 0, 0, 0],
+                               #      [5, 5, 5, 5, 5, 0, 0],
+                               #      [6, 6, 6, 6, 6, 6, 0],
+                               #      [7, 7, 7, 7, 7, 7, 7]]
+</pre> <p>The <code>Dataset.padded_batch()</code> transformation allows you to set different padding for each dimension of each component, and it may be variable-length (signified by <code>None</code> in the example above) or constant-length. It is also possible to override the padding value, which defaults to 0.</p>  <h2 id="training_workflows">Training workflows</h2> <h3 id="processing_multiple_epochs">Processing multiple epochs</h3> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API offers two main ways to process multiple epochs of the same data.</p> <p>The simplest way to iterate over a dataset in multiple epochs is to use the <code>Dataset.repeat()</code> transformation. For example, to create a dataset that repeats its input for 10 epochs:</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(...)
+dataset = dataset.repeat(10)
+dataset = dataset.batch(32)
+</pre> <p>Applying the <code>Dataset.repeat()</code> transformation with no arguments will repeat the input indefinitely. The <code>Dataset.repeat()</code> transformation concatenates its arguments without signaling the end of one epoch and the beginning of the next epoch.</p> <p>If you want to receive a signal at the end of each epoch, you can write a training loop that catches the <a href="https://www.tensorflow.org/api_docs/python/tf/errors/OutOfRangeError"><code>tf.errors.OutOfRangeError</code></a> at the end of a dataset. At that point you might collect some statistics (e.g. the validation error) for the epoch.</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(...)
+dataset = dataset.batch(32)
+iterator = dataset.make_initializable_iterator()
+next_element = iterator.get_next()
+
+# Compute for 100 epochs.
+for _ in range(100):
+  sess.run(iterator.initializer)
+  while True:
+    try:
+      sess.run(next_element)
+    except tf.errors.OutOfRangeError:
+      break
+
+  # [Perform end-of-epoch calculations here.]
+</pre> <h3 id="randomly_shuffling_input_data">Randomly shuffling input data</h3> <p>The <code>Dataset.shuffle()</code> transformation randomly shuffles the input dataset using a similar algorithm to <a href="https://www.tensorflow.org/api_docs/python/tf/RandomShuffleQueue"><code>tf.RandomShuffleQueue</code></a>: it maintains a fixed-size buffer and chooses the next element uniformly at random from that buffer.</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(...)
+dataset = dataset.shuffle(buffer_size=10000)
+dataset = dataset.batch(32)
+dataset = dataset.repeat()
+</pre> <h3 id="using_high-level_apis">Using high-level APIs</h3> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/train/MonitoredTrainingSession"><code>tf.train.MonitoredTrainingSession</code></a> API simplifies many aspects of running TensorFlow in a distributed setting. <code>MonitoredTrainingSession</code> uses the <a href="https://www.tensorflow.org/api_docs/python/tf/errors/OutOfRangeError"><code>tf.errors.OutOfRangeError</code></a> to signal that training has completed, so to use it with the <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a> API, we recommend using <code>Dataset.make_one_shot_iterator()</code>. For example:</p> <pre class="prettyprint lang-python" data-language="python">filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+dataset = tf.data.TFRecordDataset(filenames)
+dataset = dataset.map(...)
+dataset = dataset.shuffle(buffer_size=10000)
+dataset = dataset.batch(32)
+dataset = dataset.repeat(num_epochs)
+iterator = dataset.make_one_shot_iterator()
+
+next_example, next_label = iterator.get_next()
+loss = model_function(next_example, next_label)
+
+training_op = tf.train.AdagradOptimizer(...).minimize(loss)
+
+with tf.train.MonitoredTrainingSession(...) as sess:
+  while not sess.should_stop():
+    sess.run(training_op)
+</pre> <p>To use a <code>Dataset</code> in the <code>input_fn</code> of a <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator"><code>tf.estimator.Estimator</code></a>, we also recommend using <code>Dataset.make_one_shot_iterator()</code>. For example:</p> <pre class="prettyprint lang-python" data-language="python">def dataset_input_fn():
+  filenames = ["/var/data/file1.tfrecord", "/var/data/file2.tfrecord"]
+  dataset = tf.data.TFRecordDataset(filenames)
+
+  # Use `tf.parse_single_example()` to extract data from a `tf.Example`
+  # protocol buffer, and perform any additional per-record preprocessing.
+  def parser(record):
+    keys_to_features = {
+        "image_data": tf.FixedLenFeature((), tf.string, default_value=""),
+        "date_time": tf.FixedLenFeature((), tf.int64, default_value=""),
+        "label": tf.FixedLenFeature((), tf.int64,
+                                    default_value=tf.zeros([], dtype=tf.int64)),
+    }
+    parsed = tf.parse_single_example(record, keys_to_features)
+
+    # Perform additional preprocessing on the parsed data.
+    image = tf.image.decode_jpeg(parsed["image_data"])
+    image = tf.reshape(image, [299, 299, 1])
+    label = tf.cast(parsed["label"], tf.int32)
+
+    return {"image_data": image, "date_time": parsed["date_time"]}, label
+
+  # Use `Dataset.map()` to build a pair of a feature dictionary and a label
+  # tensor for each example.
+  dataset = dataset.map(parser)
+  dataset = dataset.shuffle(buffer_size=10000)
+  dataset = dataset.batch(32)
+  dataset = dataset.repeat(num_epochs)
+  iterator = dataset.make_one_shot_iterator()
+
+  # `features` is a dictionary in which each value is a batch of values for
+  # that feature; `labels` is a batch of labels.
+  features, labels = iterator.get_next()
+  return features, labels
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/programmers_guide/datasets" class="_attribution-link">https://www.tensorflow.org/programmers_guide/datasets</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

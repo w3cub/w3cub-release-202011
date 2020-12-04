@@ -1,0 +1,213 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using TPUs - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="This document walks through the principal TensorFlow APIs necessary to make effective use of a Cloud TPU, and highlights the differences between &hellip;">
+  <meta name="keywords" content="using, tpus, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/programmers_guide/using_tpu.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Using TPUs </h1>     <p>This document walks through the principal TensorFlow APIs necessary to make effective use of a <a href="https://cloud.google.com/tpu/">Cloud TPU</a>, and highlights the differences between regular TensorFlow usage, and usage on a TPU.</p> <p>This doc is aimed at users who:</p> <ul> <li>Are familiar with TensorFlow's <code>Estimator</code> and <code>Dataset</code> APIs</li> <li>Have maybe <a href="https://cloud.google.com/tpu/docs/quickstart">tried out a Cloud TPU</a> using an existing model.</li> <li>Have, perhaps, skimmed the code of an example TPU model <a href="https://github.com/tensorflow/models/blob/master/official/mnist/mnist_tpu.py">[1]</a> <a href="https://github.com/tensorflow/tpu/tree/master/models">[2]</a>.</li> <li>Are interested in porting an existing <code>Estimator</code> model to run on Cloud TPUs</li> </ul> <h2 id="tpuestimator">TPUEstimator</h2> <p><a href="https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator">Estimators</a> are TensorFlow's model-level abstraction. Standard <code>Estimators</code> can drive models on CPU and GPUs. You must use <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/TPUEstimator"><code>tf.contrib.tpu.TPUEstimator</code></a> to drive a model on TPUs.</p> <p>Refer to TensorFlow's Getting Started section for an introduction to the basics of using a <a href="../get_started/premade_estimators">pre-made <code>Estimator</code></a>, and <a href="../get_started/custom_estimators">custom <code>Estimator</code>s</a>.</p> <p>The <code>TPUEstimator</code> class differs somewhat from the <code>Estimator</code> class.</p> <p>The simplest way to maintain a model that can be run both on CPU/GPU or on a Cloud TPU is to define the model's inference phase (from inputs to predictions) outside of the <code>model_fn</code>. Then maintain separate implementations of the <code>Estimator</code> setup and <code>model_fn</code>, both wrapping this inference step. For an example of this pattern compare the <code>mnist.py</code> and <code>mnist_tpu.py</code> implementation in <a href="https://github.com/tensorflow/models/tree/master/official/mnist">tensorflow/models</a>.</p> <h3 id="running_a_tpuestimator_locally">Running a <code>TPUEstimator</code> locally</h3> <p>To create a standard <code>Estimator</code> you call the constructor, and pass it a <code>model_fn</code>, for example:</p> <pre class="prettyprint" data-language="cpp">my_estimator = tf.estimator.Estimator(
+  model_fn=my_model_fn)
+</pre> <p>The changes required to use a <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/TPUEstimator"><code>tf.contrib.tpu.TPUEstimator</code></a> on your local machine are relatively minor. The constructor requires two additional arguments. You should set the <code>use_tpu</code> argument to <code>False</code>, and pass a <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/RunConfig"><code>tf.contrib.tpu.RunConfig</code></a> as the <code>config</code> argument, as shown below:</p> <pre class="prettyprint lang-python" data-language="python">my_tpu_estimator = tf.contrib.tpu.TPUEstimator(
+    model_fn=my_model_fn,
+    config=tf.contrib.tpu.RunConfig()
+    use_tpu=False)
+</pre> <p>Just this simple change will allow you to run a <code>TPUEstimator</code> locally. The majority of example TPU models can be run in this local mode, by setting the command line flags as follows:</p> <pre class="prettyprint" data-language="cpp">$&gt; python mnist_tpu.py --use_tpu=false --master=''
+</pre> <blockquote class="note">
+<strong>Note:</strong><span> This <code>use_tpu=False</code> argument is useful for trying out the <code>TPUEstimator</code> API. It is not meant to be a complete TPU compatibility test. Successfully running a model locally in a <code>TPUEstimator</code> does not guarantee that it will work on a TPU.</span>
+</blockquote> <h3 id="building_a_tpurunconfig">Building a <code>tpu.RunConfig</code>
+</h3> <p>While the default <code>RunConfig</code> is sufficient for local training, these settings cannot be ignored in real usage.</p> <p>A more typical setup for a <code>RunConfig</code>, that can be switched to use a Cloud TPU, might be as follows:</p> <pre class="prettyprint lang-python" data-language="python">import tempfile
+import subprocess
+
+class FLAGS(object):
+  use_tpu=False
+  tpu_name=None
+  # Use a local temporary path for the `model_dir`
+  model_dir = tempfile.mkdtemp()
+  # Number of training steps to run on the Cloud TPU before returning control.
+  iterations = 50
+  # A single Cloud TPU has 8 shards.
+  num_shards = 8
+
+if FLAGS.use_tpu:
+    my_project_name = subprocess.check_output([
+        'gcloud','config','get-value','project'])
+    my_zone = subprocess.check_output([
+        'gcloud','config','get-value','compute/zone'])
+    cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+            tpu_names=[FLAGS.tpu_name],
+            zone=my_zone,
+            project=my_project)
+    master = tpu_cluster_resolver.get_master()
+else:
+    master = ''
+
+my_tpu_run_config = tf.contrib.tpu.RunConfig(
+    master=master,
+    evaluation_master=master,
+    model_dir=FLAGS.model_dir,
+    session_config=tf.ConfigProto(
+        allow_soft_placement=True, log_device_placement=True),
+    tpu_config=tf.contrib.tpu.TPUConfig(FLAGS.iterations,
+                                        FLAGS.num_shards),
+)
+</pre> <p>Then you must pass the <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/RunConfig"><code>tf.contrib.tpu.RunConfig</code></a> to the constructor:</p> <pre class="prettyprint lang-python" data-language="python">my_tpu_estimator = tf.contrib.tpu.TPUEstimator(
+    model_fn=my_model_fn,
+    config = my_tpu_run_config,
+    use_tpu=FLAGS.use_tpu)
+</pre> <p>Typically the <code>FLAGS</code> would be set by command line arguments. To switch from training locally to training on a cloud TPU you would need to:</p> <ul> <li>Set <code>FLAGS.use_tpu</code> to <code>True</code>
+</li> <li>Set <code>FLAGS.tpu_name</code> so the <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/cluster_resolver/TPUClusterResolver"><code>tf.contrib.cluster_resolver.TPUClusterResolver</code></a> can find it</li> <li>Set <code>FLAGS.model_dir</code> to a Google Cloud Storage bucket url (<code>gs://</code>).</li> </ul> <h2 id="optimizer">Optimizer</h2> <p>When training on a cloud TPU you <strong>must</strong> wrap the optimizer in a <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/CrossShardOptimizer"><code>tf.contrib.tpu.CrossShardOptimizer</code></a>, which uses an <code>allreduce</code> to aggregate gradients and broadcast the result to each shard (each TPU core).</p> <p>The <code>CrossShardOptimizer</code> is not compatible with local training. So, to have the same code run both locally and on a Cloud TPU, add lines like the following:</p> <pre class="prettyprint lang-python" data-language="python">optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+if FLAGS.use_tpu:
+  optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+</pre> <p>If you prefer to avoid a global <code>FLAGS</code> variable in your model code, one approach is to set the optimizer as one of the <code>Estimator</code>'s params, as follows:</p> <pre class="prettyprint lang-python" data-language="python">my_tpu_estimator = tf.contrib.tpu.TPUEstimator(
+    model_fn=my_model_fn,
+    config = my_tpu_run_config,
+    use_tpu=FLAGS.use_tpu,
+    params={'optimizer':optimizer})
+</pre> <h2 id="model_function">Model Function</h2> <p>This section details the changes you must make to the model function (<code>model_fn()</code>) to make it <code>TPUEstimator</code> compatible.</p> <h3 id="static_shapes">Static shapes</h3> <p>During regular usage TensorFlow attempts to determine the shapes of each <a href="https://www.tensorflow.org/api_docs/python/tf/Tensor"><code>tf.Tensor</code></a> during graph construction. During execution any unknown shape dimensions are determined dynamically, see <a href="tensors#shape">Tensor Shapes</a> for more details.</p> <p>To run on Cloud TPUs TensorFlow models are compiled using <a href="../performance/xla/index">XLA</a>. XLA uses a similar system for determining shapes at compile time. XLA requires that all tensor dimensions be statically defined at compile time. All shapes must evaluate to a constant, and not depend on external data, or stateful operations like variables or a random number generator.</p> <h3 id="summaries">Summaries</h3> <p>Remove any use of <a href="https://www.tensorflow.org/api_docs/python/tf/summary"><code>tf.summary</code></a> from your model.</p> <p><a href="summaries_and_tensorboard">TensorBoard summaries</a> are a great way see inside your model. A minimal set of basic summaries are automatically recorded by the <code>TPUEstimator</code>, to <code>event</code> files in the <code>model_dir</code>. Custom summaries, however, are currently unsupported when training on a Cloud TPU. So while the <code>TPUEstimator</code> will still run locally with summaries, it will fail if used on a TPU.</p> <h3 id="metrics">Metrics</h3> <p>Build your evaluation metrics dictionary in a stand-alone <code>metric_fn</code>.</p>  <p>Evaluation metrics are an essential part of training a model. These are fully supported on Cloud TPUs, but with a slightly different syntax.</p> <p>A standard <a href="https://www.tensorflow.org/api_docs/python/tf/metrics"><code>tf.metrics</code></a> returns two tensors. The first returns the running average of the metric value, while the second updates the running average and returns the value for this batch:</p> <pre class="prettyprint" data-language="cpp">running_average, current_batch = tf.metrics.accuracy(labels, predictions)
+</pre> <p>In a standard <code>Estimator</code> you create a dictionary of these pairs, and return it as part of the <code>EstimatorSpec</code>.</p> <pre class="prettyprint lang-python" data-language="python">my_metrics = {'accuracy': tf.metrics.accuracy(labels, predictions)}
+
+return tf.estimator.EstimatorSpec(
+  ...
+  eval_metric_ops=my_metrics
+)
+</pre> <p>In a <code>TPUEstimator</code> you instead pass a function (which returns a metrics dictionary) and a list of argument tensors, as shown below:</p> <pre class="prettyprint lang-python" data-language="python">def my_metric_fn(labels, predictions):
+   return {'accuracy': tf.metrics.accuracy(labels, predictions)}
+
+return tf.contrib.tpu.TPUEstimatorSpec(
+  ...
+  eval_metrics=(my_metric_fn, [labels, predictions])
+)
+</pre> <h3 id="use_tpuestimatorspec">Use <code>TPUEstimatorSpec</code>
+</h3> <p><code>TPUEstimatorSpec</code> do not support hooks, and require function wrappers for some fields.</p> <p>An <code>Estimator</code>'s <code>model_fn</code> must return an <code>EstimatorSpec</code>. An <code>EstimatorSpec</code> is a simple structure of named fields containing all the <code>tf.Tensors</code> of the model that the <code>Estimator</code> may need to interact with.</p> <p><code>TPUEstimators</code> use a <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/tpu/TPUEstimatorSpec"><code>tf.contrib.tpu.TPUEstimatorSpec</code></a>. There are a few differences between it and a standard <a href="https://www.tensorflow.org/api_docs/python/tf/estimator/EstimatorSpec"><code>tf.estimator.EstimatorSpec</code></a>:</p> <ul> <li>The <code>eval_metric_ops</code> must be wrapped into a <code>metrics_fn</code>, this field is renamed <code>eval_metrics</code> (<a href="#metrics">see above</a>).</li> <li>The <a href="https://www.tensorflow.org/api_docs/python/tf/train/SessionRunHook">hooks</a> are unsupported, so these fields are omitted.</li> <li>The <a href="https://www.tensorflow.org/api_docs/python/tf/train/Scaffold"><code>scaffold</code></a>, if used, must also be wrapped in a function. This field is renamed to <code>scaffold_fn</code>.</li> </ul> <p><code>Scaffold</code> and <code>Hooks</code> are for advanced usage, and can typically be omitted.</p> <h2 id="input_functions">Input functions</h2> <p>Input functions work mainly unchanged as they run on the host computer, not the Cloud TPU itself. This section explains the two necessary adjustments.</p> <h3 id="params_argument">Params argument</h3>  <p>The <code>input_fn</code> for a standard <code>Estimator</code> <em>can</em> include a <code>params</code> argument; the <code>input_fn</code> for a <code>TPUEstimator</code> <em>must</em> include a <code>params</code> argument. This is necessary to allow the estimator to set the batch size for each replica of the input stream. So the minimum signature for an <code>input_fn</code> for a <code>TPUEstimator</code> is:</p> <pre class="prettyprint" data-language="cpp">def my_input_fn(params):
+  pass
+</pre> <p>Where <code>params['batch-size']</code> will contain the batch size.</p> <h3 id="static_shapes_and_batch_size">Static shapes and batch size</h3> <p>The input pipeline generated by your <code>input_fn</code> is run on CPU. So it is mostly free strict static shape requirements imposed by the XLA/TPU environment. The one requirement is that the batches of data fed from your input pipeline to the TPU have a static shape, as determined by the standard TensorFlow shape inference algorithm. Intermediate tensors are free to have a dynamic shapes. If shape inference has failed, but the shape is known it is possible to impose the correct shape using <code>tf.set_shape()</code>. </p> <p>In the example below the shape inference algorithm fails, but it is correctly using <code>set_shape</code>:</p> <pre class="prettyprint" data-language="cpp">&gt;&gt;&gt; x = tf.zeros(tf.constant([1,2,3])+1)
+&gt;&gt;&gt; x.shape
+
+TensorShape([Dimension(None), Dimension(None), Dimension(None)])
+
+&gt;&gt;&gt; x.set_shape([2,3,4])
+</pre> <p>In many cases the batch size is the only unknown dimension.</p> <p>A typical input pipeline, using <a href="https://www.tensorflow.org/api_docs/python/tf/data"><code>tf.data</code></a>, will usually produce batches of a fixed size. The last batch of a finite <code>Dataset</code>, however, is typically smaller, containing just the remaining elements. Since a <code>Dataset</code> does not know its own length or finiteness, the standard <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#batch"><code>batch</code></a> method cannot determine if all batches will have a fixed size batch on its own:</p> <pre class="prettyprint" data-language="cpp">&gt;&gt;&gt; params = {'batch_size':32}
+&gt;&gt;&gt; ds = tf.data.Dataset.from_tensors([0, 1, 2])
+&gt;&gt;&gt; ds = ds.repeat().batch(params['batch-size'])
+&gt;&gt;&gt; ds
+
+&lt;BatchDataset shapes: (?, 3), types: tf.int32&gt;
+</pre> <p>The most straightforward fix is to <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#apply">apply</a> <a href="https://www.tensorflow.org/api_docs/python/tf/contrib/data/batch_and_drop_remainder"><code>tf.contrib.data.batch_and_drop_remainder</code></a> as follows:</p> <pre class="prettyprint" data-language="cpp">&gt;&gt;&gt; params = {'batch_size':32}
+&gt;&gt;&gt; ds = tf.data.Dataset.from_tensors([0, 1, 2])
+&gt;&gt;&gt; ds = ds.repeat().apply(
+...     tf.contrib.data.batch_and_drop_remainder(params['batch-size']))
+&gt;&gt;&gt; ds
+
+ &lt;_RestructuredDataset shapes: (32, 3), types: tf.int32&gt;
+</pre> <p>The one downside to this approach is that, as the name implies, this batching method throws out any fractional batch at the end of the dataset. This is fine for an infinitely repeating dataset being used for training, but could be a problem if you want to train for an exact number of epochs.</p> <p>To do an exact 1-epoch of <em>evaluation</em> you can work around this by manually padding the length of the batches, and setting the padding entries to have zero weight when creating your <a href="https://www.tensorflow.org/api_docs/python/tf/metrics"><code>tf.metrics</code></a>.</p> <h2 id="datasets">Datasets</h2> <p>Efficient use of the <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset"><code>tf.data.Dataset</code></a> API is critical when using a Cloud TPU, as it is impossible to use the Cloud TPU's unless you can feed it data quickly enough. See <a href="../performance/datasets_performance">Input Pipeline Performance Guide</a> for details on dataset performance.</p> <p>For all but the simplest experimentation (using <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#from_tensor_slices"><code>tf.data.Dataset.from_tensor_slices</code></a> or other in-graph data) you will need to store all data files read by the <code>TPUEstimator</code>'s <code>Dataset</code> in Google Cloud Storage Buckets.</p>  <p>For most use-cases, we recommend converting your data into <code>TFRecord</code> format and using a <a href="https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset"><code>tf.data.TFRecordDataset</code></a> to read it. This, however, is not a hard requirement and you can use other dataset readers (<code>FixedLengthRecordDataset</code> or <code>TextLineDataset</code>) if you prefer.</p> <p>Small datasets can be loaded entirely into memory using <a href="https://www.tensorflow.org/api_docs/python/tf/data/Dataset#cache"><code>tf.data.Dataset.cache</code></a>.</p> <p>Regardless of the data format used, it is strongly recommended that you <a href="../performance/performance_guide#use_large_files">use large files</a>, on the order of 100MB. This is especially important in this networked setting as the overhead of opening a file is significantly higher.</p> <p>It is also important, regardless of the type of reader used, to enable buffering using the <code>buffer_size</code> argument to the constructor. This argument is specified in bytes. A minimum of a few MB (<code>buffer_size=8*1024*1024</code>) is recommended so that data is available when needed.</p> <p>The TPU-demos repo includes <a href="https://github.com/tensorflow/tpu/blob/master/tools/datasets/imagenet_to_gcs.py">a script</a> for downloading the imagenet dataset and converting it to an appropriate format. This together with the imagenet <a href="https://github.com/tensorflow/tpu/tree/master/models">models</a> included in the repo demonstrate all of these best-practices.</p> <h2 id="what_next">What Next</h2> <p>For details on how to actually set up and run a Cloud TPU see:</p> <ul> <li><a href="https://cloud.google.com/tpu/docs/">Google Cloud TPU Documentation</a></li> </ul> <p>This document is by no means exhaustive. The best source of more detail on how to make a Cloud TPU compatible model are the example models published in:</p> <ul> <li>The <a href="https://github.com/tensorflow/tpu">TPU Demos Repository.</a>
+</li> </ul> <p>For more information about tuning TensorFlow code for performance see:</p> <ul> <li>The <a href="../performance/index">Performance Section.</a>
+</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/programmers_guide/using_tpu" class="_attribution-link">https://www.tensorflow.org/programmers_guide/using_tpu</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

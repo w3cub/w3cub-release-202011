@@ -1,0 +1,272 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Distributed TensorFlow - TensorFlow Guide - W3cubDocs</title>
+  
+  <meta name="description" content="This document shows how to create a cluster of TensorFlow servers, and how to distribute a computation graph across that cluster. We assume that you &hellip;">
+  <meta name="keywords" content="distributed, tensorflow, guide, tensorflow~guide">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/tensorflow~guide/deploy/distributed.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e4ebd3a2a5652ff55173659804c4390a004917f3bdd17b5bb3ba78ea5c9c46fe181cadaac34517ccd815f5bdc982bbfe67179d6f4ac2f084ef2265e2a3dc8dc5.css" integrity="sha512-5OvToqVlL/VRc2WYBMQ5CgBJF/O90Xtbs7p46lycRv4YHK2qw0UXzNgV9b3Jgrv+Zxedb0rC8ITvImXio9yNxQ==" crossorigin="anonymous">
+  <script type="text/javascript" integrity="sha512-vWZ9W/y+fPvxx895gHec4ryHsIkFG4WK5PEliF/Zcs/yOrkA7rGz0CvUiVIfyko1uWktxJ1G7nYlkIn7C9Qpvw==" crossorigin="anonymous" src="/assets/application-bd667d5bfcbe7cfbf1c7cf7980779ce2bc87b089051b858ae4f125885fd972cff23ab900eeb1b3d02bd489521fca4a35b9692dc49d46ee76259089fb0bd429bf.js"></script>
+  <script src="/json/tensorflow~guide.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body>
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+  
+  <form class="_search">
+    <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+    <a class="_search-clear"></a>
+    <div class="_search-tag"></div>
+  </form>
+  
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/tensorflow~guide/" class="_nav-link" title="" style="margin-left:0;">TensorFlow Guide</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _tensorflow">
+				
+				
+<h1 itemprop="name" class="devsite-page-title"> Distributed TensorFlow </h1>     <p>This document shows how to create a cluster of TensorFlow servers, and how to distribute a computation graph across that cluster. We assume that you are familiar with the <a href="../programmers_guide/low_level_intro">basic concepts</a> of writing low level TensorFlow programs.</p> <h2 id="hello_distributed_tensorflow">Hello distributed TensorFlow!</h2> <p>To see a simple TensorFlow cluster in action, execute the following:</p> <pre class="prettyprint lang-shell" data-language="cpp"># Start a TensorFlow server as a single-process "cluster".
+$ python
+&gt;&gt;&gt; import tensorflow as tf
+&gt;&gt;&gt; c = tf.constant("Hello, distributed TensorFlow!")
+&gt;&gt;&gt; server = tf.train.Server.create_local_server()
+&gt;&gt;&gt; sess = tf.Session(server.target)  # Create a session on the server.
+&gt;&gt;&gt; sess.run(c)
+'Hello, distributed TensorFlow!'
+</pre> <p>The <a href="https://www.tensorflow.org/api_docs/python/tf/train/Server#create_local_server"><code>tf.train.Server.create_local_server</code></a> method creates a single-process cluster, with an in-process server.</p> <h2 id="create_a_cluster">Create a cluster</h2> <div class="video-wrapper"> <iframe class="devsite-embedded-youtube-video" data-video-id="la_M6bCV91M" data-autohide="1" data-showinfo="0" frameborder="0" allowfullscreen> </iframe> </div> <p>A TensorFlow "cluster" is a set of "tasks" that participate in the distributed execution of a TensorFlow graph. Each task is associated with a TensorFlow "server", which contains a "master" that can be used to create sessions, and a "worker" that executes operations in the graph. A cluster can also be divided into one or more "jobs", where each job contains one or more tasks.</p> <p>To create a cluster, you start one TensorFlow server per task in the cluster. Each task typically runs on a different machine, but you can run multiple tasks on the same machine (e.g. to control different GPU devices). In each task, do the following:</p> <ol> <li> <p><strong>Create a <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a></strong> that describes all of the tasks in the cluster. This should be the same for each task.</p> </li> <li> <p><strong>Create a <a href="https://www.tensorflow.org/api_docs/python/tf/train/Server"><code>tf.train.Server</code></a></strong>, passing the <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a> to the constructor, and identifying the local task with a job name and task index.</p> </li> </ol> <h3 id="create_a_wzxhzdk16wzxhzdk17tftrainclusterspecwzxhzdk18wzxhzdk19_to_describe_the_cluster">Create a <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a> to describe the cluster</h3> <p>The cluster specification dictionary maps job names to lists of network addresses. Pass this dictionary to the <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a> constructor. For example:</p> <table> <tr>
+<th>
+<code>tf.train.ClusterSpec</code> construction</th>
+<th>Available tasks</th> </tr>
+<tr> <td><pre data-language="cpp">
+tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+</pre></td> <td><code>/job:local/task:0<br>/job:local/task:1</code></td> </tr> <tr> <td><pre data-language="cpp">
+tf.train.ClusterSpec({
+    "worker": [
+        "worker0.example.com:2222",
+        "worker1.example.com:2222",
+        "worker2.example.com:2222"
+    ],
+    "ps": [
+        "ps0.example.com:2222",
+        "ps1.example.com:2222"
+    ]})
+</pre></td>
+<td>
+<code>/job:worker/task:0</code><br><code>/job:worker/task:1</code><br><code>/job:worker/task:2</code><br><code>/job:ps/task:0</code><br><code>/job:ps/task:1</code>
+</td> </tr> </table> <h3 id="create_a_wzxhzdk24wzxhzdk25tftrainserverwzxhzdk26wzxhzdk27_instance_in_each_task">Create a <a href="https://www.tensorflow.org/api_docs/python/tf/train/Server"><code>tf.train.Server</code></a> instance in each task</h3> <p>A <a href="https://www.tensorflow.org/api_docs/python/tf/train/Server"><code>tf.train.Server</code></a> object contains a set of local devices, a set of connections to other tasks in its <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a>, and a <a href="https://www.tensorflow.org/api_docs/python/tf/Session"><code>tf.Session</code></a> that can use these to perform a distributed computation. Each server is a member of a specific named job and has a task index within that job. A server can communicate with any other server in the cluster.</p> <p>For example, to launch a cluster with two servers running on <code>localhost:2222</code> and <code>localhost:2223</code>, run the following snippets in two different processes on the local machine:</p> <pre class="prettyprint lang-python" data-language="python"># In task 0:
+cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+server = tf.train.Server(cluster, job_name="local", task_index=0)
+</pre> <pre class="prettyprint lang-python" data-language="python"># In task 1:
+cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
+server = tf.train.Server(cluster, job_name="local", task_index=1)
+</pre> <p><strong>Note:</strong> Manually specifying these cluster specifications can be tedious, especially for large clusters. We are working on tools for launching tasks programmatically, e.g. using a cluster manager like <a href="http://kubernetes.io">Kubernetes</a>. If there are particular cluster managers for which you'd like to see support, please raise a <a href="https://github.com/tensorflow/tensorflow/issues">GitHub issue</a>.</p> <h2 id="specifying_distributed_devices_in_your_model">Specifying distributed devices in your model</h2> <p>To place operations on a particular process, you can use the same <a href="https://www.tensorflow.org/api_docs/python/tf/device"><code>tf.device</code></a> function that is used to specify whether ops run on the CPU or GPU. For example:</p> <pre class="prettyprint lang-python" data-language="python">with tf.device("/job:ps/task:0"):
+  weights_1 = tf.Variable(...)
+  biases_1 = tf.Variable(...)
+
+with tf.device("/job:ps/task:1"):
+  weights_2 = tf.Variable(...)
+  biases_2 = tf.Variable(...)
+
+with tf.device("/job:worker/task:7"):
+  input, labels = ...
+  layer_1 = tf.nn.relu(tf.matmul(input, weights_1) + biases_1)
+  logits = tf.nn.relu(tf.matmul(layer_1, weights_2) + biases_2)
+  # ...
+  train_op = ...
+
+with tf.Session("grpc://worker7.example.com:2222") as sess:
+  for _ in range(10000):
+    sess.run(train_op)
+</pre> <p>In the above example, the variables are created on two tasks in the <code>ps</code> job, and the compute-intensive part of the model is created in the <code>worker</code> job. TensorFlow will insert the appropriate data transfers between the jobs (from <code>ps</code> to <code>worker</code> for the forward pass, and from <code>worker</code> to <code>ps</code> for applying gradients).</p> <h2 id="replicated_training">Replicated training</h2> <p>A common training configuration, called "data parallelism," involves multiple tasks in a <code>worker</code> job training the same model on different mini-batches of data, updating shared parameters hosted in one or more tasks in a <code>ps</code> job. All tasks typically run on different machines. There are many ways to specify this structure in TensorFlow, and we are building libraries that will simplify the work of specifying a replicated model. Possible approaches include:</p> <ul> <li> <p><strong>In-graph replication.</strong> In this approach, the client builds a single <a href="https://www.tensorflow.org/api_docs/python/tf/Graph"><code>tf.Graph</code></a> that contains one set of parameters (in <a href="https://www.tensorflow.org/api_docs/python/tf/Variable"><code>tf.Variable</code></a> nodes pinned to <code>/job:ps</code>); and multiple copies of the compute-intensive part of the model, each pinned to a different task in <code>/job:worker</code>.</p> </li> <li> <p><strong>Between-graph replication.</strong> In this approach, there is a separate client for each <code>/job:worker</code> task, typically in the same process as the worker task. Each client builds a similar graph containing the parameters (pinned to <code>/job:ps</code> as before using <a href="https://www.tensorflow.org/api_docs/python/tf/train/replica_device_setter"><code>tf.train.replica_device_setter</code></a> to map them deterministically to the same tasks); and a single copy of the compute-intensive part of the model, pinned to the local task in <code>/job:worker</code>.</p> </li> <li> <p><strong>Asynchronous training.</strong> In this approach, each replica of the graph has an independent training loop that executes without coordination. It is compatible with both forms of replication above.</p> </li> <li> <p><strong>Synchronous training.</strong> In this approach, all of the replicas read the same values for the current parameters, compute gradients in parallel, and then apply them together. It is compatible with in-graph replication (e.g. using gradient averaging as in the <a href="https://github.com/tensorflow/models/tree/master/tutorials/image/cifar10/cifar10_multi_gpu_train.py">CIFAR-10 multi-GPU trainer</a>), and between-graph replication (e.g. using the <a href="https://www.tensorflow.org/api_docs/python/tf/train/SyncReplicasOptimizer"><code>tf.train.SyncReplicasOptimizer</code></a>).</p> </li> </ul> <h3 id="putting_it_all_together_example_trainer_program">Putting it all together: example trainer program</h3> <p>The following code shows the skeleton of a distributed trainer program, implementing <strong>between-graph replication</strong> and <strong>asynchronous training</strong>. It includes the code for the parameter server and worker tasks.</p> <pre class="prettyprint lang-python" data-language="python">import argparse
+import sys
+
+import tensorflow as tf
+
+FLAGS = None
+
+def main(_):
+  ps_hosts = FLAGS.ps_hosts.split(",")
+  worker_hosts = FLAGS.worker_hosts.split(",")
+
+  # Create a cluster from the parameter server and worker hosts.
+  cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
+
+  # Create and start a server for the local task.
+  server = tf.train.Server(cluster,
+                           job_name=FLAGS.job_name,
+                           task_index=FLAGS.task_index)
+
+  if FLAGS.job_name == "ps":
+    server.join()
+  elif FLAGS.job_name == "worker":
+
+    # Assigns ops to the local worker by default.
+    with tf.device(tf.train.replica_device_setter(
+        worker_device="/job:worker/task:%d" % FLAGS.task_index,
+        cluster=cluster)):
+
+      # Build model...
+      loss = ...
+      global_step = tf.contrib.framework.get_or_create_global_step()
+
+      train_op = tf.train.AdagradOptimizer(0.01).minimize(
+          loss, global_step=global_step)
+
+    # The StopAtStepHook handles stopping after running given steps.
+    hooks=[tf.train.StopAtStepHook(last_step=1000000)]
+
+    # The MonitoredTrainingSession takes care of session initialization,
+    # restoring from a checkpoint, saving to a checkpoint, and closing when done
+    # or an error occurs.
+    with tf.train.MonitoredTrainingSession(master=server.target,
+                                           is_chief=(FLAGS.task_index == 0),
+                                           checkpoint_dir="/tmp/train_logs",
+                                           hooks=hooks) as mon_sess:
+      while not mon_sess.should_stop():
+        # Run a training step asynchronously.
+        # See &lt;a href="../api_docs/python/tf/train/SyncReplicasOptimizer"&gt;&lt;code&gt;tf.train.SyncReplicasOptimizer&lt;/code&gt;&lt;/a&gt; for additional details on how to
+        # perform *synchronous* training.
+        # mon_sess.run handles AbortedError in case of preempted PS.
+        mon_sess.run(train_op)
+
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.register("type", "bool", lambda v: v.lower() == "true")
+  # Flags for defining the tf.train.ClusterSpec
+  parser.add_argument(
+      "--ps_hosts",
+      type=str,
+      default="",
+      help="Comma-separated list of hostname:port pairs"
+  )
+  parser.add_argument(
+      "--worker_hosts",
+      type=str,
+      default="",
+      help="Comma-separated list of hostname:port pairs"
+  )
+  parser.add_argument(
+      "--job_name",
+      type=str,
+      default="",
+      help="One of 'ps', 'worker'"
+  )
+  # Flags for defining the tf.train.Server
+  parser.add_argument(
+      "--task_index",
+      type=int,
+      default=0,
+      help="Index of task within the job"
+  )
+  FLAGS, unparsed = parser.parse_known_args()
+  tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+</pre> <p>To start the trainer with two parameter servers and two workers, use the following command line (assuming the script is called <code>trainer.py</code>):</p> <pre class="prettyprint lang-shell" data-language="cpp"># On ps0.example.com:
+$ python trainer.py \
+     --ps_hosts=ps0.example.com:2222,ps1.example.com:2222 \
+     --worker_hosts=worker0.example.com:2222,worker1.example.com:2222 \
+     --job_name=ps --task_index=0
+# On ps1.example.com:
+$ python trainer.py \
+     --ps_hosts=ps0.example.com:2222,ps1.example.com:2222 \
+     --worker_hosts=worker0.example.com:2222,worker1.example.com:2222 \
+     --job_name=ps --task_index=1
+# On worker0.example.com:
+$ python trainer.py \
+     --ps_hosts=ps0.example.com:2222,ps1.example.com:2222 \
+     --worker_hosts=worker0.example.com:2222,worker1.example.com:2222 \
+     --job_name=worker --task_index=0
+# On worker1.example.com:
+$ python trainer.py \
+     --ps_hosts=ps0.example.com:2222,ps1.example.com:2222 \
+     --worker_hosts=worker0.example.com:2222,worker1.example.com:2222 \
+     --job_name=worker --task_index=1
+</pre> <h2 id="glossary">Glossary</h2> <p><strong>Client</strong></p> <p>A client is typically a program that builds a TensorFlow graph and constructs a <code>tensorflow::Session</code> to interact with a cluster. Clients are typically written in Python or C++. A single client process can directly interact with multiple TensorFlow servers (see "Replicated training" above), and a single server can serve multiple clients.</p> <p><strong>Cluster</strong></p> <p>A TensorFlow cluster comprises a one or more "jobs", each divided into lists of one or more "tasks". A cluster is typically dedicated to a particular high-level objective, such as training a neural network, using many machines in parallel. A cluster is defined by a <a href="https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec"><code>tf.train.ClusterSpec</code></a> object.</p> <p><strong>Job</strong></p> <p>A job comprises a list of "tasks", which typically serve a common purpose. For example, a job named <code>ps</code> (for "parameter server") typically hosts nodes that store and update variables; while a job named <code>worker</code> typically hosts stateless nodes that perform compute-intensive tasks. The tasks in a job typically run on different machines. The set of job roles is flexible: for example, a <code>worker</code> may maintain some state.</p> <p><strong>Master service</strong></p> <p>An RPC service that provides remote access to a set of distributed devices, and acts as a session target. The master service implements the <code>tensorflow::Session</code> interface, and is responsible for coordinating work across one or more "worker services". All TensorFlow servers implement the master service.</p> <p><strong>Task</strong></p> <p>A task corresponds to a specific TensorFlow server, and typically corresponds to a single process. A task belongs to a particular "job" and is identified by its index within that job's list of tasks.</p> <p><strong>TensorFlow server</strong> A process running a <a href="https://www.tensorflow.org/api_docs/python/tf/train/Server"><code>tf.train.Server</code></a> instance, which is a member of a cluster, and exports a "master service" and "worker service".</p> <p><strong>Worker service</strong></p> <p>An RPC service that executes parts of a TensorFlow graph using its local devices. A worker service implements <a href="https://www.github.com/tensorflow/tensorflow/blob/r1.8/tensorflow/core/protobuf/worker_service.proto">worker_service.proto</a>. All TensorFlow servers implement the worker service.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 The TensorFlow Authors. All rights reserved.<br>Licensed under the Creative Commons Attribution License 3.0.<br>Code samples licensed under the Apache 2.0 License.<br>
+    <a href="https://www.tensorflow.org/deploy/distributed" class="_attribution-link">https://www.tensorflow.org/deploy/distributed</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
