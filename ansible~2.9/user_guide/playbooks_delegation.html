@@ -1,0 +1,279 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Delegation, Rolling Updates, and Local Actions - Ansible 2.9 - W3cubDocs</title>
+  
+  <meta name="description" content="Being designed for multi-tier deployments since the beginning, Ansible is great at doing things on one host on behalf of another, or doing local &hellip;">
+  <meta name="keywords" content="delegation, rolling, updates, and, local, actions, ansible, ansible~2.9">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/ansible~2.9/user_guide/playbooks_delegation.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/ansible~2.9.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/ansible~2.9/" class="_nav-link" title="" style="margin-left:0;">Ansible 2.9</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="playbooks-delegation">Delegation, Rolling Updates, and Local Actions</h1>   <ul id="delegation-rolling-updates-and-local-actions"> <li><a class="reference internal" href="#rolling-update-batch-size" id="id8">Rolling Update Batch Size</a></li> <li><a class="reference internal" href="#maximum-failure-percentage" id="id9">Maximum Failure Percentage</a></li> <li><a class="reference internal" href="#delegation" id="id10">Delegation</a></li> <li><a class="reference internal" href="#delegated-facts" id="id11">Delegated facts</a></li> <li><a class="reference internal" href="#run-once" id="id12">Run Once</a></li> <li><a class="reference internal" href="#local-playbooks" id="id13">Local Playbooks</a></li> <li><a class="reference internal" href="#interrupt-execution-on-any-error" id="id14">Interrupt execution on any error</a></li> </ul>
+  <p>Being designed for multi-tier deployments since the beginning, Ansible is great at doing things on one host on behalf of another, or doing local steps with reference to some remote hosts.</p> <p>This in particular is very applicable when setting up continuous deployment infrastructure or zero downtime rolling updates, where you might be talking with load balancers or monitoring systems.</p> <p>Additional features allow for tuning the orders in which things complete, and assigning a batch window size for how many machines to process at once during a rolling update.</p> <p>This section covers all of these features. For examples of these items in use, <a class="reference external" href="https://github.com/ansible/ansible-examples/">please see the ansible-examples repository</a>. There are quite a few examples of zero-downtime update procedures for different kinds of applications.</p> <p>You should also consult the <a class="reference internal" href="https://docs.ansible.com/ansible/2.9/modules/modules_by_category.html#modules-by-category"><span class="std std-ref">module documentation</span></a> section. Modules like <a class="reference internal" href="../modules/ec2_elb_module#ec2-elb-module"><span class="std std-ref">ec2_elb</span></a>, <a class="reference internal" href="../modules/nagios_module#nagios-module"><span class="std std-ref">nagios</span></a>, <a class="reference internal" href="../modules/bigip_pool_module#bigip-pool-module"><span class="std std-ref">bigip_pool</span></a>, and other <a class="reference internal" href="../modules/list_of_network_modules#network-modules"><span class="std std-ref">Network modules</span></a> dovetail neatly with the concepts mentioned here.</p> <p>You’ll also want to read up on <a class="reference internal" href="playbooks_reuse_roles#playbooks-reuse-roles"><span class="std std-ref">Roles</span></a>, as the ‘pre_task’ and ‘post_task’ concepts are the places where you would typically call these modules.</p> <p>Be aware that certain tasks are impossible to delegate, i.e. <code>include</code>, <code>add_host</code>, <code>debug</code>, etc as they always execute on the controller.</p>  <h2 id="id1">Rolling Update Batch Size</h2> <p id="rolling-update-batch-size">By default, Ansible will try to manage all of the machines referenced in a play in parallel. For a rolling update use case, you can define how many hosts Ansible should manage at a single time by using the <code>serial</code> keyword:</p> <pre data-language="YAML">---
+- name: test play
+  hosts: webservers
+  serial: 2
+  gather_facts: False
+
+  tasks:
+    - name: task one
+      command: hostname
+    - name: task two
+      command: hostname
+</pre> <p>In the above example, if we had 4 hosts in the group ‘webservers’, 2 would complete the play completely before moving on to the next 2 hosts:</p> <pre data-language="YAML">PLAY [webservers] ****************************************
+
+TASK [task one] ******************************************
+changed: [web2]
+changed: [web1]
+
+TASK [task two] ******************************************
+changed: [web1]
+changed: [web2]
+
+PLAY [webservers] ****************************************
+
+TASK [task one] ******************************************
+changed: [web3]
+changed: [web4]
+
+TASK [task two] ******************************************
+changed: [web3]
+changed: [web4]
+
+PLAY RECAP ***********************************************
+web1      : ok=2    changed=2    unreachable=0    failed=0
+web2      : ok=2    changed=2    unreachable=0    failed=0
+web3      : ok=2    changed=2    unreachable=0    failed=0
+web4      : ok=2    changed=2    unreachable=0    failed=0
+</pre> <p>The <code>serial</code> keyword can also be specified as a percentage, which will be applied to the total number of hosts in a play, in order to determine the number of hosts per pass:</p> <pre data-language="YAML">---
+- name: test play
+  hosts: webservers
+  serial: "30%"
+</pre> <p>If the number of hosts does not divide equally into the number of passes, the final pass will contain the remainder.</p> <p>As of Ansible 2.2, the batch sizes can be specified as a list, as follows:</p> <pre data-language="YAML">---
+- name: test play
+  hosts: webservers
+  serial:
+    - 1
+    - 5
+    - 10
+</pre> <p>In the above example, the first batch would contain a single host, the next would contain 5 hosts, and (if there are any hosts left), every following batch would contain 10 hosts until all available hosts are used.</p> <p>It is also possible to list multiple batch sizes as percentages:</p> <pre data-language="YAML">---
+- name: test play
+  hosts: webservers
+  serial:
+    - "10%"
+    - "20%"
+    - "100%"
+</pre> <p>You can also mix and match the values:</p> <pre data-language="YAML">---
+- name: test play
+  hosts: webservers
+  serial:
+    - 1
+    - 5
+    - "20%"
+</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">No matter how small the percentage, the number of hosts per pass will always be 1 or greater.</p> </div>   <h2 id="id2">Maximum Failure Percentage</h2> <p id="maximum-failure-percentage">By default, Ansible will continue executing actions as long as there are hosts in the batch that have not yet failed. The batch size for a play is determined by the <code>serial</code> parameter. If <code>serial</code> is not set, then batch size is all the hosts specified in the <code>hosts:</code> field. In some situations, such as with the rolling updates described above, it may be desirable to abort the play when a certain threshold of failures have been reached. To achieve this, you can set a maximum failure percentage on a play as follows:</p> <pre data-language="YAML">---
+- hosts: webservers
+  max_fail_percentage: 30
+  serial: 10
+</pre> <p>In the above example, if more than 3 of the 10 servers in the group were to fail, the rest of the play would be aborted.</p> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">The percentage set must be exceeded, not equaled. For example, if serial were set to 4 and you wanted the task to abort when 2 of the systems failed, the percentage should be set at 49 rather than 50.</p> </div>   <h2 id="id3">Delegation</h2> <p id="delegation">This isn’t actually rolling update specific but comes up frequently in those cases.</p> <p>If you want to perform a task on one host with reference to other hosts, use the ‘delegate_to’ keyword on a task. This is ideal for placing nodes in a load balanced pool, or removing them. It is also very useful for controlling outage windows. Be aware that it does not make sense to delegate all tasks, debug, add_host, include, etc always get executed on the controller. Using this with the ‘serial’ keyword to control the number of hosts executing at one time is also a good idea:</p> <pre data-language="YAML">---
+- hosts: webservers
+  serial: 5
+
+  tasks:
+    - name: take out of load balancer pool
+      command: /usr/bin/take_out_of_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+
+    - name: actual steps would go here
+      yum:
+        name: acme-web-stack
+        state: latest
+
+    - name: add back to load balancer pool
+      command: /usr/bin/add_back_to_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+</pre> <p>These commands will run on 127.0.0.1, which is the machine running Ansible. There is also a shorthand syntax that you can use on a per-task basis: ‘local_action’. Here is the same playbook as above, but using the shorthand syntax for delegating to 127.0.0.1:</p> <pre data-language="YAML">---
+# ...
+
+  tasks:
+    - name: take out of load balancer pool
+      local_action: command /usr/bin/take_out_of_pool {{ inventory_hostname }}
+
+# ...
+
+    - name: add back to load balancer pool
+      local_action: command /usr/bin/add_back_to_pool {{ inventory_hostname }}
+</pre> <p>A common pattern is to use a local action to call ‘rsync’ to recursively copy files to the managed servers. Here is an example:</p> <pre data-language="YAML">---
+# ...
+
+  tasks:
+    - name: recursively copy files from management server to target
+      local_action: command rsync -a /path/to/files {{ inventory_hostname }}:/path/to/target/
+</pre> <p>Note that you must have passphrase-less SSH keys or an ssh-agent configured for this to work, otherwise rsync will need to ask for a passphrase.</p> <p>In case you have to specify more arguments you can use the following syntax:</p> <pre data-language="YAML">---
+# ...
+
+  tasks:
+    - name: Send summary mail
+      local_action:
+        module: mail
+        subject: "Summary Mail"
+        to: "{{ mail_recipient }}"
+        body: "{{ mail_body }}"
+      run_once: True
+</pre> <p>The <code>ansible_host</code> variable (<code>ansible_ssh_host</code> in 1.x or specific to ssh/paramiko plugins) reflects the host a task is delegated to.</p>   <h2 id="delegate-facts">Delegated facts</h2> <p id="delegated-facts">By default, any fact gathered by a delegated task are assigned to the <code>inventory_hostname</code> (the current host) instead of the host which actually produced the facts (the delegated to host). The directive <code>delegate_facts</code> may be set to <code>True</code> to assign the task’s gathered facts to the delegated host instead of the current one.:</p> <pre data-language="YAML">---
+- hosts: app_servers
+
+  tasks:
+    - name: gather facts from db servers
+      setup:
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      loop: "{{groups['dbservers']}}"
+</pre> <p>The above will gather facts for the machines in the dbservers group and assign the facts to those machines and not to app_servers. This way you can lookup <code>hostvars[‘dbhost1’][‘ansible_default_ipv4’][‘address’]</code> even though dbservers were not part of the play, or left out by using <code>–limit</code>.</p>   <h2 id="id4">Run Once</h2> <p id="run-once">In some cases there may be a need to only run a task one time for a batch of hosts. This can be achieved by configuring “run_once” on a task:</p> <pre data-language="YAML">---
+# ...
+
+  tasks:
+
+    # ...
+
+    - command: /opt/application/upgrade_db.py
+      run_once: true
+
+    # ...
+</pre> <p>This directive forces the task to attempt execution on the first host in the current batch and then applies all results and facts to all the hosts in the same batch.</p> <p>This approach is similar to applying a conditional to a task such as:</p> <pre data-language="YAML">- command: /opt/application/upgrade_db.py
+  when: inventory_hostname == webservers[0]
+</pre> <p>But the results are applied to all the hosts.</p> <p>Like most tasks, this can be optionally paired with “delegate_to” to specify an individual host to execute on:</p> <pre data-language="YAML">- command: /opt/application/upgrade_db.py
+  run_once: true
+  delegate_to: web01.example.org
+</pre> <p>As always with delegation, the action will be executed on the delegated host, but the information is still that of the original host in the task.</p> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">When used together with “serial”, tasks marked as “run_once” will be run on one host in <em>each</em> serial batch. If it’s crucial that the task is run only once regardless of “serial” mode, use <code>when: inventory_hostname == ansible_play_hosts_all[0]</code> construct.</p> </div> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">Any conditional (i.e <code>when:</code>) will use the variables of the ‘first host’ to decide if the task runs or not, no other hosts will be tested.</p> </div> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">If you want to avoid the default behaviour of setting the fact for all hosts, set <code>delegate_facts: True</code> for the specific task or block.</p> </div>   <h2 id="id5">Local Playbooks</h2> <p id="local-playbooks">It may be useful to use a playbook locally, rather than by connecting over SSH. This can be useful for assuring the configuration of a system by putting a playbook in a crontab. This may also be used to run a playbook inside an OS installer, such as an Anaconda kickstart.</p> <p>To run an entire playbook locally, just set the “hosts:” line to “hosts: 127.0.0.1” and then run the playbook like so:</p> <pre data-language="YAML">ansible-playbook playbook.yml --connection=local
+</pre> <p>Alternatively, a local connection can be used in a single playbook play, even if other plays in the playbook use the default remote connection type:</p> <pre data-language="YAML">---
+- hosts: 127.0.0.1
+  connection: local
+</pre> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">If you set the connection to local and there is no ansible_python_interpreter set, modules will run under /usr/bin/python and not under {{ ansible_playbook_python }}. Be sure to set ansible_python_interpreter: “{{ ansible_playbook_python }}” in host_vars/localhost.yml, for example. You can avoid this issue by using <code>local_action</code> or <code>delegate_to: localhost</code> instead.</p> </div>   <h2 id="id6">Interrupt execution on any error</h2> <p id="interrupt-execution-on-any-error">With the ‘’any_errors_fatal’’ option, any failure on any host in a multi-host play will be treated as fatal and Ansible will exit as soon as all hosts in the current batch have finished the fatal task. Subsequent tasks and plays will not be executed. You can recover from what would be a fatal error by adding a rescue section to the block.</p> <p>Sometimes ‘’serial’’ execution is unsuitable; the number of hosts is unpredictable (because of dynamic inventory) and speed is crucial (simultaneous execution is required), but all tasks must be 100% successful to continue playbook execution.</p> <p>For example, consider a service located in many datacenters with some load balancers to pass traffic from users to the service. There is a deploy playbook to upgrade service deb-packages. The playbook has the stages:</p> <ul class="simple"> <li>disable traffic on load balancers (must be turned off simultaneously)</li> <li>gracefully stop the service</li> <li>upgrade software (this step includes tests and starting the service)</li> <li>enable traffic on the load balancers (which should be turned on simultaneously)</li> </ul> <p>The service can’t be stopped with “alive” load balancers; they must be disabled first. Because of this, the second stage can’t be played if any server failed in the first stage.</p> <p>For datacenter “A”, the playbook can be written this way:</p> <pre data-language="YAML">---
+- hosts: load_balancers_dc_a
+  any_errors_fatal: True
+
+  tasks:
+    - name: 'shutting down datacenter [ A ]'
+      command: /usr/bin/disable-dc
+
+- hosts: frontends_dc_a
+
+  tasks:
+    - name: 'stopping service'
+      command: /usr/bin/stop-software
+    - name: 'updating software'
+      command: /usr/bin/upgrade-software
+
+- hosts: load_balancers_dc_a
+
+  tasks:
+    - name: 'Starting datacenter [ A ]'
+      command: /usr/bin/enable-dc
+</pre> <p>In this example Ansible will start the software upgrade on the front ends only if all of the load balancers are successfully disabled.</p> <div class="admonition seealso"> <p class="first admonition-title">See also</p> <dl class="last docutils"> <dt><a class="reference internal" href="playbooks_intro#playbooks-intro"><span class="std std-ref">About Playbooks</span></a></dt> <dd>An introduction to playbooks</dd> <dt><a class="reference external" href="https://github.com/ansible/ansible-examples">Ansible Examples on GitHub</a></dt> <dd>Many examples of full-stack deployments</dd> <dt><a class="reference external" href="https://groups.google.com/group/ansible-devel">User Mailing List</a></dt> <dd>Have a question? Stop by the google group!</dd> <dt><a class="reference external" href="http://irc.freenode.net">irc.freenode.net</a></dt> <dd>#ansible IRC chat channel</dd> </dl> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2012–2018 Michael DeHaan<br>© 2018–2019 Red Hat, Inc.<br>Licensed under the GNU General Public License version 3.<br>
+    <a href="https://docs.ansible.com/ansible/2.9/user_guide/playbooks_delegation.html" class="_attribution-link">https://docs.ansible.com/ansible/2.9/user_guide/playbooks_delegation.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

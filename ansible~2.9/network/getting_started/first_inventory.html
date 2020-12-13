@@ -1,0 +1,256 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Build Your Inventory - Ansible 2.9 - W3cubDocs</title>
+  
+  <meta name="description" content="Running a playbook without an inventory requires several command-line flags. Also, running a playbook against a single device is not a huge &hellip;">
+  <meta name="keywords" content="build, your, inventory, ansible, ansible~2.9">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/ansible~2.9/network/getting_started/first_inventory.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/ansible~2.9.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/ansible~2.9/" class="_nav-link" title="" style="margin-left:0;">Ansible 2.9</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="build-your-inventory">Build Your Inventory</h1> <p>Running a playbook without an inventory requires several command-line flags. Also, running a playbook against a single device is not a huge efficiency gain over making the same change manually. The next step to harnessing the full power of Ansible is to use an inventory file to organize your managed nodes into groups with information like the <code>ansible_network_os</code> and the SSH user. A fully-featured inventory file can serve as the source of truth for your network. Using an inventory file, a single playbook can maintain hundreds of network devices with a single command. This page shows you how to build an inventory file, step by step.</p>   <ul> <li><a class="reference internal" href="#basic-inventory" id="id2">Basic Inventory</a></li> <li><a class="reference internal" href="#add-variables-to-inventory" id="id3">Add Variables to Inventory</a></li> <li><a class="reference internal" href="#group-variables-within-inventory" id="id4">Group Variables within Inventory</a></li> <li><a class="reference internal" href="#variable-syntax" id="id5">Variable Syntax</a></li> <li><a class="reference internal" href="#group-inventory-by-platform" id="id6">Group Inventory by Platform</a></li> <li><a class="reference internal" href="#protecting-sensitive-variables-with-ansible-vault" id="id7">Protecting Sensitive Variables with <code>ansible-vault</code></a></li> </ul>
+   <h2 id="basic-inventory">Basic Inventory</h2> <p>First, group your inventory logically. Best practice is to group servers and network devices by their What (application, stack or microservice), Where (datacenter or region), and When (development stage):</p> <ul class="simple"> <li>
+<strong>What</strong>: db, web, leaf, spine</li> <li>
+<strong>Where</strong>: east, west, floor_19, building_A</li> <li>
+<strong>When</strong>: dev, test, staging, prod</li> </ul> <p>Avoid spaces, hyphens, and preceding numbers (use <code>floor_19</code>, not <code>19th_floor</code>) in your group names. Group names are case sensitive.</p> <p>This tiny example data center illustrates a basic group structure. You can group groups using the syntax <code>[metagroupname:children]</code> and listing groups as members of the metagroup. Here, the group <code>network</code> includes all leafs and all spines; the group <code>datacenter</code> includes all network devices plus all webservers.</p> <pre data-language="ini">[leafs]
+leaf01
+leaf02
+
+[spines]
+spine01
+spine02
+
+[network:children]
+leafs
+spines
+
+[webservers]
+webserver01
+webserver02
+
+[datacenter:children]
+network
+webservers
+</pre>   <h2 id="add-variables-to-inventory">Add Variables to Inventory</h2> <p>Next, you can set values for many of the variables you needed in your first Ansible command in the inventory, so you can skip them in the ansible-playbook command. In this example, the inventory includes each network device’s IP, OS, and SSH user. If your network devices are only accessible by IP, you must add the IP to the inventory file. If you access your network devices using hostnames, the IP is not necessary.</p> <pre data-language="ini">[leafs]
+leaf01 ansible_host=10.16.10.11 ansible_network_os=vyos ansible_user=my_vyos_user
+leaf02 ansible_host=10.16.10.12 ansible_network_os=vyos ansible_user=my_vyos_user
+
+[spines]
+spine01 ansible_host=10.16.10.13 ansible_network_os=vyos ansible_user=my_vyos_user
+spine02 ansible_host=10.16.10.14 ansible_network_os=vyos ansible_user=my_vyos_user
+
+[network:children]
+leafs
+spines
+
+[servers]
+server01 ansible_host=10.16.10.15 ansible_user=my_server_user
+server02 ansible_host=10.16.10.16 ansible_user=my_server_user
+
+[datacenter:children]
+leafs
+spines
+servers
+</pre>   <h2 id="group-variables-within-inventory">Group Variables within Inventory</h2> <p>When devices in a group share the same variable values, such as OS or SSH user, you can reduce duplication and simplify maintenance by consolidating these into group variables:</p> <pre data-language="ini">[leafs]
+leaf01 ansible_host=10.16.10.11
+leaf02 ansible_host=10.16.10.12
+
+[leafs:vars]
+ansible_network_os=vyos
+ansible_user=my_vyos_user
+
+[spines]
+spine01 ansible_host=10.16.10.13
+spine02 ansible_host=10.16.10.14
+
+[spines:vars]
+ansible_network_os=vyos
+ansible_user=my_vyos_user
+
+[network:children]
+leafs
+spines
+
+[servers]
+server01 ansible_host=10.16.10.15
+server02 ansible_host=10.16.10.16
+
+[datacenter:children]
+leafs
+spines
+servers
+</pre>   <h2 id="variable-syntax">Variable Syntax</h2> <p>The syntax for variable values is different in inventory, in playbooks and in <code>group_vars</code> files, which are covered below. Even though playbook and <code>group_vars</code> files are both written in YAML, you use variables differently in each.</p> <ul class="simple"> <li>In an ini-style inventory file you <strong>must</strong> use the syntax <code>key=value</code> for variable values: <code>ansible_network_os=vyos</code>.</li> <li>In any file with the <code>.yml</code> or <code>.yaml</code> extension, including playbooks and <code>group_vars</code> files, you <strong>must</strong> use YAML syntax: <code>key: value</code><ul> <li>In <code>group_vars</code> files, use the full <code>key</code> name: <code>ansible_network_os: vyos</code>.</li> <li>In playbooks, use the short-form <code>key</code> name, which drops the <code>ansible</code> prefix: <code>network_os: vyos</code>
+</li> </ul> </li> </ul>   <h2 id="group-inventory-by-platform">Group Inventory by Platform</h2> <p>As your inventory grows, you may want to group devices by platform. This allows you to specify platform-specific variables easily for all devices on that platform:</p> <pre data-language="ini">[vyos_leafs]
+leaf01 ansible_host=10.16.10.11
+leaf02 ansible_host=10.16.10.12
+
+[vyos_spines]
+spine01 ansible_host=10.16.10.13
+spine02 ansible_host=10.16.10.14
+
+[vyos:children]
+vyos_leafs
+vyos_spines
+
+[vyos:vars]
+ansible_connection=network_cli
+ansible_network_os=vyos
+ansible_user=my_vyos_user
+
+[network:children]
+vyos
+
+[servers]
+server01 ansible_host=10.16.10.15
+server02 ansible_host=10.16.10.16
+
+[datacenter:children]
+vyos
+servers
+</pre> <p>With this setup, you can run first_playbook.yml with only two flags:</p> <pre data-language="console">ansible-playbook -i inventory -k first_playbook.yml
+</pre> <p>With the <code>-k</code> flag, you provide the SSH password(s) at the prompt. Alternatively, you can store SSH and other secrets and passwords securely in your group_vars files with <code>ansible-vault</code>.</p>   <h2 id="protecting-sensitive-variables-with-ansible-vault">Protecting Sensitive Variables with <code>ansible-vault</code>
+</h2> <p>The <code>ansible-vault</code> command provides encryption for files and/or individual variables like passwords. This tutorial will show you how to encrypt a single SSH password. You can use the commands below to encrypt other sensitive information, such as database passwords, privilege-escalation passwords and more.</p> <p>First you must create a password for ansible-vault itself. It is used as the encryption key, and with this you can encrypt dozens of different passwords across your Ansible project. You can access all those secrets (encrypted values) with a single password (the ansible-vault password) when you run your playbooks. Here’s a simple example.</p> <p>Create a file and write your password for ansible-vault to it:</p> <pre data-language="console">echo "my-ansible-vault-pw" &gt; ~/my-ansible-vault-pw-file
+</pre> <p>Create the encrypted ssh password for your VyOS network devices, pulling your ansible-vault password from the file you just created:</p> <pre data-language="console">ansible-vault encrypt_string --vault-id my_user@~/my-ansible-vault-pw-file 'VyOS_SSH_password' --name 'ansible_password'
+</pre> <p>If you prefer to type your ansible-vault password rather than store it in a file, you can request a prompt:</p> <pre data-language="console">ansible-vault encrypt_string --vault-id my_user@prompt 'VyOS_SSH_password' --name 'ansible_password'
+</pre> <p>and type in the vault password for <code>my_user</code>.</p> <p>The <a class="reference internal" href="../../cli/ansible-playbook#cmdoption-ansible-playbook-vault-id"><code>--vault-id</code></a> flag allows different vault passwords for different users or different levels of access. The output includes the user name <code>my_user</code> from your <code>ansible-vault</code> command and uses the YAML syntax <code>key: value</code>:</p> <pre data-language="yaml">ansible_password: !vault |
+       $ANSIBLE_VAULT;1.2;AES256;my_user
+       66386134653765386232383236303063623663343437643766386435663632343266393064373933
+       3661666132363339303639353538316662616638356631650a316338316663666439383138353032
+       63393934343937373637306162366265383461316334383132626462656463363630613832313562
+       3837646266663835640a313164343535316666653031353763613037656362613535633538386539
+       65656439626166666363323435613131643066353762333232326232323565376635
+Encryption successful
+</pre> <p>This is an example using an extract from a YAML inventory, as the INI format does not support inline vaults:</p> <pre data-language="yaml">...
+
+vyos: # this is a group in yaml inventory, but you can also do under a host
+  vars:
+    ansible_connection: network_cli
+    ansible_network_os: vyos
+    ansible_user: my_vyos_user
+    ansible_password:  !vault |
+         $ANSIBLE_VAULT;1.2;AES256;my_user
+         66386134653765386232383236303063623663343437643766386435663632343266393064373933
+         3661666132363339303639353538316662616638356631650a316338316663666439383138353032
+         63393934343937373637306162366265383461316334383132626462656463363630613832313562
+         3837646266663835640a313164343535316666653031353763613037656362613535633538386539
+         65656439626166666363323435613131643066353762333232326232323565376635
+
+ ...
+</pre> <p>To use an inline vaulted variables with an INI inventory you need to store it in a ‘vars’ file in YAML format, it can reside in host_vars/ or group_vars/ to be automatically picked up or referenced from a play via <code>vars_files</code> or <code>include_vars</code>.</p> <p>To run a playbook with this setup, drop the <code>-k</code> flag and add a flag for your <code>vault-id</code>:</p> <pre data-language="console">ansible-playbook -i inventory --vault-id my_user@~/my-ansible-vault-pw-file first_playbook.yml
+</pre> <p>Or with a prompt instead of the vault password file:</p> <pre data-language="console">ansible-playbook -i inventory --vault-id my_user@prompt first_playbook.yml
+</pre> <p>To see the original value, you can use the debug module. Please note if your YAML file defines the <code>ansible_connection</code> variable (as we used in our example), it will take effect when you execute the command below. To prevent this, please make a copy of the file without the ansible_connection variable.</p> <pre data-language="console">cat vyos.yml | grep -v ansible_connection &gt;&gt; vyos_no_connection.yml
+
+ansible localhost -m debug -a var="ansible_password" -e "@vyos_no_connection.yml" --ask-vault-pass
+Vault password:
+
+localhost | SUCCESS =&gt; {
+    "ansible_password": "VyOS_SSH_password"
+}
+</pre> <div class="admonition warning"> <p class="first admonition-title">Warning</p> <p class="last">Vault content can only be decrypted with the password that was used to encrypt it. If you want to stop using one password and move to a new one, you can update and re-encrypt existing vault content with <code>ansible-vault rekey myfile</code>, then provide the old password and the new password. Copies of vault content still encrypted with the old password can still be decrypted with old password.</p> </div> <p>For more details on building inventory files, see <a class="reference internal" href="../../user_guide/intro_inventory#intro-inventory"><span class="std std-ref">the introduction to inventory</span></a>; for more details on ansible-vault, see <a class="reference internal" href="../../user_guide/vault#vault"><span class="std std-ref">the full Ansible Vault documentation</span></a>.</p> <p>Now that you understand the basics of commands, playbooks, and inventory, it’s time to explore some more complex Ansible Network examples.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2012–2018 Michael DeHaan<br>© 2018–2019 Red Hat, Inc.<br>Licensed under the GNU General Public License version 3.<br>
+    <a href="https://docs.ansible.com/ansible/2.9/network/getting_started/first_inventory.html" class="_attribution-link">https://docs.ansible.com/ansible/2.9/network/getting_started/first_inventory.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
