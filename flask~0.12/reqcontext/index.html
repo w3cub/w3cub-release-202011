@@ -1,0 +1,161 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>The Request Context - Flask 0.12 - W3cubDocs</title>
+  
+  <meta name="description" content=" This document describes the behavior in Flask 0.7 which is mostly in line with the old behavior but has some small, subtle differences. ">
+  <meta name="keywords" content="request, context, flask, flask~0.12">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/flask~0.12/reqcontext/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c7076d7cdaddc6969cb97911f9b488459d4bebca88d6f2525f2a12432f0bec8426c751ccfbc34920dda3867e50ab24698396bc4e548e788fc826f69a158d6856.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/flask~0.12.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/flask~0.12/" class="_nav-link" title="" style="margin-left:0;">Flask 0.12</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="request-context">The Request Context</h1> <p>This document describes the behavior in Flask 0.7 which is mostly in line with the old behavior but has some small, subtle differences.</p> <p>It is recommended that you read the <a class="reference internal" href="../appcontext/index#app-context"><span class="std std-ref">The Application Context</span></a> chapter first.</p>  <h2 id="diving-into-context-locals">Diving into Context Locals</h2> <p>Say you have a utility function that returns the URL the user should be redirected to. Imagine it would always redirect to the URL’s <code>next</code> parameter or the HTTP referrer or the index page:</p> <pre data-language="python">from flask import request, url_for
+
+def redirect_url():
+    return request.args.get('next') or \
+           request.referrer or \
+           url_for('index')
+</pre> <p>As you can see, it accesses the request object. If you try to run this from a plain Python shell, this is the exception you will see:</p> <pre data-language="python">&gt;&gt;&gt; redirect_url()
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+AttributeError: 'NoneType' object has no attribute 'request'
+</pre> <p>That makes a lot of sense because we currently do not have a request we could access. So we have to make a request and bind it to the current context. The <a class="reference internal" href="../api/index#flask.Flask.test_request_context" title="flask.Flask.test_request_context"><code>test_request_context</code></a> method can create us a <a class="reference internal" href="../api/index#flask.ctx.RequestContext" title="flask.ctx.RequestContext"><code>RequestContext</code></a>:</p> <pre data-language="python">&gt;&gt;&gt; ctx = app.test_request_context('/?next=http://example.com/')
+</pre> <p>This context can be used in two ways. Either with the <code>with</code> statement or by calling the <a class="reference internal" href="../api/index#flask.ctx.RequestContext.push" title="flask.ctx.RequestContext.push"><code>push()</code></a> and <a class="reference internal" href="../api/index#flask.ctx.RequestContext.pop" title="flask.ctx.RequestContext.pop"><code>pop()</code></a> methods:</p> <pre data-language="python">&gt;&gt;&gt; ctx.push()
+</pre> <p>From that point onwards you can work with the request object:</p> <pre data-language="python">&gt;&gt;&gt; redirect_url()
+u'http://example.com/'
+</pre> <p>Until you call <code>pop</code>:</p> <pre data-language="python">&gt;&gt;&gt; ctx.pop()
+</pre> <p>Because the request context is internally maintained as a stack you can push and pop multiple times. This is very handy to implement things like internal redirects.</p> <p>For more information of how to utilize the request context from the interactive Python shell, head over to the <a class="reference internal" href="../shell/index#shell"><span class="std std-ref">Working with the Shell</span></a> chapter.</p>   <h2 id="how-the-context-works">How the Context Works</h2> <p>If you look into how the Flask WSGI application internally works, you will find a piece of code that looks very much like this:</p> <pre data-language="python">def wsgi_app(self, environ):
+    with self.request_context(environ):
+        try:
+            response = self.full_dispatch_request()
+        except Exception as e:
+            response = self.make_response(self.handle_exception(e))
+        return response(environ, start_response)
+</pre> <p>The method <code>request_context()</code> returns a new <a class="reference internal" href="../api/index#flask.ctx.RequestContext" title="flask.ctx.RequestContext"><code>RequestContext</code></a> object and uses it in combination with the <code>with</code> statement to bind the context. Everything that is called from the same thread from this point onwards until the end of the <code>with</code> statement will have access to the request globals (<a class="reference internal" href="../api/index#flask.request" title="flask.request"><code>flask.request</code></a> and others).</p> <p>The request context internally works like a stack: The topmost level on the stack is the current active request. <a class="reference internal" href="../api/index#flask.ctx.RequestContext.push" title="flask.ctx.RequestContext.push"><code>push()</code></a> adds the context to the stack on the very top, <a class="reference internal" href="../api/index#flask.ctx.RequestContext.pop" title="flask.ctx.RequestContext.pop"><code>pop()</code></a> removes it from the stack again. On popping the application’s <a class="reference internal" href="../api/index#flask.Flask.teardown_request" title="flask.Flask.teardown_request"><code>teardown_request()</code></a> functions are also executed.</p> <p>Another thing of note is that the request context will automatically also create an <a class="reference internal" href="../appcontext/index#app-context"><span class="std std-ref">application context</span></a> when it’s pushed and there is no application context for that application so far.</p>   <h2 id="id1">Callbacks and Errors</h2> <p id="callbacks-and-errors">What happens if an error occurs in Flask during request processing? This particular behavior changed in 0.7 because we wanted to make it easier to understand what is actually happening. The new behavior is quite simple:</p> <ol class="arabic simple"> <li>Before each request, <a class="reference internal" href="../api/index#flask.Flask.before_request" title="flask.Flask.before_request"><code>before_request()</code></a> functions are executed. If one of these functions return a response, the other functions are no longer called. In any case however the return value is treated as a replacement for the view’s return value.</li> <li>If the <a class="reference internal" href="../api/index#flask.Flask.before_request" title="flask.Flask.before_request"><code>before_request()</code></a> functions did not return a response, the regular request handling kicks in and the view function that was matched has the chance to return a response.</li> <li>The return value of the view is then converted into an actual response object and handed over to the <a class="reference internal" href="../api/index#flask.Flask.after_request" title="flask.Flask.after_request"><code>after_request()</code></a> functions which have the chance to replace it or modify it in place.</li> <li>At the end of the request the <a class="reference internal" href="../api/index#flask.Flask.teardown_request" title="flask.Flask.teardown_request"><code>teardown_request()</code></a> functions are executed. This always happens, even in case of an unhandled exception down the road or if a before-request handler was not executed yet or at all (for example in test environments sometimes you might want to not execute before-request callbacks).</li> </ol> <p>Now what happens on errors? In production mode if an exception is not caught, the 500 internal server handler is called. In development mode however the exception is not further processed and bubbles up to the WSGI server. That way things like the interactive debugger can provide helpful debug information.</p> <p>An important change in 0.7 is that the internal server error is now no longer post processed by the after request callbacks and after request callbacks are no longer guaranteed to be executed. This way the internal dispatching code looks cleaner and is easier to customize and understand.</p> <p>The new teardown functions are supposed to be used as a replacement for things that absolutely need to happen at the end of request.</p>   <h2 id="teardown-callbacks">Teardown Callbacks</h2> <p>The teardown callbacks are special callbacks in that they are executed at a different point. Strictly speaking they are independent of the actual request handling as they are bound to the lifecycle of the <a class="reference internal" href="../api/index#flask.ctx.RequestContext" title="flask.ctx.RequestContext"><code>RequestContext</code></a> object. When the request context is popped, the <a class="reference internal" href="../api/index#flask.Flask.teardown_request" title="flask.Flask.teardown_request"><code>teardown_request()</code></a> functions are called.</p> <p>This is important to know if the life of the request context is prolonged by using the test client in a with statement or when using the request context from the command line:</p> <pre data-language="python">with app.test_client() as client:
+    resp = client.get('/foo')
+    # the teardown functions are still not called at that point
+    # even though the response ended and you have the response
+    # object in your hand
+
+# only when the code reaches this point the teardown functions
+# are called.  Alternatively the same thing happens if another
+# request was triggered from the test client
+</pre> <p>It’s easy to see the behavior from the command line:</p> <pre data-language="python">&gt;&gt;&gt; app = Flask(__name__)
+&gt;&gt;&gt; @app.teardown_request
+... def teardown_request(exception=None):
+...     print 'this runs after request'
+...
+&gt;&gt;&gt; ctx = app.test_request_context()
+&gt;&gt;&gt; ctx.push()
+&gt;&gt;&gt; ctx.pop()
+this runs after request
+&gt;&gt;&gt;
+</pre> <p>Keep in mind that teardown callbacks are always executed, even if before-request callbacks were not executed yet but an exception happened. Certain parts of the test system might also temporarily create a request context without calling the before-request handlers. Make sure to write your teardown-request handlers in a way that they will never fail.</p>   <h2 id="id2">Notes On Proxies</h2> <p id="notes-on-proxies">Some of the objects provided by Flask are proxies to other objects. The reason behind this is that these proxies are shared between threads and they have to dispatch to the actual object bound to a thread behind the scenes as necessary.</p> <p>Most of the time you don’t have to care about that, but there are some exceptions where it is good to know that this object is an actual proxy:</p> <ul class="simple"> <li>The proxy objects do not fake their inherited types, so if you want to perform actual instance checks, you have to do that on the instance that is being proxied (see <code>_get_current_object</code> below).</li> <li>if the object reference is important (so for example for sending <a class="reference internal" href="../signals/index#signals"><span class="std std-ref">Signals</span></a>)</li> </ul> <p>If you need to get access to the underlying object that is proxied, you can use the <a class="reference external" href="https://werkzeug.palletsprojects.com/en/1.0.x/local/#werkzeug.local.LocalProxy._get_current_object" title="(in Werkzeug v1.0.x)"><code>_get_current_object()</code></a> method:</p> <pre data-language="python">app = current_app._get_current_object()
+my_signal.send(app)
+</pre>   <h2 id="context-preservation-on-error">Context Preservation on Error</h2> <p>If an error occurs or not, at the end of the request the request context is popped and all data associated with it is destroyed. During development however that can be problematic as you might want to have the information around for a longer time in case an exception occurred. In Flask 0.6 and earlier in debug mode, if an exception occurred, the request context was not popped so that the interactive debugger can still provide you with important information.</p> <p>Starting with Flask 0.7 you have finer control over that behavior by setting the <code>PRESERVE_CONTEXT_ON_EXCEPTION</code> configuration variable. By default it’s linked to the setting of <code>DEBUG</code>. If the application is in debug mode the context is preserved, in production mode it’s not.</p> <p>Do not force activate <code>PRESERVE_CONTEXT_ON_EXCEPTION</code> in production mode as it will cause your application to leak memory on exceptions. However it can be useful during development to get the same error preserving behavior as in development mode when attempting to debug an error that only occurs under production settings.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2020 Pallets<br>Licensed under the BSD 3-clause License.<br>
+    <a href="https://flask.palletsprojects.com/en/0.12.x/reqcontext/" class="_attribution-link">https://flask.palletsprojects.com/en/0.12.x/reqcontext/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
