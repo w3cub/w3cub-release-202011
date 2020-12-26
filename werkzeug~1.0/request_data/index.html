@@ -1,0 +1,132 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Dealing With Request Data - Werkzeug 1.0 - W3cubDocs</title>
+  
+  <meta name="description" content="The most important rule about web development is “Do not trust the user”. This is especially true for incoming request data on the input stream. &hellip;">
+  <meta name="keywords" content="dealing, with, request, data, werkzeug, werkzeug~1.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/werkzeug~1.0/request_data/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c7076d7cdaddc6969cb97911f9b488459d4bebca88d6f2525f2a12432f0bec8426c751ccfbc34920dda3867e50ab24698396bc4e548e788fc826f69a158d6856.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/werkzeug~1.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/werkzeug~1.0/" class="_nav-link" title="" style="margin-left:0;">Werkzeug 1.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="id1">Dealing with Request Data</h1> <p>The most important rule about web development is “Do not trust the user”. This is especially true for incoming request data on the input stream. With WSGI this is actually a bit harder than you would expect. Because of that Werkzeug wraps the request stream for you to save you from the most prominent problems with it.</p>  <h2 id="missing-eof-marker-on-input-stream">Missing EOF Marker on Input Stream</h2> <p>The input stream has no end-of-file marker. If you would call the <code>read()</code> method on the <code>wsgi.input</code> stream you would cause your application to hang on conforming servers. This is actually intentional however painful. Werkzeug solves that problem by wrapping the input stream in a special <code>LimitedStream</code>. The input stream is exposed on the request objects as <code>stream</code>. This one is either an empty stream (if the form data was parsed) or a limited stream with the contents of the input stream.</p>   <h2 id="when-does-werkzeug-parse">When does Werkzeug Parse?</h2> <p>Werkzeug parses the incoming data under the following situations:</p> <ul class="simple"> <li>you access either <code>form</code>, <code>files</code>, or <code>stream</code> and the request method was <code>POST</code> or <code>PUT</code>.</li> <li>if you call <code>parse_form_data()</code>.</li> </ul> <p>These calls are not interchangeable. If you invoke <code>parse_form_data()</code> you must not use the request object or at least not the attributes that trigger the parsing process.</p> <p>This is also true if you read from the <code>wsgi.input</code> stream before the parsing.</p> <p><strong>General rule:</strong> Leave the WSGI input stream alone. Especially in WSGI middlewares. Use either the parsing functions or the request object. Do not mix multiple WSGI utility libraries for form data parsing or anything else that works on the input stream.</p>   <h2 id="how-does-it-parse">How does it Parse?</h2> <p>The standard Werkzeug parsing behavior handles three cases:</p> <ul class="simple"> <li>input content type was <code>multipart/form-data</code>. In this situation the <code>stream</code> will be empty and <code>form</code> will contain the regular <code>POST</code> / <code>PUT</code> data, <code>files</code> will contain the uploaded files as <code>FileStorage</code> objects.</li> <li>input content type was <code>application/x-www-form-urlencoded</code>. Then the <code>stream</code> will be empty and <code>form</code> will contain the regular <code>POST</code> / <code>PUT</code> data and <code>files</code> will be empty.</li> <li>the input content type was neither of them, <code>stream</code> points to a <code>LimitedStream</code> with the input data for further processing.</li> </ul> <p>Special note on the <code>get_data</code> method: Calling this loads the full request data into memory. This is only safe to do if the <code>max_content_length</code> is set. Also you can <em>either</em> read the stream <em>or</em> call <code>get_data()</code>.</p>   <h2 id="limiting-request-data">Limiting Request Data</h2> <p>To avoid being the victim of a DDOS attack you can set the maximum accepted content length and request field sizes. The <code>BaseRequest</code> class has two attributes for that: <code>max_content_length</code> and <code>max_form_memory_size</code>.</p> <p>The first one can be used to limit the total content length. For example by setting it to <code>1024 * 1024 * 16</code> the request won’t accept more than 16MB of transmitted data.</p> <p>Because certain data can’t be moved to the hard disk (regular post data) whereas temporary files can, there is a second limit you can set. The <code>max_form_memory_size</code> limits the size of <code>POST</code> transmitted form data. By setting it to <code>1024 * 1024 * 2</code> you can make sure that all in memory-stored fields are not more than 2MB in size.</p> <p>This however does <em>not</em> affect in-memory stored files if the <code>stream_factory</code> used returns a in-memory file.</p>   <h2 id="how-to-extend-parsing">How to extend Parsing?</h2> <p>Modern web applications transmit a lot more than multipart form data or url encoded data. To extend the capabilities, subclass <code>BaseRequest</code> or <code>Request</code> and add or extend methods.</p> <p>There is already a mixin that provides JSON parsing:</p> <pre data-language="python">from werkzeug.wrappers import Request
+from werkzeug.wrappers.json import JSONMixin
+
+class JSONRequest(JSONMixin, Request):
+    pass
+</pre> <p>The basic implementation of that looks like:</p> <pre data-language="python">from werkzeug.utils import cached_property
+from werkzeug.wrappers import Request
+import simplejson as json
+
+class JSONRequest(Request):
+    @cached_property
+    def json(self):
+        if self.mimetype == "application/json":
+            return json.loads(self.data)
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2020 Pallets<br>Licensed under the BSD 3-clause License.<br>
+    <a href="https://werkzeug.palletsprojects.com/en/1.0.x/request_data/" class="_attribution-link">https://werkzeug.palletsprojects.com/en/1.0.x/request_data/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,166 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>FastCGI - Werkzeug 1.0 - W3cubDocs</title>
+  
+  <meta name="description" content="A very popular deployment setup on servers like lighttpd and nginx is FastCGI. To use your WSGI application with any of them you will need a FastCGI &hellip;">
+  <meta name="keywords" content="fastcgi, werkzeug, werkzeug~1.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/werkzeug~1.0/deployment/fastcgi/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c7076d7cdaddc6969cb97911f9b488459d4bebca88d6f2525f2a12432f0bec8426c751ccfbc34920dda3867e50ab24698396bc4e548e788fc826f69a158d6856.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/werkzeug~1.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/werkzeug~1.0/" class="_nav-link" title="" style="margin-left:0;">Werkzeug 1.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1>FastCGI</h1> <p>A very popular deployment setup on servers like <a class="reference external" href="https://www.lighttpd.net/">lighttpd</a> and <a class="reference external" href="https://nginx.org/">nginx</a> is FastCGI. To use your WSGI application with any of them you will need a FastCGI server first.</p> <p>The most popular one is <a class="reference external" href="https://pypi.org/project/flup/">flup</a> which we will use for this guide. Make sure to have it installed.</p>  <h2 id="creating-a-fcgi-file">Creating a <code>.fcgi</code> file</h2> <p>First you need to create the FastCGI server file. Let’s call it <code>yourapplication.fcgi</code>:</p> <pre data-language="python">#!/usr/bin/python
+from flup.server.fcgi import WSGIServer
+from yourapplication import make_app
+
+if __name__ == '__main__':
+    application = make_app()
+    WSGIServer(application).run()
+</pre> <p>This is enough for Apache to work, however ngingx and older versions of lighttpd need a socket to be explicitly passed to communicate with the FastCGI server. For that to work you need to pass the path to the socket to the <code>WSGIServer</code>:</p> <pre data-language="python">WSGIServer(application, bindAddress='/path/to/fcgi.sock').run()
+</pre> <p>The path has to be the exact same path you define in the server config.</p> <p>Save the <code>yourapplication.fcgi</code> file somewhere you will find it again. It makes sense to have that in <code>/var/www/yourapplication</code> or something similar.</p> <p>Make sure to set the executable bit on that file so that the servers can execute it:</p> <pre data-language="python"># chmod +x /var/www/yourapplication/yourapplication.fcgi
+</pre>   <h2 id="configuring-lighttpd">Configuring lighttpd</h2> <p>A basic FastCGI configuration for lighttpd looks like this:</p> <pre data-language="python">fastcgi.server = ("/yourapplication.fcgi" =&gt;
+    ((
+        "socket" =&gt; "/tmp/yourapplication-fcgi.sock",
+        "bin-path" =&gt; "/var/www/yourapplication/yourapplication.fcgi",
+        "check-local" =&gt; "disable",
+        "max-procs" -&gt; 1
+    ))
+)
+
+alias.url = (
+    "/static/" =&gt; "/path/to/your/static"
+)
+
+url.rewrite-once = (
+    "^(/static.*)$" =&gt; "$1",
+    "^(/.*)$" =&gt; "/yourapplication.fcgi$1"
+</pre> <p>Remember to enable the FastCGI, alias and rewrite modules. This configuration binds the application to <code>/yourapplication</code>.</p> <p>See the Lighty docs for more information on <a class="reference external" href="https://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_ModFastCGI">FastCGI and Python</a>.</p>   <h2 id="configuring-nginx">Configuring nginx</h2> <p>Installing FastCGI applications on nginx is a bit tricky because by default some FastCGI parameters are not properly forwarded.</p> <p>A basic FastCGI configuration for nginx looks like this:</p> <pre data-language="python">location /yourapplication/ {
+    include fastcgi_params;
+    if ($uri ~ ^/yourapplication/(.*)?) {
+        set $path_url $1;
+    }
+    fastcgi_param PATH_INFO $path_url;
+    fastcgi_param SCRIPT_NAME /yourapplication;
+    fastcgi_pass unix:/tmp/yourapplication-fcgi.sock;
+}
+</pre> <p>This configuration binds the application to <code>/yourapplication</code>. If you want to have it in the URL root it’s a bit easier because you don’t have to figure out how to calculate <code>PATH_INFO</code> and <code>SCRIPT_NAME</code>:</p> <pre data-language="python">location /yourapplication/ {
+    include fastcgi_params;
+    fastcgi_param PATH_INFO $fastcgi_script_name;
+    fastcgi_param SCRIPT_NAME "";
+    fastcgi_pass unix:/tmp/yourapplication-fcgi.sock;
+}
+</pre> <p>Since Nginx doesn’t load FastCGI apps, you have to do it by yourself. You can either write an <code>init.d</code> script for that or execute it inside a screen session:</p> <pre data-language="python">$ screen
+$ /var/www/yourapplication/yourapplication.fcgi
+</pre>   <h2 id="debugging">Debugging</h2> <p>FastCGI deployments tend to be hard to debug on most webservers. Very often the only thing the server log tells you is something along the lines of “premature end of headers”. In order to debug the application the only thing that can really give you ideas why it breaks is switching to the correct user and executing the application by hand.</p> <p>This example assumes your application is called <code>application.fcgi</code> and that your webserver user is <code>www-data</code>:</p> <pre data-language="python">$ su www-data
+$ cd /var/www/yourapplication
+$ python application.fcgi
+Traceback (most recent call last):
+  File "yourapplication.fcg", line 4, in &lt;module&gt;
+ImportError: No module named yourapplication
+</pre> <p>In this case the error seems to be “yourapplication” not being on the python path. Common problems are:</p> <ul class="simple"> <li>relative paths being used. Don’t rely on the current working directory</li> <li>the code depending on environment variables that are not set by the web server.</li> <li>different python interpreters being used.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2020 Pallets<br>Licensed under the BSD 3-clause License.<br>
+    <a href="https://werkzeug.palletsprojects.com/en/1.0.x/deployment/fastcgi/" class="_attribution-link">https://werkzeug.palletsprojects.com/en/1.0.x/deployment/fastcgi/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

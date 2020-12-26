@@ -1,0 +1,786 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Request &#47; Response Objects - Werkzeug 1.0 - W3cubDocs</title>
+  
+  <meta name="description" content="The request and response objects wrap the WSGI environment or the return value from a WSGI application so that it is another WSGI application (wraps &hellip;">
+  <meta name="keywords" content="request, response, objects, werkzeug, werkzeug~1.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/werkzeug~1.0/wrappers/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c7076d7cdaddc6969cb97911f9b488459d4bebca88d6f2525f2a12432f0bec8426c751ccfbc34920dda3867e50ab24698396bc4e548e788fc826f69a158d6856.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/werkzeug~1.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/werkzeug~1.0/" class="_nav-link" title="" style="margin-left:0;">Werkzeug 1.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="wrappers">Request / Response Objects</h1> <p>The request and response objects wrap the WSGI environment or the return value from a WSGI application so that it is another WSGI application (wraps a whole application).</p>  <h2 id="how-they-work">How they Work</h2> <p>Your WSGI application is always passed two arguments. The WSGI “environment” and the WSGI <code>start_response</code> function that is used to start the response phase. The <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> class wraps the <code>environ</code> for easier access to request variables (form data, request headers etc.).</p> <p>The <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a> on the other hand is a standard WSGI application that you can create. The simple hello world in Werkzeug looks like this:</p> <pre data-language="python">from werkzeug.wrappers import Response
+application = Response('Hello World!')
+</pre> <p>To make it more useful you can replace it with a function and do some processing:</p> <pre data-language="python">from werkzeug.wrappers import Request, Response
+
+def application(environ, start_response):
+    request = Request(environ)
+    response = Response("Hello %s!" % request.args.get('name', 'World!'))
+    return response(environ, start_response)
+</pre> <p>Because this is a very common task the <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> object provides a helper for that. The above code can be rewritten like this:</p> <pre data-language="python">from werkzeug.wrappers import Request, Response
+
+@Request.application
+def application(request):
+    return Response("Hello %s!" % request.args.get('name', 'World!'))
+</pre> <p>The <code>application</code> is still a valid WSGI application that accepts the environment and <code>start_response</code> callable.</p>   <h2 id="mutability-and-reusability-of-wrappers">Mutability and Reusability of Wrappers</h2> <p>The implementation of the Werkzeug request and response objects are trying to guard you from common pitfalls by disallowing certain things as much as possible. This serves two purposes: high performance and avoiding of pitfalls.</p> <p>For the request object the following rules apply:</p> <ol class="arabic simple"> <li>The request object is immutable. Modifications are not supported by default, you may however replace the immutable attributes with mutable attributes if you need to modify it.</li> <li>The request object may be shared in the same thread, but is not thread safe itself. If you need to access it from multiple threads, use locks around calls.</li> <li>It’s not possible to pickle the request object.</li> </ol> <p>For the response object the following rules apply:</p> <ol class="arabic simple"> <li>The response object is mutable</li> <li>The response object can be pickled or copied after <code>freeze()</code> was called.</li> <li>Since Werkzeug 0.6 it’s safe to use the same response object for multiple WSGI responses.</li> <li>It’s possible to create copies using <code>copy.deepcopy</code>.</li> </ol>   <h2 id="base-wrappers">Base Wrappers</h2> <p>These objects implement a common set of operations. They are missing fancy addon functionality like user agent parsing or etag handling. These features are available by mixing in various mixin classes or using <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> and <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a>.</p> <dl class="class"> <dt id="werkzeug.wrappers.BaseRequest">
+<code>class werkzeug.wrappers.BaseRequest(environ, populate_request=True, shallow=False)</code> </dt> <dd>
+<p>Very basic request object. This does not implement advanced stuff like entity tag parsing or cache controls. The request object is created with the WSGI environment as first argument and will add itself to the WSGI environment as <code>'werkzeug.request'</code> unless it’s created with <code>populate_request</code> set to False.</p> <p>There are a couple of mixins available that add additional functionality to the request object, there is also a class called <code>Request</code> which subclasses <code>BaseRequest</code> and all the important mixins.</p> <p>It’s a good idea to create a custom subclass of the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> and add missing functionality either via mixins or direct implementation. Here an example for such subclasses:</p> <pre data-language="python">from werkzeug.wrappers import BaseRequest, ETagRequestMixin
+
+class Request(BaseRequest, ETagRequestMixin):
+    pass
+</pre> <p>Request objects are <strong>read only</strong>. As of 0.5 modifications are not allowed in any place. Unlike the lower level parsing functions the request object will use immutable objects everywhere possible.</p> <p>Per default the request object will assume all the text data is <code>utf-8</code> encoded. Please refer to <a class="reference internal" href="../unicode/index"><span class="doc">the unicode chapter</span></a> for more details about customizing the behavior.</p> <p>Per default the request object will be added to the WSGI environment as <code>werkzeug.request</code> to support the debugging system. If you don’t want that, set <code>populate_request</code> to <code>False</code>.</p> <p>If <code>shallow</code> is <code>True</code> the environment is initialized as shallow object around the environ. Every operation that would modify the environ in any way (such as consuming form data) raises an exception unless the <code>shallow</code> attribute is explicitly set to <code>False</code>. This is useful for middlewares where you don’t want to consume the form data by accident. A shallow request is not populated to the WSGI environment.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.5: </span>read-only mode was enforced by using immutables classes for all data.</p> </div> </details><dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.environ">
+<code>environ</code> </dt> <dd>
+<p>The WSGI environment that the request object uses for data retrival.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.shallow">
+<code>shallow</code> </dt> <dd>
+<p><code>True</code> if this request object is shallow (does not modify <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.environ" title="werkzeug.wrappers.BaseRequest.environ"><code>environ</code></a>), <code>False</code> otherwise.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseRequest._get_file_stream">
+<code>_get_file_stream(total_content_length, content_type, filename=None, content_length=None)</code> </dt> <dd>
+<p>Called to get a stream for the file upload.</p> <p>This must provide a file-like class with <code>read()</code>, <code>readline()</code> and <code>seek()</code> methods that is both writeable and readable.</p> <p>The default implementation returns a temporary file if the total content length is higher than 500KB. Because many browsers do not provide a content length for the files only the total content length matters.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first last simple"> <li>
+<strong>total_content_length</strong> – the total content length of all the data in the request combined. This value is guaranteed to be there.</li> <li>
+<strong>content_type</strong> – the mimetype of the uploaded file.</li> <li>
+<strong>filename</strong> – the filename of the uploaded file. May be <code>None</code>.</li> <li>
+<strong>content_length</strong> – the length of this file. This value is usually not provided because webbrowsers do not provide this value.</li> </ul> </td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.access_route">
+<code>access_route</code> </dt> <dd>
+<p>If a forwarded header exists this is a list of all ip addresses from the client ip to the last proxy server.</p> </dd>
+</dl> <dl class="classmethod"> <dt id="werkzeug.wrappers.BaseRequest.application">
+<code>classmethod application(f)</code> </dt> <dd>
+<p>Decorate a function as responder that accepts the request as the last argument. This works like the <code>responder()</code> decorator but the function is passed the request object as the last argument and the request object will be closed automatically:</p> <pre data-language="python">@Request.application
+def my_wsgi_app(request):
+    return Response('Hello World!')
+</pre> <p>As of Werkzeug 0.14 HTTP exceptions are automatically caught and converted to responses instead of failing.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<strong>f</strong> – the WSGI callable to decorate</td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">a new WSGI callable</td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.args">
+<code>args</code> </dt> <dd>
+<p>The parsed URL parameters (the part in the URL after the question mark).</p> <p>By default an <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ImmutableMultiDict" title="werkzeug.datastructures.ImmutableMultiDict"><code>ImmutableMultiDict</code></a> is returned from this function. This can be changed by setting <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.parameter_storage_class" title="werkzeug.wrappers.BaseRequest.parameter_storage_class"><code>parameter_storage_class</code></a> to a different type. This might be necessary if the order of the form data is important.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.base_url">
+<code>base_url</code> </dt> <dd>
+<p>Like <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.url" title="werkzeug.wrappers.BaseRequest.url"><code>url</code></a> but without the querystring See also: <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.trusted_hosts" title="werkzeug.wrappers.BaseRequest.trusted_hosts"><code>trusted_hosts</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.charset">
+<code>charset = 'utf-8'</code> </dt> <dd>
+<p>the charset for the request, defaults to utf-8</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseRequest.close">
+<code>close()</code> </dt> <dd>
+<p>Closes associated resources of this request object. This closes all file handles explicitly. You can also use the request object in a with statement which will automatically close it.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.cookies">
+<code>cookies</code> </dt> <dd>
+<p>A <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.8)"><code>dict</code></a> with the contents of all cookies transmitted with the request.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.data">
+<code>data</code> </dt> <dd>
+<p>Contains the incoming request data as string in case it came with a mimetype Werkzeug does not handle.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.dict_storage_class">
+<code>dict_storage_class</code> </dt> <dd>
+<p>alias of <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ImmutableMultiDict" title="werkzeug.datastructures.ImmutableMultiDict"><code>werkzeug.datastructures.ImmutableMultiDict</code></a></p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.disable_data_descriptor">
+<code>disable_data_descriptor = False</code> </dt> <dd>
+<p>Indicates whether the data descriptor should be allowed to read and buffer up the input stream. By default it’s enabled.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.encoding_errors">
+<code>encoding_errors = 'replace'</code> </dt> <dd>
+<p>the error handling procedure for errors, defaults to ‘replace’</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.files">
+<code>files</code> </dt> <dd>
+<p><a class="reference internal" href="../datastructures/index#werkzeug.datastructures.MultiDict" title="werkzeug.datastructures.MultiDict"><code>MultiDict</code></a> object containing all uploaded files. Each key in <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> is the name from the <code>&lt;input type="file" name=""&gt;</code>. Each value in <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> is a Werkzeug <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.FileStorage" title="werkzeug.datastructures.FileStorage"><code>FileStorage</code></a> object.</p> <p>It basically behaves like a standard file object you know from Python, with the difference that it also has a <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.FileStorage.save" title="werkzeug.datastructures.FileStorage.save"><code>save()</code></a> function that can store the file on the filesystem.</p> <p>Note that <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> will only contain data if the request method was POST, PUT or PATCH and the <code>&lt;form&gt;</code> that posted to the request had <code>enctype="multipart/form-data"</code>. It will be empty otherwise.</p> <p>See the <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.MultiDict" title="werkzeug.datastructures.MultiDict"><code>MultiDict</code></a> / <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.FileStorage" title="werkzeug.datastructures.FileStorage"><code>FileStorage</code></a> documentation for more details about the used data structure.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.form">
+<code>form</code> </dt> <dd>
+<p>The form parameters. By default an <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ImmutableMultiDict" title="werkzeug.datastructures.ImmutableMultiDict"><code>ImmutableMultiDict</code></a> is returned from this function. This can be changed by setting <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.parameter_storage_class" title="werkzeug.wrappers.BaseRequest.parameter_storage_class"><code>parameter_storage_class</code></a> to a different type. This might be necessary if the order of the form data is important.</p> <p>Please keep in mind that file uploads will not end up here, but instead in the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> attribute.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.9: </span>Previous to Werkzeug 0.9 this would only contain form data for POST and PUT requests.</p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.form_data_parser_class">
+<code>form_data_parser_class</code> </dt> <dd>
+<p>alias of <a class="reference internal" href="../http/index#werkzeug.formparser.FormDataParser" title="werkzeug.formparser.FormDataParser"><code>werkzeug.formparser.FormDataParser</code></a></p> </dd>
+</dl> <dl class="classmethod"> <dt id="werkzeug.wrappers.BaseRequest.from_values">
+<code>classmethod from_values(*args, **kwargs)</code> </dt> <dd>
+<p>Create a new request object based on the values provided. If environ is given missing values are filled from there. This method is useful for small scripts when you need to simulate a request from an URL. Do not use this method for unittesting, there is a full featured client object (<code>Client</code>) that allows to create multipart requests, support for cookies etc.</p> <p>This accepts the same options as the <a class="reference internal" href="../test/index#werkzeug.test.EnvironBuilder" title="werkzeug.test.EnvironBuilder"><code>EnvironBuilder</code></a>.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.5: </span>This method now accepts the same arguments as <a class="reference internal" href="../test/index#werkzeug.test.EnvironBuilder" title="werkzeug.test.EnvironBuilder"><code>EnvironBuilder</code></a>. Because of this the <code>environ</code> parameter is now called <code>environ_overrides</code>.</p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">request object</td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.full_path">
+<code>full_path</code> </dt> <dd>
+<p>Requested path as unicode, including the query string.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseRequest.get_data">
+<code>get_data(cache=True, as_text=False, parse_form_data=False)</code> </dt> <dd>
+<p>This reads the buffered incoming data from the client into one bytestring. By default this is cached but that behavior can be changed by setting <code>cache</code> to <code>False</code>.</p> <p>Usually it’s a bad idea to call this method without checking the content length first as a client could send dozens of megabytes or more to cause memory problems on the server.</p> <p>Note that if the form data was already parsed this method will not return anything as form data parsing does not cache the data like this method does. To implicitly invoke form data parsing function set <code>parse_form_data</code> to <code>True</code>. When this is done the return value of this method will be an empty string if the form parser handles the data. This generally is not necessary as if the whole data is cached (which is the default) the form parser will used the cached data to parse the form data. Please be generally aware of checking the content length first in any case before calling this method to avoid exhausting server memory.</p> <p>If <code>as_text</code> is set to <code>True</code> the return value will be a decoded unicode string.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.headers">
+<code>headers</code> </dt> <dd>
+<p>The headers from the WSGI environ as immutable <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.EnvironHeaders" title="werkzeug.datastructures.EnvironHeaders"><code>EnvironHeaders</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.host">
+<code>host</code> </dt> <dd>
+<p>Just the host including the port if available. See also: <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.trusted_hosts" title="werkzeug.wrappers.BaseRequest.trusted_hosts"><code>trusted_hosts</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.host_url">
+<code>host_url</code> </dt> <dd>
+<p>Just the host with scheme as IRI. See also: <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.trusted_hosts" title="werkzeug.wrappers.BaseRequest.trusted_hosts"><code>trusted_hosts</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.is_multiprocess">
+<code>is_multiprocess</code> </dt> <dd>
+<p>boolean that is <code>True</code> if the application is served by a WSGI server that spawns multiple processes.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.is_multithread">
+<code>is_multithread</code> </dt> <dd>
+<p>boolean that is <code>True</code> if the application is served by a multithreaded WSGI server.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.is_run_once">
+<code>is_run_once</code> </dt> <dd>
+<p>boolean that is <code>True</code> if the application will be executed only once in a process lifetime. This is the case for CGI for example, but it’s not guaranteed that the execution only happens one time.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.is_secure">
+<code>is_secure</code> </dt> <dd>
+<p><code>True</code> if the request is secure.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.list_storage_class">
+<code>list_storage_class</code> </dt> <dd>
+<p>alias of <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ImmutableList" title="werkzeug.datastructures.ImmutableList"><code>werkzeug.datastructures.ImmutableList</code></a></p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseRequest.make_form_data_parser">
+<code>make_form_data_parser()</code> </dt> <dd>
+<p>Creates the form data parser. Instantiates the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.form_data_parser_class" title="werkzeug.wrappers.BaseRequest.form_data_parser_class"><code>form_data_parser_class</code></a> with some parameters.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.8.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.max_content_length">
+<code>max_content_length = None</code> </dt> <dd>
+<p>the maximum content length. This is forwarded to the form data parsing function (<code>parse_form_data()</code>). When set and the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.form" title="werkzeug.wrappers.BaseRequest.form"><code>form</code></a> or <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> attribute is accessed and the parsing fails because more than the specified value is transmitted a <a class="reference internal" href="../exceptions/index#werkzeug.exceptions.RequestEntityTooLarge" title="werkzeug.exceptions.RequestEntityTooLarge"><code>RequestEntityTooLarge</code></a> exception is raised.</p> <p>Have a look at <a class="reference internal" href="../request_data/index#dealing-with-request-data"><span class="std std-ref">Dealing with Request Data</span></a> for more details.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.5.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.max_form_memory_size">
+<code>max_form_memory_size = None</code> </dt> <dd>
+<p>the maximum form field size. This is forwarded to the form data parsing function (<code>parse_form_data()</code>). When set and the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.form" title="werkzeug.wrappers.BaseRequest.form"><code>form</code></a> or <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.files" title="werkzeug.wrappers.BaseRequest.files"><code>files</code></a> attribute is accessed and the data in memory for post data is longer than the specified value a <a class="reference internal" href="../exceptions/index#werkzeug.exceptions.RequestEntityTooLarge" title="werkzeug.exceptions.RequestEntityTooLarge"><code>RequestEntityTooLarge</code></a> exception is raised.</p> <p>Have a look at <a class="reference internal" href="../request_data/index#dealing-with-request-data"><span class="std std-ref">Dealing with Request Data</span></a> for more details.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.5.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.method">
+<code>method</code> </dt> <dd>
+<p>The request method. (For example <code>'GET'</code> or <code>'POST'</code>).</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.parameter_storage_class">
+<code>parameter_storage_class</code> </dt> <dd>
+<p>alias of <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ImmutableMultiDict" title="werkzeug.datastructures.ImmutableMultiDict"><code>werkzeug.datastructures.ImmutableMultiDict</code></a></p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.path">
+<code>path</code> </dt> <dd>
+<p>Requested path as unicode. This works a bit like the regular path info in the WSGI environment but will always include a leading slash, even if the URL root is accessed.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.query_string">
+<code>query_string</code> </dt> <dd>
+<p>The URL parameters as raw bytestring.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.remote_addr">
+<code>remote_addr</code> </dt> <dd>
+<p>The remote address of the client.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.remote_user">
+<code>remote_user</code> </dt> <dd>
+<p>If the server supports user authentication, and the script is protected, this attribute contains the username the user has authenticated as.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.scheme">
+<code>scheme</code> </dt> <dd>
+<p>URL scheme (http or https).</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.7.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.script_root">
+<code>script_root</code> </dt> <dd>
+<p>The root path of the script without the trailing slash.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.stream">
+<code>stream</code> </dt> <dd>
+<p>If the incoming form data was not encoded with a known mimetype the data is stored unmodified in this stream for consumption. Most of the time it is a better idea to use <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.data" title="werkzeug.wrappers.BaseRequest.data"><code>data</code></a> which will give you that data as a string. The stream only returns the data once.</p> <p>Unlike <code>input_stream</code> this stream is properly guarded that you can’t accidentally read past the length of the input. Werkzeug will internally always refer to this stream to read data which makes it possible to wrap this object with a stream that does filtering.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.9: </span>This stream is now always available but might be consumed by the form parser later on. Previously the stream was only set if no parsing happened.</p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.trusted_hosts">
+<code>trusted_hosts = None</code> </dt> <dd>
+<p>Optionally a list of hosts that is trusted by this request. By default all hosts are trusted which means that whatever the client sends the host is will be accepted.</p> <p>Because <code>Host</code> and <code>X-Forwarded-Host</code> headers can be set to any value by a malicious client, it is recommended to either set this property or implement similar validation in the proxy (if application is being run behind one).</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.url">
+<code>url</code> </dt> <dd>
+<p>The reconstructed current URL as IRI. See also: <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.trusted_hosts" title="werkzeug.wrappers.BaseRequest.trusted_hosts"><code>trusted_hosts</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.url_charset">
+<code>url_charset</code> </dt> <dd>
+<p>The charset that is assumed for URLs. Defaults to the value of <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.charset" title="werkzeug.wrappers.BaseRequest.charset"><code>charset</code></a>.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.url_root">
+<code>url_root</code> </dt> <dd>
+<p>The full URL root (with hostname), this is the application root as IRI. See also: <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.trusted_hosts" title="werkzeug.wrappers.BaseRequest.trusted_hosts"><code>trusted_hosts</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.values">
+<code>values</code> </dt> <dd>
+<p>A <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.CombinedMultiDict" title="werkzeug.datastructures.CombinedMultiDict"><code>werkzeug.datastructures.CombinedMultiDict</code></a> that combines <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.args" title="werkzeug.wrappers.BaseRequest.args"><code>args</code></a> and <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.form" title="werkzeug.wrappers.BaseRequest.form"><code>form</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseRequest.want_form_data_parsed">
+<code>want_form_data_parsed</code> </dt> <dd>
+<p>Returns True if the request method carries content. As of Werkzeug 0.9 this will be the case if a content type is transmitted.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.8.</span></p> </div> </details>
+</dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.BaseResponse">
+<code>class werkzeug.wrappers.BaseResponse(response=None, status=None, headers=None, mimetype=None, content_type=None, direct_passthrough=False)</code> </dt> <dd>
+<p>Base response class. The most important fact about a response object is that it’s a regular WSGI application. It’s initialized with a couple of response parameters (headers, body, status code etc.) and will start a valid WSGI response when called with the environ and start response callable.</p> <p>Because it’s a WSGI application itself processing usually ends before the actual response is sent to the server. This helps debugging systems because they can catch all the exceptions before responses are started.</p> <p>Here a small example WSGI application that takes advantage of the response objects:</p> <pre data-language="python">from werkzeug.wrappers import BaseResponse as Response
+
+def index():
+    return Response('Index page')
+
+def application(environ, start_response):
+    path = environ.get('PATH_INFO') or '/'
+    if path == '/':
+        response = index()
+    else:
+        response = Response('Not Found', status=404)
+    return response(environ, start_response)
+</pre> <p>Like <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> which object is lacking a lot of functionality implemented in mixins. This gives you a better control about the actual API of your response objects, so you can create subclasses and add custom functionality. A full featured response object is available as <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a> which implements a couple of useful mixins.</p> <p>To enforce a new type of already existing responses you can use the <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.force_type" title="werkzeug.wrappers.BaseResponse.force_type"><code>force_type()</code></a> method. This is useful if you’re working with different subclasses of response objects and you want to post process them with a known interface.</p> <p>Per default the response object will assume all the text data is <code>utf-8</code> encoded. Please refer to <a class="reference internal" href="../unicode/index"><span class="doc">the unicode chapter</span></a> for more details about customizing the behavior.</p> <p>Response can be any kind of iterable or string. If it’s a string it’s considered being an iterable with one item which is the string passed. Headers can be a list of tuples or a <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Headers" title="werkzeug.datastructures.Headers"><code>Headers</code></a> object.</p> <p>Special note for <code>mimetype</code> and <code>content_type</code>: For most mime types <code>mimetype</code> and <code>content_type</code> work the same, the difference affects only ‘text’ mimetypes. If the mimetype passed with <code>mimetype</code> is a mimetype starting with <code>text/</code>, the charset parameter of the response object is appended to it. In contrast the <code>content_type</code> parameter is always added as header unmodified.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.5: </span>the <code>direct_passthrough</code> parameter was added.</p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first last simple"> <li>
+<strong>response</strong> – a string or response iterable.</li> <li>
+<strong>status</strong> – a string with a status or an integer with the status code.</li> <li>
+<strong>headers</strong> – a list of headers or a <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Headers" title="werkzeug.datastructures.Headers"><code>Headers</code></a> object.</li> <li>
+<strong>mimetype</strong> – the mimetype for the response. See notice above.</li> <li>
+<strong>content_type</strong> – the content type for the response. See notice above.</li> <li>
+<strong>direct_passthrough</strong> – if set to <code>True</code> <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.iter_encoded" title="werkzeug.wrappers.BaseResponse.iter_encoded"><code>iter_encoded()</code></a> is not called before iteration which makes it possible to pass special iterators through unchanged (see <code>wrap_file()</code> for more details.)</li> </ul> </td> </tr>  </table> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.response">
+<code>response</code> </dt> <dd>
+<p>The application iterator. If constructed from a string this will be a list, otherwise the object provided as application iterator. (The first argument passed to <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a>)</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.headers">
+<code>headers</code> </dt> <dd>
+<p>A <code>Headers</code> object representing the response headers.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.status_code">
+<code>status_code</code> </dt> <dd>
+<p>The response status as integer.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.direct_passthrough">
+<code>direct_passthrough</code> </dt> <dd>
+<p>If <code>direct_passthrough=True</code> was passed to the response object or if this attribute was set to <code>True</code> before using the response object as WSGI application, the wrapped iterator is returned unchanged. This makes it possible to pass a special <code>wsgi.file_wrapper</code> to the response object. See <code>wrap_file()</code> for more details.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.__call__">
+<code>__call__(environ, start_response)</code> </dt> <dd>
+<p>Process this response as WSGI application.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first simple"> <li>
+<strong>environ</strong> – the WSGI environment.</li> <li>
+<strong>start_response</strong> – the response callable provided by the WSGI server.</li> </ul> </td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">
+<p class="first last">an application iterator</p> </td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse._ensure_sequence">
+<code>_ensure_sequence(mutable=False)</code> </dt> <dd>
+<p>This method can be called by methods that need a sequence. If <code>mutable</code> is true, it will also ensure that the response sequence is a standard Python list.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.autocorrect_location_header">
+<code>autocorrect_location_header = True</code> </dt> <dd>
+<p>Should this response object correct the location header to be RFC conformant? This is true by default.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.8.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.automatically_set_content_length">
+<code>automatically_set_content_length = True</code> </dt> <dd>
+<p>Should this response object automatically set the content-length header if possible? This is true by default.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.8.</span></p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.calculate_content_length">
+<code>calculate_content_length()</code> </dt> <dd>
+<p>Returns the content length if available or <code>None</code> otherwise.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.call_on_close">
+<code>call_on_close(func)</code> </dt> <dd>
+<p>Adds a function to the internal list of functions that should be called as part of closing down the response. Since 0.7 this function also returns the function that was passed so that this can be used as a decorator.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.charset">
+<code>charset = 'utf-8'</code> </dt> <dd>
+<p>the charset of the response.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.close">
+<code>close()</code> </dt> <dd>
+<p>Close the wrapped response if possible. You can also use the object in a with statement which will automatically close it.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9: </span>Can now be used in a with statement.</p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.data">
+<code>data</code> </dt> <dd>
+<p>A descriptor that calls <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.get_data" title="werkzeug.wrappers.BaseResponse.get_data"><code>get_data()</code></a> and <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.set_data" title="werkzeug.wrappers.BaseResponse.set_data"><code>set_data()</code></a>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.default_mimetype">
+<code>default_mimetype = 'text/plain'</code> </dt> <dd>
+<p>the default mimetype if none is provided.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.default_status">
+<code>default_status = 200</code> </dt> <dd>
+<p>the default status if none is provided.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.delete_cookie">
+<code>delete_cookie(key, path='/', domain=None)</code> </dt> <dd>
+<p>Delete a cookie. Fails silently if key doesn’t exist.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first last simple"> <li>
+<strong>key</strong> – the key (name) of the cookie to be deleted.</li> <li>
+<strong>path</strong> – if the cookie that should be deleted was limited to a path, the path has to be defined here.</li> <li>
+<strong>domain</strong> – if the cookie that should be deleted was limited to a domain, that domain has to be defined here.</li> </ul> </td> </tr>  </table> </dd>
+</dl> <dl class="classmethod"> <dt id="werkzeug.wrappers.BaseResponse.force_type">
+<code>classmethod force_type(response, environ=None)</code> </dt> <dd>
+<p>Enforce that the WSGI response is a response object of the current type. Werkzeug will use the <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> internally in many situations like the exceptions. If you call <code>get_response()</code> on an exception you will get back a regular <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> object, even if you are using a custom subclass.</p> <p>This method can enforce a given response type, and it will also convert arbitrary WSGI callables into response objects if an environ is provided:</p> <pre data-language="python"># convert a Werkzeug response object into an instance of the
+# MyResponseClass subclass.
+response = MyResponseClass.force_type(response)
+
+# convert any WSGI application into a response object
+response = MyResponseClass.force_type(response, environ)
+</pre> <p>This is especially useful if you want to post-process responses in the main dispatcher and use functionality provided by your subclass.</p> <p>Keep in mind that this will modify response objects in place if possible!</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first simple"> <li>
+<strong>response</strong> – a response object or wsgi application.</li> <li>
+<strong>environ</strong> – a WSGI environment object.</li> </ul> </td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">
+<p class="first last">a response object.</p> </td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.freeze">
+<code>freeze()</code> </dt> <dd>
+<p>Call this method if you want to make your response object ready for being pickled. This buffers the generator if there is one. It will also set the <code>Content-Length</code> header to the length of the body.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.6: </span>The <code>Content-Length</code> header is now set.</p> </div> </details>
+</dd>
+</dl> <dl class="classmethod"> <dt id="werkzeug.wrappers.BaseResponse.from_app">
+<code>classmethod from_app(app, environ, buffered=False)</code> </dt> <dd>
+<p>Create a new response object from an application output. This works best if you pass it an application that returns a generator all the time. Sometimes applications may use the <code>write()</code> callable returned by the <code>start_response</code> function. This tries to resolve such edge cases automatically. But if you don’t get the expected output you should set <code>buffered</code> to <code>True</code> which enforces buffering.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first simple"> <li>
+<strong>app</strong> – the WSGI application to execute.</li> <li>
+<strong>environ</strong> – the WSGI environment to execute against.</li> <li>
+<strong>buffered</strong> – set to <code>True</code> to enforce buffering.</li> </ul> </td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">
+<p class="first last">a response object.</p> </td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.get_app_iter">
+<code>get_app_iter(environ)</code> </dt> <dd>
+<p>Returns the application iterator for the given environ. Depending on the request method and the current status code the return value might be an empty response rather than the one from the response.</p> <p>If the request method is <code>HEAD</code> or the status code is in a range where the HTTP specification requires an empty response, an empty iterable is returned.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<strong>environ</strong> – the WSGI environment of the request.</td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">a response iterable.</td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.get_data">
+<code>get_data(as_text=False)</code> </dt> <dd>
+<p>The string representation of the response body. Whenever you call this property the response iterable is encoded and flattened. This can lead to unwanted behavior if you stream big data.</p> <p>This behavior can be disabled by setting <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.implicit_sequence_conversion" title="werkzeug.wrappers.BaseResponse.implicit_sequence_conversion"><code>implicit_sequence_conversion</code></a> to <code>False</code>.</p> <p>If <code>as_text</code> is set to <code>True</code> the return value will be a decoded unicode string.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.get_wsgi_headers">
+<code>get_wsgi_headers(environ)</code> </dt> <dd>
+<p>This is automatically called right before the response is started and returns headers modified for the given environment. It returns a copy of the headers from the response with some modifications applied if necessary.</p> <p>For example the location header (if present) is joined with the root URL of the environment. Also the content length is automatically set to zero here for certain status codes.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.6: </span>Previously that function was called <code>fix_headers</code> and modified the response object in place. Also since 0.6, IRIs in location and content-location headers are handled properly.</p> <p>Also starting with 0.6, Werkzeug will attempt to set the content length if it is able to figure it out on its own. This is the case if all the strings in the response iterable are already encoded and the iterable is buffered.</p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<strong>environ</strong> – the WSGI environment of the request.</td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">returns a new <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Headers" title="werkzeug.datastructures.Headers"><code>Headers</code></a> object.</td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.get_wsgi_response">
+<code>get_wsgi_response(environ)</code> </dt> <dd>
+<p>Returns the final WSGI response as tuple. The first item in the tuple is the application iterator, the second the status and the third the list of headers. The response returned is created specially for the given environment. For example if the request method in the WSGI environment is <code>'HEAD'</code> the response will be empty and only the headers and status code will be present.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<strong>environ</strong> – the WSGI environment of the request.</td> </tr> <tr>
+<th class="field-name">Returns:</th>
+<td class="field-body">an <code>(app_iter, status, headers)</code> tuple.</td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.implicit_sequence_conversion">
+<code>implicit_sequence_conversion = True</code> </dt> <dd>
+<p>if set to <code>False</code> accessing properties on the response object will not try to consume the response iterator and convert it into a list.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.2: </span>That attribute was previously called <code>implicit_seqence_conversion</code>. (Notice the typo). If you did use this feature, you have to adapt your code to the name change.</p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.is_sequence">
+<code>is_sequence</code> </dt> <dd>
+<p>If the iterator is buffered, this property will be <code>True</code>. A response object will consider an iterator to be buffered if the response attribute is a list or tuple.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.is_streamed">
+<code>is_streamed</code> </dt> <dd>
+<p>If the response is streamed (the response is not an iterable with a length information) this property is <code>True</code>. In this case streamed means that there is no information about the number of iterations. This is usually <code>True</code> if a generator is passed to the response object.</p> <p>This is useful for checking before applying some sort of post filtering that should not take place for streamed responses.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.iter_encoded">
+<code>iter_encoded()</code> </dt> <dd>
+<p>Iter the response encoded with the encoding of the response. If the response object is invoked as WSGI application the return value of this method is used as application iterator unless <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.direct_passthrough" title="werkzeug.wrappers.BaseResponse.direct_passthrough"><code>direct_passthrough</code></a> was activated.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.make_sequence">
+<code>make_sequence()</code> </dt> <dd>
+<p>Converts the response iterator in a list. By default this happens automatically if required. If <code>implicit_sequence_conversion</code> is disabled, this method is not automatically called and some properties might raise exceptions. This also encodes all the items.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.max_cookie_size">
+<code>max_cookie_size = 4093</code> </dt> <dd>
+<p>Warn if a cookie header exceeds this size. The default, 4093, should be safely <a class="reference external" href="http://browsercookielimits.squawky.net/">supported by most browsers</a>. A cookie larger than this size will still be sent, but it may be ignored or handled incorrectly by some browsers. Set to 0 to disable this check.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.13.</span></p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.set_cookie">
+<code>set_cookie(key, value='', max_age=None, expires=None, path='/', domain=None, secure=False, httponly=False, samesite=None)</code> </dt> <dd>
+<p>Sets a cookie. The parameters are the same as in the cookie <code>Morsel</code> object in the Python standard library but it accepts unicode data, too.</p> <p>A warning is raised if the size of the cookie header exceeds <a class="reference internal" href="#werkzeug.wrappers.BaseResponse.max_cookie_size" title="werkzeug.wrappers.BaseResponse.max_cookie_size"><code>max_cookie_size</code></a>, but the header will still be set.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first last simple"> <li>
+<strong>key</strong> – the key (name) of the cookie to be set.</li> <li>
+<strong>value</strong> – the value of the cookie.</li> <li>
+<strong>max_age</strong> – should be a number of seconds, or <code>None</code> (default) if the cookie should last only as long as the client’s browser session.</li> <li>
+<strong>expires</strong> – should be a <code>datetime</code> object or UNIX timestamp.</li> <li>
+<strong>path</strong> – limits the cookie to a given path, per default it will span the whole domain.</li> <li>
+<strong>domain</strong> – if you want to set a cross-domain cookie. For example, <code>domain=".example.com"</code> will set a cookie that is readable by the domain <code>www.example.com</code>, <code>foo.example.com</code> etc. Otherwise, a cookie will only be readable by the domain that set it.</li> <li>
+<strong>secure</strong> – If <code>True</code>, the cookie will only be available via HTTPS</li> <li>
+<strong>httponly</strong> – disallow JavaScript to access the cookie. This is an extension to the cookie standard and probably not supported by all browsers.</li> <li>
+<strong>samesite</strong> – Limits the scope of the cookie such that it will only be attached to requests if those requests are “same-site”.</li> </ul> </td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.BaseResponse.set_data">
+<code>set_data(value)</code> </dt> <dd>
+<p>Sets a new string as response. The value set must be either a unicode or bytestring. If a unicode string is set it’s encoded automatically to the charset of the response (utf-8 by default).</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.BaseResponse.status">
+<code>status</code> </dt> <dd>
+<p>The HTTP status code as a string.</p> </dd>
+</dl> <dl class="attribute"> <dt>
+<code>status_code</code> </dt> <dd>
+<p>The HTTP status code as a number.</p> </dd>
+</dl> </dd>
+</dl>   <h2 id="mixin-classes">Mixin Classes</h2> <p>Werkzeug also provides helper mixins for various HTTP related functionality such as etags, cache control, user agents etc. When subclassing you can mix those classes in to extend the functionality of the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> or <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> object. Here a small example for a request object that parses accept headers:</p> <pre data-language="python">from werkzeug.wrappers import AcceptMixin, BaseRequest
+
+class Request(BaseRequest, AcceptMixin):
+    pass
+</pre> <p>The <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> and <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a> classes subclass the <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> and <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> classes and implement all the mixins Werkzeug provides:</p> <dl class="class"> <dt id="werkzeug.wrappers.Request">
+<code>class werkzeug.wrappers.Request(environ, populate_request=True, shallow=False)</code> </dt> <dd>
+<p>Full featured request object implementing the following mixins:</p> <ul class="simple"> <li>
+<a class="reference internal" href="#werkzeug.wrappers.AcceptMixin" title="werkzeug.wrappers.AcceptMixin"><code>AcceptMixin</code></a> for accept header parsing</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.ETagRequestMixin" title="werkzeug.wrappers.ETagRequestMixin"><code>ETagRequestMixin</code></a> for etag and cache control handling</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.UserAgentMixin" title="werkzeug.wrappers.UserAgentMixin"><code>UserAgentMixin</code></a> for user agent introspection</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.AuthorizationMixin" title="werkzeug.wrappers.AuthorizationMixin"><code>AuthorizationMixin</code></a> for http auth handling</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.cors.CORSRequestMixin" title="werkzeug.wrappers.cors.CORSRequestMixin"><code>CORSRequestMixin</code></a> for Cross Origin Resource Sharing headers</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.CommonRequestDescriptorsMixin" title="werkzeug.wrappers.CommonRequestDescriptorsMixin"><code>CommonRequestDescriptorsMixin</code></a> for common headers</li> </ul> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.Response">
+<code>class werkzeug.wrappers.Response(response=None, status=None, headers=None, mimetype=None, content_type=None, direct_passthrough=False)</code> </dt> <dd>
+<p>Full featured response object implementing the following mixins:</p> <ul class="simple"> <li>
+<a class="reference internal" href="#werkzeug.wrappers.ETagResponseMixin" title="werkzeug.wrappers.ETagResponseMixin"><code>ETagResponseMixin</code></a> for etag and cache control handling</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.WWWAuthenticateMixin" title="werkzeug.wrappers.WWWAuthenticateMixin"><code>WWWAuthenticateMixin</code></a> for HTTP authentication support</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.cors.CORSResponseMixin" title="werkzeug.wrappers.cors.CORSResponseMixin"><code>CORSResponseMixin</code></a> for Cross Origin Resource Sharing headers</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.ResponseStreamMixin" title="werkzeug.wrappers.ResponseStreamMixin"><code>ResponseStreamMixin</code></a> to add support for the <code>stream</code> property</li> <li>
+<a class="reference internal" href="#werkzeug.wrappers.CommonResponseDescriptorsMixin" title="werkzeug.wrappers.CommonResponseDescriptorsMixin"><code>CommonResponseDescriptorsMixin</code></a> for various HTTP descriptors</li> </ul> </dd>
+</dl>  <h3 id="common-descriptors">Common Descriptors</h3> <dl class="class"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin">
+<code>class werkzeug.wrappers.CommonRequestDescriptorsMixin</code> </dt> <dd>
+<p>A mixin for <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> subclasses. Request objects that mix this class in will automatically get descriptors for a couple of HTTP headers with automatic type conversion.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.5.</span></p> </div> </details><dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.content_encoding">
+<code>content_encoding</code> </dt> <dd>
+<p>The Content-Encoding entity-header field is used as a modifier to the media-type. When present, its value indicates what additional content codings have been applied to the entity-body, and thus what decoding mechanisms must be applied in order to obtain the media-type referenced by the Content-Type header field.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.content_length">
+<code>content_length</code> </dt> <dd>
+<p>The Content-Length entity-header field indicates the size of the entity-body in bytes or, in the case of the HEAD method, the size of the entity-body that would have been sent had the request been a GET.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.content_md5">
+<code>content_md5</code> </dt> <dd>
+<p>The Content-MD5 entity-header field, as defined in RFC 1864, is an MD5 digest of the entity-body for the purpose of providing an end-to-end message integrity check (MIC) of the entity-body. (Note: a MIC is good for detecting accidental modification of the entity-body in transit, but is not proof against malicious attacks.)</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.9.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.content_type">
+<code>content_type</code> </dt> <dd>
+<p>The Content-Type entity-header field indicates the media type of the entity-body sent to the recipient or, in the case of the HEAD method, the media type that would have been sent had the request been a GET.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.date">
+<code>date</code> </dt> <dd>
+<p>The Date general-header field represents the date and time at which the message was originated, having the same semantics as orig-date in RFC 822.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.max_forwards">
+<code>max_forwards</code> </dt> <dd>
+<p>The Max-Forwards request-header field provides a mechanism with the TRACE and OPTIONS methods to limit the number of proxies or gateways that can forward the request to the next inbound server.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.mimetype">
+<code>mimetype</code> </dt> <dd>
+<p>Like <a class="reference internal" href="#werkzeug.wrappers.CommonRequestDescriptorsMixin.content_type" title="werkzeug.wrappers.CommonRequestDescriptorsMixin.content_type"><code>content_type</code></a>, but without parameters (eg, without charset, type etc.) and always lowercase. For example if the content type is <code>text/HTML; charset=utf-8</code> the mimetype would be <code>'text/html'</code>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.mimetype_params">
+<code>mimetype_params</code> </dt> <dd>
+<p>The mimetype parameters as dict. For example if the content type is <code>text/html; charset=utf-8</code> the params would be <code>{'charset': 'utf-8'}</code>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.pragma">
+<code>pragma</code> </dt> <dd>
+<p>The Pragma general-header field is used to include implementation-specific directives that might apply to any recipient along the request/response chain. All pragma directives specify optional behavior from the viewpoint of the protocol; however, some systems MAY require that behavior be consistent with the directives.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonRequestDescriptorsMixin.referrer">
+<code>referrer</code> </dt> <dd>
+<p>The Referer[sic] request-header field allows the client to specify, for the server’s benefit, the address (URI) of the resource from which the Request-URI was obtained (the “referrer”, although the header field is misspelled).</p> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin">
+<code>class werkzeug.wrappers.CommonResponseDescriptorsMixin</code> </dt> <dd>
+<p>A mixin for <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> subclasses. Response objects that mix this class in will automatically get descriptors for a couple of HTTP headers with automatic type conversion.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.age">
+<code>age</code> </dt> <dd>
+<p>The Age response-header field conveys the sender’s estimate of the amount of time since the response (or its revalidation) was generated at the origin server.</p> <p>Age values are non-negative decimal integers, representing time in seconds.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.allow">
+<code>allow</code> </dt> <dd>
+<p>The Allow entity-header field lists the set of methods supported by the resource identified by the Request-URI. The purpose of this field is strictly to inform the recipient of valid methods associated with the resource. An Allow header field MUST be present in a 405 (Method Not Allowed) response.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_encoding">
+<code>content_encoding</code> </dt> <dd>
+<p>The Content-Encoding entity-header field is used as a modifier to the media-type. When present, its value indicates what additional content codings have been applied to the entity-body, and thus what decoding mechanisms must be applied in order to obtain the media-type referenced by the Content-Type header field.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_language">
+<code>content_language</code> </dt> <dd>
+<p>The Content-Language entity-header field describes the natural language(s) of the intended audience for the enclosed entity. Note that this might not be equivalent to all the languages used within the entity-body.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_length">
+<code>content_length</code> </dt> <dd>
+<p>The Content-Length entity-header field indicates the size of the entity-body, in decimal number of OCTETs, sent to the recipient or, in the case of the HEAD method, the size of the entity-body that would have been sent had the request been a GET.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_location">
+<code>content_location</code> </dt> <dd>
+<p>The Content-Location entity-header field MAY be used to supply the resource location for the entity enclosed in the message when that entity is accessible from a location separate from the requested resource’s URI.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_md5">
+<code>content_md5</code> </dt> <dd>
+<p>The Content-MD5 entity-header field, as defined in RFC 1864, is an MD5 digest of the entity-body for the purpose of providing an end-to-end message integrity check (MIC) of the entity-body. (Note: a MIC is good for detecting accidental modification of the entity-body in transit, but is not proof against malicious attacks.)</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_security_policy">
+<code>content_security_policy</code> </dt> <dd>
+<p>The Content-Security-Policy header adds an additional layer of security to help detect and mitigate certain types of attacks.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_security_policy_report_only">
+<code>content_security_policy_report_only</code> </dt> <dd>
+<p>The Content-Security-Policy-Report-Only header adds a csp policy that is not enforced but is reported thereby helping detect certain types of attacks.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.content_type">
+<code>content_type</code> </dt> <dd>
+<p>The Content-Type entity-header field indicates the media type of the entity-body sent to the recipient or, in the case of the HEAD method, the media type that would have been sent had the request been a GET.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.date">
+<code>date</code> </dt> <dd>
+<p>The Date general-header field represents the date and time at which the message was originated, having the same semantics as orig-date in RFC 822.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.expires">
+<code>expires</code> </dt> <dd>
+<p>The Expires entity-header field gives the date/time after which the response is considered stale. A stale cache entry may not normally be returned by a cache.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.last_modified">
+<code>last_modified</code> </dt> <dd>
+<p>The Last-Modified entity-header field indicates the date and time at which the origin server believes the variant was last modified.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.location">
+<code>location</code> </dt> <dd>
+<p>The Location response-header field is used to redirect the recipient to a location other than the Request-URI for completion of the request or identification of a new resource.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.mimetype">
+<code>mimetype</code> </dt> <dd>
+<p>The mimetype (content type without charset etc.)</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.mimetype_params">
+<code>mimetype_params</code> </dt> <dd>
+<p>The mimetype parameters as dict. For example if the content type is <code>text/html; charset=utf-8</code> the params would be <code>{'charset': 'utf-8'}</code>.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.5.</span></p> </div> </details>
+</dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.retry_after">
+<code>retry_after</code> </dt> <dd>
+<p>The Retry-After response-header field can be used with a 503 (Service Unavailable) response to indicate how long the service is expected to be unavailable to the requesting client.</p> <p>Time in seconds until expiration or date.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.CommonResponseDescriptorsMixin.vary">
+<code>vary</code> </dt> <dd>
+<p>The Vary field value indicates the set of request-header fields that fully determines, while the response is fresh, whether a cache is permitted to use the response to reply to a subsequent request without revalidation.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="response-stream">Response Stream</h3> <dl class="class"> <dt id="werkzeug.wrappers.ResponseStreamMixin">
+<code>class werkzeug.wrappers.ResponseStreamMixin</code> </dt> <dd>
+<p>Mixin for <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> subclasses. Classes that inherit from this mixin will automatically get a <a class="reference internal" href="#werkzeug.wrappers.ResponseStreamMixin.stream" title="werkzeug.wrappers.ResponseStreamMixin.stream"><code>stream</code></a> property that provides a write-only interface to the response iterable.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.ResponseStreamMixin.stream">
+<code>stream</code> </dt> <dd>
+<p>The response iterable as write-only stream.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="accept">Accept</h3> <dl class="class"> <dt id="werkzeug.wrappers.AcceptMixin">
+<code>class werkzeug.wrappers.AcceptMixin</code> </dt> <dd>
+<p>A mixin for classes with an <code>environ</code> attribute to get all the HTTP accept headers as <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Accept" title="werkzeug.datastructures.Accept"><code>Accept</code></a> objects (or subclasses thereof).</p> <dl class="attribute"> <dt id="werkzeug.wrappers.AcceptMixin.accept_charsets">
+<code>accept_charsets</code> </dt> <dd>
+<p>List of charsets this client supports as <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.CharsetAccept" title="werkzeug.datastructures.CharsetAccept"><code>CharsetAccept</code></a> object.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.AcceptMixin.accept_encodings">
+<code>accept_encodings</code> </dt> <dd>
+<p>List of encodings this client accepts. Encodings in a HTTP term are compression encodings such as gzip. For charsets have a look at <code>accept_charset</code>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.AcceptMixin.accept_languages">
+<code>accept_languages</code> </dt> <dd>
+<p>List of languages this client accepts as <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.LanguageAccept" title="werkzeug.datastructures.LanguageAccept"><code>LanguageAccept</code></a> object.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.AcceptMixin.accept_mimetypes">
+<code>accept_mimetypes</code> </dt> <dd>
+<p>List of mimetypes this client supports as <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.MIMEAccept" title="werkzeug.datastructures.MIMEAccept"><code>MIMEAccept</code></a> object.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="authentication">Authentication</h3> <dl class="class"> <dt id="werkzeug.wrappers.AuthorizationMixin">
+<code>class werkzeug.wrappers.AuthorizationMixin</code> </dt> <dd>
+<p>Adds an <a class="reference internal" href="#werkzeug.wrappers.AuthorizationMixin.authorization" title="werkzeug.wrappers.AuthorizationMixin.authorization"><code>authorization</code></a> property that represents the parsed value of the <code>Authorization</code> header as <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Authorization" title="werkzeug.datastructures.Authorization"><code>Authorization</code></a> object.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.AuthorizationMixin.authorization">
+<code>authorization</code> </dt> <dd>
+<p>The <code>Authorization</code> object in parsed form.</p> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.WWWAuthenticateMixin">
+<code>class werkzeug.wrappers.WWWAuthenticateMixin</code> </dt> <dd>
+<p>Adds a <a class="reference internal" href="#werkzeug.wrappers.WWWAuthenticateMixin.www_authenticate" title="werkzeug.wrappers.WWWAuthenticateMixin.www_authenticate"><code>www_authenticate</code></a> property to a response object.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.WWWAuthenticateMixin.www_authenticate">
+<code>www_authenticate</code> </dt> <dd>
+<p>The <code>WWW-Authenticate</code> header in a parsed form.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="cors">CORS</h3> <dl class="class"> <dt id="werkzeug.wrappers.cors.CORSRequestMixin">
+<code>class werkzeug.wrappers.cors.CORSRequestMixin</code> </dt> <dd>
+<p>A mixin for <a class="reference internal" href="#werkzeug.wrappers.BaseRequest" title="werkzeug.wrappers.BaseRequest"><code>BaseRequest</code></a> subclasses that adds descriptors for Cross Origin Resource Sharing (CORS) headers.</p> <div class="versionadded"> <p><span class="versionmodified">New in version 1.0.</span></p> </div> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSRequestMixin.access_control_request_headers">
+<code>access_control_request_headers</code> </dt> <dd>
+<p>Sent with a preflight request to indicate which headers will be sent with the cross origin request. Set <a class="reference internal" href="#werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_headers" title="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_headers"><code>access_control_allow_headers</code></a> on the response to indicate which headers are allowed.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSRequestMixin.access_control_request_method">
+<code>access_control_request_method</code> </dt> <dd>
+<p>Sent with a preflight request to indicate which method will be used for the cross origin request. Set <a class="reference internal" href="#werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_methods" title="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_methods"><code>access_control_allow_methods</code></a> on the response to indicate which methods are allowed.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSRequestMixin.origin">
+<code>origin</code> </dt> <dd>
+<p>The host that the request originated from. Set <a class="reference internal" href="#werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_origin" title="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_origin"><code>access_control_allow_origin</code></a> on the response to indicate which origins are allowed.</p> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin">
+<code>class werkzeug.wrappers.cors.CORSResponseMixin</code> </dt> <dd>
+<p>A mixin for <a class="reference internal" href="#werkzeug.wrappers.BaseResponse" title="werkzeug.wrappers.BaseResponse"><code>BaseResponse</code></a> subclasses that adds descriptors for Cross Origin Resource Sharing (CORS) headers.</p> <div class="versionadded"> <p><span class="versionmodified">New in version 1.0.</span></p> </div> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_credentials">
+<code>access_control_allow_credentials</code> </dt> <dd>
+<p>Whether credentials can be shared by the browser to JavaScript code. As part of the preflight request it indicates whether credentials can be used on the cross origin request.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_headers">
+<code>access_control_allow_headers</code> </dt> <dd>
+<p>Which headers can be sent with the cross origin request.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_methods">
+<code>access_control_allow_methods</code> </dt> <dd>
+<p>Which methods can be used for the cross origin request.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_allow_origin">
+<code>access_control_allow_origin</code> </dt> <dd>
+<p>The origin or ‘*’ for any origin that may make cross origin requests.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_expose_headers">
+<code>access_control_expose_headers</code> </dt> <dd>
+<p>Which headers can be shared by the browser to JavaScript code.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.cors.CORSResponseMixin.access_control_max_age">
+<code>access_control_max_age</code> </dt> <dd>
+<p>The maximum age in seconds the access control settings can be cached for.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="etag">ETag</h3> <dl class="class"> <dt id="werkzeug.wrappers.ETagRequestMixin">
+<code>class werkzeug.wrappers.ETagRequestMixin</code> </dt> <dd>
+<p>Add entity tag and cache descriptors to a request object or object with a WSGI environment available as <a class="reference internal" href="#werkzeug.wrappers.BaseRequest.environ" title="werkzeug.wrappers.BaseRequest.environ"><code>environ</code></a>. This not only provides access to etags but also to the cache control header.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.cache_control">
+<code>cache_control</code> </dt> <dd>
+<p>A <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.RequestCacheControl" title="werkzeug.datastructures.RequestCacheControl"><code>RequestCacheControl</code></a> object for the incoming cache control headers.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.if_match">
+<code>if_match</code> </dt> <dd>
+<p>An object containing all the etags in the <code>If-Match</code> header.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Return type:</th>
+<td class="field-body"><a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ETags" title="werkzeug.datastructures.ETags"><code>ETags</code></a></td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.if_modified_since">
+<code>if_modified_since</code> </dt> <dd>
+<p>The parsed <code>If-Modified-Since</code> header as datetime object.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.if_none_match">
+<code>if_none_match</code> </dt> <dd>
+<p>An object containing all the etags in the <code>If-None-Match</code> header.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Return type:</th>
+<td class="field-body"><a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ETags" title="werkzeug.datastructures.ETags"><code>ETags</code></a></td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.if_range">
+<code>if_range</code> </dt> <dd>
+<p>The parsed <code>If-Range</code> header.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.7.</span></p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Return type:</th>
+<td class="field-body"><a class="reference internal" href="../datastructures/index#werkzeug.datastructures.IfRange" title="werkzeug.datastructures.IfRange"><code>IfRange</code></a></td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.if_unmodified_since">
+<code>if_unmodified_since</code> </dt> <dd>
+<p>The parsed <code>If-Unmodified-Since</code> header as datetime object.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagRequestMixin.range">
+<code>range</code> </dt> <dd>
+<p>The parsed <code>Range</code> header.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.7.</span></p> </div> </details><table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Return type:</th>
+<td class="field-body"><a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Range" title="werkzeug.datastructures.Range"><code>Range</code></a></td> </tr>  </table> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.wrappers.ETagResponseMixin">
+<code>class werkzeug.wrappers.ETagResponseMixin</code> </dt> <dd>
+<p>Adds extra functionality to a response object for etag and cache handling. This mixin requires an object with at least a <code>headers</code> object that implements a dict like interface similar to <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.Headers" title="werkzeug.datastructures.Headers"><code>Headers</code></a>.</p> <p>If you want the <a class="reference internal" href="#werkzeug.wrappers.ETagResponseMixin.freeze" title="werkzeug.wrappers.ETagResponseMixin.freeze"><code>freeze()</code></a> method to automatically add an etag, you have to mixin this method before the response base class. The default response class does not do that.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagResponseMixin.accept_ranges">
+<code>accept_ranges</code> </dt> <dd>
+<p>The <code>Accept-Ranges</code> header. Even though the name would indicate that multiple values are supported, it must be one string token only.</p> <p>The values <code>'bytes'</code> and <code>'none'</code> are common.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.7.</span></p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.ETagResponseMixin.add_etag">
+<code>add_etag(overwrite=False, weak=False)</code> </dt> <dd>
+<p>Add an etag for the current response if there is none yet.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagResponseMixin.cache_control">
+<code>cache_control</code> </dt> <dd>
+<p>The Cache-Control general-header field is used to specify directives that MUST be obeyed by all caching mechanisms along the request/response chain.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.ETagResponseMixin.content_range">
+<code>content_range</code> </dt> <dd>
+<p>The <code>Content-Range</code> header as a <a class="reference internal" href="../datastructures/index#werkzeug.datastructures.ContentRange" title="werkzeug.datastructures.ContentRange"><code>ContentRange</code></a> object. Available even if the header is not set.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.7.</span></p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.ETagResponseMixin.freeze">
+<code>freeze(no_etag=False)</code> </dt> <dd>
+<p>Call this method if you want to make your response object ready for pickeling. This buffers the generator if there is one. This also sets the etag unless <code>no_etag</code> is set to <code>True</code>.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.ETagResponseMixin.get_etag">
+<code>get_etag()</code> </dt> <dd>
+<p>Return a tuple in the form <code>(etag, is_weak)</code>. If there is no ETag the return value is <code>(None, None)</code>.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.ETagResponseMixin.make_conditional">
+<code>make_conditional(request_or_environ, accept_ranges=False, complete_length=None)</code> </dt> <dd>
+<p>Make the response conditional to the request. This method works best if an etag was defined for the response already. The <code>add_etag</code> method can be used to do that. If called without etag just the date header is set.</p> <p>This does nothing if the request method in the request or environ is anything but GET or HEAD.</p> <p>For optimal performance when handling range requests, it’s recommended that your response data object implements <code>seekable</code>, <code>seek</code> and <code>tell</code> methods as described by <a class="reference external" href="https://docs.python.org/3/library/io.html#io.IOBase" title="(in Python v3.8)"><code>io.IOBase</code></a>. Objects returned by <a class="reference internal" href="../wsgi/index#werkzeug.wsgi.wrap_file" title="werkzeug.wsgi.wrap_file"><code>wrap_file()</code></a> automatically implement those methods.</p> <p>It does not remove the body of the response because that’s something the <code>__call__()</code> function does for us automatically.</p> <p>Returns self so that you can do <code>return resp.make_conditional(req)</code> but modifies the object in-place.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first simple"> <li>
+<strong>request_or_environ</strong> – a request object or WSGI environment to be used to make the response conditional against.</li> <li>
+<strong>accept_ranges</strong> – This parameter dictates the value of <code>Accept-Ranges</code> header. If <code>False</code> (default), the header is not set. If <code>True</code>, it will be set to <code>"bytes"</code>. If <code>None</code>, it will be set to <code>"none"</code>. If it’s a string, it will use this value.</li> <li>
+<strong>complete_length</strong> – Will be used only in valid Range Requests. It will set <code>Content-Range</code> complete length value and compute <code>Content-Length</code> real value. This parameter is mandatory for successful Range Requests completion.</li> </ul> </td> </tr> <tr>
+<th class="field-name">Raises:</th>
+<td class="field-body">
+<p class="first last"><a class="reference internal" href="../exceptions/index#werkzeug.exceptions.RequestedRangeNotSatisfiable" title="werkzeug.exceptions.RequestedRangeNotSatisfiable"><code>RequestedRangeNotSatisfiable</code></a> if <code>Range</code> header could not be parsed or satisfied.</p> </td> </tr>  </table> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.ETagResponseMixin.set_etag">
+<code>set_etag(etag, weak=False)</code> </dt> <dd>
+<p>Set the etag, and override the old one if there was one.</p> </dd>
+</dl> </dd>
+</dl>   <h3 id="user-agent">User Agent</h3> <dl class="class"> <dt id="werkzeug.wrappers.UserAgentMixin">
+<code>class werkzeug.wrappers.UserAgentMixin</code> </dt> <dd>
+<p>Adds a <code>user_agent</code> attribute to the request object which contains the parsed user agent of the browser that triggered the request as a <a class="reference internal" href="../utils/index#werkzeug.useragents.UserAgent" title="werkzeug.useragents.UserAgent"><code>UserAgent</code></a> object.</p> <dl class="attribute"> <dt id="werkzeug.wrappers.UserAgentMixin.user_agent">
+<code>user_agent</code> </dt> <dd>
+<p>The current user agent.</p> </dd>
+</dl> </dd>
+</dl>    <h2 id="extra-mixin-classes">Extra Mixin Classes</h2> <p>These mixins are not included in the default <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> and <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a> classes. They provide extra behavior that needs to be opted into by creating your own subclasses:</p> <pre data-language="python">class Response(JSONMixin, BaseResponse):
+    pass
+</pre>  <h3 id="json">JSON</h3> <dl class="class"> <dt id="werkzeug.wrappers.json.JSONMixin">
+<code>class werkzeug.wrappers.json.JSONMixin</code> </dt> <dd>
+<p>Mixin to parse <code>data</code> as JSON. Can be mixed in for both <a class="reference internal" href="#werkzeug.wrappers.Request" title="werkzeug.wrappers.Request"><code>Request</code></a> and <a class="reference internal" href="#werkzeug.wrappers.Response" title="werkzeug.wrappers.Response"><code>Response</code></a> classes.</p> <p>If <a class="reference external" href="https://simplejson.readthedocs.io/en/latest/">simplejson</a> is installed it is preferred over Python’s built-in <a class="reference external" href="https://docs.python.org/3/library/json.html#module-json" title="(in Python v3.8)"><code>json</code></a> module.</p> <dl class="method"> <dt id="werkzeug.wrappers.json.JSONMixin.get_json">
+<code>get_json(force=False, silent=False, cache=True)</code> </dt> <dd>
+<p>Parse <code>data</code> as JSON.</p> <p>If the mimetype does not indicate JSON (<em class="mimetype">application/json</em>, see <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.is_json" title="werkzeug.wrappers.json.JSONMixin.is_json"><code>is_json()</code></a>), this returns <code>None</code>.</p> <p>If parsing fails, <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.on_json_loading_failed" title="werkzeug.wrappers.json.JSONMixin.on_json_loading_failed"><code>on_json_loading_failed()</code></a> is called and its return value is used as the return value.</p> <table class="docutils field-list" frame="void" rules="none"> <col class="field-name"> <col class="field-body">  <tr>
+<th class="field-name">Parameters:</th>
+<td class="field-body">
+<ul class="first last simple"> <li>
+<strong>force</strong> – Ignore the mimetype and always try to parse JSON.</li> <li>
+<strong>silent</strong> – Silence parsing errors and return <code>None</code> instead.</li> <li>
+<strong>cache</strong> – Store the parsed JSON to return for subsequent calls.</li> </ul> </td> </tr>  </table> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.json.JSONMixin.is_json">
+<code>is_json</code> </dt> <dd>
+<p>Check if the mimetype indicates JSON data, either <em class="mimetype">application/json</em> or <em class="mimetype">application/*+json</em>.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.json.JSONMixin.json">
+<code>json</code> </dt> <dd>
+<p>The parsed JSON data if <code>mimetype</code> indicates JSON (<em class="mimetype">application/json</em>, see <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.is_json" title="werkzeug.wrappers.json.JSONMixin.is_json"><code>is_json()</code></a>).</p> <p>Calls <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.get_json" title="werkzeug.wrappers.json.JSONMixin.get_json"><code>get_json()</code></a> with default arguments.</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.wrappers.json.JSONMixin.json_module">
+<code>json_module</code> </dt> <dd>
+<p>A module or other object that has <code>dumps</code> and <code>loads</code> functions that match the API of the built-in <a class="reference external" href="https://docs.python.org/3/library/json.html#module-json" title="(in Python v3.8)"><code>json</code></a> module.</p> <p>alias of <code>_JSONModule</code></p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.wrappers.json.JSONMixin.on_json_loading_failed">
+<code>on_json_loading_failed(e)</code> </dt> <dd>
+<p>Called if <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.get_json" title="werkzeug.wrappers.json.JSONMixin.get_json"><code>get_json()</code></a> parsing fails and isn’t silenced. If this method returns a value, it is used as the return value for <a class="reference internal" href="#werkzeug.wrappers.json.JSONMixin.get_json" title="werkzeug.wrappers.json.JSONMixin.get_json"><code>get_json()</code></a>. The default implementation raises <a class="reference internal" href="../exceptions/index#werkzeug.exceptions.BadRequest" title="werkzeug.exceptions.BadRequest"><code>BadRequest</code></a>.</p> </dd>
+</dl> </dd>
+</dl>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2020 Pallets<br>Licensed under the BSD 3-clause License.<br>
+    <a href="https://werkzeug.palletsprojects.com/en/1.0.x/wrappers/" class="_attribution-link">https://werkzeug.palletsprojects.com/en/1.0.x/wrappers/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

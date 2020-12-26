@@ -1,0 +1,207 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Context Locals - Werkzeug 1.0 - W3cubDocs</title>
+  
+  <meta name="description" content="Sooner or later you have some things you want to have in every single view or helper function or whatever. In PHP the way to go are global variables &hellip;">
+  <meta name="keywords" content="context, locals, werkzeug, werkzeug~1.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/werkzeug~1.0/local/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c7076d7cdaddc6969cb97911f9b488459d4bebca88d6f2525f2a12432f0bec8426c751ccfbc34920dda3867e50ab24698396bc4e548e788fc826f69a158d6856.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/werkzeug~1.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/werkzeug~1.0/" class="_nav-link" title="" style="margin-left:0;">Werkzeug 1.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="context-locals">Context Locals</h1> <p>Sooner or later you have some things you want to have in every single view or helper function or whatever. In PHP the way to go are global variables. However, that isn’t possible in WSGI applications without a major drawback: As soon as you operate on the global namespace your application isn’t thread-safe any longer.</p> <p>The Python standard library has a concept called “thread locals” (or thread-local data). A thread local is a global object in which you can put stuff in and get back later in a thread-safe and thread-specific way. That means that whenever you set or get a value on a thread local object, the thread local object checks in which thread you are and retrieves the value corresponding to your thread (if one exists). So, you won’t accidentally get another thread’s data.</p> <p>This approach, however, has a few disadvantages. For example, besides threads, there are other types of concurrency in Python. A very popular one is greenlets. Also, whether every request gets its own thread is not guaranteed in WSGI. It could be that a request is reusing a thread from a previous request, and hence data is left over in the thread local object.</p> <p>Werkzeug provides its own implementation of local data storage called <code>werkzeug.local</code>. This approach provides a similar functionality to thread locals but also works with greenlets.</p> <p>Here’s a simple example of how one could use werkzeug.local:</p> <pre data-language="python">from werkzeug.local import Local, LocalManager
+
+local = Local()
+local_manager = LocalManager([local])
+
+def application(environ, start_response):
+    local.request = request = Request(environ)
+    ...
+
+application = local_manager.make_middleware(application)
+</pre> <p>This binds the request to <code>local.request</code>. Every other piece of code executed after this assignment in the same context can safely access local.request and will get the same request object. The <code>make_middleware</code> method on the local manager ensures that all references to the local objects are cleared up after the request.</p> <p>The same context means the same greenlet (if you’re using greenlets) in the same thread and same process.</p> <p>If a request object is not yet set on the local object and you try to access it, you will get an <code>AttributeError</code>. You can use <code>getattr</code> to avoid that:</p> <pre data-language="python">def get_request():
+    return getattr(local, 'request', None)
+</pre> <p>This will try to get the request or return <code>None</code> if the request is not (yet?) available.</p> <p>Note that local objects cannot manage themselves, for that you need a local manager. You can pass a local manager multiple locals or add additionals later by appending them to <code>manager.locals</code> and every time the manager cleans up it will clean up all the data left in the locals for this context.</p> <dl class="function"> <dt id="werkzeug.local.release_local">
+<code>werkzeug.local.release_local(local)</code> </dt> <dd>
+<p>Releases the contents of the local for the current context. This makes it possible to use locals without a manager.</p> <p>Example:</p> <pre data-language="python">&gt;&gt;&gt; loc = Local()
+&gt;&gt;&gt; loc.foo = 42
+&gt;&gt;&gt; release_local(loc)
+&gt;&gt;&gt; hasattr(loc, 'foo')
+False
+</pre> <p>With this function one can release <code>Local</code> objects as well as <a class="reference internal" href="#werkzeug.local.LocalStack" title="werkzeug.local.LocalStack"><code>LocalStack</code></a> objects. However it is not possible to release data held by proxies that way, one always has to retain a reference to the underlying local object in order to be able to release it.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.1.</span></p> </div> </details>
+</dd>
+</dl> <dl class="class"> <dt id="werkzeug.local.LocalManager">
+<code>class werkzeug.local.LocalManager(locals=None, ident_func=None)</code> </dt> <dd>
+<p>Local objects cannot manage themselves. For that you need a local manager. You can pass a local manager multiple locals or add them later by appending them to <code>manager.locals</code>. Every time the manager cleans up, it will clean up all the data left in the locals for this context.</p> <p>The <code>ident_func</code> parameter can be added to override the default ident function for the wrapped locals.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.7: </span><code>ident_func</code> was added.</p> </div> <div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.6.1: </span>Instead of a manager the <a class="reference internal" href="#werkzeug.local.release_local" title="werkzeug.local.release_local"><code>release_local()</code></a> function can be used as well.</p> </div> </details><dl class="method"> <dt id="werkzeug.local.LocalManager.cleanup">
+<code>cleanup()</code> </dt> <dd>
+<p>Manually clean up the data in the locals for this context. Call this at the end of the request or use <code>make_middleware()</code>.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.local.LocalManager.get_ident">
+<code>get_ident()</code> </dt> <dd>
+<p>Return the context identifier the local objects use internally for this context. You cannot override this method to change the behavior but use it to link other context local objects (such as SQLAlchemy’s scoped sessions) to the Werkzeug locals.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.7: </span>You can pass a different ident function to the local manager that will then be propagated to all the locals passed to the constructor.</p> </div> </details>
+</dd>
+</dl> <dl class="method"> <dt id="werkzeug.local.LocalManager.make_middleware">
+<code>make_middleware(app)</code> </dt> <dd>
+<p>Wrap a WSGI application so that cleaning up happens after request end.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.local.LocalManager.middleware">
+<code>middleware(func)</code> </dt> <dd>
+<p>Like <code>make_middleware</code> but for decorating functions.</p> <p>Example usage:</p> <pre data-language="python">@manager.middleware
+def application(environ, start_response):
+    ...
+</pre> <p>The difference to <code>make_middleware</code> is that the function passed will have all the arguments copied from the inner application (name, docstring, module).</p> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.local.LocalStack">
+<code>class werkzeug.local.LocalStack</code> </dt> <dd>
+<p>This class works similar to a <code>Local</code> but keeps a stack of objects instead. This is best explained with an example:</p> <pre data-language="python">&gt;&gt;&gt; ls = LocalStack()
+&gt;&gt;&gt; ls.push(42)
+&gt;&gt;&gt; ls.top
+42
+&gt;&gt;&gt; ls.push(23)
+&gt;&gt;&gt; ls.top
+23
+&gt;&gt;&gt; ls.pop()
+23
+&gt;&gt;&gt; ls.top
+42
+</pre> <p>They can be force released by using a <a class="reference internal" href="#werkzeug.local.LocalManager" title="werkzeug.local.LocalManager"><code>LocalManager</code></a> or with the <a class="reference internal" href="#werkzeug.local.release_local" title="werkzeug.local.release_local"><code>release_local()</code></a> function but the correct way is to pop the item from the stack after using. When the stack is empty it will no longer be bound to the current context (and as such released).</p> <p>By calling the stack without arguments it returns a proxy that resolves to the topmost item on the stack.</p> <details class="changelog"> <summary>Changelog</summary><div class="versionadded"> <p><span class="versionmodified">New in version 0.6.1.</span></p> </div> </details><dl class="method"> <dt id="werkzeug.local.LocalStack.pop">
+<code>pop()</code> </dt> <dd>
+<p>Removes the topmost item from the stack, will return the old value or <code>None</code> if the stack was already empty.</p> </dd>
+</dl> <dl class="method"> <dt id="werkzeug.local.LocalStack.push">
+<code>push(obj)</code> </dt> <dd>
+<p>Pushes a new item to the stack</p> </dd>
+</dl> <dl class="attribute"> <dt id="werkzeug.local.LocalStack.top">
+<code>top</code> </dt> <dd>
+<p>The topmost item on the stack. If the stack is empty, <code>None</code> is returned.</p> </dd>
+</dl> </dd>
+</dl> <dl class="class"> <dt id="werkzeug.local.LocalProxy">
+<code>class werkzeug.local.LocalProxy(local, name=None)</code> </dt> <dd>
+<p>Acts as a proxy for a werkzeug local. Forwards all operations to a proxied object. The only operations not supported for forwarding are right handed operands and any kind of assignment.</p> <p>Example usage:</p> <pre data-language="python">from werkzeug.local import Local
+l = Local()
+
+# these are proxies
+request = l('request')
+user = l('user')
+
+
+from werkzeug.local import LocalStack
+_response_local = LocalStack()
+
+# this is a proxy
+response = _response_local()
+</pre> <p>Whenever something is bound to l.user / l.request the proxy objects will forward all operations. If no object is bound a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.8)"><code>RuntimeError</code></a> will be raised.</p> <p>To create proxies to <code>Local</code> or <a class="reference internal" href="#werkzeug.local.LocalStack" title="werkzeug.local.LocalStack"><code>LocalStack</code></a> objects, call the object as shown above. If you want to have a proxy to an object looked up by a function, you can (as of Werkzeug 0.6.1) pass a function to the <a class="reference internal" href="#werkzeug.local.LocalProxy" title="werkzeug.local.LocalProxy"><code>LocalProxy</code></a> constructor:</p> <pre data-language="python">session = LocalProxy(lambda: get_current_request().session)
+</pre> <details class="changelog"> <summary>Changelog</summary><div class="versionchanged"> <p><span class="versionmodified">Changed in version 0.6.1: </span>The class can be instantiated with a callable as well now.</p> </div> </details><p>Keep in mind that <code>repr()</code> is also forwarded, so if you want to find out if you are dealing with a proxy you can do an <code>isinstance()</code> check:</p> <pre data-language="pycon">&gt;&gt;&gt; from werkzeug.local import LocalProxy
+&gt;&gt;&gt; isinstance(request, LocalProxy)
+True
+</pre> <p>You can also create proxy objects by hand:</p> <pre data-language="python">from werkzeug.local import Local, LocalProxy
+local = Local()
+request = LocalProxy(local, 'request')
+</pre> <dl class="method"> <dt id="werkzeug.local.LocalProxy._get_current_object">
+<code>_get_current_object()</code> </dt> <dd>
+<p>Return the current object. This is useful if you want the real object behind the proxy at a time for performance reasons or because you want to pass the object into a different context.</p> </dd>
+</dl> </dd>
+</dl>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2007–2020 Pallets<br>Licensed under the BSD 3-clause License.<br>
+    <a href="https://werkzeug.palletsprojects.com/en/1.0.x/local/" class="_attribution-link">https://werkzeug.palletsprojects.com/en/1.0.x/local/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
