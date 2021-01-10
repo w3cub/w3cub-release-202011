@@ -1,0 +1,260 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Device Detection - Varnish - W3cubDocs</title>
+  
+  <meta name="description" content=" Device detection is figuring out what kind of content to serve to a client based on the User-Agent string supplied in a request. ">
+  <meta name="keywords" content="device, detection, varnish">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/varnish/users-guide/devicedetection.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/varnish.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/varnish/" class="_nav-link" title="" style="margin-left:0;">Varnish</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="users-guide-devicedetect">Device detection</h1> <p>Device detection is figuring out what kind of content to serve to a client based on the User-Agent string supplied in a request.</p> <p>Use cases for this are for example to send size reduced files to mobile clients with small screens and on high latency networks, or to provide a streaming video codec that the client understands.</p> <p>There are a couple of typical strategies to use for this type of scenario: 1) Redirect to another URL. 2) Use a different backend for the special client. 3) Change the backend request so that the backend sends tailored content.</p> <p>To perhaps make the strategies easier to understand, we, in this context, assume that the <code>req.http.X-UA-Device</code> header is present and unique per client class.</p> <p>Setting this header can be as simple as:</p> <pre data-language="python">sub vcl_recv {
+    if (req.http.User-Agent ~ "(?i)iphone" {
+        set req.http.X-UA-Device = "mobile-iphone";
+    }
+}
+</pre> <p>There are different commercial and free offerings in doing grouping and identifying clients in further detail. For a basic and community based regular expression set, see <a class="reference external" href="https://github.com/varnishcache/varnish-devicedetect/">https://github.com/varnishcache/varnish-devicedetect/</a>.</p>  <h2 id="serve-the-different-content-on-the-same-url">Serve the different content on the same URL</h2> <p>The tricks involved are: 1. Detect the client (pretty simple, just include <code>devicedetect.vcl</code> and call it). 2. Figure out how to signal the backend the client class. This includes for example setting a header, changing a header or even changing the backend request URL. 3. Modify any response from the backend to add missing ‘Vary’ headers, so Varnish’ internal handling of this kicks in. 4. Modify output sent to the client so any caches outside our control don’t serve the wrong content.</p> <p>All this needs to be done while still making sure that we only get one cached object per URL per device class.</p>  <h3 id="example-1-send-http-header-to-backend">Example 1: Send HTTP header to backend</h3> <p>The basic case is that Varnish adds the ‘X-UA-Device’ HTTP header on the backend requests, and the backend mentions in the response ‘Vary’ header that the content is dependent on this header.</p> <p>Everything works out of the box from Varnish’ perspective.</p> <p>VCL:</p> <pre data-language="python">sub vcl_recv {
+    # call some detection engine that set req.http.X-UA-Device
+}
+# req.http.X-UA-Device is copied by Varnish into bereq.http.X-UA-Device
+
+# so, this is a bit counterintuitive. The backend creates content based on
+# the normalized User-Agent, but we use Vary on X-UA-Device so Varnish will
+# use the same cached object for all U-As that map to the same X-UA-Device.
+#
+# If the backend does not mention in Vary that it has crafted special
+# content based on the User-Agent (==X-UA-Device), add it.
+# If your backend does set Vary: User-Agent, you may have to remove that here.
+sub vcl_backend_response {
+    if (bereq.http.X-UA-Device) {
+        if (!beresp.http.Vary) { # no Vary at all
+            set beresp.http.Vary = "X-UA-Device";
+        } elseif (beresp.http.Vary !~ "X-UA-Device") { # add to existing Vary
+            set beresp.http.Vary = beresp.http.Vary + ", X-UA-Device";
+        }
+    }
+    # comment this out if you don't want the client to know your
+    # classification
+    set beresp.http.X-UA-Device = bereq.http.X-UA-Device;
+}
+
+# to keep any caches in the wild from serving wrong content to client #2
+# behind them, we need to transform the Vary on the way out.
+sub vcl_deliver {
+    if ((req.http.X-UA-Device) &amp;&amp; (resp.http.Vary)) {
+        set resp.http.Vary = regsub(resp.http.Vary, "X-UA-Device", "User-Agent");
+    }
+}
+</pre>   <h3 id="example-2-normalize-the-user-agent-string">Example 2: Normalize the User-Agent string</h3> <p>Another way of signalling the device type is to override or normalize the ‘User-Agent’ header sent to the backend.</p> <p>For example:</p> <pre data-language="python">User-Agent: Mozilla/5.0 (Linux; U; Android 2.2; nb-no; HTC Desire Build/FRF91) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1
+</pre> <p>becomes:</p> <pre data-language="python">User-Agent: mobile-android
+</pre> <p>when seen by the backend.</p> <p>This works if you don’t need the original header for anything on the backend. A possible use for this is for CGI scripts where only a small set of predefined headers are (by default) available for the script.</p> <p>VCL:</p> <pre data-language="python">sub vcl_recv {
+    # call some detection engine that set req.http.X-UA-Device
+}
+
+# override the header before it is sent to the backend
+sub vcl_miss { if (req.http.X-UA-Device) { set req.http.User-Agent = req.http.X-UA-Device; } }
+sub vcl_pass { if (req.http.X-UA-Device) { set req.http.User-Agent = req.http.X-UA-Device; } }
+
+# standard Vary handling code from previous examples.
+sub vcl_backend_response {
+    if (bereq.http.X-UA-Device) {
+        if (!beresp.http.Vary) { # no Vary at all
+            set beresp.http.Vary = "X-UA-Device";
+        } elseif (beresp.http.Vary !~ "X-UA-Device") { # add to existing Vary
+            set beresp.http.Vary = beresp.http.Vary + ", X-UA-Device";
+        }
+    }
+    set beresp.http.X-UA-Device = bereq.http.X-UA-Device;
+}
+sub vcl_deliver {
+    if ((req.http.X-UA-Device) &amp;&amp; (resp.http.Vary)) {
+        set resp.http.Vary = regsub(resp.http.Vary, "X-UA-Device", "User-Agent");
+    }
+}
+</pre>   <h3 id="example-3-add-the-device-class-as-a-get-query-parameter">Example 3: Add the device class as a GET query parameter</h3> <p>If everything else fails, you can add the device type as a GET argument.</p>  <p><a class="reference external" href="http://example.com/article/1234.html">http://example.com/article/1234.html</a> –&gt; <a class="reference external" href="http://example.com/article/1234.html?devicetype=mobile-iphone">http://example.com/article/1234.html?devicetype=mobile-iphone</a></p>  <p>The client itself does not see this classification, only the backend request is changed.</p> <p>VCL:</p> <pre data-language="python">sub vcl_recv {
+    # call some detection engine that set req.http.X-UA-Device
+}
+
+sub append_ua {
+    if ((req.http.X-UA-Device) &amp;&amp; (req.method == "GET")) {
+        # if there are existing GET arguments;
+        if (req.url ~ "\?") {
+            set req.http.X-get-devicetype = "&amp;devicetype=" + req.http.X-UA-Device;
+        } else {
+            set req.http.X-get-devicetype = "?devicetype=" + req.http.X-UA-Device;
+        }
+        set req.url = req.url + req.http.X-get-devicetype;
+        unset req.http.X-get-devicetype;
+    }
+}
+
+# do this after vcl_hash, so all Vary-ants can be purged in one go. (avoid ban()ing)
+sub vcl_miss { call append_ua; }
+sub vcl_pass { call append_ua; }
+
+# Handle redirects, otherwise standard Vary handling code from previous
+# examples.
+sub vcl_backend_response {
+    if (bereq.http.X-UA-Device) {
+        if (!beresp.http.Vary) { # no Vary at all
+            set beresp.http.Vary = "X-UA-Device";
+        } elseif (beresp.http.Vary !~ "X-UA-Device") { # add to existing Vary
+            set beresp.http.Vary = beresp.http.Vary + ", X-UA-Device";
+        }
+
+        # if the backend returns a redirect (think missing trailing slash),
+        # we will potentially show the extra address to the client. we
+        # don't want that.  if the backend reorders the get parameters, you
+        # may need to be smarter here. (? and &amp; ordering)
+
+        if (beresp.status == 301 || beresp.status == 302 || beresp.status == 303) {
+            set beresp.http.location = regsub(beresp.http.location, "[?&amp;]devicetype=.*$", "");
+        }
+    }
+    set beresp.http.X-UA-Device = bereq.http.X-UA-Device;
+}
+sub vcl_deliver {
+    if ((req.http.X-UA-Device) &amp;&amp; (resp.http.Vary)) {
+        set resp.http.Vary = regsub(resp.http.Vary, "X-UA-Device", "User-Agent");
+    }
+}
+</pre>    <h2 id="different-backend-for-mobile-clients">Different backend for mobile clients</h2> <p>If you have a different backend that serves pages for mobile clients, or any special needs in VCL, you can use the ‘X-UA-Device’ header like this:</p> <pre data-language="python">backend mobile {
+    .host = "10.0.0.1";
+    .port = "80";
+}
+
+sub vcl_recv {
+    # call some detection engine
+
+    if (req.http.X-UA-Device ~ "^mobile" || req.http.X-UA-device ~ "^tablet") {
+        set req.backend_hint = mobile;
+    }
+}
+sub vcl_hash {
+    if (req.http.X-UA-Device) {
+        hash_data(req.http.X-UA-Device);
+    }
+}
+</pre>   <h2 id="redirecting-mobile-clients">Redirecting mobile clients</h2> <p>If you want to redirect mobile clients you can use the following snippet.</p> <p>VCL:</p> <pre data-language="python">sub vcl_recv {
+    # call some detection engine
+
+    if (req.http.X-UA-Device ~ "^mobile" || req.http.X-UA-device ~ "^tablet") {
+        return(synth(750, "Moved Temporarily"));
+    }
+}
+
+sub vcl_synth {
+    if (obj.status == 750) {
+        set obj.http.Location = "http://m.example.com" + req.url;
+        set obj.status = 302;
+        return(deliver);
+    }
+}
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    Copyright © 2006 Verdens Gang AS<br>Copyright © 2006–2020 Varnish Software AS<br>Licensed under the BSD-2-Clause License.<br>
+    <a href="https://varnish-cache.org/docs/6.5/users-guide/devicedetection.html" class="_attribution-link">https://varnish-cache.org/docs/6.5/users-guide/devicedetection.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
