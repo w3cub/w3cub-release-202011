@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/redis/client-list.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/redis.js"></script>
   
@@ -89,11 +89,12 @@
 				
 				
 <h1 class="command">CLIENT</h1>
-<pre>CLIENT LIST [TYPE normal|master|replica|pubsub]</pre>   <div class="metadata"> <p><strong>Available since 2.4.0.</strong></p> <p><strong>Time complexity:</strong> O(N) where N is the number of client connections</p> </div> <p>The <a href="client-list">CLIENT LIST</a> command returns information and statistics about the client connections server in a mostly human readable format.</p> <p>As of v5.0, the optional <code>TYPE type</code> subcommand can be used to filter the list by clients' type, where <em>type</em> is one of <code>normal</code>, <code>master</code>, <code>replica</code> and <code>pubsub</code>. Note that clients blocked into the <a href="monitor">MONITOR</a> command are considered to belong to the <code>normal</code> class.</p> <h2>Return value</h2> <p><a href="https://redis.io/topics/protocol#bulk-string-reply">Bulk string reply</a>: a unique string, formatted as follows:</p> <ul> <li>One client connection per line (separated by LF)</li> <li>Each line is composed of a succession of <code>property=value</code> fields separated by a space character.</li> </ul> <p>Here is the meaning of the fields:</p> <ul> <li>
-<code>id</code>: an unique 64-bit client ID (introduced in Redis 2.8.12).</li> <li>
+<pre>CLIENT LIST [TYPE normal|master|replica|pubsub] [ID client-id [client-id ...]]</pre>   <div class="metadata"> <p><strong>Available since 2.4.0.</strong></p> <p><strong>Time complexity:</strong> O(N) where N is the number of client connections</p> </div> <p>The <a href="client-list">CLIENT LIST</a> command returns information and statistics about the client connections server in a mostly human readable format.</p> <p>You can use one of the optional subcommands to filter the list. The <code>TYPE type</code> subcommand filters the list by clients' type, where <em>type</em> is one of <code>normal</code>, <code>master</code>, <code>replica</code>, and <code>pubsub</code>. Note that clients blocked by the <a href="monitor">MONITOR</a> command belong to the <code>normal</code> class.</p> <p>The <code>ID</code> filter only returns entries for clients with IDs matching the <code>client-id</code> arguments.</p> <h2>Return value</h2> <p><a href="https://redis.io/topics/protocol#bulk-string-reply">Bulk string reply</a>: a unique string, formatted as follows:</p> <ul> <li>One client connection per line (separated by LF)</li> <li>Each line is composed of a succession of <code>property=value</code> fields separated by a space character.</li> </ul> <p>Here is the meaning of the fields:</p> <ul> <li>
+<code>id</code>: an unique 64-bit client ID.</li> <li>
 <code>name</code>: the name set by the client with <a href="client-setname">CLIENT SETNAME</a>
 </li> <li>
 <code>addr</code>: address/port of the client</li> <li>
+<code>laddr</code>: address/port of local address client connected to (bind address)</li> <li>
 <code>fd</code>: file descriptor corresponding to the socket</li> <li>
 <code>age</code>: total duration of the connection in seconds</li> <li>
 <code>idle</code>: idle time of the connection in seconds</li> <li>
@@ -108,7 +109,11 @@
 <code>oll</code>: output list length (replies are queued in this list when the buffer is full)</li> <li>
 <code>omem</code>: output buffer memory usage</li> <li>
 <code>events</code>: file descriptor events (see below)</li> <li>
-<code>cmd</code>: last command played</li> </ul> <p>The client flags can be a combination of:</p> <pre>A: connection to be closed ASAP
+<code>cmd</code>: last command played</li> <li>
+<code>argv-mem</code>: incomplete arguments for the next command (already extracted from query buffer)</li> <li>
+<code>tot-mem</code>: total memory consumed by this client in its various buffers</li> <li>
+<code>redir</code>: client id of current client tracking redirection</li> <li>
+<code>user</code>: the authenticated username of the client</li> </ul> <p>The client flags can be a combination of:</p> <pre>A: connection to be closed ASAP
 b: the client is waiting in a blocking operation
 c: connection to be closed after writing entire reply
 d: a watched keys has been modified - EXEC will fail
@@ -122,11 +127,17 @@ S: the client is a replica node connection to this instance
 u: the client is unblocked
 U: the client is connected via a Unix domain socket
 x: the client is in a MULTI/EXEC context
+t: the client enabled keys tracking in order to perform client side caching
+R: the client tracking target client is invalid
+B: the client enabled broadcast tracking mode 
 </pre> <p>The file descriptor events can be:</p> <pre>r: the client socket is readable (event loop)
 w: the client socket is writable (event loop)
-</pre> <h2>Notes</h2> <p>New fields are regularly added for debugging purpose. Some could be removed in the future. A version safe Redis client using this command should parse the output accordingly (i.e. handling gracefully missing fields, skipping unknown fields).</p>  <div class="_attribution">
+</pre> <h2>Notes</h2> <p>New fields are regularly added for debugging purpose. Some could be removed in the future. A version safe Redis client using this command should parse the output accordingly (i.e. handling gracefully missing fields, skipping unknown fields).</p> <h2>History</h2> <ul> <li>
+<code>&gt;=2.8.12</code>: Added unique client <code>id</code> field.</li> <li>
+<code>&gt;=5.0</code>: Added optional <a href="type">TYPE</a> filter.</li> <li>
+<code>&gt;=6.2</code>: Added <code>laddr</code> field and the optional <code>ID</code> filter.</li> </ul>  <div class="_attribution">
   <p class="_attribution-p">
-    © 2009–2018 Salvatore Sanfilippo<br>Licensed under the Creative Commons Attribution-ShareAlike License 4.0.<br>
+    © 2009–2020 Salvatore Sanfilippo<br>Licensed under the Creative Commons Attribution-ShareAlike License 4.0.<br>
     <a href="https://redis.io/commands/client-list" class="_attribution-link">https://redis.io/commands/client-list</a>
   </p>
 </div>

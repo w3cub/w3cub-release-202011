@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/redis/command.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/redis.js"></script>
   
@@ -110,7 +110,7 @@
 <a href="mget">MGET</a> arity is -2 since the command accepts at a minimum one argument, but up to an unlimited number: <code>MGET _key1_ [key2] [key3] ...</code>.</li> </ul> <p>Also note with <a href="mget">MGET</a>, the -1 value for "last key position" means the list of keys may have unlimited length.</p> <h3>Flags</h3> <p>Command flags is <a href="https://redis.io/topics/protocol#array-reply">Array reply</a> containing one or more status replies:</p> <ul> <li>
 <em>write</em> - command may result in modifications</li> <li>
 <em>readonly</em> - command will never modify keys</li> <li>
-<em>denyoom</em> - reject command if currently OOM</li> <li>
+<em>denyoom</em> - reject command if currently out of memory</li> <li>
 <em>admin</em> - server admin command</li> <li>
 <em>pubsub</em> - pubsub-related command</li> <li>
 <em>noscript</em> - deny this command from scripts</li> <li>
@@ -131,8 +131,12 @@
    6) (integer) 1
 </pre> <p>Some Redis commands have no predetermined key locations. For those commands, flag <code>movablekeys</code> is added to the command flags <a href="https://redis.io/topics/protocol#array-reply">Array reply</a>. Your Redis Cluster client needs to parse commands marked <code>movablekeys</code> to locate all relevant key positions.</p> <p>Complete list of commands currently requiring key location parsing:</p> <ul> <li>
 <a href="sort">SORT</a> - optional <code>STORE</code> key, optional <code>BY</code> weights, optional <a href="get">GET</a> keys</li> <li>
+<a href="zunion">ZUNION</a> - keys stop when <code>WEIGHT</code> or <code>AGGREGATE</code> starts</li> <li>
 <a href="zunionstore">ZUNIONSTORE</a> - keys stop when <code>WEIGHT</code> or <code>AGGREGATE</code> starts</li> <li>
+<a href="zinter">ZINTER</a> - keys stop when <code>WEIGHT</code> or <code>AGGREGATE</code> starts</li> <li>
 <a href="zinterstore">ZINTERSTORE</a> - keys stop when <code>WEIGHT</code> or <code>AGGREGATE</code> starts</li> <li>
+<a href="zdiff">ZDIFF</a> - keys stop after <code>numkeys</code> count arguments</li> <li>
+<a href="zdiffstore">ZDIFFSTORE</a> - keys stop after <code>numkeys</code> count arguments</li> <li>
 <a href="eval">EVAL</a> - keys stop after <code>numkeys</code> count arguments</li> <li>
 <a href="evalsha">EVALSHA</a> - keys stop after <code>numkeys</code> count arguments</li> </ul> <p>Also see <a href="command-getkeys">COMMAND GETKEYS</a> for getting your Redis server tell you where keys are in any given command.</p> <h3>First Key in Argument List</h3> <p>For most commands the first key is position 1. Position 0 is always the command name itself.</p> <h3>Last Key in Argument List</h3> <p>Redis commands usually accept one key, two keys, or an unlimited number of keys.</p> <p>If a command accepts one key, the first key and last key positions is 1.</p> <p>If a command accepts two keys (e.g. <a href="brpoplpush">BRPOPLPUSH</a>, <a href="smove">SMOVE</a>, <a href="rename">RENAME</a>, ...) then the last key position is the location of the last key in the argument list.</p> <p>If a command accepts an unlimited number of keys, the last key position is -1.</p> <h3>Step Count</h3> <table style="width:50%"> <tr>
 <td> <pre>
@@ -151,65 +155,428 @@
    5) (integer) -1
    6) (integer) 1
 </pre> </td>
-</tr> </table> <p>Key step count allows us to find key positions in commands like <a href="mset">MSET</a> where the format is <code>MSET _key1_ _val1_ [key2] [val2] [key3] [val3]...</code>.</p> <p>In the case of <a href="mset">MSET</a>, keys are every other position so the step value is 2. Compare with <a href="mget">MGET</a> above where the step value is just 1.</p> <h2>Return value</h2> <p><a href="https://redis.io/topics/protocol#array-reply">Array reply</a>: nested list of command details. Commands are returned in random order.</p> <h2>Examples</h2> <div class="example" data-session="262c6dad0d94d1597c6758b9c1725ef8"> <span class="monospace prompt">redis&gt; </span> <span class="monospace command">COMMAND</span> <code>1) 1) "sadd"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-  2) 1) "lrange"
-     2) (integer) 4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-  3) 1) "time"
-     2) (integer) 1
-     3) 1) "random"
-        2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-  4) 1) "spop"
-     2) (integer) -2
-     3) 1) "write"
-        2) "random"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-  5) 1) "hvals"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-  6) 1) "debug"
-     2) (integer) -2
-     3) 1) "admin"
-        2) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-  7) 1) "georadius_ro"
+</tr> </table> <p>Key step count allows us to find key positions in commands like <a href="mset">MSET</a> where the format is <code>MSET _key1_ _val1_ [key2] [val2] [key3] [val3]...</code>.</p> <p>In the case of <a href="mset">MSET</a>, keys are every other position so the step value is 2. Compare with <a href="mget">MGET</a> above where the step value is just 1.</p> <h2>Return value</h2> <p><a href="https://redis.io/topics/protocol#array-reply">Array reply</a>: nested list of command details. Commands are returned in random order.</p> <h2>Examples</h2> <div class="example" data-session="654e76b8c0b50030e68a824844903bc0"> <span class="monospace prompt">redis&gt; </span> <span class="monospace command">COMMAND</span> <code>1) 1) "georadius_ro"
      2) (integer) -6
      3) 1) "readonly"
         2) "movablekeys"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-  8) 1) "select"
-     2) (integer) 2
-     3) 1) "loading"
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+  2) 1) "zpopmin"
+     2) (integer) -2
+     3) 1) "write"
         2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+  3) 1) "msetnx"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 2
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+  4) 1) "hstrlen"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hash"
+        3) "@fast"
+  5) 1) "bitpos"
+     2) (integer) -3
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@bitmap"
+        3) "@slow"
+  6) 1) "bzpopmin"
+     2) (integer) -3
+     3) 1) "write"
+        2) "noscript"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) -2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+        4) "@blocking"
+  7) 1) "xdel"
+     2) (integer) -3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@fast"
+  8) 1) "wait"
+     2) (integer) 3
+     3) 1) "noscript"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-  9) 1) "auth"
+     7) 1) "@keyspace"
+        2) "@slow"
+  9) 1) "psync"
+     2) (integer) 3
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 10) 1) "zrevrank"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+ 11) 1) "client"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "noscript"
+        3) "random"
+        4) "loading"
+        5) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+        4) "@connection"
+ 12) 1) "xlen"
      2) (integer) 2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@stream"
+        3) "@fast"
+ 13) 1) "subscribe"
+     2) (integer) -2
+     3) 1) "pubsub"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@pubsub"
+        2) "@slow"
+ 14) 1) "sync"
+     2) (integer) 1
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 15) 1) "zdiff"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+ 16) 1) "bzpopmax"
+     2) (integer) -3
+     3) 1) "write"
+        2) "noscript"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) -2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+        4) "@blocking"
+ 17) 1) "geoadd"
+     2) (integer) -5
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@geo"
+        3) "@slow"
+ 18) 1) "xinfo"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 2
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@stream"
+        3) "@slow"
+ 19) 1) "geopos"
+     2) (integer) -2
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+ 20) 1) "info"
+     2) (integer) -1
+     3) 1) "random"
+        2) "loading"
+        3) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@slow"
+        2) "@dangerous"
+ 21) 1) "zrevrangebyscore"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+ 22) 1) "xrevrange"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@stream"
+        3) "@slow"
+ 23) 1) "hscan"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hash"
+        3) "@slow"
+ 24) 1) "smismember"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@fast"
+ 25) 1) "pfadd"
+     2) (integer) -2
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hyperloglog"
+        3) "@fast"
+ 26) 1) "zcard"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+ 27) 1) "psubscribe"
+     2) (integer) -2
+     3) 1) "pubsub"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@pubsub"
+        2) "@slow"
+ 28) 1) "brpop"
+     2) (integer) -3
+     3) 1) "write"
+        2) "noscript"
+     4) (integer) 1
+     5) (integer) -2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+        4) "@blocking"
+ 29) 1) "hmset"
+     2) (integer) -4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+ 30) 1) "llen"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@list"
+        3) "@fast"
+ 31) 1) "zremrangebyscore"
+     2) (integer) 4
+     3) 1) "write"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
+ 32) 1) "setrange"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+ 33) 1) "xclaim"
+     2) (integer) -6
+     3) 1) "write"
+        2) "random"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@fast"
+ 34) 1) "dump"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@slow"
+ 35) 1) "smembers"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+ 36) 1) "setex"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+ 37) 1) "pfmerge"
+     2) (integer) -2
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hyperloglog"
+        3) "@slow"
+ 38) 1) "punsubscribe"
+     2) (integer) -1
+     3) 1) "pubsub"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@pubsub"
+        2) "@slow"
+ 39) 1) "debug"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 40) 1) "pfcount"
+     2) (integer) -2
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hyperloglog"
+        3) "@slow"
+ 41) 1) "decr"
+     2) (integer) 2
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+ 42) 1) "unwatch"
+     2) (integer) 1
      3) 1) "noscript"
         2) "loading"
         3) "stale"
@@ -217,295 +584,80 @@
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 10) 1) "mset"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 2
- 11) 1) "zremrangebylex"
+     7) 1) "@fast"
+        2) "@transaction"
+ 43) 1) "smove"
      2) (integer) 4
      3) 1) "write"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 12) 1) "rename"
-     2) (integer) 3
-     3) 1) "write"
+        2) "fast"
      4) (integer) 1
      5) (integer) 2
      6) (integer) 1
- 13) 1) "xreadgroup"
+     7) 1) "@write"
+        2) "@set"
+        3) "@fast"
+ 44) 1) "getrange"
+     2) (integer) 4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@string"
+        3) "@slow"
+ 45) 1) "incr"
+     2) (integer) 2
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+ 46) 1) "latency"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 47) 1) "geodist"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+ 48) 1) "srem"
      2) (integer) -3
      3) 1) "write"
-        2) "noscript"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@fast"
+ 49) 1) "zdiffstore"
+     2) (integer) -4
+     3) 1) "write"
+        2) "denyoom"
         3) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 14) 1) "xrange"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 15) 1) "georadiusbymember_ro"
-     2) (integer) -5
-     3) 1) "readonly"
-        2) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 16) 1) "xadd"
-     2) (integer) -5
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 17) 1) "srem"
-     2) (integer) -3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 18) 1) "punsubscribe"
-     2) (integer) -1
-     3) 1) "pubsub"
-        2) "noscript"
-        3) "loading"
-        4) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 19) 1) "hmget"
-     2) (integer) -3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 20) 1) "sinterstore"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 21) 1) "xdel"
-     2) (integer) -2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 22) 1) "blpop"
-     2) (integer) -3
-     3) 1) "write"
-        2) "noscript"
-     4) (integer) 1
-     5) (integer) -2
-     6) (integer) 1
- 23) 1) "zrangebyscore"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 24) 1) "decr"
-     2) (integer) 2
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 25) 1) "touch"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 26) 1) "sismember"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 27) 1) "object"
-     2) (integer) -2
-     3) 1) "readonly"
-     4) (integer) 2
-     5) (integer) 2
-     6) (integer) 1
- 28) 1) "sunion"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 29) 1) "type"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 30) 1) "persist"
-     2) (integer) 2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 31) 1) "xack"
-     2) (integer) -3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 32) 1) "asking"
-     2) (integer) 1
-     3) 1) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 33) 1) "randomkey"
-     2) (integer) 1
-     3) 1) "readonly"
-        2) "random"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 34) 1) "sync"
-     2) (integer) 1
-     3) 1) "readonly"
-        2) "admin"
-        3) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 35) 1) "incr"
-     2) (integer) 2
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 36) 1) "slaveof"
-     2) (integer) 3
-     3) 1) "admin"
-        2) "noscript"
-        3) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 37) 1) "zadd"
-     2) (integer) -4
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 38) 1) "bitfield"
-     2) (integer) -2
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 39) 1) "module"
-     2) (integer) -2
-     3) 1) "admin"
-        2) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 40) 1) "psubscribe"
-     2) (integer) -2
-     3) 1) "pubsub"
-        2) "noscript"
-        3) "loading"
-        4) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 41) 1) "getrange"
-     2) (integer) 4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 42) 1) "bzpopmin"
-     2) (integer) -2
-     3) 1) "write"
-        2) "noscript"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) -2
-     6) (integer) 1
- 43) 1) "lpush"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 44) 1) "bgrewriteaof"
-     2) (integer) 1
-     3) 1) "admin"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 45) 1) "replconf"
-     2) (integer) -1
-     3) 1) "admin"
-        2) "noscript"
-        3) "loading"
-        4) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 46) 1) "eval"
-     2) (integer) -3
-     3) 1) "noscript"
-        2) "movablekeys"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 47) 1) "pfmerge"
-     2) (integer) -2
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 48) 1) "incrby"
-     2) (integer) 3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 49) 1) "zincrby"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
  50) 1) "sscan"
      2) (integer) -3
      3) 1) "readonly"
@@ -513,684 +665,258 @@
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
- 51) 1) "substr"
-     2) (integer) 4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 52) 1) "zremrangebyrank"
-     2) (integer) 4
-     3) 1) "write"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 53) 1) "append"
-     2) (integer) 3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 54) 1) "zpopmax"
-     2) (integer) -2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 55) 1) "bitpos"
-     2) (integer) -3
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 56) 1) "hstrlen"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 57) 1) "monitor"
-     2) (integer) 1
-     3) 1) "admin"
-        2) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 58) 1) "post"
-     2) (integer) -1
-     3) 1) "loading"
-        2) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 59) 1) "lset"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 60) 1) "set"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 61) 1) "brpop"
-     2) (integer) -3
-     3) 1) "write"
-        2) "noscript"
-     4) (integer) 1
-     5) (integer) -2
-     6) (integer) 1
- 62) 1) "zrevrank"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 63) 1) "georadius"
-     2) (integer) -6
-     3) 1) "write"
-        2) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 64) 1) "sdiffstore"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 65) 1) "lpop"
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+ 51) 1) "lpop"
      2) (integer) 2
      3) 1) "write"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
- 66) 1) "ping"
-     2) (integer) -1
-     3) 1) "stale"
-        2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 67) 1) "pfcount"
-     2) (integer) -2
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
- 68) 1) "zrangebylex"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 69) 1) "zrevrangebyscore"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 70) 1) "flushdb"
-     2) (integer) -1
-     3) 1) "write"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 71) 1) "sort"
-     2) (integer) -2
-     3) 1) "write"
-        2) "denyoom"
-        3) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 72) 1) "bzpopmax"
-     2) (integer) -2
-     3) 1) "write"
-        2) "noscript"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) -2
-     6) (integer) 1
- 73) 1) "move"
-     2) (integer) 3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 74) 1) "georadiusbymember"
-     2) (integer) -5
-     3) 1) "write"
-        2) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 75) 1) "config"
-     2) (integer) -2
-     3) 1) "admin"
-        2) "loading"
-        3) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 76) 1) "xrevrange"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 77) 1) "zunionstore"
-     2) (integer) -4
-     3) 1) "write"
-        2) "denyoom"
-        3) "movablekeys"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 78) 1) "geopos"
-     2) (integer) -2
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 79) 1) "hdel"
-     2) (integer) -3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 80) 1) "hincrby"
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+ 52) 1) "ltrim"
      2) (integer) 4
      3) 1) "write"
-        2) "denyoom"
-        3) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
- 81) 1) "cluster"
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+ 53) 1) "scan"
      2) (integer) -2
-     3) 1) "admin"
+     3) 1) "readonly"
+        2) "random"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 82) 1) "geodist"
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@slow"
+ 54) 1) "auth"
+     2) (integer) -2
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "skip_monitor"
+        5) "skip_slowlog"
+        6) "fast"
+        7) "no_auth"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@connection"
+ 55) 1) "zrevrange"
      2) (integer) -4
      3) 1) "readonly"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
- 83) 1) "bgsave"
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+ 56) 1) "replconf"
      2) (integer) -1
      3) 1) "admin"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 84) 1) "unsubscribe"
-     2) (integer) -1
-     3) 1) "pubsub"
         2) "noscript"
         3) "loading"
         4) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 85) 1) "renamenx"
-     2) (integer) 3
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 57) 1) "sadd"
+     2) (integer) -3
      3) 1) "write"
-        2) "fast"
+        2) "denyoom"
+        3) "fast"
      4) (integer) 1
-     5) (integer) 2
+     5) (integer) 1
      6) (integer) 1
- 86) 1) "unwatch"
-     2) (integer) 1
-     3) 1) "noscript"
-        2) "fast"
+     7) 1) "@write"
+        2) "@set"
+        3) "@fast"
+ 58) 1) "select"
+     2) (integer) 2
+     3) 1) "loading"
+        2) "stale"
+        3) "fast"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 87) 1) "echo"
-     2) (integer) 2
+     7) 1) "@keyspace"
+        2) "@fast"
+ 59) 1) "monitor"
+     2) (integer) 1
+     3) 1) "admin"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 60) 1) "asking"
+     2) (integer) 1
      3) 1) "fast"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 88) 1) "flushall"
-     2) (integer) -1
-     3) 1) "write"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 89) 1) "host:"
-     2) (integer) -1
-     3) 1) "loading"
-        2) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 90) 1) "hkeys"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 91) 1) "zlexcount"
-     2) (integer) 4
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 92) 1) "xpending"
+     7) 1) "@keyspace"
+        2) "@fast"
+ 61) 1) "lpush"
      2) (integer) -3
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 93) 1) "hscan"
-     2) (integer) -3
-     3) 1) "readonly"
-        2) "random"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 94) 1) "setnx"
-     2) (integer) 3
      3) 1) "write"
         2) "denyoom"
         3) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
- 95) 1) "lastsave"
-     2) (integer) 1
-     3) 1) "random"
-        2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 96) 1) "memory"
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+ 62) 1) "cluster"
      2) (integer) -2
-     3) 1) "readonly"
+     3) 1) "admin"
+        2) "random"
+        3) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
- 97) 1) "getbit"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
- 98) 1) "keys"
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 63) 1) "pttl"
      2) (integer) 2
      3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
- 99) 1) "hexists"
-     2) (integer) 3
+        2) "random"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+ 64) 1) "xrange"
+     2) (integer) -4
      3) 1) "readonly"
-        2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-100) 1) "migrate"
-     2) (integer) -6
-     3) 1) "write"
-        2) "movablekeys"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-101) 1) "expire"
-     2) (integer) 3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-102) 1) "geohash"
+     7) 1) "@read"
+        2) "@stream"
+        3) "@slow"
+ 65) 1) "memory"
      2) (integer) -2
      3) 1) "readonly"
+        2) "random"
+        3) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@slow"
+ 66) 1) "reset"
+     2) (integer) -1
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@connection"
+ 67) 1) "pfdebug"
+     2) (integer) -3
+     3) 1) "write"
+        2) "admin"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@write"
+        2) "@admin"
+        3) "@slow"
+        4) "@dangerous"
+ 68) 1) "hexists"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-103) 1) "role"
+     7) 1) "@read"
+        2) "@hash"
+        3) "@fast"
+ 69) 1) "expire"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+ 70) 1) "bgrewriteaof"
      2) (integer) 1
-     3) 1) "noscript"
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 71) 1) "command"
+     2) (integer) -1
+     3) 1) "random"
         2) "loading"
         3) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-104) 1) "unlink"
-     2) (integer) -2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-105) 1) "zcard"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-106) 1) "save"
-     2) (integer) 1
-     3) 1) "admin"
-        2) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-107) 1) "script"
-     2) (integer) -2
-     3) 1) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-108) 1) "hsetnx"
+     7) 1) "@slow"
+        2) "@connection"
+ 72) 1) "zremrangebyrank"
      2) (integer) 4
      3) 1) "write"
-        2) "denyoom"
-        3) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-109) 1) "rpush"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-110) 1) "xclaim"
-     2) (integer) -5
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-111) 1) "rpushx"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-112) 1) "hset"
-     2) (integer) -4
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-113) 1) "setrange"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-114) 1) "zscore"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-115) 1) "hget"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-116) 1) "lpushx"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-117) 1) "linsert"
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
+ 73) 1) "lmove"
      2) (integer) 5
      3) 1) "write"
         2) "denyoom"
      4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-118) 1) "multi"
-     2) (integer) 1
-     3) 1) "noscript"
-        2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-119) 1) "pfadd"
-     2) (integer) -2
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-120) 1) "scan"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "random"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-121) 1) "latency"
-     2) (integer) -2
-     3) 1) "admin"
-        2) "noscript"
-        3) "loading"
-        4) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-122) 1) "xread"
-     2) (integer) -3
-     3) 1) "readonly"
-        2) "noscript"
-        3) "movablekeys"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-123) 1) "ltrim"
-     2) (integer) 4
-     3) 1) "write"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-124) 1) "ttl"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-125) 1) "psync"
-     2) (integer) 3
-     3) 1) "readonly"
-        2) "admin"
-        3) "noscript"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-126) 1) "msetnx"
-     2) (integer) -3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 2
-127) 1) "sinter"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-128) 1) "zcount"
-     2) (integer) 4
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-129) 1) "zrevrange"
-     2) (integer) -4
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-130) 1) "rpop"
-     2) (integer) 2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-131) 1) "dump"
-     2) (integer) 2
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-132) 1) "pttl"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-133) 1) "bitcount"
-     2) (integer) -2
-     3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-134) 1) "decrby"
-     2) (integer) 3
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-135) 1) "xgroup"
-     2) (integer) -2
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 2
      5) (integer) 2
      6) (integer) 1
-136) 1) "hincrbyfloat"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-137) 1) "lindex"
-     2) (integer) 3
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+ 74) 1) "echo"
+     2) (integer) 2
      3) 1) "readonly"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-138) 1) "client"
-     2) (integer) -2
-     3) 1) "admin"
-        2) "noscript"
+        2) "fast"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-139) 1) "pexpireat"
-     2) (integer) 3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-140) 1) "xinfo"
-     2) (integer) -2
-     3) 1) "readonly"
-     4) (integer) 2
-     5) (integer) 2
-     6) (integer) 1
-141) 1) "zpopmin"
-     2) (integer) -2
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-142) 1) "hmset"
-     2) (integer) -4
-     3) 1) "write"
-        2) "denyoom"
-        3) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-143) 1) "pfdebug"
-     2) (integer) -3
-     3) 1) "write"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-144) 1) "brpoplpush"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-        3) "noscript"
-     4) (integer) 1
-     5) (integer) 2
-     6) (integer) 1
-145) 1) "sdiff"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "sort_for_script"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-146) 1) "zrem"
-     2) (integer) -3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-147) 1) "command"
-     2) (integer) 0
-     3) 1) "loading"
-        2) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-148) 1) "publish"
+     7) 1) "@read"
+        2) "@fast"
+        3) "@connection"
+ 75) 1) "publish"
      2) (integer) 3
      3) 1) "pubsub"
         2) "loading"
@@ -1199,55 +925,173 @@
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-149) 1) "exists"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-150) 1) "swapdb"
+     7) 1) "@pubsub"
+        2) "@fast"
+ 76) 1) "renamenx"
      2) (integer) 3
      3) 1) "write"
         2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-151) 1) "del"
-     2) (integer) -2
-     3) 1) "write"
-     4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-152) 1) "getset"
-     2) (integer) 3
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-153) 1) "rpoplpush"
-     2) (integer) 3
-     3) 1) "write"
-        2) "denyoom"
      4) (integer) 1
      5) (integer) 2
      6) (integer) 1
-154) 1) "setbit"
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+ 77) 1) "unlink"
+     2) (integer) -2
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+ 78) 1) "georadiusbymember_ro"
+     2) (integer) -5
+     3) 1) "readonly"
+        2) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+ 79) 1) "lset"
      2) (integer) 4
      3) 1) "write"
         2) "denyoom"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-155) 1) "hlen"
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+ 80) 1) "hlen"
      2) (integer) 2
      3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-156) 1) "incrbyfloat"
+     7) 1) "@read"
+        2) "@hash"
+        3) "@fast"
+ 81) 1) "xpending"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@stream"
+        3) "@slow"
+ 82) 1) "hgetall"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hash"
+        3) "@slow"
+ 83) 1) "get"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@string"
+        3) "@fast"
+ 84) 1) "hvals"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hash"
+        3) "@slow"
+ 85) 1) "linsert"
+     2) (integer) 5
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+ 86) 1) "hsetnx"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+ 87) 1) "keys"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@slow"
+        4) "@dangerous"
+ 88) 1) "role"
+     2) (integer) 1
+     3) 1) "readonly"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+        5) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@fast"
+        3) "@dangerous"
+ 89) 1) "zrange"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+ 90) 1) "module"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+ 91) 1) "expireat"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+ 92) 1) "incrby"
      2) (integer) 3
      3) 1) "write"
         2) "denyoom"
@@ -1255,49 +1099,488 @@
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-157) 1) "zrange"
-     2) (integer) -4
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+ 93) 1) "lrem"
+     2) (integer) 4
+     3) 1) "write"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+ 94) 1) "bitcount"
+     2) (integer) -2
      3) 1) "readonly"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-158) 1) "setex"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
+     7) 1) "@read"
+        2) "@bitmap"
+        3) "@slow"
+ 95) 1) "zscore"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-159) 1) "psetex"
-     2) (integer) 4
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-160) 1) "shutdown"
-     2) (integer) -1
-     3) 1) "admin"
-        2) "loading"
-        3) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-161) 1) "evalsha"
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+ 96) 1) "zinter"
      2) (integer) -3
-     3) 1) "noscript"
+     3) 1) "readonly"
         2) "movablekeys"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-162) 1) "scard"
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+ 97) 1) "xread"
+     2) (integer) -4
+     3) 1) "readonly"
+        2) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@stream"
+        3) "@slow"
+        4) "@blocking"
+ 98) 1) "strlen"
      2) (integer) 2
      3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-163) 1) "restore-asking"
+     7) 1) "@read"
+        2) "@string"
+        3) "@fast"
+ 99) 1) "lindex"
+     2) (integer) 3
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@list"
+        3) "@slow"
+100) 1) "getset"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+101) 1) "copy"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+102) 1) "hget"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@hash"
+        3) "@fast"
+103) 1) "rpoplpush"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+104) 1) "sunionstore"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@slow"
+105) 1) "spop"
+     2) (integer) -2
+     3) 1) "write"
+        2) "random"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@fast"
+106) 1) "geosearch"
+     2) (integer) -7
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+107) 1) "zunion"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+108) 1) "randomkey"
+     2) (integer) 1
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@slow"
+109) 1) "flushall"
+     2) (integer) -1
+     3) 1) "write"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+        4) "@dangerous"
+110) 1) "sort"
+     2) (integer) -2
+     3) 1) "write"
+        2) "denyoom"
+        3) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@sortedset"
+        4) "@list"
+        5) "@slow"
+        6) "@dangerous"
+111) 1) "zremrangebylex"
+     2) (integer) 4
+     3) 1) "write"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
+112) 1) "zincrby"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+113) 1) "evalsha"
+     2) (integer) -3
+     3) 1) "noscript"
+        2) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@slow"
+        2) "@scripting"
+114) 1) "stralgo"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@string"
+        3) "@slow"
+115) 1) "move"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+116) 1) "readwrite"
+     2) (integer) 1
+     3) 1) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@fast"
+117) 1) "hello"
+     2) (integer) -2
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "skip_monitor"
+        5) "skip_slowlog"
+        6) "fast"
+        7) "no_auth"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@connection"
+118) 1) "xadd"
+     2) (integer) -5
+     3) 1) "write"
+        2) "denyoom"
+        3) "random"
+        4) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@fast"
+119) 1) "brpoplpush"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+        3) "noscript"
+     4) (integer) 1
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+        4) "@blocking"
+120) 1) "xgroup"
+     2) (integer) -2
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 2
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@slow"
+121) 1) "blpop"
+     2) (integer) -3
+     3) 1) "write"
+        2) "noscript"
+     4) (integer) 1
+     5) (integer) -2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+        4) "@blocking"
+122) 1) "hincrbyfloat"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+123) 1) "sinter"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+124) 1) "setnx"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+125) 1) "bitfield"
+     2) (integer) -2
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@bitmap"
+        3) "@slow"
+126) 1) "hincrby"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+127) 1) "decrby"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+128) 1) "shutdown"
+     2) (integer) -1
+     3) 1) "admin"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+129) 1) "rpop"
+     2) (integer) 2
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+130) 1) "sinterstore"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@slow"
+131) 1) "scard"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@fast"
+132) 1) "persist"
+     2) (integer) 2
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+133) 1) "migrate"
+     2) (integer) -6
+     3) 1) "write"
+        2) "random"
+        3) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+        4) "@dangerous"
+134) 1) "pexpire"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+135) 1) "host:"
+     2) (integer) -1
+     3) 1) "readonly"
+        2) "loading"
+        3) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@slow"
+136) 1) "replicaof"
+     2) (integer) 3
+     3) 1) "admin"
+        2) "noscript"
+        3) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+137) 1) "lrange"
+     2) (integer) 4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@list"
+        3) "@slow"
+138) 1) "xack"
+     2) (integer) -4
+     3) 1) "write"
+        2) "random"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@fast"
+139) 1) "restore-asking"
      2) (integer) -4
      3) 1) "write"
         2) "denyoom"
@@ -1305,77 +1588,359 @@
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-164) 1) "srandmember"
-     2) (integer) -2
-     3) 1) "readonly"
-        2) "random"
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+        4) "@dangerous"
+140) 1) "hdel"
+     2) (integer) -3
+     3) 1) "write"
+        2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-165) 1) "hgetall"
-     2) (integer) 2
-     3) 1) "readonly"
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+141) 1) "geosearchstore"
+     2) (integer) -8
+     3) 1) "write"
+        2) "denyoom"
      4) (integer) 1
-     5) (integer) 1
+     5) (integer) 2
      6) (integer) 1
-166) 1) "strlen"
+     7) 1) "@write"
+        2) "@geo"
+        3) "@slow"
+142) 1) "type"
      2) (integer) 2
      3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-167) 1) "wait"
-     2) (integer) 3
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+143) 1) "zrangebyscore"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+144) 1) "xtrim"
+     2) (integer) -2
+     3) 1) "write"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@slow"
+145) 1) "script"
+     2) (integer) -2
      3) 1) "noscript"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-168) 1) "watch"
+     7) 1) "@slow"
+        2) "@scripting"
+146) 1) "touch"
      2) (integer) -2
-     3) 1) "noscript"
+     3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) -1
      6) (integer) 1
-169) 1) "get"
-     2) (integer) 2
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+147) 1) "lolwut"
+     2) (integer) -1
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@fast"
+148) 1) "restore"
+     2) (integer) -4
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+        4) "@dangerous"
+149) 1) "zadd"
+     2) (integer) -4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+150) 1) "acl"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "noscript"
+        3) "loading"
+        4) "stale"
+        5) "skip_slowlog"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+151) 1) "readonly"
+     2) (integer) 1
+     3) 1) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@fast"
+152) 1) "zpopmax"
+     2) (integer) -2
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+153) 1) "blmove"
+     2) (integer) 6
+     3) 1) "write"
+        2) "denyoom"
+        3) "noscript"
+     4) (integer) 1
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@slow"
+        4) "@blocking"
+154) 1) "xreadgroup"
+     2) (integer) -7
+     3) 1) "write"
+        2) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@slow"
+        4) "@blocking"
+155) 1) "sdiff"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+156) 1) "multi"
+     2) (integer) 1
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@transaction"
+157) 1) "hmget"
+     2) (integer) -3
      3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-170) 1) "pubsub"
+     7) 1) "@read"
+        2) "@hash"
+        3) "@fast"
+158) 1) "zrem"
+     2) (integer) -3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@fast"
+159) 1) "zrangebylex"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+160) 1) "config"
      2) (integer) -2
-     3) 1) "pubsub"
-        2) "random"
+     3) 1) "admin"
+        2) "noscript"
         3) "loading"
         4) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-171) 1) "dbsize"
-     2) (integer) 1
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+161) 1) "getbit"
+     2) (integer) 3
      3) 1) "readonly"
         2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-172) 1) "smembers"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@bitmap"
+        3) "@fast"
+162) 1) "hkeys"
      2) (integer) 2
      3) 1) "readonly"
         2) "sort_for_script"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-173) 1) "zrevrangebylex"
-     2) (integer) -4
+     7) 1) "@read"
+        2) "@hash"
+        3) "@slow"
+163) 1) "georadius"
+     2) (integer) -6
+     3) 1) "write"
+        2) "denyoom"
+        3) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@geo"
+        3) "@slow"
+164) 1) "xsetid"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@stream"
+        3) "@fast"
+165) 1) "lastsave"
+     2) (integer) 1
+     3) 1) "readonly"
+        2) "random"
+        3) "loading"
+        4) "stale"
+        5) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@admin"
+        3) "@fast"
+        4) "@dangerous"
+166) 1) "geohash"
+     2) (integer) -2
      3) 1) "readonly"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-174) 1) "subscribe"
+     7) 1) "@read"
+        2) "@geo"
+        3) "@slow"
+167) 1) "bgsave"
+     2) (integer) -1
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+168) 1) "substr"
+     2) (integer) 4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@string"
+        3) "@slow"
+169) 1) "ping"
+     2) (integer) -1
+     3) 1) "stale"
+        2) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@connection"
+170) 1) "pfselftest"
+     2) (integer) 1
+     3) 1) "admin"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@hyperloglog"
+        2) "@admin"
+        3) "@slow"
+        4) "@dangerous"
+171) 1) "zcount"
+     2) (integer) 4
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+172) 1) "exists"
      2) (integer) -2
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+173) 1) "zlexcount"
+     2) (integer) 4
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+174) 1) "unsubscribe"
+     2) (integer) -1
      3) 1) "pubsub"
         2) "noscript"
         3) "loading"
@@ -1383,7 +1948,177 @@
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-175) 1) "zinterstore"
+     7) 1) "@pubsub"
+        2) "@slow"
+175) 1) "zrevrangebylex"
+     2) (integer) -4
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+176) 1) "zrank"
+     2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+177) 1) "georadiusbymember"
+     2) (integer) -5
+     3) 1) "write"
+        2) "denyoom"
+        3) "movablekeys"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@geo"
+        3) "@slow"
+178) 1) "incrbyfloat"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+179) 1) "rpushx"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+180) 1) "pexpireat"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+181) 1) "slaveof"
+     2) (integer) 3
+     3) 1) "admin"
+        2) "noscript"
+        3) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+182) 1) "lpushx"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+183) 1) "swapdb"
+     2) (integer) 3
+     3) 1) "write"
+        2) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@fast"
+        4) "@dangerous"
+184) 1) "append"
+     2) (integer) 3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@fast"
+185) 1) "mset"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 2
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+186) 1) "zmscore"
+     2) (integer) -3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@fast"
+187) 1) "srandmember"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+188) 1) "dbsize"
+     2) (integer) 1
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+189) 1) "save"
+     2) (integer) 1
+     3) 1) "admin"
+        2) "noscript"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+190) 1) "time"
+     2) (integer) 1
+     3) 1) "readonly"
+        2) "random"
+        3) "loading"
+        4) "stale"
+        5) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@fast"
+191) 1) "zinterstore"
      2) (integer) -4
      3) 1) "write"
         2) "denyoom"
@@ -1391,157 +2126,279 @@
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-176) 1) "smove"
-     2) (integer) 4
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 2
-     6) (integer) 1
-177) 1) "readonly"
-     2) (integer) 1
-     3) 1) "fast"
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
+192) 1) "slowlog"
+     2) (integer) -2
+     3) 1) "admin"
+        2) "random"
+        3) "loading"
+        4) "stale"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-178) 1) "zremrangebyscore"
-     2) (integer) 4
-     3) 1) "write"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-179) 1) "sunionstore"
+     7) 1) "@admin"
+        2) "@slow"
+        3) "@dangerous"
+193) 1) "set"
      2) (integer) -3
      3) 1) "write"
         2) "denyoom"
      4) (integer) 1
-     5) (integer) -1
-     6) (integer) 1
-180) 1) "llen"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-181) 1) "discard"
-     2) (integer) 1
-     3) 1) "noscript"
-        2) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-182) 1) "info"
-     2) (integer) -1
-     3) 1) "loading"
-        2) "stale"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-183) 1) "pfselftest"
-     2) (integer) 1
-     3) 1) "admin"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-184) 1) "bitop"
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+194) 1) "rename"
+     2) (integer) 3
+     3) 1) "write"
+     4) (integer) 1
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+195) 1) "bitop"
      2) (integer) -4
      3) 1) "write"
         2) "denyoom"
      4) (integer) 2
      5) (integer) -1
      6) (integer) 1
-185) 1) "pexpire"
+     7) 1) "@write"
+        2) "@bitmap"
+        3) "@slow"
+196) 1) "sismember"
      2) (integer) 3
+     3) 1) "readonly"
+        2) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@fast"
+197) 1) "setbit"
+     2) (integer) 4
      3) 1) "write"
-        2) "fast"
+        2) "denyoom"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-186) 1) "xlen"
-     2) (integer) 2
-     3) 1) "readonly"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-187) 1) "mget"
+     7) 1) "@write"
+        2) "@bitmap"
+        3) "@slow"
+198) 1) "del"
      2) (integer) -2
-     3) 1) "readonly"
-        2) "fast"
+     3) 1) "write"
      4) (integer) 1
      5) (integer) -1
      6) (integer) 1
-188) 1) "xtrim"
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+199) 1) "object"
      2) (integer) -2
+     3) 1) "readonly"
+        2) "random"
+     4) (integer) 2
+     5) (integer) 2
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@slow"
+200) 1) "post"
+     2) (integer) -1
+     3) 1) "readonly"
+        2) "loading"
+        3) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@read"
+        2) "@slow"
+201) 1) "zunionstore"
+     2) (integer) -4
      3) 1) "write"
+        2) "denyoom"
+        3) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@write"
+        2) "@sortedset"
+        3) "@slow"
+202) 1) "eval"
+     2) (integer) -3
+     3) 1) "noscript"
+        2) "movablekeys"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@slow"
+        2) "@scripting"
+203) 1) "discard"
+     2) (integer) 1
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "fast"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@fast"
+        2) "@transaction"
+204) 1) "bitfield_ro"
+     2) (integer) -2
+     3) 1) "readonly"
         2) "fast"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-189) 1) "exec"
-     2) (integer) 1
-     3) 1) "noscript"
-        2) "skip_monitor"
+     7) 1) "@read"
+        2) "@bitmap"
+        3) "@fast"
+205) 1) "flushdb"
+     2) (integer) -1
+     3) 1) "write"
      4) (integer) 0
      5) (integer) 0
      6) (integer) 0
-190) 1) "zscan"
+     7) 1) "@keyspace"
+        2) "@write"
+        3) "@slow"
+        4) "@dangerous"
+206) 1) "sdiffstore"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@set"
+        3) "@slow"
+207) 1) "psetex"
+     2) (integer) 4
+     3) 1) "write"
+        2) "denyoom"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@string"
+        3) "@slow"
+208) 1) "hset"
+     2) (integer) -4
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@hash"
+        3) "@fast"
+209) 1) "lpos"
+     2) (integer) -3
+     3) 1) "readonly"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@list"
+        3) "@slow"
+210) 1) "exec"
+     2) (integer) 1
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "skip_monitor"
+        5) "skip_slowlog"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@slow"
+        2) "@transaction"
+211) 1) "zscan"
      2) (integer) -3
      3) 1) "readonly"
         2) "random"
      4) (integer) 1
      5) (integer) 1
      6) (integer) 1
-191) 1) "zrank"
-     2) (integer) 3
+     7) 1) "@read"
+        2) "@sortedset"
+        3) "@slow"
+212) 1) "sunion"
+     2) (integer) -2
+     3) 1) "readonly"
+        2) "sort_for_script"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@read"
+        2) "@set"
+        3) "@slow"
+213) 1) "watch"
+     2) (integer) -2
+     3) 1) "noscript"
+        2) "loading"
+        3) "stale"
+        4) "fast"
+     4) (integer) 1
+     5) (integer) -1
+     6) (integer) 1
+     7) 1) "@fast"
+        2) "@transaction"
+214) 1) "pubsub"
+     2) (integer) -2
+     3) 1) "pubsub"
+        2) "random"
+        3) "loading"
+        4) "stale"
+     4) (integer) 0
+     5) (integer) 0
+     6) (integer) 0
+     7) 1) "@pubsub"
+        2) "@slow"
+215) 1) "ttl"
+     2) (integer) 2
+     3) 1) "readonly"
+        2) "random"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@keyspace"
+        2) "@read"
+        3) "@fast"
+216) 1) "rpush"
+     2) (integer) -3
+     3) 1) "write"
+        2) "denyoom"
+        3) "fast"
+     4) (integer) 1
+     5) (integer) 1
+     6) (integer) 1
+     7) 1) "@write"
+        2) "@list"
+        3) "@fast"
+217) 1) "mget"
+     2) (integer) -2
      3) 1) "readonly"
         2) "fast"
      4) (integer) 1
-     5) (integer) 1
+     5) (integer) -1
      6) (integer) 1
-192) 1) "geoadd"
-     2) (integer) -5
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-193) 1) "expireat"
-     2) (integer) 3
-     3) 1) "write"
-        2) "fast"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-194) 1) "slowlog"
-     2) (integer) -2
-     3) 1) "admin"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-195) 1) "readwrite"
-     2) (integer) 1
-     3) 1) "fast"
-     4) (integer) 0
-     5) (integer) 0
-     6) (integer) 0
-196) 1) "lrem"
-     2) (integer) 4
-     3) 1) "write"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1
-197) 1) "restore"
-     2) (integer) -4
-     3) 1) "write"
-        2) "denyoom"
-     4) (integer) 1
-     5) (integer) 1
-     6) (integer) 1</code>
+     7) 1) "@read"
+        2) "@string"
+        3) "@fast"</code>
 </div>  <div class="_attribution">
   <p class="_attribution-p">
-    © 2009–2018 Salvatore Sanfilippo<br>Licensed under the Creative Commons Attribution-ShareAlike License 4.0.<br>
+    © 2009–2020 Salvatore Sanfilippo<br>Licensed under the Creative Commons Attribution-ShareAlike License 4.0.<br>
     <a href="https://redis.io/commands/command" class="_attribution-link">https://redis.io/commands/command</a>
   </p>
 </div>
