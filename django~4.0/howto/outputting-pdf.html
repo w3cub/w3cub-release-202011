@@ -1,0 +1,144 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>How to Create PDF Files - Django 4.0 - W3cubDocs</title>
+  
+  <meta name="description" content="This document explains how to output PDF files dynamically using Django views. This is made possible by the excellent, open-source ReportLab Python &hellip;">
+  <meta name="keywords" content="how, create, pdf, files, django, django~4.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/django~4.0/howto/outputting-pdf.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/django~4.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/django~4.0/" class="_nav-link" title="" style="margin-left:0;">Django 4.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="how-to-create-pdf-files">How to create PDF files</h1> <p id="s-how-to-create-pdf-files">This document explains how to output PDF files dynamically using Django views. This is made possible by the excellent, open-source <a class="reference external" href="https://www.reportlab.com/opensource/">ReportLab</a> Python PDF library.</p> <p>The advantage of generating PDF files dynamically is that you can create customized PDFs for different purposes – say, for different users or different pieces of content.</p> <p>For example, Django was used at <a class="reference external" href="http://www2.kusports.com/">kusports.com</a> to generate customized, printer-friendly NCAA tournament brackets, as PDF files, for people participating in a March Madness contest.</p>  <h2 id="install-reportlab">Install ReportLab</h2> <p id="s-install-reportlab">The ReportLab library is <a class="reference external" href="https://pypi.org/project/reportlab/">available on PyPI</a>. A <a class="reference external" href="https://www.reportlab.com/docs/reportlab-userguide.pdf">user guide</a> (not coincidentally, a PDF file) is also available for download. You can install ReportLab with <code>pip</code>:</p>       <pre data-language="console">$ python -m pip install reportlab
+</pre>   <div class="highlight"><pre><span class="gp">...\&gt;</span> py -m pip install reportlab
+</pre></div>   <p>Test your installation by importing it in the Python interactive interpreter:</p> <pre data-language="python">&gt;&gt;&gt; import reportlab
+</pre> <p>If that command doesn’t raise any errors, the installation worked.</p>   <h2 id="write-your-view">Write your view</h2> <p id="s-write-your-view">The key to generating PDFs dynamically with Django is that the ReportLab API acts on file-like objects, and Django’s <a class="reference internal" href="../ref/request-response#django.http.FileResponse" title="django.http.FileResponse"><code>FileResponse</code></a> objects accept file-like objects.</p> <p>Here’s a “Hello World” example:</p> <pre data-language="python">import io
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+
+def some_view(request):
+    # Create a file-like buffer to receive PDF data.
+    buffer = io.BytesIO()
+
+    # Create the PDF object, using the buffer as its "file."
+    p = canvas.Canvas(buffer)
+
+    # Draw things on the PDF. Here's where the PDF generation happens.
+    # See the ReportLab documentation for the full list of functionality.
+    p.drawString(100, 100, "Hello world.")
+
+    # Close the PDF object cleanly, and we're done.
+    p.showPage()
+    p.save()
+
+    # FileResponse sets the Content-Disposition header so that browsers
+    # present the option to save the file.
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename='hello.pdf')
+</pre> <p>The code and comments should be self-explanatory, but a few things deserve a mention:</p> <ul class="simple"> <li>The response will automatically set the MIME type <em class="mimetype">application/pdf</em> based on the filename extension. This tells browsers that the document is a PDF file, rather than an HTML file or a generic <em class="mimetype">application/octet-stream</em> binary content.</li> <li>When <code>as_attachment=True</code> is passed to <code>FileResponse</code>, it sets the appropriate <code>Content-Disposition</code> header and that tells web browsers to pop-up a dialog box prompting/confirming how to handle the document even if a default is set on the machine. If the <code>as_attachment</code> parameter is omitted, browsers will handle the PDF using whatever program/plugin they’ve been configured to use for PDFs.</li> <li>You can provide an arbitrary <code>filename</code> parameter. It’ll be used by browsers in the “Save as…” dialog.</li> <li>You can hook into the ReportLab API: The same buffer passed as the first argument to <code>canvas.Canvas</code> can be fed to the <a class="reference internal" href="../ref/request-response#django.http.FileResponse" title="django.http.FileResponse"><code>FileResponse</code></a> class.</li> <li>Note that all subsequent PDF-generation methods are called on the PDF object (in this case, <code>p</code>) – not on <code>buffer</code>.</li> <li>Finally, it’s important to call <code>showPage()</code> and <code>save()</code> on the PDF file.</li> </ul> <div class="admonition note"> <p class="first admonition-title">Note</p> <p class="last">ReportLab is not thread-safe. Some of our users have reported odd issues with building PDF-generating Django views that are accessed by many people at the same time.</p> </div>   <h2 id="other-formats">Other formats</h2> <p id="s-other-formats">Notice that there isn’t a lot in these examples that’s PDF-specific – just the bits using <code>reportlab</code>. You can use a similar technique to generate any arbitrary format that you can find a Python library for. Also see <a class="reference internal" href="outputting-csv"><span class="doc">How to create CSV output</span></a> for another example and some techniques you can use when generated text-based formats.</p> <div class="admonition seealso"> <p class="first admonition-title">See also</p> <p class="last">Django Packages provides a <a class="reference external" href="https://djangopackages.org/grids/g/pdf/">comparison of packages</a> that help generate PDF files from Django.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © Django Software Foundation and individual contributors<br>Licensed under the BSD License.<br>
+    <a href="https://docs.djangoproject.com/en/4.0/howto/outputting-pdf/" class="_attribution-link">https://docs.djangoproject.com/en/4.0/howto/outputting-pdf/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
