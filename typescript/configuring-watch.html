@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/typescript/configuring-watch.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/typescript.js"></script>
   
@@ -85,18 +85,12 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _simple">
+			<div class="_page _typescript">
 				
 				
-<div id="___gatsby">
-<div style="outline:none" tabindex="-1" id="gatsby-focus-wrapper"><div class="ms-Fabric">
-
-<main role="main"><section id="doc-layout">
-<div id="handbook-content" role="article">
 <h1>Configuring Watch</h1>
-<article><div class="whitespace raised"><div class="markdown">
-<p>Compiler supports configuring how to watch files and directories using compiler flags in TypeScript 3.8+, and environment variables before that.</p> <h2 id="background" style="position:relative;">Background</h2> <p>The <code>--watch</code> implementation of the compiler relies on using <code>fs.watch</code> and <code>fs.watchFile</code> which are provided by node, both of these methods have pros and cons.</p> <p><code>fs.watch</code> uses file system events to notify the changes in the file/directory. But this is OS dependent and the notification is not completely reliable and does not work as expected on many OS. Also there could be limit on number of watches that can be created, eg. linux and we could exhaust it pretty quickly with programs that include large number of files. But because this uses file system events, there is not much CPU cycle involved. Compiler typically uses <code>fs.watch</code> to watch directories (eg. source directories included by config file, directories in which module resolution failed etc) These can handle the missing precision in notifying about the changes. But recursive watching is supported on only Windows and OSX. That means we need something to replace the recursive nature on other OS.</p> <p><code>fs.watchFile</code> uses polling and thus involves CPU cycles. But this is the most reliable mechanism to get the update on the status of file/directory. Compiler typically uses <code>fs.watchFile</code> to watch source files, config files and missing files (missing file references) that means the CPU usage depends on number of files in the program.</p> <h2 id="configuring-file-watching-using-a-tsconfigjson" style="position:relative;">Configuring file watching using a <code>tsconfig.json</code>
-</h2> <pre data-language="typescript">{
+<p>Compiler supports configuring how to watch files and directories using compiler flags in TypeScript 3.8+, and environment variables before that.</p> <h2 id="background" style="position:relative;">Background</h2> <p>The <code>--watch</code> implementation of the compiler relies on using <code>fs.watch</code> and <code>fs.watchFile</code> which are provided by node, both of these methods have pros and cons.</p> <p><code>fs.watch</code> uses file system events to notify the changes in the file/directory. But this is OS dependent and the notification is not completely reliable and does not work as expected on many OS. Also there could be limit on number of watches that can be created, e.g. linux and we could exhaust it pretty quickly with programs that include large number of files. But because this uses file system events, there is not much CPU cycle involved. Compiler typically uses <code>fs.watch</code> to watch directories (e.g. source directories included by config file, directories in which module resolution failed etc) These can handle the missing precision in notifying about the changes. But recursive watching is supported on only Windows and OSX. That means we need something to replace the recursive nature on other OS.</p> <p><code>fs.watchFile</code> uses polling and thus involves CPU cycles. However, <code>fs.watchFile</code> is the most reliable mechanism to get the update on the status of file/directory. The compiler typically uses <code>fs.watchFile</code> to watch source files, config files and missing files (missing file references). This means the CPU usage when using <code>fs.watchFile</code> depends on number of files in the program.</p> <h2 id="configuring-file-watching-using-a-tsconfigjson" style="position:relative;">Configuring file watching using a <code>tsconfig.json</code>
+</h2> <pre tsconfig="true" data-language="typescript">{
   // Some typical compiler options
   "compilerOptions": {
     "target": "es2020",
@@ -112,23 +106,23 @@
 
     // Poll files for updates more frequently
     // when they're updated a lot.
-    "fallbackPolling": "dynamicPriority"
+    "fallbackPolling": "dynamicPriority",
+
+    // Don't coalesce watch notification
+    "synchronousWatchDirectory": true,
+
+    // Finally, two additional settings for reducing the amount of possible
+    // files to track  work from these directories
+    "excludeDirectories": ["**/node_modules", "_build"],
+    "excludeFiles": ["build/fileWhichChangesOften.ts"]
   }
 }</pre> <p>You can read more about this in <a href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html#better-directory-watching-on-linux-and-watchoptions">the release notes</a>.</p> <h2 id="configuring-file-watching-using-environment-variable-tsc_watchfile" style="position:relative;">Configuring file watching using environment variable <code>TSC_WATCHFILE</code>
-</h2>  <table> <thead> <tr> <th>Option</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>PriorityPollingInterval</code></td> <td>Use <code>fs.watchFile</code> but use different polling intervals for source files, config files and missing files</td> </tr> <tr> <td><code>DynamicPriorityPolling</code></td> <td>Use a dynamic queue where in the frequently modified files will be polled at shorter interval and the files unchanged will be polled less frequently</td> </tr> <tr> <td><code>UseFsEvents</code></td> <td>Use <code>fs.watch</code> which uses file system events (but might not be accurate on different OS) to get the notifications for the file changes/creation/deletion. Note that few OS eg. linux has limit on number of watches and failing to create watcher using <code>fs.watch</code> will result it in creating using <code>fs.watchFile</code>
+</h2>  <table> <thead> <tr> <th>Option</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>PriorityPollingInterval</code></td> <td>Use <code>fs.watchFile</code> but use different polling intervals for source files, config files and missing files</td> </tr> <tr> <td><code>DynamicPriorityPolling</code></td> <td>Use a dynamic queue where in the frequently modified files will be polled at shorter interval and the files unchanged will be polled less frequently</td> </tr> <tr> <td><code>UseFsEvents</code></td> <td>Use <code>fs.watch</code> which uses file system events (but might not be accurate on different OS) to get the notifications for the file changes/creation/deletion. Note that few OS e.g. linux has limit on number of watches and failing to create watcher using <code>fs.watch</code> will result it in creating using <code>fs.watchFile</code>
 </td> </tr> <tr> <td><code>UseFsEventsWithFallbackDynamicPolling</code></td> <td>This option is similar to <code>UseFsEvents</code> except on failing to create watch using <code>fs.watch</code>, the fallback watching happens through dynamic polling queues (as explained in <code>DynamicPriorityPolling</code>)</td> </tr> <tr> <td><code>UseFsEventsOnParentDirectory</code></td> <td>This option watches parent directory of the file with <code>fs.watch</code> (using file system events) thus being low on CPU but can compromise accuracy.</td> </tr> <tr> <td>default (no value specified)</td> <td>If environment variable <code>TSC_NONPOLLING_WATCHER</code> is set to true, watches parent directory of files (just like <code>UseFsEventsOnParentDirectory</code>). Otherwise watch files using <code>fs.watchFile</code> with <code>250ms</code> as the timeout for any file</td> </tr> </tbody> </table> <h2 id="configuring-directory-watching-using-environment-variable-tsc_watchdirectory" style="position:relative;">Configuring directory watching using environment variable <code>TSC_WATCHDIRECTORY</code>
 </h2> <p>The watching of directory on platforms that don’t support recursive directory watching natively in node, is supported through recursively creating directory watcher for the child directories using different options selected by <code>TSC_WATCHDIRECTORY</code>. Note that on platforms that support native recursive directory watching (e.g windows) the value of this environment variable is ignored.</p>  <table> <thead> <tr> <th>Option</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>RecursiveDirectoryUsingFsWatchFile</code></td> <td>Use <code>fs.watchFile</code> to watch the directories and child directories which is a polling watch (consuming CPU cycles)</td> </tr> <tr> <td><code>RecursiveDirectoryUsingDynamicPriorityPolling</code></td> <td>Use dynamic polling queue to poll changes to the directory and child directories.</td> </tr> <tr> <td>default (no value specified)</td> <td>Use <code>fs.watch</code> to watch directories and child directories</td> </tr> </tbody> </table>
-</div></div></article>
-</div></section></main><div id="language-recommendation" style="display:none">
-<p id="language-recommendation-p">MSG</p>
-
-</div>
-</div></div>
-
-</div>
 <div class="_attribution">
   <p class="_attribution-p">
-    © 2012-2020 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
+    © 2012-2021 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
     <a href="https://www.typescriptlang.org/docs/handbook/configuring-watch.html" class="_attribution-link">https://www.typescriptlang.org/docs/handbook/configuring-watch.html</a>
   </p>
 </div>
