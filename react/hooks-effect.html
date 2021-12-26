@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/react/hooks-effect.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/react.js"></script>
   
@@ -90,10 +90,16 @@
 				
 <h1>Using the Effect Hook</h1>
 <p><em>Hooks</em> are a new addition in React 16.8. They let you use state and other React features without writing a class.</p> <p>The <em>Effect Hook</em> lets you perform side effects in function components:</p> <pre data-language="jsx">import React, { useState, useEffect } from 'react';
+
 function Example() {
   const [count, setCount] = useState(0);
 
-  // Similar to componentDidMount and componentDidUpdate:  useEffect(() =&gt; {    // Update the document title using the browser API    document.title = `You clicked ${count} times`;  });
+  // Similar to componentDidMount and componentDidUpdate:
+  useEffect(() =&gt; {
+    // Update the document title using the browser API
+    document.title = `You clicked ${count} times`;
+  });
+
   return (
     &lt;div&gt;
       &lt;p&gt;You clicked {count} times&lt;/p&gt;
@@ -110,7 +116,14 @@ function Example() {
     };
   }
 
-  componentDidMount() {    document.title = `You clicked ${this.state.count} times`;  }  componentDidUpdate() {    document.title = `You clicked ${this.state.count} times`;  }
+  componentDidMount() {
+    document.title = `You clicked ${this.state.count} times`;
+  }
+
+  componentDidUpdate() {
+    document.title = `You clicked ${this.state.count} times`;
+  }
+
   render() {
     return (
       &lt;div&gt;
@@ -122,10 +135,14 @@ function Example() {
     );
   }
 }</pre> <p>Note how <strong>we have to duplicate the code between these two lifecycle methods in class.</strong></p> <p>This is because in many cases we want to perform the same side effect regardless of whether the component just mounted, or if it has been updated. Conceptually, we want it to happen after every render — but React class components don’t have a method like this. We could extract a separate method but we would still have to call it in two places.</p> <p>Now let’s see how we can do the same with the <code class="gatsby-code-text">useEffect</code> Hook.</p> <h3 id="example-using-hooks">Example Using Hooks </h3> <p>We’ve already seen this example at the top of this page, but let’s take a closer look at it:</p> <pre data-language="jsx">import React, { useState, useEffect } from 'react';
+
 function Example() {
   const [count, setCount] = useState(0);
 
-  useEffect(() =&gt; {    document.title = `You clicked ${count} times`;  });
+  useEffect(() =&gt; {
+    document.title = `You clicked ${count} times`;
+  });
+
   return (
     &lt;div&gt;
       &lt;p&gt;You clicked {count} times&lt;/p&gt;
@@ -147,7 +164,26 @@ function Example() {
     this.handleStatusChange = this.handleStatusChange.bind(this);
   }
 
-  componentDidMount() {    ChatAPI.subscribeToFriendStatus(      this.props.friend.id,      this.handleStatusChange    );  }  componentWillUnmount() {    ChatAPI.unsubscribeFromFriendStatus(      this.props.friend.id,      this.handleStatusChange    );  }  handleStatusChange(status) {    this.setState({      isOnline: status.isOnline    });  }
+  componentDidMount() {
+    ChatAPI.subscribeToFriendStatus(
+      this.props.friend.id,
+      this.handleStatusChange
+    );
+  }
+
+  componentWillUnmount() {
+    ChatAPI.unsubscribeFromFriendStatus(
+      this.props.friend.id,
+      this.handleStatusChange
+    );
+  }
+
+  handleStatusChange(status) {
+    this.setState({
+      isOnline: status.isOnline
+    });
+  }
+
   render() {
     if (this.state.isOnline === null) {
       return 'Loading...';
@@ -159,7 +195,18 @@ function Example() {
 function FriendStatus(props) {
   const [isOnline, setIsOnline] = useState(null);
 
-  useEffect(() =&gt; {    function handleStatusChange(status) {      setIsOnline(status.isOnline);    }    ChatAPI.subscribeToFriendStatus(props.friend.id, handleStatusChange);    // Specify how to clean up after this effect:    return function cleanup() {      ChatAPI.unsubscribeFromFriendStatus(props.friend.id, handleStatusChange);    };  });
+  useEffect(() =&gt; {
+    function handleStatusChange(status) {
+      setIsOnline(status.isOnline);
+    }
+
+    ChatAPI.subscribeToFriendStatus(props.friend.id, handleStatusChange);
+    // Specify how to clean up after this effect:
+    return function cleanup() {
+      ChatAPI.unsubscribeFromFriendStatus(props.friend.id, handleStatusChange);
+    };
+  });
+
   if (isOnline === null) {
     return 'Loading...';
   }
@@ -208,11 +255,13 @@ function FriendStatus(props) {
   }
   // ...</pre> <p>Note how the logic that sets <code class="gatsby-code-text">document.title</code> is split between <code class="gatsby-code-text">componentDidMount</code> and <code class="gatsby-code-text">componentDidUpdate</code>. The subscription logic is also spread between <code class="gatsby-code-text">componentDidMount</code> and <code class="gatsby-code-text">componentWillUnmount</code>. And <code class="gatsby-code-text">componentDidMount</code> contains code for both tasks.</p> <p>So, how can Hooks solve this problem? Just like <a href="hooks-state#tip-using-multiple-state-variables">you can use the <em>State</em> Hook more than once</a>, you can also use several effects. This lets us separate unrelated logic into different effects:</p> <pre data-language="jsx">function FriendStatusWithCounter(props) {
   const [count, setCount] = useState(0);
-  useEffect(() =&gt; {    document.title = `You clicked ${count} times`;
+  useEffect(() =&gt; {
+    document.title = `You clicked ${count} times`;
   });
 
   const [isOnline, setIsOnline] = useState(null);
-  useEffect(() =&gt; {    function handleStatusChange(status) {
+  useEffect(() =&gt; {
+    function handleStatusChange(status) {
       setIsOnline(status.isOnline);
     }
 
@@ -241,7 +290,19 @@ function FriendStatus(props) {
     );
   }
 
-  componentDidUpdate(prevProps) {    // Unsubscribe from the previous friend.id    ChatAPI.unsubscribeFromFriendStatus(      prevProps.friend.id,      this.handleStatusChange    );    // Subscribe to the next friend.id    ChatAPI.subscribeToFriendStatus(      this.props.friend.id,      this.handleStatusChange    );  }
+  componentDidUpdate(prevProps) {
+    // Unsubscribe from the previous friend.id
+    ChatAPI.unsubscribeFromFriendStatus(
+      prevProps.friend.id,
+      this.handleStatusChange
+    );
+    // Subscribe to the next friend.id
+    ChatAPI.subscribeToFriendStatus(
+      this.props.friend.id,
+      this.handleStatusChange
+    );
+  }
+
   componentWillUnmount() {
     ChatAPI.unsubscribeFromFriendStatus(
       this.props.friend.id,
@@ -273,7 +334,8 @@ ChatAPI.unsubscribeFromFriendStatus(300, handleStatusChange); // Clean up last e
   }
 }</pre> <p>This requirement is common enough that it is built into the <code class="gatsby-code-text">useEffect</code> Hook API. You can tell React to <em>skip</em> applying an effect if certain values haven’t changed between re-renders. To do so, pass an array as an optional second argument to <code class="gatsby-code-text">useEffect</code>:</p> <pre data-language="jsx">useEffect(() =&gt; {
   document.title = `You clicked ${count} times`;
-}, [count]); // Only re-run the effect if count changes</pre> <p>In the example above, we pass <code class="gatsby-code-text">[count]</code> as the second argument. What does this mean? If the <code class="gatsby-code-text">count</code> is <code class="gatsby-code-text">5</code>, and then our component re-renders with <code class="gatsby-code-text">count</code> still equal to <code class="gatsby-code-text">5</code>, React will compare <code class="gatsby-code-text">[5]</code> from the previous render and <code class="gatsby-code-text">[5]</code> from the next render. Because all items in the array are the same (<code class="gatsby-code-text">5 === 5</code>), React would skip the effect. That’s our optimization.</p> <p>When we render with <code class="gatsby-code-text">count</code> updated to <code class="gatsby-code-text">6</code>, React will compare the items in the <code class="gatsby-code-text">[5]</code> array from the previous render to items in the <code class="gatsby-code-text">[6]</code> array from the next render. This time, React will re-apply the effect because <code class="gatsby-code-text">5 !== 6</code>. If there are multiple items in the array, React will re-run the effect even if just one of them is different.</p> <p>This also works for effects that have a cleanup phase:</p> <pre data-language="jsx">useEffect(() =&gt; {
+}, [count]); // Only re-run the effect if count changes
+</pre> <p>In the example above, we pass <code class="gatsby-code-text">[count]</code> as the second argument. What does this mean? If the <code class="gatsby-code-text">count</code> is <code class="gatsby-code-text">5</code>, and then our component re-renders with <code class="gatsby-code-text">count</code> still equal to <code class="gatsby-code-text">5</code>, React will compare <code class="gatsby-code-text">[5]</code> from the previous render and <code class="gatsby-code-text">[5]</code> from the next render. Because all items in the array are the same (<code class="gatsby-code-text">5 === 5</code>), React would skip the effect. That’s our optimization.</p> <p>When we render with <code class="gatsby-code-text">count</code> updated to <code class="gatsby-code-text">6</code>, React will compare the items in the <code class="gatsby-code-text">[5]</code> array from the previous render to items in the <code class="gatsby-code-text">[6]</code> array from the next render. This time, React will re-apply the effect because <code class="gatsby-code-text">5 !== 6</code>. If there are multiple items in the array, React will re-run the effect even if just one of them is different.</p> <p>This also works for effects that have a cleanup phase:</p> <pre data-language="jsx">useEffect(() =&gt; {
   function handleStatusChange(status) {
     setIsOnline(status.isOnline);
   }
@@ -282,7 +344,8 @@ ChatAPI.unsubscribeFromFriendStatus(300, handleStatusChange); // Clean up last e
   return () =&gt; {
     ChatAPI.unsubscribeFromFriendStatus(props.friend.id, handleStatusChange);
   };
-}, [props.friend.id]); // Only re-subscribe if props.friend.id changes</pre> <p>In the future, the second argument might get added automatically by a build-time transformation.</p> <blockquote> <p>Note</p> <p>If you use this optimization, make sure the array includes <strong>all values from the component scope (such as props and state) that change over time and that are used by the effect</strong>. Otherwise, your code will reference stale values from previous renders. Learn more about <a href="hooks-faq#is-it-safe-to-omit-functions-from-the-list-of-dependencies">how to deal with functions</a> and <a href="hooks-faq#what-can-i-do-if-my-effect-dependencies-change-too-often">what to do when the array changes too often</a>.</p> <p>If you want to run an effect and clean it up only once (on mount and unmount), you can pass an empty array (<code class="gatsby-code-text">[]</code>) as a second argument. This tells React that your effect doesn’t depend on <em>any</em> values from props or state, so it never needs to re-run. This isn’t handled as a special case — it follows directly from how the dependencies array always works.</p> <p>If you pass an empty array (<code class="gatsby-code-text">[]</code>), the props and state inside the effect will always have their initial values. While passing <code class="gatsby-code-text">[]</code> as the second argument is closer to the familiar <code class="gatsby-code-text">componentDidMount</code> and <code class="gatsby-code-text">componentWillUnmount</code> mental model, there are usually <a href="hooks-faq#is-it-safe-to-omit-functions-from-the-list-of-dependencies">better</a> <a href="hooks-faq#what-can-i-do-if-my-effect-dependencies-change-too-often">solutions</a> to avoid re-running effects too often. Also, don’t forget that React defers running <code class="gatsby-code-text">useEffect</code> until after the browser has painted, so doing extra work is less of a problem.</p> <p>We recommend using the <a href="https://github.com/facebook/react/issues/14920"><code class="gatsby-code-text">exhaustive-deps</code></a> rule as part of our <a href="https://www.npmjs.com/package/eslint-plugin-react-hooks#installation"><code class="gatsby-code-text">eslint-plugin-react-hooks</code></a> package. It warns when dependencies are specified incorrectly and suggests a fix.</p> </blockquote> <h2 id="next-steps">Next Steps </h2> <p>Congratulations! This was a long page, but hopefully by the end most of your questions about effects were answered. You’ve learned both the State Hook and the Effect Hook, and there is a <em>lot</em> you can do with both of them combined. They cover most of the use cases for classes — and where they don’t, you might find the <a href="hooks-reference">additional Hooks</a> helpful.</p> <p>We’re also starting to see how Hooks solve problems outlined in <a href="hooks-intro#motivation">Motivation</a>. We’ve seen how effect cleanup avoids duplication in <code class="gatsby-code-text">componentDidUpdate</code> and <code class="gatsby-code-text">componentWillUnmount</code>, brings related code closer together, and helps us avoid bugs. We’ve also seen how we can separate effects by their purpose, which is something we couldn’t do in classes at all.</p> <p>At this point you might be questioning how Hooks work. How can React know which <code class="gatsby-code-text">useState</code> call corresponds to which state variable between re-renders? How does React “match up” previous and next effects on every update? <strong>On the next page we will learn about the <a href="hooks-rules">Rules of Hooks</a> — they’re essential to making Hooks work.</strong></p>
+}, [props.friend.id]); // Only re-subscribe if props.friend.id changes
+</pre> <p>In the future, the second argument might get added automatically by a build-time transformation.</p> <blockquote> <p>Note</p> <p>If you use this optimization, make sure the array includes <strong>all values from the component scope (such as props and state) that change over time and that are used by the effect</strong>. Otherwise, your code will reference stale values from previous renders. Learn more about <a href="hooks-faq#is-it-safe-to-omit-functions-from-the-list-of-dependencies">how to deal with functions</a> and <a href="hooks-faq#what-can-i-do-if-my-effect-dependencies-change-too-often">what to do when the array changes too often</a>.</p> <p>If you want to run an effect and clean it up only once (on mount and unmount), you can pass an empty array (<code class="gatsby-code-text">[]</code>) as a second argument. This tells React that your effect doesn’t depend on <em>any</em> values from props or state, so it never needs to re-run. This isn’t handled as a special case — it follows directly from how the dependencies array always works.</p> <p>If you pass an empty array (<code class="gatsby-code-text">[]</code>), the props and state inside the effect will always have their initial values. While passing <code class="gatsby-code-text">[]</code> as the second argument is closer to the familiar <code class="gatsby-code-text">componentDidMount</code> and <code class="gatsby-code-text">componentWillUnmount</code> mental model, there are usually <a href="hooks-faq#is-it-safe-to-omit-functions-from-the-list-of-dependencies">better</a> <a href="hooks-faq#what-can-i-do-if-my-effect-dependencies-change-too-often">solutions</a> to avoid re-running effects too often. Also, don’t forget that React defers running <code class="gatsby-code-text">useEffect</code> until after the browser has painted, so doing extra work is less of a problem.</p> <p>We recommend using the <a href="https://github.com/facebook/react/issues/14920"><code class="gatsby-code-text">exhaustive-deps</code></a> rule as part of our <a href="https://www.npmjs.com/package/eslint-plugin-react-hooks#installation"><code class="gatsby-code-text">eslint-plugin-react-hooks</code></a> package. It warns when dependencies are specified incorrectly and suggests a fix.</p> </blockquote> <h2 id="next-steps">Next Steps </h2> <p>Congratulations! This was a long page, but hopefully by the end most of your questions about effects were answered. You’ve learned both the State Hook and the Effect Hook, and there is a <em>lot</em> you can do with both of them combined. They cover most of the use cases for classes — and where they don’t, you might find the <a href="hooks-reference">additional Hooks</a> helpful.</p> <p>We’re also starting to see how Hooks solve problems outlined in <a href="hooks-intro#motivation">Motivation</a>. We’ve seen how effect cleanup avoids duplication in <code class="gatsby-code-text">componentDidUpdate</code> and <code class="gatsby-code-text">componentWillUnmount</code>, brings related code closer together, and helps us avoid bugs. We’ve also seen how we can separate effects by their purpose, which is something we couldn’t do in classes at all.</p> <p>At this point you might be questioning how Hooks work. How can React know which <code class="gatsby-code-text">useState</code> call corresponds to which state variable between re-renders? How does React “match up” previous and next effects on every update? <strong>On the next page we will learn about the <a href="hooks-rules">Rules of Hooks</a> — they’re essential to making Hooks work.</strong></p>
 <span><span>Is this page useful?</span></span><div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Facebook Inc.<br>Licensed under the Creative Commons Attribution 4.0 International Public License.<br>
