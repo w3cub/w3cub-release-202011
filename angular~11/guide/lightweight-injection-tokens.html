@@ -1,0 +1,183 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Optimizing Client App Size With Lightweight Injection Tokens - Angular 11 - W3cubDocs</title>
+  
+  <meta name="description" content="This page provides a conceptual overview of a dependency injection technique that is recommended for library developers. Designing your library with &hellip;">
+  <meta name="keywords" content="optimizing, client, app, size, with, lightweight, injection, tokens, angular, angular~11">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/angular~11/guide/lightweight-injection-tokens.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/angular~11.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/angular~11/" class="_nav-link" title="" style="margin-left:0;">Angular 11</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _angular">
+				
+				
+<h1 id="optimizing-client-app-size-with-lightweight-injection-tokens">Optimizing client app size with lightweight injection tokens</h1> <p>This page provides a conceptual overview of a dependency injection technique that is recommended for library developers. Designing your library with <em>lightweight injection tokens</em> helps optimize the bundle size of client applications that use your library.</p> <p>You can manage the dependency structure among your components and injectable services to optimize bundle size by using <a href="architecture-services#introduction-to-services-and-dependency-injection">tree-shakable providers</a>. This normally ensures that if a provided component or service is never actually used by the app, the compiler can eliminate its code from the bundle.</p> <p>However, due to the way Angular stores injection tokens, it is possible that such an unused component or service can end up in the bundle anyway. This page describes a dependency-injection design pattern that supports proper tree-shaking by using lightweight injection tokens.</p> <p>The lightweight injection token design pattern is especially important for library developers. It ensures that when an application uses only some of your library's capabilities, the unused code can be eliminated from the client's application bundle.</p> <p>When an application uses your library, there might be some services that your library supplies which the client application doesn't use. In this case, the application developer should expect that service to be tree-shaken, and not contribute to the size of the compiled application. Because the application developer cannot know about or remedy a tree-shaking problem in the library, it is the responsibility of the library developer to do so. To prevent the retention of unused components, your library should use the lightweight injection token design pattern.</p> <h2 id="when-tokens-are-retained">When tokens are retained</h2> <p>To better explain the condition under which token retention occurs, consider a library that provides a library-card component, which contains a body and can contain an optional header.</p> <pre>&lt;lib-card&gt;
+  &lt;lib-header&gt;...&lt;/lib-header&gt;
+&lt;/lib-card&gt;</pre> <p>In a likely implementation, the <code>&lt;lib-card&gt;</code> component uses <code>@<a href="../api/core/contentchild" class="code-anchor">ContentChild</a>()</code> or <code>@<a href="../api/core/contentchildren" class="code-anchor">ContentChildren</a>()</code> to obtain <code>&lt;lib-header&gt;</code> and <code>&lt;lib-body&gt;</code>, as in the following.</p> <pre data-language="typescript">@Component({
+  selector: 'lib-header',
+  ...,
+})
+class LibHeaderComponent {}
+
+@Component({
+  selector: 'lib-card',
+  ...,
+})
+class LibCardComponent {
+  @ContentChild(LibHeaderComponent)
+  header: LibHeaderComponent|null = null;
+}</pre> <p>Because <code>&lt;lib-header&gt;</code> is optional, the element can appear in the template in its minimal form, <code>&lt;lib-card&gt;&lt;/lib-card&gt;</code>. In this case, <code>&lt;lib-header&gt;</code> is not used and you would expect it to be tree-shaken, but that is not what happens. This is because <code>LibCardComponent</code> actually contains two references to the <code>LibHeaderComponent</code>.</p> <p><code>@<a href="../api/core/contentchild" class="code-anchor">ContentChild</a>(LibHeaderComponent) header: LibHeaderComponent;</code></p> <ul> <li> <p>One of these reference is in the <em>type position</em>-- that is, it specifies <code>LibHeaderComponent</code> as a type: <code>header: LibHeaderComponent;</code>.</p> </li> <li> <p>The other reference is in the <em>value position</em>-- that is, LibHeaderComponent is the value of the <code>@<a href="../api/core/contentchild" class="code-anchor">ContentChild</a>()</code> parameter decorator: <code>@<a href="../api/core/contentchild" class="code-anchor">ContentChild</a>(LibHeaderComponent)</code>.</p> </li> </ul> <p>The compiler handles token references in these positions differently.</p> <ul> <li> <p>The compiler erases <em>type position</em> references after conversion from TypeScript, so they have no impact on tree-shaking.</p> </li> <li> <p>The compiler must retain <em>value position</em> references at runtime, which prevents the component from being tree-shaken.</p> </li> </ul> <p>In the example, the compiler retains the <code>LibHeaderComponent</code> token that occurs in the value position, which prevents the referenced component from being tree-shaken, even if the application developer does not actually use <code>&lt;lib-header&gt;</code> anywhere. If <code>LibHeaderComponent</code> is large (code, template, and styles), including it unnecessarily can significantly increase the size of the client application.</p> <h2 id="when-to-use-the-lightweight-injection-token-pattern">When to use the lightweight injection token pattern</h2> <p>The tree-shaking problem arises when a component is used as an injection token. There are two cases when that can happen.</p> <ul> <li>The token is used in the value position of a <a href="lifecycle-hooks#using-aftercontent-hooks" title="See more about using content queries.">content query</a>.</li> <li>The token is used as a type specifier for constructor injection.</li> </ul> <p>In the following example, both uses of the <code>OtherComponent</code> token cause retention of <code>OtherComponent</code> (that is, prevent it from being tree-shaken when it is not used).</p> <pre>class MyComponent {
+  constructor(@Optional() other: OtherComponent) {}
+
+  @ContentChild(OtherComponent)
+  other: OtherComponent|null;
+}</pre> <p>Although tokens used only as type specifiers are removed when converted to JavaScript, all tokens used for dependency injection are needed at runtime. These effectively change <code>constructor(@<a href="../api/core/optional" class="code-anchor">Optional</a>() other: OtherComponent)</code> to <code>constructor(@<a href="../api/core/optional" class="code-anchor">Optional</a>() @<a href="../api/core/inject-1" class="code-anchor">Inject</a>(OtherComponent) other)</code>. The token is now in a value position, and causes the tree shaker to retain the reference.</p> <blockquote class="alert is helpful"> <p>For all services, a library should use <a href="architecture-services#introduction-to-services-and-dependency-injection">tree-shakable providers</a>, providing dependencies at the root level rather than in component constructors.</p> </blockquote> <h2 id="using-lightweight-injection-tokens">Using lightweight injection tokens</h2> <p>The lightweight injection token design pattern consists of using a small abstract class as an injection token, and providing the actual implementation at a later stage. The abstract class is retained (not tree-shaken), but it is small and has no material impact on the application size.</p> <p>The following example shows how this works for the <code>LibHeaderComponent</code>.</p> <pre>abstract class LibHeaderToken {}
+
+@Component({
+  selector: 'lib-header',
+  providers: [
+    {provide: LibHeaderToken, useExisting: LibHeaderComponent}
+  ]
+  ...,
+})
+class LibHeaderComponent extends LibHeaderToken {}
+
+@Component({
+  selector: 'lib-card',
+  ...,
+})
+class LibCardComponent {
+  @ContentChild(LibHeaderToken) header: LibHeaderToken|null = null;
+}</pre> <p>In this example, the <code>LibCardComponent</code> implementation no longer refers to <code>LibHeaderComponent</code> in either the type position or the value position. This allows full tree shaking of <code>LibHeaderComponent</code> to take place. The <code>LibHeaderToken</code> is retained, but it is only a class declaration, with no concrete implementation. It is small and does not materially impact the application size when retained after compilation.</p> <p>Instead, <code>LibHeaderComponent</code> itself implements the abstract <code>LibHeaderToken</code> class. You can safely use that token as the provider in the component definition, allowing Angular to correctly inject the concrete type.</p> <p>To summarize, the lightweight injection token pattern consists of the following.</p> <ol> <li>A lightweight injection token that is represented as an abstract class.</li> <li>A component definition that implements the abstract class.</li> <li>Injection of the lightweight pattern, using <code> @<a href="../api/core/contentchild" class="code-anchor">ContentChild</a>()</code> or <code>@<a href="../api/core/contentchildren" class="code-anchor">ContentChildren</a>()</code>.</li> <li>A provider in the implementation of the lightweight injection token which associates the lightweight injection token with the implementation.</li> </ol> <h3 id="use-the-lightweight-injection-token-for-api-definition">Use the lightweight injection token for API definition</h3> <p>A component that injects a lightweight injection token might need to invoke a method in the injected class. Because the token is now an abstract class, and the injectable component implements that class, you must also declare an abstract method in the abstract lightweight injection token class. The implementation of the method (with all of its code overhead) resides in the injectable component that can be tree-shaken. This allows the parent to communicate with the child (if it is present) in a type-safe manner.</p> <p>For example, the <code>LibCardComponent</code> now queries <code>LibHeaderToken</code> rather than <code>LibHeaderComponent</code>. The following example shows how the pattern allows <code>LibCardComponent</code> to communicate with the <code>LibHeaderComponent</code> without actually referring to <code>LibHeaderComponent</code>.</p> <pre>abstract class LibHeaderToken {
+  abstract doSomething(): void;
+}
+
+@Component({
+  selector: 'lib-header',
+  providers: [
+    {provide: LibHeaderToken, useExisting: LibHeaderComponent}
+  ]
+  ...,
+})
+class LibHeaderComponent extends LibHeaderToken {
+  doSomething(): void {
+    // Concrete implementation of `doSomething`
+  }
+}
+
+@Component({
+  selector: 'lib-card',
+  ...,
+})
+class LibCardComponent implement AfterContentInit {
+  @ContentChild(LibHeaderToken)
+  header: LibHeaderToken|null = null;
+
+  ngAfterContentInit(): void {
+    this.header &amp;&amp; this.header.doSomething();
+  }
+}</pre> <p>In this example the parent queries the token to obtain the child component, and stores the resulting component reference if it is present. Before calling a method in the child, the parent component checks to see if the child component is present. If the child component has been tree-shaken, there is no runtime reference to it, and no call to its method.</p> <h3 id="naming-your-lightweight-injection-token">Naming your lightweight injection token</h3> <p>Lightweight injection tokens are only useful with components. The Angular style guide suggests that you name components using the "Component" suffix. The example "LibHeaderComponent" follows this convention.</p> <p>To maintain the relationship between the component and its token while still distinguishing between them, the recommended style is to use the component base name with the suffix "Token" to name your lightweight injection tokens: "LibHeaderToken".</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2010–2021 Google, Inc.<br>Licensed under the Creative Commons Attribution License 4.0.<br>
+    <a href="https://v11.angular.io/guide/lightweight-injection-tokens" class="_attribution-link">https://v11.angular.io/guide/lightweight-injection-tokens</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
