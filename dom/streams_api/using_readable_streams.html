@@ -5,10 +5,10 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Streams API&#58; Using Readable Streams - DOM - W3cubDocs</title>
+  <title>Streams API&#58; Using Readable Streams - Web APIs - W3cubDocs</title>
   
   <meta name="description" content="As a JavaScript developer, programmatically reading and manipulating streams of data received over the network, chunk by chunk, is very useful! But &hellip;">
-  <meta name="keywords" content="streams, api, using, readable, dom">
+  <meta name="keywords" content="using, readable, streams, api, web, apis, dom">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/dom/streams_api/using_readable_streams.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/dom.js"></script>
   
@@ -52,7 +52,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">DOM</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">Web APIs</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -88,158 +88,198 @@
 			<div class="_page _mdn">
 				
 				
-<h1>Streams API: Using readable streams</h1> <p class="summary">As a JavaScript developer, programmatically reading and manipulating streams of data received over the network, chunk by chunk, is very useful! But how do you use the Streams API’s readable stream functionality? This article explains the basics.</p> <div class="note"> <p><strong>Note</strong>: This article assumes that you understand the use cases of readable streams, and are aware of the high-level concepts. If not, we suggest that you first read the <a href="../streams_api#Concepts_and_usage">Streams concepts and usage overview</a> and dedicated <a href="concepts">Streams API concepts</a> article, then come back.</p> </div> <div class="note"> <p><strong>Note</strong>: If you are looking for information on writable streams try <a href="using_writable_streams">Using writable streams</a> instead.</p> </div> <h2 id="Browser_support">Browser support</h2> <p>The Streams API is experimental, and support is at an early stage right now. You can consume Fetch bodys as streams and create your own custom readable streams in the latest versions of Firefox (58+, currently hidden behind the <code>dom.streams.enabled</code> and <code>javascript.options.streams</code> prefs) and Chrome (52+). <a href="concepts#Pipe_chains">Pipe chains</a> are only supported in Chrome at the moment, and that functionality is subject to change.</p> <h2 id="Finding_some_examples">Finding some examples</h2> <p>We will look at various examples in this article, taken from our <a href="https://github.com/mdn/dom-examples/tree/master/streams">dom-examples/streams</a> repo. You can find the full source code there, as well as links to the examples.</p> <h2 id="Consuming_a_fetch_as_a_stream">Consuming a fetch as a stream</h2> <p>The <a href="../fetch_api">Fetch API</a> allows you to fetch resources across the network, providing a modern alternative to <a href="https://developer.mozilla.org/en-US/docs/User%3Amaybe/webidl_mdn/XMLHttpRequest">XHR</a>. It has a number of advantages, and what is really nice about it is that browsers have recently added the ability to consume a fetch response as a readable stream.</p> <p>The <a href="../body"><code>Body</code></a> mixin now includes the <a href="../body/body"><code>body</code></a> property, which is a simple getter exposing the body contents as a readable stream. This mixin is implemented by both the <a href="../request"><code>Request</code></a> and <a href="../response"><code>Response</code></a> interfaces, so it is available on both, although consuming the stream of a response body is perhaps a bit more obvious.</p> <p>As our <a href="https://github.com/mdn/dom-examples/tree/master/streams/simple-pump">Simple stream pump</a> example shows (<a href="https://mdn.github.io/dom-examples/streams/simple-pump/">see it live also</a>), exposing it is a matter of just accessing the <code>body</code> property of the response:</p> <pre data-language="js">// Fetch the original image
-fetch('./tortoise.png')
-// Retrieve its body as ReadableStream
-.then(response =&gt; response.body)</pre> <p>This provides us with a <a href="../readablestream"><code>ReadableStream</code></a> object.</p> <h3 id="Attaching_a_reader">Attaching a reader</h3> <p>Now we’ve got our streaming body, reading the stream requires attaching a reader to it. This is done using the <a href="../readablestream/getreader"><code>ReadableStream.getReader()</code></a> method:</p> <pre data-language="js">// Fetch the original image
-fetch('./tortoise.png')
-// Retrieve its body as ReadableStream
-.then(response =&gt; response.body)
-.then(body =&gt; {
-  const reader = body.getReader();</pre> <p>Invoking this method creates a reader and locks it to the stream — no other reader may read this stream until this reader is released, e.g. by invoking <a href="../readablestreamdefaultreader/releaselock"><code>ReadableStreamDefaultReader.releaseLock()</code></a>.</p> <p>Also note that the previous example can be reduced by one step, as <code>response.body</code> is synchronous and so doesn't need the promise:</p> <pre data-language="js">// Fetch the original image
-  fetch('./tortoise.png')
-  // Retrieve its body as ReadableStream
-  .then(response =&gt; {
-    const reader = response.body.getReader();</pre> <h3 id="Reading_the_stream">Reading the stream</h3> <p>Now you’ve got your reader attached, you can read data chunks out of the stream using the <a href="../readablestreamdefaultreader/read"><code>ReadableStreamDefaultReader.read()</code></a> method. This reads one chunk out of the stream, which you can then do anything you like with. For example, our Simple stream pump example goes on to enqueue each chunk in a new, custom <code>ReadableStream</code> (we will find more about this in the next section), then create a new <a href="../response"><code>Response</code></a> out of it, consume it as a <a href="../blob"><code>Blob</code></a>, create an object URL out of that blob using <a href="../url/createobjecturl"><code>URL.createObjectURL()</code></a>, and then display it on screen in an <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img"><code>&lt;img&gt;</code></a> element, effectively creating a copy of the image we originally fetched.</p> <pre data-language="js">  return new ReadableStream({
-    start(controller) {
-      return pump();
-      function pump() {
-        return reader.read().then(({ done, value }) =&gt; {
-          // When no more data needs to be consumed, close the stream
-          if (done) {
-              controller.close();
-              return;
-          }
-          // Enqueue the next data chunk into our target stream
-          controller.enqueue(value);
-          return pump();
-        });
-      }
-    }  
-  })
-})
-.then(stream =&gt; new Response(stream))
-.then(response =&gt; response.blob())
-.then(blob =&gt; URL.createObjectURL(blob))
-.then(url =&gt; console.log(image.src = url))
-.catch(err =&gt; console.error(err));</pre> <p>Let’s look in detail at how <code>read()</code> is used. In the <code>pump()</code> function seen above we first invoke <code>read()</code>, which returns a promise containing a results object — this has the results of our read in it, in the form <code>{ done, value }</code>:</p> <pre data-language="js">return reader.read().then(({ done, value }) =&gt; {</pre> <p>The results can be one of three different types:</p> <ul> <li>If a chunk is available to read, the promise will be fulfilled with an object of the form { value: theChunk, done: false }.</li> <li>If the stream becomes closed, the promise will be fulfilled with an object of the form { value: undefined, done: true }.</li> <li>If the stream becomes errored, the promise will be rejected with the relevant error.</li> </ul> <p>Next, we check whether done is <code>true</code>. If so, there are no more chunks to read (the value is <code>undefined</code>) so we return out of the function and close the custom stream with <a href="../readablestreamdefaultcontroller/close"><code>ReadableStreamDefaultController.close()</code></a>:</p> <pre data-language="js">if (done) {
-  controller.close();
-  return;
-}</pre> <div class="note"> <p><strong>Note</strong>: <code>close()</code> is part of the new custom stream, not the original stream we are discussing here. We’ll explain more about the custom stream in the next section.</p> </div> <p>If <code>done</code> is not true, we process the new chunk we’ve read (contained in the <code>value</code> property of the results object) and then call the <code>pump()</code> function again to read the next chunk.</p> <pre data-language="js">// Enqueue the next data chunk into our target stream
-controller.enqueue(value);
-return pump();</pre> <p>This is the standard pattern you’ll see when using stream readers:</p> <ol> <li>You write a function that starts off by reading the stream.</li> <li>If there is no more stream to read, you return out of the function.</li> <li>If there is more stream to read, you process the current chunk then run the function again.</li> <li>You keep running the function recursively until there is no more stream to read, in which case step 2 is followed.</li> </ol> <h2 id="Creating_your_own_custom_readable_stream">Creating your own custom readable stream</h2> <p>The Simple stream pump example we’ve been studying throughout this article includes a second part — once we’ve read the image from the fetch body in chunks, we then enqueue them into another, custom stream of our own creation. How do we create this? The <code>ReadableStream</code> constructor.</p> <h3 id="The_ReadableStream_constructor">The ReadableStream constructor</h3> <p>It is easy to read from a stream when the browser provides it for you as in the case of Fetch, but sometimes you need to create a custom stream and populate it with your own chunks. The <a href="../readablestream/readablestream"><code>ReadableStream.ReadableStream()</code></a> constructor allows you to do this via a syntax that looks complex at first, but actually isn’t too bad.</p> <p>The generic syntax skeleton looks like this:</p> <pre data-language="js">const stream = new ReadableStream({
-  start(controller) {
+<h1>Using readable streams</h1>
+<p>As a JavaScript developer, programmatically reading and manipulating streams of data received over the network, chunk by chunk, is very useful! But how do you use the Streams API’s readable stream functionality? This article explains the basics.</p> <div class="notecard note"> <p><strong>Note:</strong> This article assumes that you understand the use cases of readable streams, and are aware of the high-level concepts. If not, we suggest that you first read the <a href="../streams_api#concepts_and_usage">Streams concepts and usage overview</a> and dedicated <a href="concepts">Streams API concepts</a> article, then come back.</p> </div> <div class="notecard note"> <p><strong>Note:</strong> If you are looking for information on writable streams try <a href="using_writable_streams">Using writable streams</a> instead.</p> </div>
+<h2 id="browser_support">Browser support</h2>
+<p>You can consume Fetch body objects as streams and create your own custom readable streams in Firefox 65+ and Chrome 42+ (and equivalent Chromium-based browsers). <a href="concepts#pipe_chains">Pipe chains</a> are only supported in Chrome at the moment, and that functionality is subject to change.</p>
+<h2 id="finding_some_examples">Finding some examples</h2>
+<p>We will look at various examples in this article, taken from our <a href="https://github.com/mdn/dom-examples/tree/master/streams" rel=" noopener">dom-examples/streams</a> repo. You can find the full source code there, as well as links to the examples.</p>
+<h2 id="consuming_a_fetch_as_a_stream">Consuming a fetch as a stream</h2>
+<p>The <a href="../fetch_api">Fetch API</a> allows you to fetch resources across the network, providing a modern alternative to <a href="../xmlhttprequest">XHR</a>. It has a number of advantages, and what is really nice about it is that browsers have recently added the ability to consume a fetch response as a readable stream.</p> <p>The <a href="../request/body"><code>Request.body</code></a> and <a href="../response/body"><code>Response.body</code></a> properties are available, which are getters exposing the body contents as a readable stream.</p> <p>As our <a href="https://github.com/mdn/dom-examples/tree/master/streams/simple-pump" rel=" noopener">Simple stream pump</a> example shows (<a href="https://mdn.github.io/dom-examples/streams/simple-pump/" rel=" noopener">see it live also</a>), exposing it is a matter of just accessing the <code>body</code> property of the response:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Fetch the original image</span>
+<span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">'./tortoise.png'</span><span class="token punctuation">)</span>
+<span class="token comment">// Retrieve its body as ReadableStream</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span>body<span class="token punctuation">)</span>
+</pre></div> <p>This provides us with a <a href="../readablestream"><code>ReadableStream</code></a> object.</p>
+<h3 id="attaching_a_reader">Attaching a reader</h3>
+<p>Now we’ve got our streaming body, reading the stream requires attaching a reader to it. This is done using the <a href="../readablestream/getreader"><code>ReadableStream.getReader()</code></a> method:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Fetch the original image</span>
+<span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">'./tortoise.png'</span><span class="token punctuation">)</span>
+<span class="token comment">// Retrieve its body as ReadableStream</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span>body<span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">body</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> reader <span class="token operator">=</span> body<span class="token punctuation">.</span><span class="token function">getReader</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// ...</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>Invoking this method creates a reader and locks it to the stream — no other reader may read this stream until this reader is released, e.g. by invoking <a href="../readablestreamdefaultreader/releaselock"><code>ReadableStreamDefaultReader.releaseLock()</code></a>.</p> <p>Also note that the previous example can be reduced by one step, as <code>response.body</code> is synchronous and so doesn't need the promise:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Fetch the original image</span>
+  <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">'./tortoise.png'</span><span class="token punctuation">)</span>
+  <span class="token comment">// Retrieve its body as ReadableStream</span>
+  <span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> reader <span class="token operator">=</span> response<span class="token punctuation">.</span>body<span class="token punctuation">.</span><span class="token function">getReader</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token comment">// ...</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h3 id="reading_the_stream">Reading the stream</h3>
+<p>Now you’ve got your reader attached, you can read data chunks out of the stream using the <a href="../readablestreamdefaultreader/read"><code>ReadableStreamDefaultReader.read()</code></a> method. This reads one chunk out of the stream, which you can then do anything you like with. For example, our Simple stream pump example goes on to enqueue each chunk in a new, custom <code>ReadableStream</code> (we will find more about this in the next section), then create a new <a href="../response"><code>Response</code></a> out of it, consume it as a <a href="../blob"><code>Blob</code></a>, create an object URL out of that blob using <a href="../url/createobjecturl"><code>URL.createObjectURL()</code></a>, and then display it on screen in an <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img"><code>&lt;img&gt;</code></a> element, effectively creating a copy of the image we originally fetched.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">return</span> <span class="token keyword">new</span> <span class="token class-name">ReadableStream</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token function">start</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">function</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> reader<span class="token punctuation">.</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> done<span class="token punctuation">,</span> value <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+          <span class="token comment">// When no more data needs to be consumed, close the stream</span>
+          <span class="token keyword">if</span> <span class="token punctuation">(</span>done<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+              controller<span class="token punctuation">.</span><span class="token function">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+              <span class="token keyword">return</span><span class="token punctuation">;</span>
+          <span class="token punctuation">}</span>
+          <span class="token comment">// Enqueue the next data chunk into our target stream</span>
+          controller<span class="token punctuation">.</span><span class="token function">enqueue</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+          <span class="token keyword">return</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">stream</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">Response</span><span class="token punctuation">(</span>stream<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span><span class="token function">blob</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">blob</span> <span class="token operator">=&gt;</span> <span class="token constant">URL</span><span class="token punctuation">.</span><span class="token function">createObjectURL</span><span class="token punctuation">(</span>blob<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">url</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>image<span class="token punctuation">.</span>src <span class="token operator">=</span> url<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">catch</span><span class="token punctuation">(</span><span class="token parameter">err</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">error</span><span class="token punctuation">(</span>err<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>Let’s look in detail at how <code>read()</code> is used. In the <code>pump()</code> function seen above we first invoke <code>read()</code>, which returns a promise containing a results object — this has the results of our read in it, in the form <code>{ done, value }</code>:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">return</span> reader<span class="token punctuation">.</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> done<span class="token punctuation">,</span> value <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+</pre></div> <p>The results can be one of three different types:</p> <ul> <li>If a chunk is available to read, the promise will be fulfilled with an object of the form <code>{ value: theChunk, done: false }</code>.</li> <li>If the stream becomes closed, the promise will be fulfilled with an object of the form <code>{ value: undefined, done: true }</code>.</li> <li>If the stream becomes errored, the promise will be rejected with the relevant error.</li> </ul> <p>Next, we check whether <code>done</code> is <code>true</code>. If so, there are no more chunks to read (the value is <code>undefined</code>) so we return out of the function and close the custom stream with <a href="../readablestreamdefaultcontroller/close"><code>ReadableStreamDefaultController.close()</code></a>:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">if</span> <span class="token punctuation">(</span>done<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  controller<span class="token punctuation">.</span><span class="token function">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token keyword">return</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</pre></div> <div class="notecard note"> <p><strong>Note:</strong> <code>close()</code> is part of the new custom stream, not the original stream we are discussing here. We’ll explain more about the custom stream in the next section.</p> </div> <p>If <code>done</code> is not <code>true</code>, we process the new chunk we’ve read (contained in the <code>value</code> property of the results object) and then call the <code>pump()</code> function again to read the next chunk.</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Enqueue the next data chunk into our target stream</span>
+controller<span class="token punctuation">.</span><span class="token function">enqueue</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">return</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>This is the standard pattern you’ll see when using stream readers:</p> <ol> <li>You write a function that starts off by reading the stream.</li> <li>If there is no more stream to read, you return out of the function.</li> <li>If there is more stream to read, you process the current chunk then run the function again.</li> <li>You keep running the function recursively until there is no more stream to read, in which case step 2 is followed.</li> </ol>
+<h2 id="creating_your_own_custom_readable_stream">Creating your own custom readable stream</h2>
+<p>The Simple stream pump example we’ve been studying throughout this article includes a second part — once we’ve read the image from the fetch body in chunks, we then enqueue them into another, custom stream of our own creation. How do we create this? The <code>ReadableStream()</code> constructor.</p>
+<h3 id="the_readablestream_constructor">The ReadableStream() constructor</h3>
+<p>It is easy to read from a stream when the browser provides it for you as in the case of Fetch, but sometimes you need to create a custom stream and populate it with your own chunks. The <a href="../readablestream/readablestream"><code>ReadableStream()</code></a> constructor allows you to do this via a syntax that looks complex at first, but actually isn’t too bad.</p> <p>The generic syntax skeleton looks like this:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">const</span> stream <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ReadableStream</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token function">start</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
 
-  },
-  pull(controller) {
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function">pull</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
 
-  },
-  cancel() {
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function">cancel</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
 
-  },
-  type,
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  type<span class="token punctuation">,</span>
   autoAllocateChunkSize
-}, {
-  highWaterMark,
-  size()
-});</pre> <p>The constructor takes two objects as parameters. The first object is required, and creates a model in JavaScript of the underlying source the data is being read from. The second object is optional, and allows you to specify a <a href="concepts#Internal_queues_and_queuing_strategies">custom queueing strategy</a> to use for your stream. You’ll rarely have to do this, so we’ll just concentrate on the first one for now.</p> <p>The first object can contain up to five members, only the first of which is required:</p> <ol> <li>
+<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  highWaterMark<span class="token punctuation">,</span>
+  <span class="token function">size</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>The constructor takes two objects as parameters. The first object is required, and creates a model in JavaScript of the underlying source the data is being read from. The second object is optional, and allows you to specify a <a href="concepts#internal_queues_and_queuing_strategies">custom queuing strategy</a> to use for your stream. You’ll rarely have to do this, so we’ll just concentrate on the first one for now.</p> <p>The first object can contain up to five members, only the first of which is required:</p> <ol> <li>
 <code>start(controller)</code> — A method that is called once, immediately after the <code>ReadableStream</code> is constructed. Inside this method, you should include code that sets up the stream functionality, e.g. beginning generation of data or otherwise getting access to the source.</li> <li>
 <code>pull(controller)</code> — A method that, when included, is called repeatedly until the stream’s internal queue is full. This can be used to control the stream as more chunks are enqueued.</li> <li>
 <code>cancel()</code> — A method that, when included, will be called if the app signals that the stream is to be cancelled (e.g. if <a href="../readablestream/cancel"><code>ReadableStream.cancel()</code></a> is called). The contents should do whatever is necessary to release access to the stream source.</li> <li>
-<code>type</code> and <code>autoAllocateChunkSize</code> — These are used — when included — to signify that the stream is to be a bytestream. Bytestreams will be covered separately in a future tutorial, as they are somewhat different in purpose and use case to regular (default) streams. They are also not implemented anywhere as yet.</li> </ol> <p>Looking at our simple example code again, you can see that our <code>ReadableStream</code> constructor only includes a single method — <code>start()</code>, which serves to read all the data out of our fetch stream.</p> <pre data-language="js">  return new ReadableStream({
-    start(controller) {
-      return pump();
-      function pump() {
-        return reader.read().then(({ done, value }) =&gt; {
-          // When no more data needs to be consumed, close the stream
-          if (done) {
-            controller.close();
-            return;
-          }
-          // Enqueue the next data chunk into our target stream
-          controller.enqueue(value);
-          return pump();
-        });
-      }
-    }  
-  })
-})
-</pre> <h3 id="ReadableStream_controllers">ReadableStream controllers</h3> <p>You’ll notice that the <code>start()</code> and <code>pull()</code> methods passed into the <code>ReadableStream</code> constructor are given <code>controller</code> parameters — these are instances of the <a href="../readablestreamdefaultcontroller"><code>ReadableStreamDefaultController</code></a> class, which can be used to control your stream.</p> <p>In our example we are using the controller’s <a href="../readablestreamdefaultcontroller/enqueue"><code>enqueue()</code></a> method to enqueue a value into the custom stream after it is read from the fetch body.</p> <p>In addition, when we are done reading the fetch body we use the controller’s <a href="../readablestreamdefaultcontroller/close"><code>close()</code></a> method to close the custom stream — any previously-enqueued chunks can still be read from it, but no more can be enqueued, and the stream is closed when reading has finished.</p> <p>Reading from custom streams</p> <p>In our Simple stream pump example, we consume the custom readable stream by passing it into a <a href="../response/response"><code>Response</code></a> constructor call, after which we consume it as a blob().</p> <pre data-language="js">.then(stream =&gt; new Response(stream))
-.then(response =&gt; response.blob())
-.then(blob =&gt; URL.createObjectURL(blob))
-.then(url =&gt; console.log(image.src = url))
-.catch(err =&gt; console.error(err));</pre> <p>But a custom stream is still a <code>ReadableStream</code> instance, meaning you can attach a reader to it. As an example, have a look at our <a href="https://github.com/mdn/dom-examples/blob/master/streams/simple-random-stream/index.html">Simple random stream demo</a> (<a href="https://mdn.github.io/dom-examples/streams/simple-random-stream/">see it live also</a>), which creates a custom stream, enqueues some random strings into it, and then reads the data out of the stream again once the <em>Stop string generation</em> button is pressed.</p> <p>The custom stream constructor has a <code>start()</code> method that uses a <a href="https://developer.mozilla.org/en-US/docs/Web/API/WindowTimers/setInterval"><code>WindowTimers.setInterval()</code></a> call to generate a random string every second. <a href="../readablestreamdefaultcontroller/enqueue"><code>ReadableStreamDefaultController.enqueue()</code></a> is then used to enqueue it into the stream. When the button is pressed, the interval is cancelled, and a function called <code>readStream()</code> is invoked to read the data back out of the stream again. We also close the stream, as we’ve stopped enqueueing chunks to it.</p> <pre data-language="js">const stream = new ReadableStream({
-  start(controller) {
-    interval = setInterval(() =&gt; {
-      let string = randomChars();
-      // Add the string to the stream
-      controller.enqueue(string);
-      // show it on the screen
-      let listItem = document.createElement('li');
-      listItem.textContent = string;
-      list1.appendChild(listItem);
-    }, 1000);
-    button.addEventListener('click', function() {
-      clearInterval(interval);
-      readStream();
-      controller.close();
-    })
-  },
-  pull(controller) {
-    // We don't really need a pull in this example
-  },
-  cancel() {
-    // This is called if the reader cancels,
-    // so we should stop generating strings
-    clearInterval(interval);
-  }
-});</pre> <p>In the <code>readStream()</code> function itself, we lock a reader to the stream using <a href="../readablestream/getreader"><code>ReadableStream.getReader()</code></a>, then follow the same kind of pattern we saw earlier — reading each chunk with <code>read()</code>, checking whether <code>done</code> is <code>true</code> and then ending the process if so, and reading the next chunk and processing it if not, before running the <code>read()</code> function again.</p> <pre data-language="js">function readStream() {
-  const reader = stream.getReader();
-  let charsReceived = 0;
+<code>type</code> and <code>autoAllocateChunkSize</code> — These are used — when included — to signify that the stream is to be a bytestream. Bytestreams will be covered separately in a future tutorial, as they are somewhat different in purpose and use case to regular (default) streams. They are also not implemented anywhere as yet.</li> </ol> <p>Looking at our simple example code again, you can see that our <code>ReadableStream()</code> constructor only includes a single method — <code>start()</code>, which serves to read all the data out of our fetch stream.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">return</span> <span class="token keyword">new</span> <span class="token class-name">ReadableStream</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token function">start</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token keyword">function</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">return</span> reader<span class="token punctuation">.</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> done<span class="token punctuation">,</span> value <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+          <span class="token comment">// When no more data needs to be consumed, close the stream</span>
+          <span class="token keyword">if</span> <span class="token punctuation">(</span>done<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            controller<span class="token punctuation">.</span><span class="token function">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+            <span class="token keyword">return</span><span class="token punctuation">;</span>
+          <span class="token punctuation">}</span>
+          <span class="token comment">// Enqueue the next data chunk into our target stream</span>
+          controller<span class="token punctuation">.</span><span class="token function">enqueue</span><span class="token punctuation">(</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+          <span class="token keyword">return</span> <span class="token function">pump</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</pre></div>
+<h3 id="readablestream_controllers">ReadableStream controllers</h3>
+<p>You’ll notice that the <code>start()</code> and <code>pull()</code> methods passed into the <code>ReadableStream()</code> constructor are given <code>controller</code> parameters — these are instances of the <a href="../readablestreamdefaultcontroller"><code>ReadableStreamDefaultController</code></a> class, which can be used to control your stream.</p> <p>In our example we are using the controller’s <a href="../readablestreamdefaultcontroller/enqueue"><code>enqueue()</code></a> method to enqueue a value into the custom stream after it is read from the fetch body.</p> <p>In addition, when we are done reading the fetch body we use the controller’s <a href="../readablestreamdefaultcontroller/close"><code>close()</code></a> method to close the custom stream — any previously-enqueued chunks can still be read from it, but no more can be enqueued, and the stream is closed when reading has finished.</p>
+<h3 id="reading_from_custom_streams">Reading from custom streams</h3>
+<p>In our Simple stream pump example, we consume the custom readable stream by passing it into a <a href="../response/response"><code>Response</code></a> constructor call, after which we consume it as a <code>blob()</code>.</p> <div class="code-example"><pre data-language="js"><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">stream</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">Response</span><span class="token punctuation">(</span>stream<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span><span class="token function">blob</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">blob</span> <span class="token operator">=&gt;</span> <span class="token constant">URL</span><span class="token punctuation">.</span><span class="token function">createObjectURL</span><span class="token punctuation">(</span>blob<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">url</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>image<span class="token punctuation">.</span>src <span class="token operator">=</span> url<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">catch</span><span class="token punctuation">(</span><span class="token parameter">err</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">error</span><span class="token punctuation">(</span>err<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>But a custom stream is still a <code>ReadableStream</code> instance, meaning you can attach a reader to it. As an example, have a look at our <a href="https://github.com/mdn/dom-examples/blob/master/streams/simple-random-stream/index.html" rel=" noopener">Simple random stream demo</a> (<a href="https://mdn.github.io/dom-examples/streams/simple-random-stream/" rel=" noopener">see it live also</a>), which creates a custom stream, enqueues some random strings into it, and then reads the data out of the stream again once the <em>Stop string generation</em> button is pressed.</p> <div class="notecard note"> <p><strong>Note:</strong> In order to consume a stream using <a href="../fetchevent/respondwith"><code>FetchEvent.respondWith()</code></a>, the enqueued stream contents must be of type <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array"><code>Uint8Array</code></a>; for example, encoded using <a href="../textencoder"><code>TextEncoder</code></a>.</p> </div> <p>The custom stream constructor has a <code>start()</code> method that uses a <a href="../setinterval"><code>setInterval()</code></a> call to generate a random string every second. <a href="../readablestreamdefaultcontroller/enqueue"><code>ReadableStreamDefaultController.enqueue()</code></a> is then used to enqueue it into the stream. When the button is pressed, the interval is cancelled, and a function called <code>readStream()</code> is invoked to read the data back out of the stream again. We also close the stream, as we’ve stopped enqueuing chunks to it.</p> <div class="code-example"><pre data-language="js"><span class="token keyword">const</span> stream <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ReadableStream</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token function">start</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    interval <span class="token operator">=</span> <span class="token function">setInterval</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+      <span class="token keyword">let</span> string <span class="token operator">=</span> <span class="token function">randomChars</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token comment">// Add the string to the stream</span>
+      controller<span class="token punctuation">.</span><span class="token function">enqueue</span><span class="token punctuation">(</span>string<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token comment">// show it on the screen</span>
+      <span class="token keyword">let</span> listItem <span class="token operator">=</span> document<span class="token punctuation">.</span><span class="token function">createElement</span><span class="token punctuation">(</span><span class="token string">'li'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      listItem<span class="token punctuation">.</span>textContent <span class="token operator">=</span> string<span class="token punctuation">;</span>
+      list1<span class="token punctuation">.</span><span class="token function">appendChild</span><span class="token punctuation">(</span>listItem<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">1000</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    button<span class="token punctuation">.</span><span class="token function">addEventListener</span><span class="token punctuation">(</span><span class="token string">'click'</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token function">clearInterval</span><span class="token punctuation">(</span>interval<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token function">readStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      controller<span class="token punctuation">.</span><span class="token function">close</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function">pull</span><span class="token punctuation">(</span><span class="token parameter">controller</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// We don't really need a pull in this example</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token function">cancel</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// This is called if the reader cancels,</span>
+    <span class="token comment">// so we should stop generating strings</span>
+    <span class="token function">clearInterval</span><span class="token punctuation">(</span>interval<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>In the <code>readStream()</code> function itself, we lock a reader to the stream using <a href="../readablestream/getreader"><code>ReadableStream.getReader()</code></a>, then follow the same kind of pattern we saw earlier — reading each chunk with <code>read()</code>, checking whether <code>done</code> is <code>true</code> and then ending the process if so, and reading the next chunk and processing it if not, before running the <code>read()</code> method again.</p> <div class="code-example"><pre data-language="js"><span class="token keyword">function</span> <span class="token function">readStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> reader <span class="token operator">=</span> stream<span class="token punctuation">.</span><span class="token function">getReader</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token keyword">let</span> charsReceived <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+  <span class="token keyword">let</span> result <span class="token operator">=</span> <span class="token string">''</span><span class="token punctuation">;</span>
 
-  // read() returns a promise that resolves
-  // when a value has been received
-  reader.read().then(function processText({ done, value }) {
-    // Result objects contain two properties:
-    // done  - true if the stream has already given you all its data.
-    // value - some data. Always undefined when done is true.
-    if (done) {
-      console.log("Stream complete");
-      para.textContent = result;
-      return;
-    }
+  <span class="token comment">// read() returns a promise that resolves</span>
+  <span class="token comment">// when a value has been received</span>
+  reader<span class="token punctuation">.</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token keyword">function</span> <span class="token function">processText</span><span class="token punctuation">(</span><span class="token parameter"><span class="token punctuation">{</span> done<span class="token punctuation">,</span> value <span class="token punctuation">}</span></span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Result objects contain two properties:</span>
+    <span class="token comment">// done  - true if the stream has already given you all its data.</span>
+    <span class="token comment">// value - some data. Always undefined when done is true.</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>done<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"Stream complete"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      para<span class="token punctuation">.</span>textContent <span class="token operator">=</span> result<span class="token punctuation">;</span>
+      <span class="token keyword">return</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
 
-    charsReceived += value.length;
-    const chunk = value;
-    let listItem = document.createElement('li');
-    listItem.textContent = 'Read ' + charsReceived + ' characters so far. Current chunk = ' + chunk;
-    list2.appendChild(listItem);
+    charsReceived <span class="token operator">+=</span> value<span class="token punctuation">.</span>length<span class="token punctuation">;</span>
+    <span class="token keyword">const</span> chunk <span class="token operator">=</span> value<span class="token punctuation">;</span>
+    <span class="token keyword">let</span> listItem <span class="token operator">=</span> document<span class="token punctuation">.</span><span class="token function">createElement</span><span class="token punctuation">(</span><span class="token string">'li'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    listItem<span class="token punctuation">.</span>textContent <span class="token operator">=</span> <span class="token string">'Read '</span> <span class="token operator">+</span> charsReceived <span class="token operator">+</span> <span class="token string">' characters so far. Current chunk = '</span> <span class="token operator">+</span> chunk<span class="token punctuation">;</span>
+    list2<span class="token punctuation">.</span><span class="token function">appendChild</span><span class="token punctuation">(</span>listItem<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-    result += chunk;
+    result <span class="token operator">+=</span> chunk<span class="token punctuation">;</span>
 
-    // Read some more, and call this function again
-    return reader.read().then(processText);
-  });
-}</pre> <h3 id="Closing_and_cancelling_streams">Closing and cancelling streams</h3> <p>We’ve already shown examples of using <a href="../readablestreamdefaultcontroller/close"><code>ReadableStreamDefaultController.close()</code></a> to close a reader. As we said before, any previously enqueued chunks will still be read, but no more can be enqueued because it is closed.</p> <p>If you wanted to completely get rid of the stream and discard any enqueued chunks, you'd use <a href="../readablestream/cancel"><code>ReadableStream.cancel()</code></a> or <a href="../readablestreamdefaultreader/cancel"><code>ReadableStreamDefaultReader.cancel()</code></a>.</p> <h2 id="Teeing_a_stream">Teeing a stream</h2> <p>Sometimes you might want to read a stream twice, simultaneously. This is achieved via the <a href="../readablestream/tee"><code>ReadableStream.tee()</code></a> method — it outputs an array containing two identical copies of the original readable stream, which can then be read independently by two separate readers.</p> <p>You might do this for example in a <a href="../service_worker_api">ServiceWorker</a> if you want to fetch a response from the server and stream it to the browser, but also stream it to the Service Worker cache. Since a response body cannot be consumed more than once, and a stream can't be read by more than one reader at once, you’d need two copies to do this.</p> <p>We provide an example of this in our <a href="https://github.com/mdn/dom-examples/blob/master/streams/simple-tee-example/index.html">Simple tee example</a> (<a href="https://mdn.github.io/dom-examples/streams/simple-tee-example/">see it live also</a>). This example works much the same way as our Simple random stream, except that when the button is pressed to stop generating random strings, the custom stream is taken and teed, and both resulting streams are then read:</p> <pre data-language="js">function teeStream() {
-    const teedOff = stream.tee();
-    readStream(teedOff[0], list2);
-    readStream(teedOff[1], list3);
-  }</pre> <h2 id="Pipe_chains">Pipe chains</h2> <p>One very experimental feature of streams is the ability to pipe streams into one another (called a <a href="concepts#Pipe_chains">pipe chain</a>). This involves two methods — <a href="../readablestream/pipethrough"><code>ReadableStream.pipeThrough()</code></a>, which pipes a readable stream through a writer/reader pair to transform one data format into another, and <a href="../readablestream/pipeto"><code>ReadableStream.pipeTo()</code></a>, which pipes a readable stream to a writer acting as an end point for the pipe chain.</p> <p>This functionality is at a very experimental stage and is subject to change, so we have no explored it too deeply as of yet.</p> <p>We have created an example called <a href="https://github.com/mdn/dom-examples/tree/master/streams/png-transform-stream">Unpack Chunks of a PNG</a> (<a href="https://mdn.github.io/dom-examples/streams/png-transform-stream/">see it live also</a>) that fetches an image as a stream, then pipes it through to a custom PNG transform stream <span class="pl-c">that retrieves PNG chunks out of a binary data stream.</span></p> <pre data-language="js">// Fetch the original image
-fetch('png-logo.png')
-// Retrieve its body as ReadableStream
-.then(response =&gt; response.body)
-// Create a gray-scaled PNG stream out of the original
-.then(rs =&gt; logReadableStream('Fetch Response Stream', rs))
-.then(body =&gt; body.pipeThrough(new PNGTransformStream()))
-.then(rs =&gt; logReadableStream('PNG Chunk Stream', rs))</pre>  <p>That explains the basics of “default” readable streams. We’ll explain bytestreams in a separate future article, once they are available in browsers.</p>
+    <span class="token comment">// Read some more, and call this function again</span>
+    <span class="token keyword">return</span> reader<span class="token punctuation">.</span><span class="token function">read</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span>processText<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</pre></div>
+<h3 id="closing_and_cancelling_streams">Closing and cancelling streams</h3>
+<p>We’ve already shown examples of using <a href="../readablestreamdefaultcontroller/close"><code>ReadableStreamDefaultController.close()</code></a> to close a reader. As we said before, any previously enqueued chunks will still be read, but no more can be enqueued because it is closed.</p> <p>If you wanted to completely get rid of the stream and discard any enqueued chunks, you'd use <a href="../readablestream/cancel"><code>ReadableStream.cancel()</code></a> or <a href="../readablestreamdefaultreader/cancel"><code>ReadableStreamDefaultReader.cancel()</code></a>.</p>
+<h2 id="teeing_a_stream">Teeing a stream</h2>
+<p>Sometimes you might want to read a stream twice, simultaneously. This is achieved via the <a href="../readablestream/tee"><code>ReadableStream.tee()</code></a> method — it outputs an array containing two identical copies of the original readable stream, which can then be read independently by two separate readers.</p> <p>You might do this for example in a <a href="../service_worker_api">ServiceWorker</a> if you want to fetch a response from the server and stream it to the browser, but also stream it to the Service Worker cache. Since a response body cannot be consumed more than once, and a stream can't be read by more than one reader at once, you’d need two copies to do this.</p> <p>We provide an example of this in our <a href="https://github.com/mdn/dom-examples/blob/master/streams/simple-tee-example/index.html" rel=" noopener">Simple tee example</a> (<a href="https://mdn.github.io/dom-examples/streams/simple-tee-example/" rel=" noopener">see it live also</a>). This example works much the same way as our Simple random stream, except that when the button is pressed to stop generating random strings, the custom stream is taken and teed, and both resulting streams are then read:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">function</span> <span class="token function">teeStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> teedOff <span class="token operator">=</span> stream<span class="token punctuation">.</span><span class="token function">tee</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">readStream</span><span class="token punctuation">(</span>teedOff<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">,</span> list2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">readStream</span><span class="token punctuation">(</span>teedOff<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span> list3<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+</pre></div>
+<h2 id="pipe_chains">Pipe chains</h2>
+<p>One very experimental feature of streams is the ability to pipe streams into one another (called a <a href="concepts#pipe_chains">pipe chain</a>). This involves two methods — <a href="../readablestream/pipethrough"><code>ReadableStream.pipeThrough()</code></a>, which pipes a readable stream through a writer/reader pair to transform one data format into another, and <a href="../readablestream/pipeto"><code>ReadableStream.pipeTo()</code></a>, which pipes a readable stream to a writer acting as an end point for the pipe chain.</p> <p>This functionality is at a very experimental stage and is subject to change, so we have no explored it too deeply as of yet.</p> <p>We have created an example called <a href="https://github.com/mdn/dom-examples/tree/master/streams/png-transform-stream" rel=" noopener">Unpack Chunks of a PNG</a> (<a href="https://mdn.github.io/dom-examples/streams/png-transform-stream/" rel=" noopener">see it live also</a>) that fetches an image as a stream, then pipes it through to a custom PNG transform stream that retrieves PNG chunks out of a binary data stream.</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Fetch the original image</span>
+<span class="token function">fetch</span><span class="token punctuation">(</span><span class="token string">'png-logo.png'</span><span class="token punctuation">)</span>
+<span class="token comment">// Retrieve its body as ReadableStream</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span>body<span class="token punctuation">)</span>
+<span class="token comment">// Create a gray-scaled PNG stream out of the original</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">rs</span> <span class="token operator">=&gt;</span> <span class="token function">logReadableStream</span><span class="token punctuation">(</span><span class="token string">'Fetch Response Stream'</span><span class="token punctuation">,</span> rs<span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">body</span> <span class="token operator">=&gt;</span> body<span class="token punctuation">.</span><span class="token function">pipeThrough</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">PNGTransformStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">rs</span> <span class="token operator">=&gt;</span> <span class="token function">logReadableStream</span><span class="token punctuation">(</span><span class="token string">'PNG Chunk Stream'</span><span class="token punctuation">,</span> rs<span class="token punctuation">)</span><span class="token punctuation">)</span>
+</pre></div>
+<h2 id="summary">Summary</h2>
+<p>That explains the basics of “default” readable streams. We’ll explain bytestreams in a separate future article, once they are available in browsers.</p>
 <div class="_attribution">
   <p class="_attribution-p">
-    <a href="https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Using_readable_streams%24edit" class="_attribution-link">Edit this page on MDN</a>
-  </p>
-</div>
-<div class="_attribution">
-  <p class="_attribution-p">
-    © 2005–2018 Mozilla Developer Network and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Using_readable_streams" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Using_readable_streams</a>
   </p>
 </div>

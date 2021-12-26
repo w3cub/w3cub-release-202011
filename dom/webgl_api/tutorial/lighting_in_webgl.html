@@ -5,10 +5,10 @@
 
 <head>
   <meta charset="utf-8">
-  <title>WebGL API&#58; Lighting in WebGL - DOM - W3cubDocs</title>
+  <title>WebGL API&#58; Lighting in WebGL - Web APIs - W3cubDocs</title>
   
-  <meta name="description" content=" « PreviousNext » ">
-  <meta name="keywords" content="webgl, api, lighting, dom">
+  <meta name="description" content="As should be clear by now, WebGL doesn&#39;t have much built-in knowledge. It just runs two functions you supply — a vertex shader and a fragment &hellip;">
+  <meta name="keywords" content="lighting, webgl, api, web, apis, dom">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/dom/webgl_api/tutorial/lighting_in_webgl.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/dom.js"></script>
   
@@ -52,7 +52,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">DOM</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">Web APIs</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -88,151 +88,160 @@
 			<div class="_page _mdn">
 				
 				
-<h1>WebGL API: Lighting in WebGL</h1> <div class="prevnext" style="text-align: right;"> <p><a href="using_textures_in_webgl" style="float: left;">« Previous</a><a href="animating_textures_in_webgl">Next »</a></p> </div> <p>As should be clear by now, WebGL doesn't have much built-in knowledge. It just runs two functions you supply — a vertex shader and a fragment shader — and expects you to write creative functions to get the results you want. In other words, if you want lighting you have to calculate it yourself. Fortunately, it's not all that hard to do, and this article will cover some of the basics.</p> <h2 id="Simulating_lighting_and_shading_in_3D">Simulating lighting and shading in 3D</h2> <p>Although going into detail about the theory behind simulated lighting in 3D graphics is far beyond the scope of this article, it's helpful to know a bit about how it works. Instead of discussing it in depth here, take a look at the article on <a href="http://en.wikipedia.org/wiki/Phong_shading">Phong shading</a> at Wikipedia, which provides a good overview of the most commonly used lighting model or if you'd like to see a WebGL based explanation <a href="https://webglfundamentals.org/webgl/lessons/webgl-3d-lighting-point.html">see this artcle</a>.</p> <p>There are three basic types of lighting:</p> <p><strong>Ambient light</strong> is the light that permeates the scene; it's non-directional and affects every face in the scene equally, regardless of which direction it's facing.</p> <p><strong>Directional light</strong> is light that is emitted from a specific direction. This is light that's coming from so far away that every photon is moving parallel to every other photon. Sunlight, for example, is considered directional light.</p> <p><strong>Point light</strong> is light that is being emitted from a point, radiating in all directions. This is how many real-world light sources usually work. A light bulb emits light in all directions, for example.</p> <p>For our purposes, we're going to simplify the lighting model by only considering simple directional and ambient lighting; we won't have any <a href="https://en.wikipedia.org/wiki/specular%20highlights">specular highlights</a> or point light sources in this scene. Instead, we'll have our ambient lighting plus a single directional light source, aimed at the rotating cube from the <a href="using_textures_in_webgl">previous demo</a>.</p> <p>Once you drop out the concept of point sources and specular lighting, there are two pieces of information we'll need in order to implement our directional lighting:</p> <ol> <li>We need to associate a <strong>surface normal</strong> with each vertex. This is a vector that's perpendicular to the face at that vertex.</li> <li>We need to know the direction in which the light is traveling; this is defined by the <strong>direction vector</strong>.</li> </ol> <p>Then we update the vertex shader to adjust the color of each vertex, taking into account the ambient lighting as well as the effect of the directional lighting given the angle at which it's striking the face. We'll see how to do that when we look at the code for the shader.</p> <h2 id="Building_the_normals_for_the_vertices">Building the normals for the vertices</h2> <p>The first thing we need to do is generate the array of normals for all the vertices that comprise our cube. Since a cube is a very simple object, this is easy to do; obviously for more complex objects, calculating the normals will be more involved.</p> <pre data-language="js">  const normalBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+<h1>Lighting in WebGL</h1>
+<ul class="prev-next"> <li><a class="button minimal" href="using_textures_in_webgl">« Previous</a></li> <li><a class="button minimal" href="animating_textures_in_webgl">Next »</a></li> </ul> <p>As should be clear by now, WebGL doesn't have much built-in knowledge. It just runs two functions you supply — a vertex shader and a fragment shader — and expects you to write creative functions to get the results you want. In other words, if you want lighting you have to calculate it yourself. Fortunately, it's not all that hard to do, and this article will cover some of the basics.</p> <div class="notecard note"> <p><strong>Note:</strong> This example uses the <a href="https://glmatrix.net/" rel=" noopener">glMatrix</a> library to perform its matrix and vertex math. You'll need to include it if you create your own project based on this code. Our sample loads a copy from a CDN in our HTML's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/head"><code>&lt;head&gt;</code></a>.</p> </div>
+<h2 id="simulating_lighting_and_shading_in_3d">Simulating lighting and shading in 3D</h2>
+<p>Although going into detail about the theory behind simulated lighting in 3D graphics is far beyond the scope of this article, it's helpful to know a bit about how it works. Instead of discussing it in depth here, take a look at the article on <a href="https://en.wikipedia.org/wiki/Phong_shading" rel=" noopener">Phong shading</a> at Wikipedia, which provides a good overview of the most commonly used lighting model or if you'd like to see a WebGL based explanation <a href="https://webglfundamentals.org/webgl/lessons/webgl-3d-lighting-point.html" rel=" noopener">see this artcle</a>.</p> <p>There are three basic types of lighting:</p> <p><strong>Ambient light</strong> is the light that permeates the scene; it's non-directional and affects every face in the scene equally, regardless of which direction it's facing.</p> <p><strong>Directional light</strong> is light that is emitted from a specific direction. This is light that's coming from so far away that every photon is moving parallel to every other photon. Sunlight, for example, is considered directional light.</p> <p><strong>Point light</strong> is light that is being emitted from a point, radiating in all directions. This is how many real-world light sources usually work. A light bulb emits light in all directions, for example.</p> <p>For our purposes, we're going to simplify the lighting model by only considering simple directional and ambient lighting; we won't have any <a href="https://en.wikipedia.org/wiki/Specular_highlights" rel=" noopener">specular highlights</a> or point light sources in this scene. Instead, we'll have our ambient lighting plus a single directional light source, aimed at the rotating cube from the <a href="using_textures_in_webgl">previous demo</a>.</p> <p>Once you drop out the concept of point sources and specular lighting, there are two pieces of information we'll need in order to implement our directional lighting:</p> <ol> <li>We need to associate a <strong>surface normal</strong> with each vertex. This is a vector that's perpendicular to the face at that vertex.</li> <li>We need to know the direction in which the light is traveling; this is defined by the <strong>direction vector</strong>.</li> </ol> <p>Then we update the vertex shader to adjust the color of each vertex, taking into account the ambient lighting as well as the effect of the directional lighting given the angle at which it's striking the face. We'll see how to do that when we look at the code for the shader.</p>
+<h2 id="building_the_normals_for_the_vertices">Building the normals for the vertices</h2>
+<p>The first thing we need to do is generate the array of normals for all the vertices that comprise our cube. Since a cube is a very simple object, this is easy to do; obviously for more complex objects, calculating the normals will be more involved.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> normalBuffer <span class="token operator">=</span> gl<span class="token punctuation">.</span><span class="token function">createBuffer</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gl<span class="token punctuation">.</span><span class="token function">bindBuffer</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ARRAY_BUFFER</span><span class="token punctuation">,</span> normalBuffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-  const vertexNormals = [
-    // Front
-     0.0,  0.0,  1.0,
-     0.0,  0.0,  1.0,
-     0.0,  0.0,  1.0,
-     0.0,  0.0,  1.0,
+  <span class="token keyword">const</span> vertexNormals <span class="token operator">=</span> <span class="token punctuation">[</span>
+    <span class="token comment">// Front</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
 
-    // Back
-     0.0,  0.0, -1.0,
-     0.0,  0.0, -1.0,
-     0.0,  0.0, -1.0,
-     0.0,  0.0, -1.0,
+    <span class="token comment">// Back</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
 
-    // Top
-     0.0,  1.0,  0.0,
-     0.0,  1.0,  0.0,
-     0.0,  1.0,  0.0,
-     0.0,  1.0,  0.0,
+    <span class="token comment">// Top</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
 
-    // Bottom
-     0.0, -1.0,  0.0,
-     0.0, -1.0,  0.0,
-     0.0, -1.0,  0.0,
-     0.0, -1.0,  0.0,
+    <span class="token comment">// Bottom</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
 
-    // Right
-     1.0,  0.0,  0.0,
-     1.0,  0.0,  0.0,
-     1.0,  0.0,  0.0,
-     1.0,  0.0,  0.0,
+    <span class="token comment">// Right</span>
+     <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+     <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
 
-    // Left
-    -1.0,  0.0,  0.0,
-    -1.0,  0.0,  0.0,
-    -1.0,  0.0,  0.0,
-    -1.0,  0.0,  0.0
-  ];
+    <span class="token comment">// Left</span>
+    <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>
+    <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span>
+  <span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexNormals),
-                gl.STATIC_DRAW);
+  gl<span class="token punctuation">.</span><span class="token function">bufferData</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ARRAY_BUFFER</span><span class="token punctuation">,</span> <span class="token keyword">new</span> <span class="token class-name">Float32Array</span><span class="token punctuation">(</span>vertexNormals<span class="token punctuation">)</span><span class="token punctuation">,</span>
+                gl<span class="token punctuation">.</span><span class="token constant">STATIC_DRAW</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-...
+<span class="token operator">...</span>
 
-  return {
-    position: positionBuffer,
-    normal: normalBuffer,
-    textureCoord: textureCoordBuffer,
-    indices: indexBuffer,
-  };
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    position<span class="token operator">:</span> positionBuffer<span class="token punctuation">,</span>
+    normal<span class="token operator">:</span> normalBuffer<span class="token punctuation">,</span>
+    textureCoord<span class="token operator">:</span> textureCoordBuffer<span class="token punctuation">,</span>
+    indices<span class="token operator">:</span> indexBuffer<span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+</pre></div> <p>This should look pretty familiar by now; we create a new buffer, bind it to be the buffer we're working with, then send along our array of vertex normals into the buffer by calling <code>bufferData()</code>.</p> <p>Then we add the code to <code>drawScene()</code> to bind the normals array to a shader attribute so the shader code can get access to it:</p> <div class="code-example"><pre data-language="js">  <span class="token comment">// Tell WebGL how to pull out the normals from</span>
+  <span class="token comment">// the normal buffer into the vertexNormal attribute.</span>
+  <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> numComponents <span class="token operator">=</span> <span class="token number">3</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> type <span class="token operator">=</span> gl<span class="token punctuation">.</span><span class="token constant">FLOAT</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> normalize <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> stride <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> offset <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    gl<span class="token punctuation">.</span><span class="token function">bindBuffer</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ARRAY_BUFFER</span><span class="token punctuation">,</span> buffers<span class="token punctuation">.</span>normal<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    gl<span class="token punctuation">.</span><span class="token function">vertexAttribPointer</span><span class="token punctuation">(</span>
+        programInfo<span class="token punctuation">.</span>attribLocations<span class="token punctuation">.</span>vertexNormal<span class="token punctuation">,</span>
+        numComponents<span class="token punctuation">,</span>
+        type<span class="token punctuation">,</span>
+        normalize<span class="token punctuation">,</span>
+        stride<span class="token punctuation">,</span>
+        offset<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    gl<span class="token punctuation">.</span><span class="token function">enableVertexAttribArray</span><span class="token punctuation">(</span>
+        programInfo<span class="token punctuation">.</span>attribLocations<span class="token punctuation">.</span>vertexNormal<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+</pre></div> <p>Finally, we need to update the code that builds the uniform matrices to generate and deliver to the shader a <strong>normal matrix</strong>, which is used to transform the normals when dealing with the current orientation of the cube in relation to the light source:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> normalMatrix <span class="token operator">=</span> mat4<span class="token punctuation">.</span><span class="token function">create</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  mat4<span class="token punctuation">.</span><span class="token function">invert</span><span class="token punctuation">(</span>normalMatrix<span class="token punctuation">,</span> modelViewMatrix<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  mat4<span class="token punctuation">.</span><span class="token function">transpose</span><span class="token punctuation">(</span>normalMatrix<span class="token punctuation">,</span> normalMatrix<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-</pre> <p>This should look pretty familiar by now; we create a new buffer, bind it to be the buffer we're working with, then send along our array of vertex normals into the buffer by calling <code>bufferData()</code>.</p> <p>Then we add the code to <code>drawScene()</code> to bind the normals array to a shader attribute so the shader code can get access to it:</p> <pre data-language="js">  // Tell WebGL how to pull out the normals from
-  // the normal buffer into the vertexNormal attribute.
-  {
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexNormal,
-        numComponents,
-        type,
-        normalize,
-        stride,
-        offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexNormal);
-  }
-</pre> <p>Finally, we need to update the code that builds the uniform matrices to generate and deliver to the shader a <strong>normal matrix</strong>, which is used to transform the normals when dealing with the current orientation of the cube in relation to the light source:</p> <pre data-language="js">  const normalMatrix = mat4.create();
-  mat4.invert(normalMatrix, modelViewMatrix);
-  mat4.transpose(normalMatrix, normalMatrix);
+<span class="token operator">...</span>
 
-...
+  gl<span class="token punctuation">.</span><span class="token function">uniformMatrix4fv</span><span class="token punctuation">(</span>
+      programInfo<span class="token punctuation">.</span>uniformLocations<span class="token punctuation">.</span>normalMatrix<span class="token punctuation">,</span>
+      <span class="token boolean">false</span><span class="token punctuation">,</span>
+      normalMatrix<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="update_the_shaders">Update the shaders</h2>
+<p>Now that all the data the shaders need is available to them, we need to update the code in the shaders themselves.</p>
+<h3 id="the_vertex_shader">The vertex shader</h3>
+<p>The first thing to do is update the vertex shader so it generates a shading value for each vertex based on the ambient lighting as well as the directional lighting. Let's take a look at the code:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> vsSource <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+    attribute vec4 aVertexPosition;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
 
-  gl.uniformMatrix4fv(
-      programInfo.uniformLocations.normalMatrix,
-      false,
-      normalMatrix);
-</pre> <h2 id="Update_the_shaders">Update the shaders</h2> <p>Now that all the data the shaders need is available to them, we need to update the code in the shaders themselves.</p> <h3 id="The_vertex_shader">The vertex shader</h3> <p>The first thing to do is update the vertex shader so it generates a shading value for each vertex based on the ambient lighting as well as the directional lighting. Let's take a look at the code:</p> <pre data-language="html">  const vsSource = `
-    attribute vec4 aVertexPosition;
-    attribute vec3 aVertexNormal;
-    attribute vec2 aTextureCoord;
+    uniform mat4 uNormalMatrix;
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
 
-    uniform mat4 uNormalMatrix;
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
+    varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
 
-    varying highp vec2 vTextureCoord;
-    varying highp vec3 vLighting;
+    void main(void) {
+      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vTextureCoord = aTextureCoord;
 
-    void main(void) {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vTextureCoord = aTextureCoord;
+      // Apply lighting effect
 
-      // Apply lighting effect
+      highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+      highp vec3 directionalLightColor = vec3(1, 1, 1);
+      highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
 
-      highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-      highp vec3 directionalLightColor = vec3(1, 1, 1);
-      highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+      highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
 
-      highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+      vLighting = ambientLight + (directionalLightColor * directional);
+    }
+  </span><span class="token template-punctuation string">`</span></span><span class="token punctuation">;</span>
+</pre></div> <p>Once the position of the vertex is computed, and we pass the coordinates of the <a href="https://developer.mozilla.org/en-US/docs/Glossary/Texel">texel</a> corresponding to the vertex to the fragment shader, we can work on computing the shading for the vertex.</p> <p>The first thing we do is transform the normal based on the current orientation of the cube, by multiplying the vertex's normal by the normal matrix. We can then compute the amount of directional lighting that needs to be applied to the vertex by calculating the dot product of the transformed normal and the directional vector (that is, the direction from which the light is coming). If this value is less than zero, then we pin the value to zero, since you can't have less than zero light.</p> <p>Once the amount of directional lighting is computed, we can generate the lighting value by taking the ambient light and adding in the product of the directional light's color and the amount of directional lighting to provide. As a result, we now have an RGB value that will be used by the fragment shader to adjust the color of each pixel we render.</p>
+<h3 id="the_fragment_shader">The fragment shader</h3>
+<p>The fragment shader now needs to be updated to take into account the lighting value computed by the vertex shader:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> fsSource <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+    varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
 
-      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-      vLighting = ambientLight + (directionalLightColor * directional);
-    }
-  `;
-</pre> <p>Once the position of the vertex is computed, and we pass the coordinates of the texel corresponding to the vertex to the fragment shader, we can work on computing the shading for the vertex.</p> <p>The first thing we do is transform the normal based on the current orientation of the cube, by multiplying the vertex's normal by the normal matrix. We can then compute the amount of directional lighting that needs to be applied to the vertex by calculating the dot product of the transformed normal and the directional vector (that is, the direction from which the light is coming). If this value is less than zero, then we pin the value to zero, since you can't have less than zero light.</p> <p>Once the amount of directional lighting is computed, we can generate the lighting value by taking the ambient light and adding in the product of the directional light's color and the amount of directional lighting to provide. As a result, we now have an RGB value that will be used by the fragment shader to adjust the color of each pixel we render.</p> <h3 id="The_fragment_shader">The fragment shader</h3> <p>The fragment shader now needs to be updated to take into account the lighting value computed by the vertex shader:</p> <pre data-language="js">  const fsSource = `
-    varying highp vec2 vTextureCoord;
-    varying highp vec3 vLighting;
+    uniform sampler2D uSampler;
 
-    uniform sampler2D uSampler;
+    void main(void) {
+      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
 
-    void main(void) {
-      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
-
-      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-    }
-  `;
-</pre> <p>Here we fetch the color of the texel, just like we did in the previous example, but before setting the color of the fragment, we multiply the texel's color by the lighting value to adjust the texel's color to take into account the effect of our light sources.</p> <p>The only thing left is to look up the location of the <code>aVertexNormal</code> attribute and the <code>uNormalMatrix</code> uniform.</p> <pre data-language="js">  const programInfo = {
-    program: shaderProgram,
-    attribLocations: {
-      vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-      vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
-      textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
-    },
-    uniformLocations: {
-      projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-      modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-      normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
-      uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
-    },
-  };
-</pre> <p>And that's it!</p> <p><iframe src="https://mdn.github.io/webgl-examples/tutorial/sample7/index.html" frameborder="0" width="670" class="live-sample-frame" height="510"></iframe></p> <p><a href="https://github.com/mdn/webgl-examples/tree/gh-pages/tutorial/sample7">View the complete code</a> | <a href="http://mdn.github.io/webgl-examples/tutorial/sample7/">Open this demo on a new page</a></p> <h2 id="Exercises_for_the_reader">Exercises for the reader</h2> <p>Obviously, this is a simple example, implementing basic per-vertex lighting. For more advanced graphics, you'll want to implement per-pixel lighting, but this will get you headed in the right direction.</p> <p>You might also try experimenting with the direction of the light source, the colors of the light sources, and so forth.</p> <div class="prevnext" style="text-align: right;"> <p><a href="using_textures_in_webgl" style="float: left;">« Previous</a><a href="animating_textures_in_webgl">Next »</a></p> </div>
+      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+    }
+  </span><span class="token template-punctuation string">`</span></span><span class="token punctuation">;</span>
+</pre></div> <p>Here we fetch the color of the texel, just like we did in the previous example, but before setting the color of the fragment, we multiply the texel's color by the lighting value to adjust the texel's color to take into account the effect of our light sources.</p> <p>The only thing left is to look up the location of the <code>aVertexNormal</code> attribute and the <code>uNormalMatrix</code> uniform.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> programInfo <span class="token operator">=</span> <span class="token punctuation">{</span>
+    program<span class="token operator">:</span> shaderProgram<span class="token punctuation">,</span>
+    attribLocations<span class="token operator">:</span> <span class="token punctuation">{</span>
+      vertexPosition<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getAttribLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'aVertexPosition'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      vertexNormal<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getAttribLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'aVertexNormal'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      textureCoord<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getAttribLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'aTextureCoord'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    uniformLocations<span class="token operator">:</span> <span class="token punctuation">{</span>
+      projectionMatrix<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getUniformLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'uProjectionMatrix'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      modelViewMatrix<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getUniformLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'uModelViewMatrix'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      normalMatrix<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getUniformLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'uNormalMatrix'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      uSampler<span class="token operator">:</span> gl<span class="token punctuation">.</span><span class="token function">getUniformLocation</span><span class="token punctuation">(</span>shaderProgram<span class="token punctuation">,</span> <span class="token string">'uSampler'</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+</pre></div> <p>And that's it!</p>
+<iframe width="670" height="510" src="https://mdn.github.io/webgl-examples/tutorial/sample7/index.html" loading="lazy"></iframe> <p><a href="https://github.com/mdn/webgl-examples/tree/gh-pages/tutorial/sample7" rel=" noopener">View the complete code</a> | <a href="https://mdn.github.io/webgl-examples/tutorial/sample7/" rel=" noopener">Open this demo on a new page</a></p>
+<h2 id="exercises_for_the_reader">Exercises for the reader</h2>
+<p>Obviously, this is a simple example, implementing basic per-vertex lighting. For more advanced graphics, you'll want to implement per-pixel lighting, but this will get you headed in the right direction.</p> <p>You might also try experimenting with the direction of the light source, the colors of the light sources, and so forth.</p>
+<ul class="prev-next"> <li><a class="button minimal" href="using_textures_in_webgl">« Previous</a></li> <li><a class="button minimal" href="animating_textures_in_webgl">Next »</a></li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
-    <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Lighting_in_WebGL%24edit" class="_attribution-link">Edit this page on MDN</a>
-  </p>
-</div>
-<div class="_attribution">
-  <p class="_attribution-p">
-    © 2005–2018 Mozilla Developer Network and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Lighting_in_WebGL" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Lighting_in_WebGL</a>
   </p>
 </div>

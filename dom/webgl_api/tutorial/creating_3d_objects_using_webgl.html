@@ -5,10 +5,10 @@
 
 <head>
   <meta charset="utf-8">
-  <title>WebGL API&#58; Creating 3D Objects Using WebGL - DOM - W3cubDocs</title>
+  <title>WebGL API&#58; Creating 3D Objects Using WebGL - Web APIs - W3cubDocs</title>
   
-  <meta name="description" content=" « PreviousNext » ">
-  <meta name="keywords" content="webgl, api, creating, d, objects, using, dom">
+  <meta name="description" content="Let&#39;s take our square plane into three dimensions by adding five more faces to create a cube. To do this efficiently, we&#39;re going to switch &hellip;">
+  <meta name="keywords" content="creating, d, objects, using, webgl, api, web, apis, dom">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/dom/webgl_api/tutorial/creating_3d_objects_using_webgl.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/dom.js"></script>
   
@@ -52,7 +52,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">DOM</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">Web APIs</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -88,134 +88,135 @@
 			<div class="_page _mdn">
 				
 				
-<h1>WebGL API: Creating 3D objects using WebGL</h1> <div class="prevnext" style="text-align: right;"> <p><a href="animating_objects_with_webgl" style="float: left;">« Previous</a><a href="using_textures_in_webgl">Next »</a></p> </div> <p>Let's take our square plane into three dimensions by adding five more faces to create a cube. To do this efficiently, we're going to switch from drawing using the vertices directly by calling the <a href="../../webglrenderingcontext/drawarrays"><code>gl.drawArrays()</code></a> method to using the vertex array as a table, and referencing individual vertices in that table to define the positions of each face's vertices, by calling <a href="../../webglrenderingcontext/drawelements"><code>gl.drawElements()</code></a>.</p> <p>Consider: each face requires four vertices to define it, but each vertex is shared by three faces. We can pass a lot less data around by building an array of all 24 vertices, then referring to each vertex by its index into that array instead of passing entire sets of coordinates around. If you wonder why we need 24 vertices, and not just 8, it is because each corner belongs to three faces of different colors, and a single vertex needs to have a single specific color - therefore we will create 3 copies of each vertex in three different colors, one for each face.</p> <h2 id="Define_the_positions_of_the_cube's_vertices">Define the positions of the cube's vertices</h2> <p>First, let's build the cube's vertex position buffer by updating the code in <code>initBuffers()</code>. This is pretty much the same as it was for the square plane, but rather longer since there are 24 vertices (4 per side):</p> <pre data-language="js">const positions = [
-  // Front face
-  -1.0, -1.0,  1.0,
-   1.0, -1.0,  1.0,
-   1.0,  1.0,  1.0,
-  -1.0,  1.0,  1.0,
-  
-  // Back face
-  -1.0, -1.0, -1.0,
-  -1.0,  1.0, -1.0,
-   1.0,  1.0, -1.0,
-   1.0, -1.0, -1.0,
-  
-  // Top face
-  -1.0,  1.0, -1.0,
-  -1.0,  1.0,  1.0,
-   1.0,  1.0,  1.0,
-   1.0,  1.0, -1.0,
-  
-  // Bottom face
-  -1.0, -1.0, -1.0,
-   1.0, -1.0, -1.0,
-   1.0, -1.0,  1.0,
-  -1.0, -1.0,  1.0,
-  
-  // Right face
-   1.0, -1.0, -1.0,
-   1.0,  1.0, -1.0,
-   1.0,  1.0,  1.0,
-   1.0, -1.0,  1.0,
-  
-  // Left face
-  -1.0, -1.0, -1.0,
-  -1.0, -1.0,  1.0,
-  -1.0,  1.0,  1.0,
-  -1.0,  1.0, -1.0,
-];
-</pre> <p>Since we've added a z-component to our vertices, we need to update the <code>numComponents</code> of our <code>vertexPosition</code> attribute to 3.</p> <pre data-language="js">// Tell WebGL how to pull out the positions from the position
-// buffer into the vertexPosition attribute
-{
-  const numComponents = 3;
-  ...
-  gl.vertexAttribPointer(
-      programInfo.attribLocations.vertexPosition,
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset);
-  gl.enableVertexAttribArray(
-      programInfo.attribLocations.vertexPosition);
-}
-</pre> <h2 id="Define_the_vertices'_colors">Define the vertices' colors</h2> <p>We also need to build an array of colors for each of the 24 vertices. This code starts by defining a color for each face, then uses a loop to assemble an array of all the colors for each of the vertices.</p> <pre data-language="js">  const faceColors = [
-    [1.0,  1.0,  1.0,  1.0],    // Front face: white
-    [1.0,  0.0,  0.0,  1.0],    // Back face: red
-    [0.0,  1.0,  0.0,  1.0],    // Top face: green
-    [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
-    [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-    [1.0,  0.0,  1.0,  1.0],    // Left face: purple
-  ];
+<h1>Creating 3D objects using WebGL</h1>
+<ul class="prev-next"> <li><a class="button minimal" href="animating_objects_with_webgl">« Previous</a></li> <li><a class="button minimal" href="using_textures_in_webgl">Next »</a></li> </ul> <p>Let's take our square plane into three dimensions by adding five more faces to create a cube. To do this efficiently, we're going to switch from drawing using the vertices directly by calling the <a href="../../webglrenderingcontext/drawarrays"><code>gl.drawArrays()</code></a> method to using the vertex array as a table, and referencing individual vertices in that table to define the positions of each face's vertices, by calling <a href="../../webglrenderingcontext/drawelements"><code>gl.drawElements()</code></a>.</p> <p>Consider: each face requires four vertices to define it, but each vertex is shared by three faces. We can pass a lot fewer data around by building an array of all 24 vertices, then referring to each vertex by its index into that array instead of moving entire sets of coordinates around. If you wonder why we need 24 vertices, and not just 8, it is because each corner belongs to three faces of different colors, and a single vertex needs to have a single specific color; therefore we will create three copies of each vertex in three different colors, one for each face.</p> <div class="notecard note"> <p><strong>Note:</strong> This example uses the glMatrix library to perform its matrix and vertex math. You'll need to include it if you create your own project based on this code. Our sample loads a copy from a CDN in our HTML's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/head"><code>&lt;head&gt;</code></a>.</p> </div>
+<h2 id="define_the_positions_of_the_cubes_vertices">Define the positions of the cube's vertices</h2>
+<p>First, let's build the cube's vertex position buffer by updating the code in <code>initBuffers()</code>. This is pretty much the same as it was for the square plane, but somewhat longer since there are 24 vertices (4 per side):</p> <div class="code-example"><pre data-language="js"><span class="token keyword">const</span> positions <span class="token operator">=</span> <span class="token punctuation">[</span>
+  <span class="token comment">// Front face</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
 
-  // Convert the array of colors into a table for all the vertices.
+  <span class="token comment">// Back face</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
 
-  var colors = [];
+  <span class="token comment">// Top face</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
 
-  for (var j = 0; j &lt; faceColors.length; ++j) {
-    const c = faceColors[j];
+  <span class="token comment">// Bottom face</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
 
-    // Repeat each color four times for the four vertices of the face
-    colors = colors.concat(c, c, c, c);
-  }
+  <span class="token comment">// Right face</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+   <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
 
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-</pre> <h2 id="Define_the_element_array">Define the element array</h2> <p>Once the vertex arrays are generated, we need to build the element array.</p> <pre data-language="js">  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  <span class="token comment">// Left face</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>
+  <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1.0</span><span class="token punctuation">,</span>
+<span class="token punctuation">]</span><span class="token punctuation">;</span>
+</pre></div> <p>Since we've added a z-component to our vertices, we need to update the <code>numComponents</code> of our <code>vertexPosition</code> attribute to 3.</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Tell WebGL how to pull out the positions from the position</span>
+<span class="token comment">// buffer into the vertexPosition attribute</span>
+<span class="token punctuation">{</span>
+  <span class="token keyword">const</span> numComponents <span class="token operator">=</span> <span class="token number">3</span><span class="token punctuation">;</span>
+  <span class="token operator">...</span>
+  gl<span class="token punctuation">.</span><span class="token function">vertexAttribPointer</span><span class="token punctuation">(</span>
+      programInfo<span class="token punctuation">.</span>attribLocations<span class="token punctuation">.</span>vertexPosition<span class="token punctuation">,</span>
+      numComponents<span class="token punctuation">,</span>
+      type<span class="token punctuation">,</span>
+      normalize<span class="token punctuation">,</span>
+      stride<span class="token punctuation">,</span>
+      offset<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gl<span class="token punctuation">.</span><span class="token function">enableVertexAttribArray</span><span class="token punctuation">(</span>
+      programInfo<span class="token punctuation">.</span>attribLocations<span class="token punctuation">.</span>vertexPosition<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</pre></div>
+<h2 id="define_the_vertices_colors">Define the vertices' colors</h2>
+<p>We also need to build an array of colors for each of the 24 vertices. This code starts by defining a color for each face, then uses a loop to assemble an array of all the colors for each of the vertices.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> faceColors <span class="token operator">=</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">[</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Front face: white</span>
+    <span class="token punctuation">[</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Back face: red</span>
+    <span class="token punctuation">[</span><span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Top face: green</span>
+    <span class="token punctuation">[</span><span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Bottom face: blue</span>
+    <span class="token punctuation">[</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Right face: yellow</span>
+    <span class="token punctuation">[</span><span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">0.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">,</span>  <span class="token number">1.0</span><span class="token punctuation">]</span><span class="token punctuation">,</span>    <span class="token comment">// Left face: purple</span>
+  <span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-  // This array defines each face as two triangles, using the
-  // indices into the vertex array to specify each triangle's
-  // position.
+  <span class="token comment">// Convert the array of colors into a table for all the vertices.</span>
 
-  const indices = [
-    0,  1,  2,      0,  2,  3,    // front
-    4,  5,  6,      4,  6,  7,    // back
-    8,  9,  10,     8,  10, 11,   // top
-    12, 13, 14,     12, 14, 15,   // bottom
-    16, 17, 18,     16, 18, 19,   // right
-    20, 21, 22,     20, 22, 23,   // left
-  ];
+  <span class="token keyword">var</span> colors <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-  // Now send the element array to GL
+  <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">var</span> j <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> j <span class="token operator">&lt;</span> faceColors<span class="token punctuation">.</span>length<span class="token punctuation">;</span> <span class="token operator">++</span>j<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> c <span class="token operator">=</span> faceColors<span class="token punctuation">[</span>j<span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(indices), gl.STATIC_DRAW);
+    <span class="token comment">// Repeat each color four times for the four vertices of the face</span>
+    colors <span class="token operator">=</span> colors<span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>c<span class="token punctuation">,</span> c<span class="token punctuation">,</span> c<span class="token punctuation">,</span> c<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
 
-  return {
-    position: positionBuffer,
-    color: colorBuffer,
-    indices: indexBuffer,
-  };
-}
+  <span class="token keyword">const</span> colorBuffer <span class="token operator">=</span> gl<span class="token punctuation">.</span><span class="token function">createBuffer</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gl<span class="token punctuation">.</span><span class="token function">bindBuffer</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ARRAY_BUFFER</span><span class="token punctuation">,</span> colorBuffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gl<span class="token punctuation">.</span><span class="token function">bufferData</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ARRAY_BUFFER</span><span class="token punctuation">,</span> <span class="token keyword">new</span> <span class="token class-name">Float32Array</span><span class="token punctuation">(</span>colors<span class="token punctuation">)</span><span class="token punctuation">,</span> gl<span class="token punctuation">.</span><span class="token constant">STATIC_DRAW</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="define_the_element_array">Define the element array</h2>
+<p>Once the vertex arrays are generated, we need to build the element array.</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">const</span> indexBuffer <span class="token operator">=</span> gl<span class="token punctuation">.</span><span class="token function">createBuffer</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gl<span class="token punctuation">.</span><span class="token function">bindBuffer</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ELEMENT_ARRAY_BUFFER</span><span class="token punctuation">,</span> indexBuffer<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
-</pre> <p>The <code>indices</code> array defines each face as a pair of triangles, specifying each triangle's vertices as an index into the cube's vertex arrays. Thus the cube is described as a collection of 12 triangles.</p> <h2 id="Drawing_the_cube">Drawing the cube</h2> <p>Next we need to add code to our <code>drawScene()</code> function to draw using the cube's index buffer, adding new <a href="../../webglrenderingcontext/bindbuffer"><code>gl.bindBuffer()</code></a> and <a href="../../webglrenderingcontext/drawelements"><code>gl.drawElements()</code></a> calls:</p> <pre data-language="js">  // Tell WebGL which indices to use to index the vertices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+  <span class="token comment">// This array defines each face as two triangles, using the</span>
+  <span class="token comment">// indices into the vertex array to specify each triangle's</span>
+  <span class="token comment">// position.</span>
 
-...
+  <span class="token keyword">const</span> indices <span class="token operator">=</span> <span class="token punctuation">[</span>
+    <span class="token number">0</span><span class="token punctuation">,</span>  <span class="token number">1</span><span class="token punctuation">,</span>  <span class="token number">2</span><span class="token punctuation">,</span>      <span class="token number">0</span><span class="token punctuation">,</span>  <span class="token number">2</span><span class="token punctuation">,</span>  <span class="token number">3</span><span class="token punctuation">,</span>    <span class="token comment">// front</span>
+    <span class="token number">4</span><span class="token punctuation">,</span>  <span class="token number">5</span><span class="token punctuation">,</span>  <span class="token number">6</span><span class="token punctuation">,</span>      <span class="token number">4</span><span class="token punctuation">,</span>  <span class="token number">6</span><span class="token punctuation">,</span>  <span class="token number">7</span><span class="token punctuation">,</span>    <span class="token comment">// back</span>
+    <span class="token number">8</span><span class="token punctuation">,</span>  <span class="token number">9</span><span class="token punctuation">,</span>  <span class="token number">10</span><span class="token punctuation">,</span>     <span class="token number">8</span><span class="token punctuation">,</span>  <span class="token number">10</span><span class="token punctuation">,</span> <span class="token number">11</span><span class="token punctuation">,</span>   <span class="token comment">// top</span>
+    <span class="token number">12</span><span class="token punctuation">,</span> <span class="token number">13</span><span class="token punctuation">,</span> <span class="token number">14</span><span class="token punctuation">,</span>     <span class="token number">12</span><span class="token punctuation">,</span> <span class="token number">14</span><span class="token punctuation">,</span> <span class="token number">15</span><span class="token punctuation">,</span>   <span class="token comment">// bottom</span>
+    <span class="token number">16</span><span class="token punctuation">,</span> <span class="token number">17</span><span class="token punctuation">,</span> <span class="token number">18</span><span class="token punctuation">,</span>     <span class="token number">16</span><span class="token punctuation">,</span> <span class="token number">18</span><span class="token punctuation">,</span> <span class="token number">19</span><span class="token punctuation">,</span>   <span class="token comment">// right</span>
+    <span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">21</span><span class="token punctuation">,</span> <span class="token number">22</span><span class="token punctuation">,</span>     <span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">22</span><span class="token punctuation">,</span> <span class="token number">23</span><span class="token punctuation">,</span>   <span class="token comment">// left</span>
+  <span class="token punctuation">]</span><span class="token punctuation">;</span>
 
-  {
-    const vertexCount = 36;
-    const type = gl.UNSIGNED_SHORT;
-    const offset = 0;
-    gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-  }
+  <span class="token comment">// Now send the element array to GL</span>
 
-</pre> <p>Since each face of our cube is comprised of two triangles, there are 6 vertices per side, or 36 total vertices in the cube, even though many of them are duplicates.</p> <p>Finally, let's replace our variable <code>squareRotation</code> by <code>cubeRotation</code> and add a second rotation around the x axis:</p> <pre data-language="js"><span class="pl-smi">mat4</span>.<span class="pl-en">rotate</span>(modelViewMatrix, modelViewMatrix, cubeRotation<span class="pl-k"> *</span><span class="pl-c1"> .7</span>, [<span class="pl-c1">0</span>, <span class="pl-c1">1</span>, <span class="pl-c1">0</span>]);
+  gl<span class="token punctuation">.</span><span class="token function">bufferData</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ELEMENT_ARRAY_BUFFER</span><span class="token punctuation">,</span>
+      <span class="token keyword">new</span> <span class="token class-name">Uint16Array</span><span class="token punctuation">(</span>indices<span class="token punctuation">)</span><span class="token punctuation">,</span> gl<span class="token punctuation">.</span><span class="token constant">STATIC_DRAW</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
+  <span class="token keyword">return</span> <span class="token punctuation">{</span>
+    position<span class="token operator">:</span> positionBuffer<span class="token punctuation">,</span>
+    color<span class="token operator">:</span> colorBuffer<span class="token punctuation">,</span>
+    indices<span class="token operator">:</span> indexBuffer<span class="token punctuation">,</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</pre></div> <p>The <code>indices</code> array defines each face like a pair of triangles, specifying each triangle's vertices as an index into the cube's vertex arrays. Thus the cube is described as a collection of 12 triangles.</p>
+<h2 id="drawing_the_cube">Drawing the cube</h2>
+<p>Next we need to add code to our <code>drawScene()</code> function to draw using the cube's index buffer, adding new <a href="../../webglrenderingcontext/bindbuffer"><code>gl.bindBuffer()</code></a> and <a href="../../webglrenderingcontext/drawelements"><code>gl.drawElements()</code></a> calls:</p> <div class="code-example"><pre data-language="js">  <span class="token comment">// Tell WebGL which indices to use to index the vertices</span>
+  gl<span class="token punctuation">.</span><span class="token function">bindBuffer</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">ELEMENT_ARRAY_BUFFER</span><span class="token punctuation">,</span> buffers<span class="token punctuation">.</span>indices<span class="token punctuation">)</span><span class="token punctuation">;</span>
 
+<span class="token operator">...</span>
 
-</pre> <p>At this point, we now have an animated cube rotating, its six faces rather vividly colored.</p> <p><iframe src="https://mdn.github.io/webgl-examples/tutorial/sample5/index.html" frameborder="0" width="670" class="live-sample-frame" height="510"></iframe></p> <p><a href="https://github.com/mdn/webgl-examples/tree/gh-pages/tutorial/sample5">View the complete code</a> | <a href="http://mdn.github.io/webgl-examples/tutorial/sample5/">Open this demo on a new page</a></p> <div class="prevnext" style="text-align: right;"> <p><a href="animating_objects_with_webgl" style="float: left;">« Previous</a><a href="using_textures_in_webgl">Next »</a></p> </div>
+  <span class="token punctuation">{</span>
+    <span class="token keyword">const</span> vertexCount <span class="token operator">=</span> <span class="token number">36</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> type <span class="token operator">=</span> gl<span class="token punctuation">.</span><span class="token constant">UNSIGNED_SHORT</span><span class="token punctuation">;</span>
+    <span class="token keyword">const</span> offset <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    gl<span class="token punctuation">.</span><span class="token function">drawElements</span><span class="token punctuation">(</span>gl<span class="token punctuation">.</span><span class="token constant">TRIANGLES</span><span class="token punctuation">,</span> vertexCount<span class="token punctuation">,</span> type<span class="token punctuation">,</span> offset<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+</pre></div> <p>Since each face of our cube is comprised of two triangles, there are 6 vertices per side, or 36 total vertices in the cube, even though many of them are duplicates.</p> <p>Finally, let's replace our variable <code>squareRotation</code> by <code>cubeRotation</code> and add a second rotation around the x axis:</p> <div class="code-example"><pre data-language="js">mat4<span class="token punctuation">.</span><span class="token function">rotate</span><span class="token punctuation">(</span>modelViewMatrix<span class="token punctuation">,</span> modelViewMatrix<span class="token punctuation">,</span> cubeRotation <span class="token operator">*</span> <span class="token number">.7</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>At this point, we now have an animated cube rotating, its six faces rather vividly colored.</p>
+<iframe width="670" height="510" src="https://mdn.github.io/webgl-examples/tutorial/sample5/index.html" loading="lazy"></iframe> <p><a href="https://github.com/mdn/webgl-examples/tree/gh-pages/tutorial/sample5" rel=" noopener">View the complete code</a> | <a href="https://mdn.github.io/webgl-examples/tutorial/sample5/" rel=" noopener">Open this demo on a new page</a></p>
+<ul class="prev-next"> <li><a class="button minimal" href="animating_objects_with_webgl">« Previous</a></li> <li><a class="button minimal" href="using_textures_in_webgl">Next »</a></li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
-    <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL%24edit" class="_attribution-link">Edit this page on MDN</a>
-  </p>
-</div>
-<div class="_attribution">
-  <p class="_attribution-p">
-    © 2005–2018 Mozilla Developer Network and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL</a>
   </p>
 </div>

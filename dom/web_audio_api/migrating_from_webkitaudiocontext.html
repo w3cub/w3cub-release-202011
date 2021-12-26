@@ -1,0 +1,355 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Web Audio API&#58; Migrating From webkitAudioContext - Web APIs - W3cubDocs</title>
+  
+  <meta name="description" content="In this article, we cover the differences in Web Audio API since it was first implemented in WebKit and how to update your code to use the modern &hellip;">
+  <meta name="keywords" content="migrating, from, webkitaudiocontext, web, audio, api, apis, dom">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/dom/web_audio_api/migrating_from_webkitaudiocontext.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/dom.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/dom/" class="_nav-link" title="" style="margin-left:0;">Web APIs</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _mdn">
+				
+				
+<h1>Migrating from webkitAudioContext</h1>
+<p>In this article, we cover the differences in Web Audio API since it was first implemented in WebKit and how to update your code to use the modern Web Audio API.</p> <p>The Web Audio standard was first implemented in <a href="https://webkit.org/" rel=" noopener">WebKit</a>, and the implementation was built in parallel with the work on the <a href="https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html" rel=" noopener">specification</a> of the API. As the specification evolved and changes were made to the spec, some of the old implementation pieces were not removed from the WebKit (and Blink) implementations due to backwards compatibility reasons.</p> <p>New engines implementing the Web Audio spec (such as Gecko) will only implement the official, final version of the specification, which means that code using <code>webkitAudioContext</code> or old naming conventions in the Web Audio specification may not immediately work out of the box in a compliant Web Audio implementation. This article attempts to summarize the areas where developers are likely to encounter these problems and provide examples on how to port such code to standards based <a href="../audiocontext"><code>AudioContext</code></a>, which will work across different browser engines.</p> <div class="notecard note"> <p><strong>Note:</strong> There is a library called <a href="https://github.com/cwilso/webkitAudioContext-MonkeyPatch" rel=" noopener">webkitAudioContext monkeypatch</a>, which automatically fixes some of these changes to make most code targeting <code>webkitAudioContext</code> to work on the standards based <code>AudioContext</code> out of the box, but it currently doesn't handle all of the cases below. Please consult the <a href="https://github.com/cwilso/webkitAudioContext-MonkeyPatch/blob/gh-pages/README.md" rel=" noopener">README file</a> for that library to see a list of APIs that are automatically handled by it.</p> </div>
+<h2 id="changes_to_the_creator_methods">Changes to the creator methods</h2>
+<p>Three of the creator methods on <code>webkitAudioContext</code> have been renamed in <a href="../audiocontext"><code>AudioContext</code></a>.</p> <ul> <li>
+<code>createGainNode()</code> has been renamed to <a class="page-not-created"><code>createGain</code></a>.</li> <li>
+<code>createDelayNode()</code> has been renamed to <a class="page-not-created"><code>createDelay</code></a>.</li> <li>
+<code>createJavaScriptNode()</code> has been renamed to <a class="page-not-created"><code>createScriptProcessor</code></a>.</li> </ul> <p>These are simple renames that were made in order to improve the consistency of these method names on <a href="../audiocontext"><code>AudioContext</code></a>. If your code uses either of these names, like in the example below :</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old method names</span>
+<span class="token keyword">var</span> gain <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGainNode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> delay <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createDelayNode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> js <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createJavascriptNode</span><span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>you can rename the methods to look like this:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// New method names</span>
+<span class="token keyword">var</span> gain <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGain</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> delay <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createDelay</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> js <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createScriptProcessor</span><span class="token punctuation">(</span><span class="token number">1024</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>The semantics of these methods remain the same in the renamed versions.</p>
+<h2 id="changes_to_starting_and_stopping_nodes">Changes to starting and stopping nodes</h2>
+<p>In <code>webkitAudioContext</code>, there are two ways to start and stop <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> and <a href="../oscillatornode"><code>OscillatorNode</code></a>: the <code>noteOn()</code> and <code>noteOff()</code> methods, and the <code>start()</code> and <code>stop()</code> methods. (<a class="page-not-created"><code>AudioBufferSourceNode </code></a>has yet another way of starting output: the <code>noteGrainOn()</code> method.) The <code>noteOn()</code>/<code>noteGrainOn()</code>/<code>noteOff()</code> methods were the original way to start/stop output in these nodes, and in the newer versions of the specification, the <code>noteOn()</code> and <code>noteGrainOn()</code> methods were consolidated into a single <code>start()</code> method, and the <code>noteOff()</code> method was renamed to the <code>stop()</code> method.</p> <p>In order to port your code, you can just rename the method that you're using. For example, if you have code like the below:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">noteOn</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">noteOff</span><span class="token punctuation">(</span><span class="token number">1.5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">noteGrainOn</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">0.25</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">noteOff</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>you can change it like this in order to port it to the standard AudioContext API:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token number">1.5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">0.25</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">stop</span><span class="token punctuation">(</span><span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="remove_synchronous_buffer_creation">Remove synchronous buffer creation</h2>
+<p>In the old WebKit implementation of Web Audio, there were two versions of <code>createBuffer()</code>, one which created an initially empty buffer, and one which took an existing <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer"><code>ArrayBuffer</code></a> containing encoded audio, decoded it and returned the result in the form of an <a href="../audiobuffer"><code>AudioBuffer</code></a>. The latter version of <code>createBuffer()</code> was potentially expensive, because it had to decode the audio buffer synchronously, and with the buffer being arbitrarily large, it could take a lot of time for this method to complete its work, and no other part of your web page's code could execute in the mean time.</p> <p>Because of these problems, this version of the <code>createBuffer()</code> method has been removed, and you should use the asynchronous <code>decodeAudioData()</code> method instead.</p> <p>The example below shows old code which downloads an audio file over the network, and then decoded it using <code>createBuffer()</code>:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> xhr <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">XMLHttpRequest</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function">open</span><span class="token punctuation">(</span><span class="token string">"GET"</span><span class="token punctuation">,</span> <span class="token string">"/path/to/audio.ogg"</span><span class="token punctuation">,</span> <span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span>responseType <span class="token operator">=</span> <span class="token string">"arraybuffer"</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function-variable function">onload</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token keyword">var</span> decodedBuffer <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBuffer</span><span class="token punctuation">(</span>xhr<span class="token punctuation">.</span>response<span class="token punctuation">,</span> <span class="token boolean">false</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token keyword">if</span> <span class="token punctuation">(</span>decodedBuffer<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Decoding was successful, do something useful with the audio buffer</span>
+  <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+    <span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"Decoding the audio buffer failed"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</pre></div> <p>Converting this code to use <code>decodeAudioData()</code> is relatively simple, as can be seen below:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> xhr <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">XMLHttpRequest</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function">open</span><span class="token punctuation">(</span><span class="token string">"GET"</span><span class="token punctuation">,</span> <span class="token string">"/path/to/audio.ogg"</span><span class="token punctuation">,</span> <span class="token boolean">true</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span>responseType <span class="token operator">=</span> <span class="token string">"arraybuffer"</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+xhr<span class="token punctuation">.</span><span class="token function-variable function">onload</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  context<span class="token punctuation">.</span><span class="token function">decodeAudioData</span><span class="token punctuation">(</span>xhr<span class="token punctuation">.</span>response<span class="token punctuation">,</span> <span class="token keyword">function</span> <span class="token function">onSuccess</span><span class="token punctuation">(</span><span class="token parameter">decodedBuffer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token comment">// Decoding was successful, do something useful with the audio buffer</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token keyword">function</span> <span class="token function">onFailure</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"Decoding the audio buffer failed"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</pre></div> <p>Note that the <code>decodeAudioData()</code> method is asynchronous, which means that it will return immediately, and then when the decoding finishes, one of the success or failure callback functions will get called depending on whether the audio decoding was successful. This means that you may need to restructure your code to run the part which happened after the <code>createBuffer()</code> call in the success callback, as you can see in the example above.</p>
+<h2 id="renaming_of_audioparam.settargetvalueattime">Renaming of AudioParam.setTargetValueAtTime</h2>
+<p>The <code>setTargetValueAtTime()</code> method on the <a href="../audioparam"><code>AudioParam</code></a> interface has been renamed to <code>setTargetAtTime()</code>. This is also a simple rename to improve the understandability of the API, and the semantics of the method are the same. If your code is using <code>setTargetValueAtTime()</code>, you can rename it to use <code>setTargetAtTime()</code>. For example, if we have code that looks like this:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">var</span> gainNode <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGain</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gainNode<span class="token punctuation">.</span>gain<span class="token punctuation">.</span><span class="token function">setTargetValueAtTime</span><span class="token punctuation">(</span><span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token number">10.0</span><span class="token punctuation">,</span> <span class="token number">1.0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>you can rename the method, and be compliant with the standard, like so:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">var</span> gainNode <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGain</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  gainNode<span class="token punctuation">.</span>gain<span class="token punctuation">.</span><span class="token function">setTargetAtTime</span><span class="token punctuation">(</span><span class="token number">0.0</span><span class="token punctuation">,</span> <span class="token number">10.0</span><span class="token punctuation">,</span> <span class="token number">1.0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="enumerated_values_that_changed">Enumerated values that changed</h2>
+<p>The original <code>webkitAudioContext</code> API used C-style number based enumerated values in the API. Those values have since been changed to use the Web IDL based enumerated values, which should be familiar because they are similar to things like the <a href="../htmlinputelement"><code>HTMLInputElement</code></a> property <a class="page-not-created"><code>type</code></a>.</p>
+<h3 id="oscillatornode.type">OscillatorNode.type</h3>
+<p><a href="../oscillatornode"><code>OscillatorNode</code></a>'s type property has been changed to use Web IDL enums. Old code using <code>webkitAudioContext</code> can be ported to standards based <a href="../audiocontext"><code>AudioContext</code></a> like below:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> osc<span class="token punctuation">.</span><span class="token constant">SINE</span><span class="token punctuation">;</span>     <span class="token comment">// sine waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> osc<span class="token punctuation">.</span><span class="token constant">SQUARE</span><span class="token punctuation">;</span>   <span class="token comment">// square waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> osc<span class="token punctuation">.</span><span class="token constant">SAWTOOTH</span><span class="token punctuation">;</span> <span class="token comment">// sawtooth waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> osc<span class="token punctuation">.</span><span class="token constant">TRIANGLE</span><span class="token punctuation">;</span> <span class="token comment">// triangle waveform</span>
+osc<span class="token punctuation">.</span><span class="token function">setWaveTable</span><span class="token punctuation">(</span>table<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> isCustom <span class="token operator">=</span> <span class="token punctuation">(</span>osc<span class="token punctuation">.</span>type <span class="token operator">==</span> osc<span class="token punctuation">.</span><span class="token constant">CUSTOM</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// isCustom will be true</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"sine"</span><span class="token punctuation">;</span>       <span class="token comment">// sine waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"square"</span><span class="token punctuation">;</span>     <span class="token comment">// square waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"sawtooth"</span><span class="token punctuation">;</span>   <span class="token comment">// sawtooth waveform</span>
+osc<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"triangle"</span><span class="token punctuation">;</span>   <span class="token comment">// triangle waveform</span>
+osc<span class="token punctuation">.</span><span class="token function">setPeriodicWave</span><span class="token punctuation">(</span>table<span class="token punctuation">)</span><span class="token punctuation">;</span>  <span class="token comment">// Note: setWaveTable has been renamed to setPeriodicWave!</span>
+<span class="token keyword">var</span> isCustom <span class="token operator">=</span> <span class="token punctuation">(</span>osc<span class="token punctuation">.</span>type <span class="token operator">==</span> <span class="token string">"custom"</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// isCustom will be true</span>
+</pre></div>
+<h3 id="biquadfilternode.type">BiquadFilterNode.type</h3>
+<p><a href="../biquadfilternode"><code>BiquadFilterNode</code></a>'s type property has been changed to use Web IDL enums. Old code using <code>webkitAudioContext</code> can be ported to standards based <a href="../audiocontext"><code>AudioContext</code></a> like below:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> filter <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBiquadFilter</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">LOWPASS</span><span class="token punctuation">;</span>   <span class="token comment">// lowpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">HIGHPASS</span><span class="token punctuation">;</span>  <span class="token comment">// highpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">BANDPASS</span><span class="token punctuation">;</span>  <span class="token comment">// bandpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">LOWSHELF</span><span class="token punctuation">;</span>  <span class="token comment">// lowshelf filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">HIGHSHELF</span><span class="token punctuation">;</span> <span class="token comment">// highshelf filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">PEAKING</span><span class="token punctuation">;</span>   <span class="token comment">// peaking filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">NOTCH</span><span class="token punctuation">;</span>     <span class="token comment">// notch filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> filter<span class="token punctuation">.</span><span class="token constant">ALLPASS</span><span class="token punctuation">;</span>   <span class="token comment">// allpass filter</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> filter <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBiquadFilter</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"lowpass"</span><span class="token punctuation">;</span>        <span class="token comment">// lowpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"highpass"</span><span class="token punctuation">;</span>       <span class="token comment">// highpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"bandpass"</span><span class="token punctuation">;</span>       <span class="token comment">// bandpass filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"lowshelf"</span><span class="token punctuation">;</span>       <span class="token comment">// lowshelf filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"highshelf"</span><span class="token punctuation">;</span>      <span class="token comment">// highshelf filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"peaking"</span><span class="token punctuation">;</span>        <span class="token comment">// peaking filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"notch"</span><span class="token punctuation">;</span>          <span class="token comment">// notch filter</span>
+filter<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"allpass"</span><span class="token punctuation">;</span>        <span class="token comment">// allpass filter</span>
+</pre></div>
+<h3 id="pannernode.panningmodel">PannerNode.panningModel</h3>
+<p><a href="../pannernode"><code>PannerNode</code></a>'s panningModel property has been changed to use Web IDL enums. Old code using <code>webkitAudioContext</code> can be ported to standards based <a href="../audiocontext"><code>AudioContext</code></a> like below:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> panner <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createPanner</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+panner<span class="token punctuation">.</span>panningModel <span class="token operator">=</span> panner<span class="token punctuation">.</span><span class="token constant">EQUALPOWER</span><span class="token punctuation">;</span>  <span class="token comment">// equalpower panning</span>
+panner<span class="token punctuation">.</span>panningModel <span class="token operator">=</span> panner<span class="token punctuation">.</span><span class="token constant">HRTF</span><span class="token punctuation">;</span>        <span class="token comment">// HRTF panning</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> panner <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createPanner</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+panner<span class="token punctuation">.</span>panningModel <span class="token operator">=</span> <span class="token string">"equalpower"</span><span class="token punctuation">;</span>       <span class="token comment">// equalpower panning</span>
+panner<span class="token punctuation">.</span>panningModel <span class="token operator">=</span> <span class="token string">"HRTF"</span><span class="token punctuation">;</span>             <span class="token comment">// HRTF panning</span>
+</pre></div>
+<h3 id="pannernode.distancemodel">PannerNode.distanceModel</h3>
+<p><a href="../pannernode"><code>PannerNode</code></a>'s <code>distanceModel</code> property has been changed to use Web IDL enums. Old code using <code>webkitAudioContext</code> can be ported to standards based <a href="../audiocontext"><code>AudioContext</code></a> like below:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> panner <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createPanner</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> panner<span class="token punctuation">.</span><span class="token constant">LINEAR_DISTANCE</span><span class="token punctuation">;</span>      <span class="token comment">// linear distance model</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> panner<span class="token punctuation">.</span><span class="token constant">INVERSE_DISTANCE</span><span class="token punctuation">;</span>     <span class="token comment">// inverse distance model</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> panner<span class="token punctuation">.</span><span class="token constant">EXPONENTIAL_DISTANCE</span><span class="token punctuation">;</span> <span class="token comment">// exponential distance model</span>
+
+<span class="token comment">// Mew standard AudioContext code:</span>
+<span class="token keyword">var</span> panner <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createPanner</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> <span class="token string">"linear"</span><span class="token punctuation">;</span>                    <span class="token comment">// linear distance model</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> <span class="token string">"inverse"</span><span class="token punctuation">;</span>                   <span class="token comment">// inverse distance model</span>
+panner<span class="token punctuation">.</span>distanceModel <span class="token operator">=</span> <span class="token string">"exponential"</span><span class="token punctuation">;</span>               <span class="token comment">// exponential distance model</span>
+</pre></div>
+<h2 id="gain_control_moved_to_its_own_node_type">Gain control moved to its own node type</h2>
+<p>The Web Audio standard now controls all gain using the <a href="../gainnode"><code>GainNode</code></a>. Instead of setting a <code>gain</code> property directly on an audio source, you connect the source to a gain node and then control the gain using that node's <code>gain</code> parameter.</p>
+<h3 id="audiobuffersourcenode">AudioBufferSourceNode</h3>
+<p>The <code>gain</code> attribute of <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> has been removed. The same functionality can be achieved by connecting the <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> to a gain node. See the following example:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>buffer <span class="token operator">=</span> someBuffer<span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>gain<span class="token punctuation">.</span>value <span class="token operator">=</span> <span class="token number">0.5</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>destination<span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">noteOn</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>buffer <span class="token operator">=</span> someBuffer<span class="token punctuation">;</span>
+<span class="token keyword">var</span> gain <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGain</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>gain<span class="token punctuation">)</span><span class="token punctuation">;</span>
+gain<span class="token punctuation">.</span>gain<span class="token punctuation">.</span>value <span class="token operator">=</span> <span class="token number">0.5</span><span class="token punctuation">;</span>
+gain<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>destination<span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h3 id="audiobuffer">AudioBuffer</h3>
+<p>The <code>gain</code> attribute of <a href="../audiobuffer"><code>AudioBuffer</code></a> has been removed. The same functionality can be achieved by connecting the <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> that owns the buffer to a gain node. See the following example:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>buffer <span class="token operator">=</span> someBuffer<span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>buffer<span class="token punctuation">.</span>gain <span class="token operator">=</span> <span class="token number">0.5</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>destination<span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">noteOn</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>buffer <span class="token operator">=</span> someBuffer<span class="token punctuation">;</span>
+<span class="token keyword">var</span> gain <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createGain</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>gain<span class="token punctuation">)</span><span class="token punctuation">;</span>
+gain<span class="token punctuation">.</span>gain<span class="token punctuation">.</span>value <span class="token operator">=</span> <span class="token number">0.5</span><span class="token punctuation">;</span>
+gain<span class="token punctuation">.</span><span class="token function">connect</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>destination<span class="token punctuation">)</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="removal_of_audiobuffersourcenode.looping">Removal of AudioBufferSourceNode.looping</h2>
+<p>The <code>looping</code> attribute of <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> has been removed. This attribute was an alias of the <code>loop</code> attribute, so you can just use the <code>loop</code> attribute instead. Instead of having code like this:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> source <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+source<span class="token punctuation">.</span>looping <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+</pre></div> <p>you can change it to respect the last version of the specification:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">var</span> source <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+source<span class="token punctuation">.</span>loop <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+</pre></div> <p>Note, the <code>loopStart</code> and <code>loopEnd</code> attributes are not supported in <code>webkitAudioContext</code>.</p>
+<h2 id="changes_to_determining_playback_state">Changes to determining playback state</h2>
+<p>The <code>playbackState</code> attribute of <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> and <a href="../oscillatornode"><code>OscillatorNode</code></a> has been removed. Depending on why you used this attribute, you can use the following techniques to get the same information:</p> <ul> <li>If you need to compare this attribute to <code>UNSCHEDULED_STATE</code>, you can basically remember whether you've called <code>start()</code> on the node or not.</li> <li>If you need to compare this attribute to <code>SCHEDULED_STATE</code>, you can basically remember whether you've called <code>start()</code> on the node or not. You can compare the value of <a href="../baseaudiocontext/currenttime"><code>AudioContext.currentTime</code></a> to the first argument passed to <code>start()</code> to know whether playback has started or not.</li> <li>If you need to compare this attribute to <code>PLAYING_STATE</code>, you can compare the value of <a href="../baseaudiocontext/currenttime"><code>AudioContext.currentTime</code></a> to the first argument passed to <code>start()</code> to know whether playback has started or not.</li> <li>If you need to know when playback of the node is finished (which is the most significant use case of <code>playbackState</code>), there is a new ended event which you can use to know when playback is finished. Please see this code example:</li> </ul> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// Some time later...</span>
+<span class="token keyword">var</span> isFinished <span class="token operator">=</span> <span class="token punctuation">(</span>src<span class="token punctuation">.</span>playbackState <span class="token operator">==</span> src<span class="token punctuation">.</span><span class="token constant">FINISHED_STATE</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// New AudioContext code:</span>
+<span class="token keyword">var</span> src <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">function</span> <span class="token function">endedHandler</span><span class="token punctuation">(</span><span class="token parameter">event</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  isFinished <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+<span class="token keyword">var</span> isFinished <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">;</span>
+src<span class="token punctuation">.</span>onended <span class="token operator">=</span> endedHandler<span class="token punctuation">;</span>
+</pre></div> <p>The exact same changes have been applied to both <a href="../audiobuffersourcenode"><code>AudioBufferSourceNode</code></a> and <a href="../oscillatornode"><code>OscillatorNode</code></a>, so you can apply the same techniques to both kinds of nodes.</p>
+<h2 id="removal_of_audiocontext.activesourcecount">Removal of AudioContext.activeSourceCount</h2>
+<p>The <code>activeSourceCount</code> attribute has been removed from <a href="../audiocontext"><code>AudioContext</code></a>. If you need to count the number of playing source nodes, you can maintain the count by handling the ended event on the source nodes, as shown above.</p> <p>Code using the <code>activeSourceCount</code> attribute of the <a href="../audiocontext"><code>AudioContext</code></a>, like this snippet:</p> <div class="code-example"><pre data-language="js">  <span class="token keyword">var</span> src0 <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token keyword">var</span> src1 <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// Set buffers and other parameters...</span>
+  src0<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  src1<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// Some time later...</span>
+  console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>activeSourceCount<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div> <p>could be rewritten like that:</p> <div class="code-example"><pre data-language="js">  <span class="token comment">// Array to track the playing source nodes:</span>
+  <span class="token keyword">var</span> sources <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+  <span class="token comment">// When starting the source, put it at the end of the array,</span>
+  <span class="token comment">// and set a handler to make sure it gets removed when the</span>
+  <span class="token comment">// AudioBufferSourceNode reaches its end.</span>
+  <span class="token comment">// First argument is the AudioBufferSourceNode to start, other arguments are</span>
+  <span class="token comment">// the argument to the |start()| method of the AudioBufferSourceNode.</span>
+  <span class="token keyword">function</span> <span class="token function">startSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">var</span> src <span class="token operator">=</span> arguments<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+    <span class="token keyword">var</span> startArgs <span class="token operator">=</span> <span class="token class-name">Array</span><span class="token punctuation">.</span>prototype<span class="token punctuation">.</span><span class="token function">slice</span><span class="token punctuation">.</span><span class="token function">call</span><span class="token punctuation">(</span>arguments<span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    src<span class="token punctuation">.</span><span class="token function-variable function">onended</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      sources<span class="token punctuation">.</span><span class="token function">splice</span><span class="token punctuation">(</span>sources<span class="token punctuation">.</span><span class="token function">indexOf</span><span class="token punctuation">(</span>src<span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+    sources<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>src<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    src<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">.</span><span class="token function">apply</span><span class="token punctuation">(</span>src<span class="token punctuation">,</span> startArgs<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token keyword">function</span> <span class="token function">activeSources</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    <span class="token keyword">return</span> sources<span class="token punctuation">.</span>length<span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+  <span class="token keyword">var</span> src0 <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token keyword">var</span> src0 <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createBufferSource</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// Set buffers and other parameters...</span>
+  <span class="token function">startSource</span><span class="token punctuation">(</span>src0<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token function">startSource</span><span class="token punctuation">(</span>src1<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// Some time later, query the number of sources...</span>
+  console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token function">activeSources</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="renaming_of_wavetable">Renaming of WaveTable</h2>
+<p>The <a class="page-not-created"><code>WaveTable</code></a> interface has been renamed to <a href="../periodicwave"><code>PeriodicWave</code></a>. Here is how you can port old code using <code>WaveTable</code> to the standard AudioContext API:</p> <div class="code-example"><pre data-language="js"><span class="token comment">// Old webkitAudioContext code:</span>
+<span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> table <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createWaveTable</span><span class="token punctuation">(</span>realArray<span class="token punctuation">,</span> imaginaryArray<span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">setWaveTable</span><span class="token punctuation">(</span>table<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// New standard AudioContext code:</span>
+<span class="token keyword">var</span> osc <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createOscillator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">var</span> table <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">createPeriodicWave</span><span class="token punctuation">(</span>realArray<span class="token punctuation">,</span> imaginaryArray<span class="token punctuation">)</span><span class="token punctuation">;</span>
+osc<span class="token punctuation">.</span><span class="token function">setPeriodicWave</span><span class="token punctuation">(</span>table<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</pre></div>
+<h2 id="removal_of_some_of_the_audioparam_read-only_attributes">Removal of some of the AudioParam read-only attributes</h2>
+<p>The following read-only attributes have been removed from AudioParam: <code>name</code>, <code>units</code>, <code>minValue</code>, and <code>maxValue</code>. These used to be informational attributes. Here is some information on how you can get these values if you need them:</p> <ul> <li>The <code>name</code> attribute is a string representing the name of the <a href="../audioparam"><code>AudioParam</code></a> object. For example, the name of <a href="../gainnode/gain"><code>GainNode.gain</code></a> is <code>"gain"</code>. You can track where the <a href="../audioparam"><code>AudioParam</code></a> object is coming from in your code if you need this information.</li> <li>The <code>minValue</code> and <code>maxValue</code> attributes are read-only values representing the nominal range for the <a href="../audioparam"><code>AudioParam</code></a>. For example, for <a href="../gainnode"><code>GainNode</code></a>, these values are 0 and 1, respectively. Note that these bounds are not enforced by the engine, and are merely used for informational purposes. As an example, it's perfectly valid to set a gain value to 2, or even -1. In order to find out these nominal values, you can consult the <a href="https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html" rel=" noopener">specification</a>.</li> <li>The <code>units</code> attribute as implemented in <code>webkitAudioContext</code> implementations is unused, and always returns 0. There is no reason why you should need this attribute.</li> </ul>
+<h2 id="removal_of_mediaelementaudiosourcenode.mediaelement">Removal of MediaElementAudioSourceNode.mediaElement</h2>
+<p>The <code>mediaElement</code> attribute of <a href="../mediaelementaudiosourcenode"><code>MediaElementAudioSourceNode</code></a> has been removed. You can keep a reference to the media element used to create this node if you need to access it later.</p>
+<h2 id="removal_of_mediastreamaudiosourcenode.mediastream">Removal of MediaStreamAudioSourceNode.mediaStream</h2>
+<p>The <code>mediaStream</code> attribute of <a href="../mediastreamaudiosourcenode"><code>MediaStreamAudioSourceNode</code></a> has been removed. You can keep a reference to the media stream used to create this node if you need to access it later.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Migrating_from_webkitAudioContext" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Migrating_from_webkitAudioContext</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
