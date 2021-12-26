@@ -1,0 +1,177 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Missing Data in GAMs - R - W3cubDocs</title>
+  
+  <meta name="description" content="If there are missing values in the response or covariates of a GAM then the default is simply to use only the ‘complete cases’. If there are many &hellip;">
+  <meta name="keywords" content="missing, data, gams, r">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/r/library/mgcv/html/missing.data.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/r.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/r/" class="_nav-link" title="" style="margin-left:0;">R</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h2>
+<code>missing.data</code> Missing data in GAMs</h2> <h3>Description</h3> <p>If there are missing values in the response or covariates of a GAM then the default is simply to use only the ‘complete cases’. If there are many missing covariates, this can get rather wasteful. One possibility is then to use imputation. Another is to substitute a simple random effects model in which the <code>by</code> variable mechanism is used to set <code>s(x)</code> to zero for any missing <code>x</code>, while a Gaussian random effect is then substituted for the ‘missing’ s(x). See the example for details of how this works, and <code><a href="gam.models">gam.models</a></code> for the necessary background on <code>by</code> variables. </p> <h3>Author(s)</h3> <p>Simon Wood &lt;simon.wood@r-project.org&gt; </p> <h3>See Also</h3> <p><code><a href="gam.vcomp">gam.vcomp</a></code>, <code><a href="gam.models">gam.models</a></code>, <code><a href="s">s</a></code>, <code><a href="smooth.construct.re.smooth.spec">smooth.construct.re.smooth.spec</a></code>,<code><a href="gam">gam</a></code></p> <h3>Examples</h3> <pre data-language="r">
+## The example takes a couple of minutes to run...
+
+require(mgcv)
+par(mfrow=c(4,4),mar=c(4,4,1,1))
+for (sim in c(1,7)) { ## cycle over uncorrelated and correlated covariates
+  n &lt;- 350;set.seed(2)
+  ## simulate data but randomly drop 300 covariate measurements
+  ## leaving only 50 complete cases...
+  dat &lt;- gamSim(sim,n=n,scale=3) ## 1 or 7
+  drop &lt;- sample(1:n,300) ## to
+  for (i in 2:5) dat[drop[1:75+(i-2)*75],i] &lt;- NA
+
+  ## process data.frame producing binary indicators of missingness,
+  ## mx0, mx1 etc. For each missing value create a level of a factor
+  ## idx0, idx1, etc. So idx0 has as many levels as x0 has missing 
+  ## values. Replace the NA's in each variable by the mean of the 
+  ## non missing for that variable...
+
+  dname &lt;- names(dat)[2:5]
+  dat1 &lt;- dat
+  for (i in 1:4) {
+    by.name &lt;- paste("m",dname[i],sep="") 
+    dat1[[by.name]] &lt;- is.na(dat1[[dname[i]]])
+    dat1[[dname[i]]][dat1[[by.name]]] &lt;- mean(dat1[[dname[i]]],na.rm=TRUE)
+    lev &lt;- rep(1,n);lev[dat1[[by.name]]] &lt;- 1:sum(dat1[[by.name]])
+    id.name &lt;- paste("id",dname[i],sep="")
+    dat1[[id.name]] &lt;- factor(lev) 
+    dat1[[by.name]] &lt;- as.numeric(dat1[[by.name]])
+  }
+
+  ## Fit a gam, in which any missing value contributes zero 
+  ## to the linear predictor from its smooth, but each 
+  ## missing has its own random effect, with the random effect 
+  ## variances being specific to the variable. e.g.
+  ## for s(x0,by=ordered(!mx0)), declaring the `by' as an ordered
+  ## factor ensures that the smooth is centred, but multiplied
+  ## by zero when mx0 is one (indicating a missing x0). This means
+  ## that any value (within range) can be put in place of the 
+  ## NA for x0.  s(idx0,bs="re",by=mx0) produces a separate Gaussian 
+  ## random effect for each missing value of x0 (in place of s(x0),
+  ## effectively). The `by' variable simply sets the random effect to 
+  ## zero when x0 is non-missing, so that we can set idx0 to any 
+  ## existing level for these cases.   
+
+  b &lt;- bam(y~s(x0,by=ordered(!mx0))+s(x1,by=ordered(!mx1))+
+             s(x2,by=ordered(!mx2))+s(x3,by=ordered(!mx3))+
+             s(idx0,bs="re",by=mx0)+s(idx1,bs="re",by=mx1)+
+             s(idx2,bs="re",by=mx2)+s(idx3,bs="re",by=mx3)
+             ,data=dat1,discrete=TRUE)
+
+  for (i in 1:4) plot(b,select=i) ## plot the smooth effects from b
+
+  ## fit the model to the `complete case' data...
+  b2 &lt;- gam(y~s(x0)+s(x1)+s(x2)+s(x3),data=dat,method="REML")
+  plot(b2) ## plot the complete case results
+}
+
+</pre>
+<div class="_attribution">
+  <p class="_attribution-p">
+    Copyright (©) 1999–2012 R Foundation for Statistical Computing.<br>Licensed under the <a href="https://www.gnu.org/copyleft/gpl.html">GNU General Public License</a>.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
