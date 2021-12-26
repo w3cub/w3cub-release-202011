@@ -1,0 +1,187 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>FAQ - Esbuild - W3cubDocs</title>
+  
+  <meta name="description" content=" This is a collection of common questions about esbuild. You can also ask questions on the GitHub issue tracker. ">
+  <meta name="keywords" content="faq, esbuild">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/esbuild/faq/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/esbuild.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/esbuild/" class="_nav-link" title="" style="margin-left:0;">esbuild</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>FAQ</h1>
+<p>This is a collection of common questions about esbuild. You can also ask questions on the <a href="https://github.com/evanw/esbuild/issues">GitHub issue tracker</a>.</p>
+<ul> <li><a href="#why-is-esbuild-fast">Why is esbuild fast?</a></li> <li><a href="#benchmark-details">Benchmark details</a></li> <li><a href="#upcoming-roadmap">Upcoming roadmap</a></li> <li><a href="#production-readiness">Production readiness</a></li> </ul>
+<h2 id="why-is-esbuild-fast">Why is esbuild fast?</h2>
+<p>Several reasons:</p>
+<ul>
+<li>
+<p> It's written in <a href="https://golang.org/">Go</a> and compiles to native code. </p> <p> Most other bundlers are written in JavaScript, but a command-line application is a worst-case performance situation for a JIT-compiled language. Every time you run your bundler, the JavaScript VM is seeing your bundler's code for the first time without any optimization hints. While esbuild is busy parsing your JavaScript, node is busy parsing your bundler's JavaScript. By the time node has finished parsing your bundler's code, esbuild might have already exited and your bundler hasn't even started bundling yet. </p> <p> In addition, Go is designed from the core for parallelism while JavaScript is not. Go has shared memory between threads while JavaScript has to serialize data between threads. Both Go and JavaScript have parallel garbage collectors, but Go's heap is shared between all threads while JavaScript has a separate heap per JavaScript thread. This seems to cut the amount of parallelism that's possible with JavaScript worker threads in half <a href="https://github.com/evanw/esbuild/issues/111#issuecomment-719910381">according to my testing</a>, presumably since half of your CPU cores are busy collecting garbage for the other half. </p>
+</li>
+<li>
+<p> Parallelism is used heavily. </p> <p> The algorithms inside esbuild are carefully designed to fully saturate all available CPU cores when possible. There are roughly three phases: parsing, linking, and code generation. Parsing and code generation are most of the work and are fully parallelizable (linking is an inherently serial task for the most part). Since all threads share memory, work can easily be shared when bundling different entry points that import the same JavaScript libraries. Most modern computers have many cores so parallelism is a big win. </p>
+</li>
+<li>
+<p> Everything in esbuild is written from scratch. </p> <p> There are a lot of performance benefits with writing everything yourself instead of using 3rd-party libraries. You can have performance in mind from the beginning, you can make sure everything uses consistent data structures to avoid expensive conversions, and you can make wide architectural changes whenever necessary. The drawback is of course that it's a lot of work. </p> <p> For example, many bundlers use the official TypeScript compiler as a parser. But it was built to serve the goals of the TypeScript compiler team and they do not have performance as a top priority. Their code makes pretty heavy use of <a href="https://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html">megamorphic object shapes</a> and unnecessary <a href="https://github.com/microsoft/TypeScript/issues/39247">dynamic property accesses</a> (both well-known JavaScript speed bumps). And the TypeScript parser appears to still run the type checker even when type checking is disabled. None of these are an issue with esbuild's custom TypeScript parser. </p>
+</li>
+<li>
+<p> Memory is used efficiently. </p> <p> Compilers are ideally mostly O(n) complexity in the length of the input. So if you are processing a lot of data, memory access speed is likely going to heavily affect performance. The fewer passes you have to make over your data (and also the fewer different representations you need to transform your data into), the faster your compiler will go. </p> <p> For example, esbuild only touches the whole JavaScript AST three times: </p> <ol> <li>A pass for lexing, parsing, scope setup, and declaring symbols</li> <li>A pass for binding symbols, minifying syntax, JSX/TS to JS, and ESNext-to-ES2015</li> <li>A pass for minifying identifiers, minifying whitespace, generating code, and generating source maps</li> </ol> <p> This maximizes reuse of AST data while it's still hot in the CPU cache. Other bundlers do these steps in separate passes instead of interleaving them. They may also convert between data representations to glue multiple libraries together (e.g. string→TS→JS→string, then string→JS→older JS→string, then string→JS→minified JS→string) which uses more memory and slows things down. </p> <p> Another benefit of Go is that it can store things compactly in memory, which enables it to use less memory and fit more in the CPU cache. All object fields have types and fields are packed tightly together so e.g. several boolean flags only take one byte each. Go also has value semantics and can embed one object directly in another so it comes "for free" without another allocation. JavaScript doesn't have these features and also has other drawbacks such as JIT overhead (e.g. hidden class slots) and inefficient representations (e.g. non-integer numbers are heap-allocated with pointers). </p>
+</li>
+</ul>
+<p>Each one of these factors is only a somewhat significant speedup, but together they can result in a bundler that is multiple orders of magnitude faster than other bundlers commonly in use today.</p>
+<h2 id="benchmark-details">Benchmark details</h2>
+<p>Here are the details about each benchmark:</p>
+<figcaption>JavaScript benchmark</figcaption><p>This benchmark approximates a large JavaScript codebase by duplicating the <a href="https://github.com/mrdoob/three.js">three.js</a> library 10 times and building a single bundle from scratch, without any caches. The benchmark can be run with <code>make bench-three</code> in the <a href="https://github.com/evanw/esbuild">esbuild repo</a>.</p>
+<table> <thead> <tr> <th style="text-align:left">Bundler</th> <th style="text-align:right">Time</th> <th style="text-align:right">Relative slowdown</th> <th style="text-align:right">Absolute speed</th> <th style="text-align:right">Output size</th> </tr> </thead> <tbody> <tr> <td style="text-align:left">esbuild</td> <td style="text-align:right">0.33s</td> <td style="text-align:right">1x</td> <td style="text-align:right">1658.9 kloc/s</td> <td style="text-align:right">5.80mb</td> </tr> <tr> <td style="text-align:left">parcel 2</td> <td style="text-align:right">32.48s</td> <td style="text-align:right">98x</td> <td style="text-align:right">16.9 kloc/s</td> <td style="text-align:right">5.87mb</td> </tr> <tr> <td style="text-align:left">rollup + terser</td> <td style="text-align:right">34.95s</td> <td style="text-align:right">106x</td> <td style="text-align:right">15.7 kloc/s</td> <td style="text-align:right">5.81mb</td> </tr> <tr> <td style="text-align:left">webpack 5</td> <td style="text-align:right">41.53s</td> <td style="text-align:right">126x</td> <td style="text-align:right">13.2 kloc/s</td> <td style="text-align:right">5.84mb</td> </tr> </tbody> </table>
+<p>Each time reported is the best of three runs. I'm running esbuild with <code>--bundle <wbr>--minify <wbr>--sourcemap</wbr></wbr></code>. I used the <a href="https://github.com/TrySound/rollup-plugin-terser"><code>rollup-<wbr>plugin-<wbr>terser</wbr></wbr></code></a> plugin because Rollup itself doesn't support minification. Webpack 5 uses <code>--mode=<wbr>production <wbr>--devtool=<wbr>sourcemap</wbr></wbr></wbr></code>. Parcel 2 uses the default options. Absolute speed is based on the total line count including comments and blank lines, which is currently 547,441. The tests were done on a 6-core 2019 MacBook Pro with 16gb of RAM and with <a href="https://en.wikipedia.org/wiki/Spotlight_(software)">macOS Spotlight</a> disabled.</p>
+<figcaption>TypeScript benchmark</figcaption><p>This benchmark uses the <a href="https://github.com/facebookexperimental/rome">Rome</a> build tool to approximate a large TypeScript codebase. All code must be combined into a single minified bundle with source maps and the resulting bundle must work correctly. The benchmark can be run with <code>make bench-rome</code> in the <a href="https://github.com/evanw/esbuild">esbuild repo</a>.</p>
+<table> <thead> <tr> <th style="text-align:left">Bundler</th> <th style="text-align:right">Time</th> <th style="text-align:right">Relative slowdown</th> <th style="text-align:right">Absolute speed</th> <th style="text-align:right">Output size</th> </tr> </thead> <tbody> <tr> <td style="text-align:left">esbuild</td> <td style="text-align:right">0.10s</td> <td style="text-align:right">1x</td> <td style="text-align:right">1318.4 kloc/s</td> <td style="text-align:right">0.97mb</td> </tr> <tr> <td style="text-align:left">parcel 2</td> <td style="text-align:right">8.73s</td> <td style="text-align:right">87x</td> <td style="text-align:right">15.1 kloc/s</td> <td style="text-align:right">0.97mb</td> </tr> <tr> <td style="text-align:left">webpack 5</td> <td style="text-align:right">18.89s</td> <td style="text-align:right">189x</td> <td style="text-align:right">7.0 kloc/s</td> <td style="text-align:right">1.27mb</td> </tr> </tbody> </table>
+<p>Each time reported is the best of three runs. I'm running esbuild with <code>--bundle <wbr>--minify <wbr>--sourcemap <wbr>--platform=<wbr>node</wbr></wbr></wbr></wbr></code>. Webpack 5 uses <a href="https://github.com/TypeStrong/ts-loader"><code>ts-loader</code></a> with <code>transpileOnly: <wbr>true</wbr></code> and <code>--mode=<wbr>production <wbr>--devtool=<wbr>sourcemap</wbr></wbr></wbr></code>. Parcel 2 uses <code>"engines": <wbr>"node"</wbr></code> in <code>package.json</code>. Absolute speed is based on the total line count including comments and blank lines, which is currently 131,836. The tests were done on a 6-core 2019 MacBook Pro with 16gb of RAM and with <a href="https://en.wikipedia.org/wiki/Spotlight_(software)">macOS Spotlight</a> disabled.</p>
+<p>The results don't include Rollup because I couldn't get it to work. I tried <a href="https://github.com/rollup/plugins/tree/master/packages/typescript"><code>@rollup/<wbr>plugin-<wbr>typescript</wbr></wbr></code></a> and <a href="https://github.com/rollup/plugins/tree/master/packages/sucrase"><code>@rollup/<wbr>plugin-<wbr>sucrase</wbr></wbr></code></a> but they both failed with build errors relating to TypeScript miscompilation.</p>
+<h2 id="upcoming-roadmap">Upcoming roadmap</h2>
+<p>These features are already in progress and are first priority:</p>
+<ul>
+<li>Code splitting (<a href="https://github.com/evanw/esbuild/issues/16">#16</a>, <a href="../api/index#splitting">docs</a>)</li>
+<li>CSS content type (<a href="https://github.com/evanw/esbuild/issues/20">#20</a>, <a href="../content-types/index#css">docs</a>)</li>
+<li>Plugin API (<a href="https://github.com/evanw/esbuild/issues/111">#111</a>)</li>
+</ul>
+<p>These are potential future features but may not happen or may happen to a more limited extent:</p>
+<ul>
+<li>HTML content type (<a href="https://github.com/evanw/esbuild/issues/31">#31</a>)</li>
+<li>Lowering to ES5 (<a href="https://github.com/evanw/esbuild/issues/297">#297</a>)</li>
+<li>Bundling top-level await (<a href="https://github.com/evanw/esbuild/issues/253">#253</a>)</li>
+</ul>
+<p>After that point, I will consider esbuild to be relatively complete. I'm planning for esbuild to reach a mostly stable state and then stop accumulating more features. This will involve saying "no" to requests for adding major features to esbuild itself. I don't think esbuild should become an all-in-one solution for all frontend needs. In particular, I want to avoid the pain and problems of the "webpack config" model where the underlying tool is too flexible and usability suffers.</p>
+<p>For example, I am <em>not</em> planning to include these features in esbuild's core itself:</p>
+<ul>
+<li>Support for other frontend languages (e.g. <a href="https://elm-lang.org/">Elm</a>, <a href="https://svelte.dev/">Svelte</a>, <a href="https://vuejs.org/">Vue</a>, <a href="https://angular.io/">Angular</a>)</li>
+<li>TypeScript type checking (just run <code>tsc</code> separately)</li>
+<li>An API for custom AST manipulation</li>
+<li>Hot-module reloading</li>
+<li>Module federation</li>
+</ul>
+<p>I hope that the extensibility points I'm adding to esbuild (<a href="../plugins/index">plugins</a> and the <a href="../api/index">API</a>) will make esbuild useful to include as part of more customized build workflows, but I'm not intending or expecting these extensibility points to cover all use cases. If you have very custom requirements then you should be using other tools. I also hope esbuild inspires other build tools to dramatically improve performance by overhauling their implementations so that everyone can benefit, not just those that use esbuild.</p>
+<p>I am planning to continue to maintain everything in esbuild's existing scope even after esbuild reaches stability. This means implementing support for newly-released JavaScript and TypeScript syntax features, for example.</p>
+<h2 id="production-readiness">Production readiness</h2>
+<p>This project has not yet hit version 1.0.0 and is still in active development. That said, it is far beyond the alpha stage and is pretty stable. I think of it as a late-stage beta. For some early-adopters that means it's good enough to use for real things. Some other people think this means esbuild isn't ready yet. This section doesn't try to convince you either way. It just tries to give you enough information so you can decide for yourself whether you want to use esbuild as your bundler.</p>
+<p>Some data points:</p>
+<ul>
+<li>
+<strong>Used by other projects</strong> <p> The API is already being used as a library within many other developer tools. For example, <a href="https://vitejs.dev/">Vite</a> and <a href="https://www.snowpack.dev/">Snowpack</a> are using esbuild to transform TypeScript into JavaScript and <a href="https://aws.amazon.com/cdk/">Amazon CDK</a> (Cloud Development Kit) and <a href="https://www.phoenixframework.org/">Phoenix</a> are using esbuild to bundle code. </p>
+</li>
+<li>
+<strong>API stability</strong> <p> Even though esbuild's version is not yet 1.0.0, effort is still made to keep the API stable. Patch versions are intended for backwards-compatible changes and minor versions are intended for backwards-incompatible changes (as <a href="https://docs.npmjs.com/misc/semver">recommended by npm</a>). If you plan to use esbuild for something real, you should either pin the exact version (maximum safety) or pin the major and minor versions (only accept backwards-compatible upgrades). </p>
+</li>
+<li>
+<strong>Only one main developer</strong> <p> This tool is primarily built by <a href="https://github.com/evanw">me</a>. For some people this is fine, but for others this means esbuild is not a suitable tool for their organization. That's ok with me. I'm building esbuild because I find it fun to build and because it's the tool I'd want to use. I'm sharing it with the world because there are others that want to use it too, because the feedback makes the tool itself better, and because I think it will inspire the ecosystem to make better tools. </p>
+</li>
+<li>
+<strong>Not always open to scope expansion</strong> <p> I'm not planning on including major features that I'm not interested in building and/or maintaining. I also want to limit the project's scope so it doesn't get too complex and unwieldy, both from an architectural perspective, a testing and correctness perspective, and from a usability perspective. Think of esbuild as a "linker" for the web. It knows how to transform and bundle JavaScript and CSS. But the details of how your source code ends up as plain JavaScript or CSS may need to be 3rd-party code. </p> <p> I'm hoping that <a href="../plugins/index">plugins</a> will allow the community to add major features (e.g. WebAssembly import) without needing to contribute to esbuild itself. However, not everything is exposed in the plugin API and it may be the case that it's not possible to add a particular feature to esbuild that you may want to add. This is intentional; esbuild is not meant to be an all-in-one solution for all frontend needs. </p>
+</li>
+</ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2020 Evan Wallace<br>Licensed under the MIT License.<br>
+    <a href="https://esbuild.github.io/faq/" class="_attribution-link">https://esbuild.github.io/faq/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
