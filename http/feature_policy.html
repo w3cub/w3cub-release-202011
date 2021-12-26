@@ -8,7 +8,7 @@
   <title>Feature Policy - HTTP - W3cubDocs</title>
   
   <meta name="description" content="Feature Policy allows web developers to selectively enable, disable, and modify the behavior of certain features and APIs in the browser. It is &hellip;">
-  <meta name="keywords" content="feature, policy, http">
+  <meta name="keywords" content="feature, policyfeature, policy, http">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/http/feature_policy.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/http.js"></script>
   
@@ -88,1166 +88,591 @@
 			<div class="_page _mdn">
 				
 				
-<h1>Feature Policy</h1> <p class="summary">Feature Policy allows web developers to selectively enable, disable, and modify the behavior of certain features and APIs in the browser. It is similar to <a href="https://developer.mozilla.org/en-US/docs/Glossary/CSP">Content Security Policy</a> but controls features instead of security behavior.</p> <div class="note"> <p>The <code>Feature-Policy</code> header has now been renamed to <code>Permissions-Policy</code> in the spec, and this article will eventually be updated to reflect that change.</p> </div> <h2 id="In_a_nutshell">In a nutshell</h2> <p>Feature Policy provides a mechanism to explicitly declare what functionality is used (or not used), throughout your website. This allows you to lock in best practices, even as the codebase evolves over time — as well as to more safely compose third-party content — by limiting which features are available.</p> <p>With Feature Policy, you opt-in to a set of "policies" for the browser to enforce on specific features used throughout a website. These policies restrict what APIs the site can access or modify the browser's default behavior for certain features.</p> <p>Examples of what you can do with Feature Policy:</p> <ul> <li>Change the default behavior of autoplay on mobile and third party videos.</li> <li>Restrict a site from using sensitive APIs like camera or microphone.</li> <li>Allow iframes to use the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API">fullscreen API</a>.</li> <li>Block the use of outdated APIs like <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest">synchronous XHR</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/write"><code>document.write()</code></a>.</li> <li>Ensure images are sized properly and are not too big for the viewport.</li> </ul> <h2 id="Concepts_and_usage">Concepts and usage</h2> <p>Feature Policy allows you to control which origins can use which features, both in the top-level page and in embedded frames. Essentially, you write a policy, which is an allowed list of origins for each feature. For every feature controlled by Feature Policy, the feature is only enabled in the current document or frame if its origin matches the allowed list of origins.</p> <p>For each policy-controlled feature, the browser maintains a list of origins for which the feature is enabled, known as an allowlist. If you do not specify a policy for a feature, then a default allowlist will be used. The default allowlist is specific to each feature.</p> <h3 id="Writing_a_policy">Writing a policy</h3> <p>A policy is described using a set of individual policy directives. A policy directive is a combination of a defined feature name, and an allowlist of origins that can use the feature.</p> <h3 id="Specifying_your_policy">Specifying your policy</h3> <p>Feature Policy provides two ways to specify policies to control features:</p> <ul> <li>The <a href="headers/feature-policy"><code>Feature-Policy</code></a> HTTP header.</li> <li>The <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#Attributes"><code>allow</code></a> attribute on iframes.</li> </ul> <p>The primary difference between the HTTP header and the <code>allow</code> attribute is that the allow attribute only controls features within an iframe. The header controls features in the response and any embedded content within the page.</p> <p>For more details see <a href="feature_policy/using_feature_policy">Using Feature Policy</a>.</p> <h3 id="Inferring_the_policy">Inferring the policy</h3> <p>Scripts can programatically query information about the feature policy via the <a href="https://developer.mozilla.org/en-US/docs/Web/API/FeaturePolicy"><code>FeaturePolicy</code></a> object located at either <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/featurePolicy"><code>Document.featurePolicy</code></a> or <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/featurePolicy"><code>HTMLIFrameElement.featurePolicy</code></a>.</p> <h2 id="Types_of_policy-controlled_features">Types of policy-controlled features</h2> <p>Though Feature Policy provides control of multiple features using a consistent syntax, the behavior of policy controlled features varies and depends on several factors.</p> <p>The general principle is that there should be an intuitive or non-breaking way for web developers to detect or handle the case when the feature is disabled. Newly introduced features may have an explicit API to signal the state. Existing features that later integrate with Feature Policy will typically use existing mechanisms. Some approaches include:</p> <ul> <li>Return "permission denied" for JavaScript APIs that require user permission grants.</li> <li>Return <code>false</code> or error from an existing JavaScript API that provides access to feature.</li> <li>Change the default values or options that control the feature behavior.</li> </ul> <p>The current set of policy-controlled features fall into two broad categories:</p> <ul> <li>Enforcing best practices for good user experiences.</li> <li>Providing granular control over sensitive or powerful features.</li> </ul> <h3 id="Best_practices_for_good_user_experiences">Best practices for good user experiences</h3> <p>There are several policy-controlled features to help enforce best practices for providing good performance and user experiences.</p> <p>In most cases, the policy-controlled features represent functionality that when used will negatively impact the user experience. To avoid breaking existing web content, the default for such policy-controlled features is to allow the functionality to be used by all origins. Best practices are then enforced by using policies that disable the policy-controlled features. For more details see "Enforcing best practices for good user experiences".</p> <p>The features include:</p> <ul> <li>Layout-inducing animations</li> <li>Legacy image formats</li> <li>Oversized images</li> <li>Synchronous scripts</li> <li>Synchronous XMLHTTPRequest</li> <li>Unoptimized images</li> <li>Unsized media</li> </ul> <h3 id="Granular_control_over_certain_features">Granular control over certain features</h3> <p>The web provides functionality and APIs that may have privacy or security risks if abused. In some cases, you may wish to strictly limit how such functionality is used on a website. There are policy-controlled features to allow functionality to be enabled/disabled for specific origins or frames within a website. Where available, the feature integrates with the Permissions API, or feature-specific mechanisms to check if the feature is available.</p> <p>The features include (see <a href="headers/feature-policy#Directives">Features list</a>):</p> <ul> <li>Accelerometer</li> <li>Ambient light sensor</li> <li>Autoplay</li> <li>Camera</li> <li>Encrypted media</li> <li>Fullscreen</li> <li>Geolocation</li> <li>Gyroscope</li> <li>Magnetometer</li> <li>Microphone</li> <li>Midi</li> <li>PaymentRequest</li> <li>Picture-in-picture</li> <li>USB</li> <li>Web Share API</li> <li>VR / XR</li> </ul> <h2 id="Examples">Examples</h2> <ul> <li><a href="feature_policy/using_feature_policy">Using Feature Policy</a></li> <li>See <a href="http://feature-policy-demos.appspot.com/">Feature Policy Demos</a> for example usage of many policies.</li> </ul> <h2 id="Specifications">Specifications</h2> <div class="_table"><table class="standard-table"> <tbody> <tr> <th scope="col">Specification</th> <th scope="col">Status</th> <th scope="col">Comment</th> </tr> <tr> <td><a href="https://w3c.github.io/webappsec-permissions-policy/#feature-policy-http-header-field" hreflang="en">Permissions Policy<br><small>The definition of 'Feature-Policy' in that specification.</small></a></td> <td><span class="spec-ED">Editor's Draft</span></td> <td>Initial definition. Defines the <a href="headers/feature-policy"><code>Feature-Policy</code></a> header. Directives are defined in the specs for the features they control. See individual directive pages for details.</td> </tr> </tbody> </table></div> <h2 id="Browser_compatibility">Browser compatibility<a class="bc-github-link" href="https://github.com/mdn/browser-compat-data">Update compatibility data on GitHub</a>
-</h2>  <div class="_table">
-<table class="bc-table bc-table-web">
+<h1>Feature Policy</h1>
+<h1>Feature Policy</h1>
+<p>Feature Policy allows web developers to selectively enable, disable, and modify the behavior of certain features and APIs in the browser. It is similar to <a href="https://developer.mozilla.org/en-US/docs/Glossary/CSP">Content Security Policy</a> but controls features instead of security behavior.</p> <div class="notecard warning"> <p><strong>Warning:</strong> The <a href="headers/feature-policy"><code>Feature-Policy</code></a> header has now been renamed to <code>Permissions-Policy</code> in the spec, and this article will eventually be updated to reflect that change.</p> </div>
+<h2 id="in_a_nutshell">In a nutshell</h2>
+<p>Feature Policy provides a mechanism to explicitly declare what functionality is used (or not used), throughout your website. This allows you to lock in best practices, even as the codebase evolves over time — as well as to more safely compose third-party content — by limiting which features are available.</p> <p>With Feature Policy, you opt-in to a set of "policies" for the browser to enforce on specific features used throughout a website. These policies restrict what APIs the site can access or modify the browser's default behavior for certain features.</p> <p>Examples of what you can do with Feature Policy:</p> <ul> <li>Change the default behavior of autoplay on mobile and third party videos.</li> <li>Restrict a site from using sensitive devices like the camera, microphone, or speakers.</li> <li>Allow iframes to use the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API">fullscreen API</a>.</li> <li>Block the use of outdated APIs like <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest">synchronous XHR</a> and <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/write"><code>document.write()</code></a>.</li> <li>Ensure images are sized properly and are not too big for the viewport.</li> </ul>
+<h2 id="concepts_and_usage">Concepts and usage</h2>
+<p>Feature Policy allows you to control which origins can use which features, both in the top-level page and in embedded frames. Essentially, you write a policy, which is an allowed list of origins for each feature. For every feature controlled by Feature Policy, the feature is only enabled in the current document or frame if its origin matches the allowed list of origins.</p> <p>For each policy-controlled feature, the browser maintains a list of origins for which the feature is enabled, known as an allowlist. If you do not specify a policy for a feature, then a default allowlist will be used. The default allowlist is specific to each feature.</p>
+<h3 id="writing_a_policy">Writing a policy</h3>
+<p>A policy is described using a set of individual policy directives. A policy directive is a combination of a defined feature name, and an allowlist of origins that can use the feature.</p>
+<h3 id="specifying_your_policy">Specifying your policy</h3>
+<p>Feature Policy provides two ways to specify policies to control features:</p> <ul> <li>The <a href="headers/feature-policy"><code>Feature-Policy</code></a> HTTP header.</li> <li>The <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attributes"><code>allow</code></a> attribute on iframes.</li> </ul> <p>The primary difference between the HTTP header and the <code>allow</code> attribute is that the allow attribute only controls features within an iframe. The header controls features in the response and any embedded content within the page.</p> <p>For more details see <a href="feature_policy/using_feature_policy">Using Feature Policy</a>.</p>
+<h3 id="inferring_the_policy">Inferring the policy</h3>
+<p>Scripts can programmatically query information about the feature policy via the <a href="https://developer.mozilla.org/en-US/docs/Web/API/FeaturePolicy"><code>FeaturePolicy</code></a> object located at either <a href="https://developer.mozilla.org/en-US/docs/Web/API/Document/featurePolicy"><code>Document.featurePolicy</code></a> or <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/featurePolicy"><code>HTMLIFrameElement.featurePolicy</code></a>.</p>
+<h2 id="types_of_policy-controlled_features">Types of policy-controlled features</h2>
+<p>Though Feature Policy provides control of multiple features using a consistent syntax, the behavior of policy controlled features varies and depends on several factors.</p> <p>The general principle is that there should be an intuitive or non-breaking way for web developers to detect or handle the case when the feature is disabled. Newly introduced features may have an explicit API to signal the state. Existing features that later integrate with Feature Policy will typically use existing mechanisms. Some approaches include:</p> <ul> <li>Return "permission denied" for JavaScript APIs that require user permission grants.</li> <li>Return <code>false</code> or error from an existing JavaScript API that provides access to feature.</li> <li>Change the default values or options that control the feature behavior.</li> </ul> <p>The current set of policy-controlled features fall into two broad categories:</p> <ul> <li>Enforcing best practices for good user experiences.</li> <li>Providing granular control over sensitive or powerful features.</li> </ul>
+<h3 id="best_practices_for_good_user_experiences">Best practices for good user experiences</h3>
+<p>There are several policy-controlled features to help enforce best practices for providing good performance and user experiences.</p> <p>In most cases, the policy-controlled features represent functionality that when used will negatively impact the user experience. To avoid breaking existing web content, the default for such policy-controlled features is to allow the functionality to be used by all origins. Best practices are then enforced by using policies that disable the policy-controlled features. For more details see "Enforcing best practices for good user experiences".</p> <p>The features include:</p> <ul> <li>Layout-inducing animations</li> <li>Legacy image formats</li> <li>Oversized images</li> <li>Synchronous scripts</li> <li>Synchronous XMLHTTPRequest</li> <li>Unoptimized images</li> <li>Unsized media</li> </ul>
+<h3 id="granular_control_over_certain_features">Granular control over certain features</h3>
+<p>The web provides functionality and APIs that may have privacy or security risks if abused. In some cases, you may wish to strictly limit how such functionality is used on a website. There are policy-controlled features to allow functionality to be enabled/disabled for specific origins or frames within a website. Where available, the feature integrates with the Permissions API, or feature-specific mechanisms to check if the feature is available.</p> <p>The features include (see <a href="headers/feature-policy#directives">Features list</a>):</p> <ul> <li>Accelerometer</li> <li>Ambient light sensor</li> <li>Autoplay</li> <li>Camera</li> <li>Encrypted media</li> <li>Fullscreen</li> <li>Gamepad</li> <li>Geolocation</li> <li>Gyroscope</li> <li>Magnetometer</li> <li>Microphone</li> <li>Midi</li> <li>PaymentRequest</li> <li>Picture-in-picture</li> <li>Speakers</li> <li>USB</li> <li>Web Share API</li> <li>VR / XR</li> </ul>
+<h2 id="examples">Examples</h2>
+<ul> <li><a href="feature_policy/using_feature_policy">Using Feature Policy</a></li> <li>See <a href="https://feature-policy-demos.appspot.com/" rel=" noopener">Feature Policy Demos</a> for example usage of many policies.</li> </ul>
+<h2 id="specifications">Specifications</h2>
+<div class="_table"><table> <thead> <tr> <th>Specification</th> <th>Status</th> <th>Comment</th> </tr> </thead> <tbody> <tr> <td><a href="https://w3c.github.io/webappsec-permissions-policy/#feature-policy-http-header-field" hreflang="en" rel=" noopener">Permissions Policy<br><small>The definition of 'Feature-Policy' in that specification.</small></a></td> <td><span class="spec-ed">Editor's Draft</span></td> <td>Initial definition. Defines the <a href="headers/feature-policy"><code>Feature-Policy</code></a> header. Directives are defined in the specs for the features they control. See individual directive pages for details.</td> </tr> </tbody> </table></div>
+<h2 id="browser_compatibility">Browser compatibility</h2>
+<table>
 <thead>
-<tr class="bc-platforms">
+<tr id="bct-browser-type">
 <th></th>
-<th colspan="6"><span>Desktop</span></th>
+<th colspan="6">Desktop</th>
+<th colspan="6">Mobile</th>
 </tr>
-<tr class="bc-browsers">
+<tr id="bct-browsers">
 <th></th>
-<th><span class="bc-head-txt-label bc-head-icon-chrome">Chrome</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-edge">Edge</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-firefox">Firefox</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-ie">Internet Explorer</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-opera">Opera</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-safari">Safari</span></th>
+<th>Chrome</th>
+<th>Edge</th>
+<th>Firefox</th>
+<th>Internet Explorer</th>
+<th>Opera</th>
+<th>Safari</th>
+<th>WebView Android</th>
+<th>Chrome Android</th>
+<th>Firefox for Android</th>
+<th>Opera Android</th>
+<th>Safari on IOS</th>
+<th>Samsung Internet</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th scope="row">
-<a href="headers/feature-policy"><code>Feature-Policy</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect1"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
+<th><code>Feature_Policy</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-yes">
+<div>11.1</div>
+<div>Only supported through the <code>allow</code> attribute on <code>&lt;iframe&gt;</code> elements.</div>
 </td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-partial bc-has-history">11.1
-<section class="bc-history" id="sect2"><dl>
-<dt class="bc-supports-partial bc-supports">11.1
-</dt>
-<dd> Only supported through the <code>allow</code> attribute on <code>&lt;iframe&gt;</code> elements.</dd>
-</dl></section>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>44</div></td>
+<td class="bc-supports-yes">
+<div>11.3</div>
+<div>Only supported through the <code>allow</code> attribute on <code>&lt;iframe&gt;</code> elements.</div>
+</td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>accelerometer</code></th>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>54</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>ambient-light-sensor</code></th>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>54</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>autoplay</code></th>
+<td class="bc-supports-yes"><div>64</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>51</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>64</div></td>
+<td class="bc-supports-yes"><div>64</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>battery</code></th>
+<td class="bc-supports-no">
+<div>No</div>
+<div>Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</div>
+</td>
+<td class="bc-supports-no">
+<div>No</div>
+<div>Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>No</div>
+<div>Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>camera</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-yes"><div>11.1</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>45</div></td>
+<td class="bc-supports-yes"><div>11.3</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>display-capture</code></th>
+<td class="bc-supports-yes"><div>94</div></td>
+<td class="bc-supports-yes"><div>94</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>80</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>document-domain</code></th>
+<td class="bc-supports-yes"><div>77</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>64</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>encrypted-media</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>45</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>fullscreen</code></th>
+<td class="bc-supports-yes"><div>62</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes">
+<div>65</div>
+<div>Before Firefox 80, applying <code>fullscreen</code> to an <code>&lt;iframe&gt;</code> (i.e. via the <code>allow</code> attribute) does not work unless the <code>allowfullscreen</code> attribute is also present.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>49</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>62</div></td>
+<td class="bc-supports-yes"><div>62</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>46</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>gamepad</code></th>
+<td class="bc-supports-yes"><div>86</div></td>
+<td class="bc-supports-yes"><div>86</div></td>
+<td class="bc-supports-yes">
+<div>91</div>
+<div>The default allowlist is <code>*</code> instead of <code>self</code> (as required by the specification).</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>72</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>86</div></td>
+<td class="bc-supports-yes">
+<div>91</div>
+<div>The default allowlist is <code>*</code> instead of <code>self</code> (as required by the specification).</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>geolocation</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>44</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>gyroscope</code></th>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>54</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>layout-animations</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>legacy-image-formats</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>magnetometer</code></th>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>54</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>67</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>microphone</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>48</div></td>
+<td class="bc-supports-yes"><div>11.1</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>45</div></td>
+<td class="bc-supports-yes"><div>11.3</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>midi</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>44</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>oversized-images</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>payment</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>44</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>picture-in-picture</code></th>
+<td class="bc-supports-yes"><div>71</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>publickey-credentials-get</code></th>
+<td class="bc-supports-yes"><div>84</div></td>
+<td class="bc-supports-yes"><div>84</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>84</div></td>
+<td class="bc-supports-yes"><div>84</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>14.0</div></td>
+</tr>
+<tr>
+<th><code>screen-wake-lock</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>speaker-selection</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>92</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>92</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>sync-xhr</code></th>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>52</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-yes"><div>65</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>9.0</div></td>
+</tr>
+<tr>
+<th><code>unoptimized-images</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>unsized-media</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>usb</code></th>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>47</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-yes"><div>60</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>44</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>8.0</div></td>
+</tr>
+<tr>
+<th><code>vibrate</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+</tr>
+<tr>
+<th><code>vr</code></th>
+<td class="bc-supports-no">
+<div>62-80</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
+</td>
+<td class="bc-supports-no">
+<div>79-80</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>49-67</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>62-80</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>46-true</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
+</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>8.0-true</div>
+<div>WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</div>
 </td>
 </tr>
 <tr>
-<th scope="row">
-<a href="headers/feature-policy/accelerometer"><code>accelerometer</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect5"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
+<th><code>web-share</code></th>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes">
+<div>81</div>
+<div>Firefox recognizes the <code>web-share</code> permissions policy, but this has no effect in versions of Firefox that do not support the <a href="https://developer.mozilla.org/docs/Web/API/Navigator/share"><code>share()</code></a> method.</div>
 </td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect6"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes">
+<div>81</div>
+<div>Firefox recognizes the <code>web-share</code> permissions policy, but this has no effect in versions of Firefox that do not support the <a href="https://developer.mozilla.org/docs/Web/API/Navigator/share"><code>share()</code></a> method.</div>
 </td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 56<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect7"><dl>
-<dt class="bc-supports-yes bc-supports"> 56<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 56: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
 </tr>
 <tr>
-<th scope="row">
-<a href="headers/feature-policy/ambient-light-sensor"><code>ambient-light-sensor</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect10"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect11"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 56<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect12"><dl>
-<dt class="bc-supports-yes bc-supports"> 56<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 56: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/autoplay"><code>autoplay</code></a> 
-</th>
-<td class="bc-supports-yes"> 64</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect15"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 51</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/battery"><code>battery</code></a> 
-</th>
-<td class="bc-supports-no bc-has-history"> No
-<section class="bc-history" id="sect17"><dl>
-<dt class="bc-supports-no bc-supports"> No
-</dt>
-<dd> Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no bc-has-history"> No
-<section class="bc-history" id="sect18"><dl>
-<dt class="bc-supports-no bc-supports"> No
-</dt>
-<dd> Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/camera"><code>camera</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect20"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 48</td>
-<td class="bc-supports-yes"> 11.1</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/display-capture"><code>display-capture</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect22"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 67<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 67: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/document-domain"><code>document-domain</code></a> 
-</th>
-<td class="bc-supports-yes"> 77</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect24"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 64</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/encrypted-media"><code>encrypted-media</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect26"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 48</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/fullscreen"><code>fullscreen</code></a> 
-</th>
-<td class="bc-supports-yes"> 62</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect28"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-<dd> Before Firefox 80, applying <code>fullscreen</code> to an <code>&lt;iframe&gt;</code> (i.e. via the <code>allow</code> attribute) does not work unless the <code>allowfullscreen</code> attribute is also present.</dd>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 49</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/geolocation"><code>geolocation</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect30"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/gyroscope"><code>gyroscope</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect32"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect33"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 56<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect34"><dl>
-<dt class="bc-supports-yes bc-supports"> 56<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 56: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/layout-animations"><code>layout-animations</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/legacy-image-formats"><code>legacy-image-formats</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 68<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect37"><dl>
-<dt class="bc-supports-yes bc-supports"> 68<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 68: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect38"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 55<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect39"><dl>
-<dt class="bc-supports-yes bc-supports"> 55<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 55: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/magnetometer"><code>magnetometer</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect42"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect43"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 56<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect44"><dl>
-<dt class="bc-supports-yes bc-supports"> 56<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 56: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/microphone"><code>microphone</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect47"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 48</td>
-<td class="bc-supports-yes"> 11.1</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/midi"><code>midi</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect49"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/oversized-images"><code>oversized-images</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 72<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect51"><dl>
-<dt class="bc-supports-yes bc-supports"> 72<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 72: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect52"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 60<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect53"><dl>
-<dt class="bc-supports-yes bc-supports"> 60<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 60: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/payment"><code>payment</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes bc-has-history"> 74
-<section class="bc-history" id="sect56"><dl>
-<dt class="bc-supports-yes bc-supports"> 74
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/picture-in-picture"><code>picture-in-picture</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/publickey-credentials-get"><code>publickey-credentials-get</code></a> 
-</th>
-<td class="bc-supports-yes"> 84</td>
-<td class="bc-supports-yes"> 84</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/sync-xhr"><code>sync-xhr</code></a> 
-</th>
-<td class="bc-supports-yes"> 65</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 52</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/unoptimized-images"><code>unoptimized-images</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 72<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect58"><dl>
-<dt class="bc-supports-yes bc-supports"> 72<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 72: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect59"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 60<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect60"><dl>
-<dt class="bc-supports-yes bc-supports"> 60<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 60: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/unsized-media"><code>unsized-media</code></a> 
-</th>
-<td class="bc-supports-yes bc-has-history"> 66<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect63"><dl>
-<dt class="bc-supports-yes bc-supports"> 66<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 66: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes bc-has-history"> 79<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect64"><dl>
-<dt class="bc-supports-yes bc-supports"> 79<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 79: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 53<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect65"><dl>
-<dt class="bc-supports-yes bc-supports"> 53<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 53: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/usb"><code>usb</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/vibrate"><code>vibrate</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/vr"><code>vr</code></a> 
-</th>
-<td class="bc-supports-no bc-has-history">62 — 80
-<section class="bc-history" id="sect68"><dl>
-<dt class="bc-supports-no bc-supports">62 — 80
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no bc-has-history">79 — 80
-<section class="bc-history" id="sect69"><dl>
-<dt class="bc-supports-no bc-supports">79 — 80
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history">49 — 67
-<section class="bc-history" id="sect70"><dl>
-<dt class="bc-supports-no bc-supports">49 — 67
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/wake-lock"><code>wake-lock</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/xr-spatial-tracking"><code>xr-spatial-tracking</code></a> 
-</th>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 66</td>
-<td class="bc-supports-no"> No</td>
+<th><code>xr-spatial-tracking</code></th>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>66</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>79</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-yes"><div>12.0</div></td>
 </tr>
 </tbody>
 </table>
-<table class="bc-table bc-table-web">
-<thead>
-<tr class="bc-platforms">
-<th></th>
-<th colspan="6"><span>Mobile</span></th>
-</tr>
-<tr class="bc-browsers">
-<th></th>
-<th><span class="bc-head-txt-label bc-head-icon-webview_android">Android webview</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-chrome_android">Chrome for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-firefox_android">Firefox for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-opera_android">Opera for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-safari_ios">Safari on iOS</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-samsunginternet_android">Samsung Internet</span></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy"><code>Feature-Policy</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect3"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 44</td>
-<td class="bc-supports-partial bc-has-history">11.3
-<section class="bc-history" id="sect4"><dl>
-<dt class="bc-supports-partial bc-supports">11.3
-</dt>
-<dd> Only supported through the <code>allow</code> attribute on <code>&lt;iframe&gt;</code> elements.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/accelerometer"><code>accelerometer</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect8"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 48<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect9"><dl>
-<dt class="bc-supports-yes bc-supports"> 48<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 48: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/ambient-light-sensor"><code>ambient-light-sensor</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect13"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 48<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect14"><dl>
-<dt class="bc-supports-yes bc-supports"> 48<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 48: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/autoplay"><code>autoplay</code></a> 
-</th>
-<td class="bc-supports-yes"> 64</td>
-<td class="bc-supports-yes"> 64</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect16"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 9.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/battery"><code>battery</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history"> No
-<section class="bc-history" id="sect19"><dl>
-<dt class="bc-supports-no bc-supports"> No
-</dt>
-<dd> Will be implemented, see <a href="https://crbug.com/1007264">bug 1007264</a>.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/camera"><code>camera</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect21"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 45</td>
-<td class="bc-supports-yes"> 11.3</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/display-capture"><code>display-capture</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 67<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect23"><dl>
-<dt class="bc-supports-yes bc-supports"> 67<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 67: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/document-domain"><code>document-domain</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect25"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/encrypted-media"><code>encrypted-media</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect27"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 45</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/fullscreen"><code>fullscreen</code></a> 
-</th>
-<td class="bc-supports-yes"> 62</td>
-<td class="bc-supports-yes"> 62</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect29"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 46</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/geolocation"><code>geolocation</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect31"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 44</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/gyroscope"><code>gyroscope</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect35"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 48<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect36"><dl>
-<dt class="bc-supports-yes bc-supports"> 48<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 48: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/layout-animations"><code>layout-animations</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/legacy-image-formats"><code>legacy-image-formats</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 68<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect40"><dl>
-<dt class="bc-supports-yes bc-supports"> 68<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 68: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 48<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect41"><dl>
-<dt class="bc-supports-yes bc-supports"> 48<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 48: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/magnetometer"><code>magnetometer</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 69<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect45"><dl>
-<dt class="bc-supports-yes bc-supports"> 69<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 69: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 48<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect46"><dl>
-<dt class="bc-supports-yes bc-supports"> 48<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 48: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/microphone"><code>microphone</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect48"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 45</td>
-<td class="bc-supports-yes"> 11.3</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/midi"><code>midi</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect50"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 44</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/oversized-images"><code>oversized-images</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 72<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect54"><dl>
-<dt class="bc-supports-yes bc-supports"> 72<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 72: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 50<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect55"><dl>
-<dt class="bc-supports-yes bc-supports"> 50<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 50: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/payment"><code>payment</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes bc-has-history"> 65<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect57"><dl>
-<dt class="bc-supports-yes bc-supports"> 65<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 65: this feature is behind the <code>dom.security.featurePolicy.header.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-yes"> 44</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/picture-in-picture"><code>picture-in-picture</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/publickey-credentials-get"><code>publickey-credentials-get</code></a> 
-</th>
-<td class="bc-supports-yes"> 84</td>
-<td class="bc-supports-yes"> 84</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/sync-xhr"><code>sync-xhr</code></a> 
-</th>
-<td class="bc-supports-yes"> 65</td>
-<td class="bc-supports-yes"> 65</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 47</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 9.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/unoptimized-images"><code>unoptimized-images</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 72<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect61"><dl>
-<dt class="bc-supports-yes bc-supports"> 72<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 72: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 50<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect62"><dl>
-<dt class="bc-supports-yes bc-supports"> 50<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 50: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/unsized-media"><code>unsized-media</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 66<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect66"><dl>
-<dt class="bc-supports-yes bc-supports"> 66<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 66: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>). To change preferences in Chrome, visit chrome://flags.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes bc-has-history"> 47<div class="bc-icons">Disabled </div>
-<section class="bc-history" id="sect67"><dl>
-<dt class="bc-supports-yes bc-supports"> 47<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 47: this feature is behind the <code>#enable-experimental-productivity-features</code> preference (needs to be set to <code>Enabled</code>).</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 9.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/usb"><code>usb</code></a> 
-</th>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-yes"> 60</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 44</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 8.0</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/vibrate"><code>vibrate</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/vr"><code>vr</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history">62 — 80
-<section class="bc-history" id="sect71"><dl>
-<dt class="bc-supports-no bc-supports">62 — 80
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history">46 — ?
-<section class="bc-history" id="sect72"><dl>
-<dt class="bc-supports-no bc-supports">46 — ?
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history">8.0 — ?
-<section class="bc-history" id="sect73"><dl>
-<dt class="bc-supports-no bc-supports">8.0 — ?
-</dt>
-<dd> WebVR API was never enabled by default in any production builds and was replaced by WebXR Device API.</dd>
-</dl></section>
-</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/wake-lock"><code>wake-lock</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-<tr>
-<th scope="row">
-<a href="headers/feature-policy/xr-spatial-tracking"><code>xr-spatial-tracking</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-yes"> 79</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no"> No</td>
-</tr>
-</tbody>
-</table>
-</div> <h2 id="See_also">See also</h2> <ul> <li><a href="feature_policy/using_feature_policy">Using Feature Policy</a></li> <li>
+<h2 id="see_also">See also</h2>
+<ul> <li><a href="feature_policy/using_feature_policy">Using Feature Policy</a></li> <li>
 <a href="headers/feature-policy"><code>Feature-Policy</code></a> HTTP header</li> <li>
-<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#Attributes"><code>allow</code></a> attribute on iframes</li> <li><a href="https://developers.google.com/web/updates/2018/06/feature-policy">Introduction to Feature Policy</a></li> <li><a href="https://www.chromestatus.com/features#component%3A%20Blink%3EFeaturePolicy">Feature policies on www.chromestatus.com</a></li> <li><a href="https://chrome.google.com/webstore/detail/feature-policy-tester-dev/pchamnkhkeokbpahnocjaeednpbpacop">Feature-Policy Tester (Chrome Developer Tools extension)</a></li> <li><a href="https://developer.mozilla.org/en-US/docs/Web/Privacy">Privacy, permissions, and information security</a></li> </ul>
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attributes"><code>allow</code></a> attribute on iframes</li> <li><a href="https://developers.google.com/web/updates/2018/06/feature-policy" rel=" noopener">Introduction to Feature Policy</a></li> <li><a href="https://www.chromestatus.com/features#component%3A%20Blink%3EFeaturePolicy" rel=" noopener">Feature policies on www.chromestatus.com</a></li> <li><a href="https://chrome.google.com/webstore/detail/feature-policy-tester-dev/pchamnkhkeokbpahnocjaeednpbpacop" rel=" noopener">Feature-Policy Tester (Chrome Developer Tools extension)</a></li> <li><a href="https://developer.mozilla.org/en-US/docs/Web/Privacy">Privacy, permissions, and information security</a></li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
-    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Feature_Policy%24edit" class="_attribution-link">Edit this page on MDN</a>
-  </p>
-</div>
-<div class="_attribution">
-  <p class="_attribution-p">
-    © 2005–2020 Mozilla and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Feature_Policy" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/HTTP/Feature_Policy</a>
   </p>
 </div>

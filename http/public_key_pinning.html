@@ -7,8 +7,8 @@
   <meta charset="utf-8">
   <title>Public Key Pinning - HTTP - W3cubDocs</title>
   
-  <meta name="description" content="DeprecatedThis feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web &hellip;">
-  <meta name="keywords" content="public, key, pinning, http">
+  <meta name="description" content="Deprecated&#58; This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the &hellip;">
+  <meta name="keywords" content="public, key, pinninghttp, pinning, hpkp, http">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/http/public_key_pinning.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/http.js"></script>
   
@@ -89,16 +89,40 @@
 				
 				
 <h1>Public Key Pinning</h1>
-<div class="blockIndicator deprecated deprecatedHeader"> <p><strong>Deprecated</strong><br>This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the <a href="#Browser_compatibility">compatibility table</a> at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.</p> </div> <div class="blockIndicator note">
-<strong>Note:</strong> Public Key Pinning mechanism was deprecated in favor of <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Certificate_Transparency">Certificate Transparency</a> and <a href="headers/expect-ct"><code>Expect-CT</code></a> header.</div> <p class="summary"><strong>HTTP Public Key Pinning</strong> (<a href="https://developer.mozilla.org/en-US/docs/Glossary/HPKP">HPKP</a>) was a security feature that used to tell a web client to associate a specific cryptographic public key with a certain web server to decrease the risk of <a href="https://developer.mozilla.org/en-US/docs/Glossary/MITM">MITM</a> attacks with forged certificates. It has been removed in modern browsers and is no longer supported.</p> <p>To ensure the authenticity of a server's public key used in <a href="https://developer.mozilla.org/en-US/docs/Glossary/TLS">TLS</a> sessions, this public key is wrapped into a X.509 certificate which is usually signed by a certificate authority (<a href="https://developer.mozilla.org/en-US/docs/Glossary/CA">CA</a>). Web clients such as browsers trust a lot of these CAs, which can all create certificates for arbitrary domain names. If an attacker is able to compromise a single CA, they can perform MITM attacks on various TLS connections. HPKP can circumvent this threat for the <a href="https://developer.mozilla.org/en-US/docs/Glossary/HTTPS">HTTPS</a> protocol by telling the client which public key belongs to a certain web server.</p> <p>HPKP is a <em>Trust on First Use</em> (<a href="https://developer.mozilla.org/en-US/docs/Glossary/TOFU">TOFU</a>) technique. The first time a web server tells a client via a special HTTP header which public keys belong to it, the client stores this information for a given period of time. When the client visits the server again, it expects at least one certificate in the certificate chain to contain a public key whose fingerprint is already known via HPKP. If the server delivers an unknown public key, the client should present a warning to the user.</p> <p class="note">Firefox and Chrome<strong> disable pin validation</strong> for pinned hosts whose validated certificate chain terminates at a <strong>user-defined trust anchor</strong> (rather than a built-in trust anchor). This means that for users who imported custom root certificates all pinning violations are ignored.</p> <h2 id="Enabling_HPKP">Enabling HPKP</h2> <p>To enable this feature for your site, you need to return the <a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> HTTP header when your site is accessed over HTTPS:</p> <pre class="notranslate">Public-Key-Pins: pin-sha256="base64=="; max-age=<em>expireTime</em> [; includeSubDomains][; report-uri="<em>reportURI"</em>]</pre> <dl> <dt><code>pin-sha256</code></dt> <dd>The quoted string is the Base64 encoded <em>Subject Public Key Information</em> (<a href="https://developer.mozilla.org/en-US/docs/Glossary/SPKI">SPKI</a>) fingerprint. It is possible to specify multiple pins for different public keys. Some browsers might allow other hashing algorithms than SHA-256 in the future. See below on how to extract this information out of a certificate or key file.</dd> <dt><code>max-age</code></dt> <dd>The time, in seconds, that the browser should remember that this site is only to be accessed using one of the defined keys.</dd> <dt>
-<code>includeSubDomains</code> <span class="inlineIndicator optional optionalInline">Optional</span>
-</dt> <dd>If this optional parameter is specified, this rule applies to all of the site's subdomains as well.</dd> <dt>
-<code>report-uri</code> <span class="inlineIndicator optional optionalInline">Optional</span>
-</dt> <dd>If this optional parameter is specified, pin validation failures are reported to the given URL.</dd> </dl> <div class="note"> <p><strong>Note</strong>: The current specification requires including a second pin for a backup key which isn't yet used in production. This allows for changing the server's public key without breaking accessibility for clients that have already noted the pins. This is important for example when the former key gets compromised.</p> </div> <h3 id="Extracting_the_Base64_encoded_public_key_information">Extracting the Base64 encoded public key information</h3> <div class="note"> <p><strong>Note:</strong> While the example below shows how to set a pin on a server certificate, it is recommended to place the pin on the intermediate certificate of the CA that issued the server certificate, to ease certificates renewals and rotations.</p> </div> <p>First you need to extract the public key information from your certificate or key file and encode them using Base64.</p> <p>The following commands will help you extract the Base64 encoded information from a key file, a certificate signing request, or a certificate.</p> <pre class="notranslate">openssl rsa -in my-rsa-key-file.key -outform der -pubout | openssl dgst -sha256 -binary | openssl enc -base64</pre> <pre class="notranslate">openssl ec -in my-ecc-key-file.key -outform der -pubout | openssl dgst -sha256 -binary | openssl enc -base64</pre> <pre class="notranslate">openssl req -in my-signing-request.csr -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64</pre> <pre class="notranslate">openssl x509 -in my-certificate.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64</pre> <p>The following command will extract the Base64 encoded information for a website.</p> <pre class="notranslate">openssl s_client -servername www.example.com -connect www.example.com:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64</pre> <h3 id="Example_HPKP_Header">Example HPKP Header</h3> <pre class="notranslate">Public-Key-Pins: 
-  pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; 
-  pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; 
-  max-age=5184000; includeSubDomains; 
-  report-uri="<em>https://www.example.org/hpkp-report"</em></pre> <p>In this example, <strong>pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="</strong> pins the server's public key used in production. The second pin declaration <strong>pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="</strong> also pins the backup key. <strong>max-age=5184000</strong> tells the client to store this information for two months, which is a reasonable time limit according to the IETF RFC. This key pinning is also valid for all subdomains, which is told by the <strong>includeSubDomains</strong> declaration. Finally, <strong>report-uri="https://www.example.net/hpkp-report"</strong> explains where to report pin validation failures.</p> <h3 id="Report-Only_header">Report-Only header</h3> <p>Instead of using a <a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> header you can also use a <a href="headers/public-key-pins-report-only"><code>Public-Key-Pins-Report-Only</code></a> header. This header only sends reports to the <code>report-uri</code> specified in the header and does still allow browsers to connect to the webserver even if the pinning is violated.</p> <h3 id="Setting_up_your_webserver_to_include_the_HPKP_header">Setting up your webserver to include the HPKP header</h3> <p>The concrete steps necessary to deliver the HPKP header depend on the web server you use.</p> <div class="note"> <p><strong>Note:</strong> These examples use a max-age of two months and include all subdomains. It is advised to verify that this setup will work for your server.</p> </div> <div class="warning"> <p id="HPKP_has_the_potential_to_lock_out_users_for_a_long_time_if_used_incorrectly!_The_use_of_backup_certificates_andor_pinning_the_CA_certificate_is_recommend.">HPKP has the potential to lock out users for a long time if used incorrectly! The use of backup certificates and/or pinning the CA certificate is recommended.</p> </div> <h4 id="Apache">Apache</h4> <p>Adding a line similar to the following to your webserver's config will enable HPKP on your Apache. This requires <code>mod_headers</code> enabled.</p> <pre class="notranslate">Header always set Public-Key-Pins "pin-sha256=\"base64+primary==\"; pin-sha256=\"base64+backup==\"; max-age=5184000; includeSubDomains"</pre> <h4 id="Nginx">Nginx</h4> <p>Adding the following line and inserting the appropriate <code>pin-sha256="..."</code> values will enable HPKP on your nginx. This requires the <code>ngx_http_headers_module.</code></p> <pre class="notranslate">add_header Public-Key-Pins 'pin-sha256="base64+primary=="; pin-sha256="base64+backup=="; max-age=5184000; includeSubDomains' always;</pre> <h4 id="Lighttpd">Lighttpd</h4> <p>The following line with your relevant key information (pin-sha256="..." fields) will enable HPKP on lighttpd.</p> <pre class="notranslate">setenv.add-response-header  = ( "Public-Key-Pins" =&gt; "pin-sha256=\"base64+primary==\"; pin-sha256=\"base64+backup==\"; max-age=5184000; includeSubDomains")</pre> <p><strong>Note:</strong> This requires the <code>mod_setenv</code> server.module loaded which can be included by the following if not already loaded.</p> <pre class="notranslate">server.modules += ( "mod_setenv" )</pre> <h4 id="IIS">IIS</h4> <p>Add the following line to the Web.config file to send the <code>Public-Key-Pins</code> header:</p> <pre data-language="xml">&lt;system.webServer&gt;
+<h1>HTTP Public Key Pinning (HPKP)</h1>
+<div class="notecard deprecated"><p><strong>Deprecated:</strong> This feature is no longer recommended. Though some browsers might still support it, it may have already been removed from the relevant web standards, may be in the process of being dropped, or may only be kept for compatibility purposes. Avoid using it, and update existing code if possible; see the <a href="#browser_compatibility">compatibility table</a> at the bottom of this page to guide your decision. Be aware that this feature may cease to work at any time.</p></div> <div class="notecard note"> <p><strong>Note:</strong> Public Key Pinning mechanism was deprecated in favor of <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Certificate_Transparency">Certificate Transparency</a> and <a href="headers/expect-ct"><code>Expect-CT</code></a> header.</p> </div> <p><strong>HTTP Public Key Pinning</strong> (<a href="https://developer.mozilla.org/en-US/docs/Glossary/HPKP">HPKP</a>) was a security feature that used to tell a web client to associate a specific cryptographic public key with a certain web server to decrease the risk of <a href="https://developer.mozilla.org/en-US/docs/Glossary/MitM">MITM</a> attacks with forged certificates. It has been removed in modern browsers and is no longer supported.</p> <p>To ensure the authenticity of a server's public key used in <a href="https://developer.mozilla.org/en-US/docs/Glossary/TLS">TLS</a> sessions, this public key is wrapped into an X.509 certificate which is usually signed by a certificate authority (<a href="https://developer.mozilla.org/en-US/docs/Glossary/Certificate_authority">CA</a>). Web clients such as browsers trust a lot of these CAs, which can all create certificates for arbitrary domain names. If an attacker is able to compromise a single CA, they can perform MITM attacks on various TLS connections. HPKP can circumvent this threat for the <a href="https://developer.mozilla.org/en-US/docs/Glossary/https">HTTPS</a> protocol by telling the client which public key belongs to a certain web server.</p> <p>HPKP is a <em>Trust on First Use</em> (<a href="https://developer.mozilla.org/en-US/docs/Glossary/TOFU">TOFU</a>) technique. The first time a web server tells a client via a special HTTP header which public keys belong to it, the client stores this information for a given period of time. When the client visits the server again, it expects at least one certificate in the certificate chain to contain a public key whose fingerprint is already known via HPKP. If the server delivers an unknown public key, the client should present a warning to the user.</p> <div class="notecard note"> <p><strong>Note:</strong> Firefox and Chrome <strong>disable pin validation</strong> for pinned hosts whose validated certificate chain terminates at a <strong>user-defined trust anchor</strong> (rather than a built-in trust anchor). This means that for users who imported custom root certificates all pinning violations are ignored.</p> </div>
+<h2 id="enabling_hpkp">Enabling HPKP</h2>
+<p>To enable this feature for your site, you need to return the <a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> HTTP header when your site is accessed over HTTPS:</p> <pre class="notranslate">Public-Key-Pins: pin-sha256="base64=="; max-age=expireTime [; includeSubDomains][; report-uri="reportURI"]
+</pre> <dl> <dt><code>pin-sha256</code></dt> <dd> <p>The quoted string is the Base64 encoded <em>Subject Public Key Information</em> (SPKI) fingerprint. It is possible to specify multiple pins for different public keys. Some browsers might allow other hashing algorithms than SHA-256 in the future. See below on how to extract this information out of a certificate or key file.</p> </dd> <dt><code>max-age</code></dt> <dd> <p>The time, in seconds, that the browser should remember that this site is only to be accessed using one of the defined keys.</p> </dd> <dt>
+<code>includeSubDomains</code> <span class="badge inline optional">Optional</span>
+</dt> <dd> <p>If this optional parameter is specified, this rule applies to all of the site's subdomains as well.</p> </dd> <dt>
+<code>report-uri</code> <span class="badge inline optional">Optional</span>
+</dt> <dd> <p>If this optional parameter is specified, pin validation failures are reported to the given URL.</p> </dd> </dl> <div class="notecard note"> <p><strong>Note:</strong> The current specification requires including a second pin for a backup key that isn't yet used in production. This allows for changing the server's public key without breaking accessibility for clients that have already noted the pins. This is important for example when the former key gets compromised.</p> </div>
+<h3 id="extracting_the_base64_encoded_public_key_information">Extracting the Base64 encoded public key information</h3>
+<div class="notecard note"> <p><strong>Note:</strong> While the example below shows how to set a pin on a server certificate, it is recommended to place the pin on the intermediate certificate of the CA that issued the server certificate, to ease certificates renewals and rotations.</p> </div> <p>First you need to extract the public key information from your certificate or key file and encode them using Base64.</p> <p>The following commands will help you extract the Base64 encoded information from a key file, a certificate signing request, or a certificate.</p> <pre class="notranslate">openssl rsa -in my-rsa-key-file.key -outform der -pubout | openssl dgst -sha256 -binary | openssl enc -base64
+
+openssl ec -in my-ecc-key-file.key -outform der -pubout | openssl dgst -sha256 -binary | openssl enc -base64
+
+openssl req -in my-signing-request.csr -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+
+openssl x509 -in my-certificate.crt -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+</pre> <p>The following command will extract the Base64 encoded information for a website.</p> <pre class="notranslate">openssl s_client -servername www.example.com -connect www.example.com:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+</pre>
+<h3 id="example_hpkp_header">Example HPKP Header</h3>
+<pre class="notranslate">Public-Key-Pins:
+  pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs=";
+  pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE=";
+  max-age=5184000; includeSubDomains;
+  report-uri="https://www.example.org/hpkp-report"
+</pre> <p>In this example, <strong>pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="</strong> pins the server's public key used in production. The second pin declaration <strong>pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="</strong> also pins the backup key. <strong>max-age=5184000</strong> tells the client to store this information for two months, which is a reasonable time limit according to the IETF RFC. This key pinning is also valid for all subdomains, which is told by the <strong>includeSubDomains</strong> declaration. Finally, <strong>report-uri="https://www.example.net/hpkp-report"</strong> explains where to report pin validation failures.</p>
+<h3 id="report-only_header">Report-Only header</h3>
+<p>Instead of using a <a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> header you can also use a <a href="headers/public-key-pins-report-only"><code>Public-Key-Pins-Report-Only</code></a> header. This header only sends reports to the <code>report-uri</code> specified in the header and does still allow browsers to connect to the webserver even if the pinning is violated.</p>
+<h3 id="setting_up_your_webserver_to_include_the_hpkp_header">Setting up your webserver to include the HPKP header</h3>
+<p>The concrete steps necessary to deliver the HPKP header depend on the web server you use.</p> <div class="notecard note"> <p><strong>Note:</strong> These examples use a max-age of two months and include all subdomains. It is advised to verify that this setup will work for your server.</p> </div> <div class="notecard warning"> <p><strong>Warning:</strong> HPKP has the potential to lock out users for a long time if used incorrectly! The use of backup certificates and/or pinning the CA certificate is recommended.</p> </div> <h4 id="apache">Apache</h4> <p>Adding a line similar to the following to your webserver's config will enable HPKP on your Apache. This requires <code>mod_headers</code> enabled.</p> <pre class="notranslate">Header always set Public-Key-Pins "pin-sha256=\"base64+primary==\"; pin-sha256=\"base64+backup==\"; max-age=5184000; includeSubDomains"
+</pre> <h4 id="nginx">Nginx</h4> <p>Adding the following line and inserting the appropriate <code>pin-sha256="..."</code> values will enable HPKP on your nginx. This requires the <code>ngx_http_headers_module.</code></p> <pre class="notranslate">add_header Public-Key-Pins 'pin-sha256="base64+primary=="; pin-sha256="base64+backup=="; max-age=5184000; includeSubDomains' always;
+</pre> <h4 id="lighttpd">Lighttpd</h4> <p>The following line with your relevant key information (pin-sha256="..." fields) will enable HPKP on lighttpd.</p> <pre class="notranslate">setenv.add-response-header  = ( "Public-Key-Pins" =&gt; "pin-sha256=\"base64+primary==\"; pin-sha256=\"base64+backup==\"; max-age=5184000; includeSubDomains")
+</pre> <p><strong>Note:</strong> This requires the <code>mod_setenv</code> server.module loaded which can be included by the following if not already loaded.</p> <pre class="notranslate">server.modules += ( "mod_setenv" )
+</pre> <h4 id="iis">IIS</h4> <p>Add the following line to the Web.config file to send the <code>Public-Key-Pins</code> header:</p> <pre class="notranslate">&lt;system.webServer&gt;
   ...
 
   &lt;httpProtocol&gt;
@@ -109,113 +133,78 @@
 
   ...
 &lt;/system.webServer&gt;
-</pre> <h2 id="Specifications">Specifications</h2> <div class="_table"><table class="standard-table"> <thead> <tr> <th scope="col">Specification</th> <th scope="col">Title</th> </tr> </thead> <tbody> <tr> <td><a href="https://tools.ietf.org/html/rfc7469#section-2.1">RFC 7469, section 2.1: Public-Key-Pins</a></td> <td>Public Key Pinning Extension for HTTP</td> </tr> </tbody> </table></div> <h2 id="Browser_compatibility">Browser compatibility<a class="bc-github-link" href="https://github.com/mdn/browser-compat-data">Update compatibility data on GitHub</a>
-</h2>  <div class="_table">
-<table class="bc-table bc-table-web">
+</pre>
+<h2 id="specifications">Specifications</h2>
+<div class="_table"><table> <thead> <tr> <th>Specification</th> <th>Title</th> </tr> </thead> <tbody> <tr> <td><a href="https://tools.ietf.org/html/rfc7469#section-2.1" rel=" noopener">RFC 7469, section 2.1: Public-Key-Pins</a></td> <td>Public Key Pinning Extension for HTTP</td> </tr> </tbody> </table></div>
+<h2 id="browser_compatibility">Browser compatibility</h2>
+<table>
 <thead>
-<tr class="bc-platforms">
+<tr id="bct-browser-type">
 <th></th>
-<th colspan="6"><span>Desktop</span></th>
+<th colspan="6">Desktop</th>
+<th colspan="6">Mobile</th>
 </tr>
-<tr class="bc-browsers">
+<tr id="bct-browsers">
 <th></th>
-<th><span class="bc-head-txt-label bc-head-icon-chrome">Chrome</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-edge">Edge</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-firefox">Firefox</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-ie">Internet Explorer</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-opera">Opera</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-safari">Safari</span></th>
+<th>Chrome</th>
+<th>Edge</th>
+<th>Firefox</th>
+<th>Internet Explorer</th>
+<th>Opera</th>
+<th>Safari</th>
+<th>WebView Android</th>
+<th>Chrome Android</th>
+<th>Firefox for Android</th>
+<th>Opera Android</th>
+<th>Safari on IOS</th>
+<th>Samsung Internet</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th scope="row">
-<a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> 
-</th>
-<td class="bc-supports-no">? — 72</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history">35 — 72
-<section class="bc-history" id="sect1"><dl>
-<dt class="bc-supports-no bc-supports">35 — 72
-</dt>
-
-<dt class="bc-supports-yes bc-supports"> 72<div class="bc-icons">Disabled </div>
-</dt>
-<dd>Disabled From version 72: this feature is behind the <code>security.cert_pinning.hpkp.enabled</code> preference (needs to be set to <code>true</code>). To change preferences in Firefox, visit about:config.</dd>
-</dl></section>
+<th><code>Public_Key_Pinning</code></th>
+<td class="bc-supports-no"><div>Yes-72</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>35-72</div>
+<div>72</div>
 </td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">? — 60</td>
-<td class="bc-supports-no"> No</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>Yes-60</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>Yes-72</div></td>
+<td class="bc-supports-yes"><div>35</div></td>
+<td class="bc-supports-no"><div>Yes-51</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>Yes-11.0</div></td>
 </tr>
 <tr>
-<th scope="row">report-uri 
-</th>
-<td class="bc-supports-no">46 — 72</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no bc-has-history"> No
-<section class="bc-history" id="sect2"><dl>
-<dt class="bc-supports-no bc-supports"> No
-</dt>
-<dd> See <a href="https://bugzil.la/1091176">bug 1091176</a>.</dd>
-</dl></section>
+<th><code>report-uri</code></th>
+<td class="bc-supports-no"><div>46-72</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no">
+<div>No</div>
+<div>See <a href="https://bugzil.la/1091176">bug 1091176</a>.</div>
 </td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">33 — 60</td>
-<td class="bc-supports-no"> No</td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>33-60</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>Yes-72</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>33-51</div></td>
+<td class="bc-supports-no"><div>No</div></td>
+<td class="bc-supports-no"><div>Yes-11.0</div></td>
 </tr>
 </tbody>
 </table>
-<table class="bc-table bc-table-web">
-<thead>
-<tr class="bc-platforms">
-<th></th>
-<th colspan="6"><span>Mobile</span></th>
-</tr>
-<tr class="bc-browsers">
-<th></th>
-<th><span class="bc-head-txt-label bc-head-icon-webview_android">Android webview</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-chrome_android">Chrome for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-firefox_android">Firefox for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-opera_android">Opera for Android</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-safari_ios">Safari on iOS</span></th>
-<th><span class="bc-head-txt-label bc-head-icon-samsunginternet_android">Samsung Internet</span></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th scope="row">
-<a href="headers/public-key-pins"><code>Public-Key-Pins</code></a> 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">? — 72</td>
-<td class="bc-supports-yes"> 35</td>
-<td class="bc-supports-no">? — 51</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">? — 11.0</td>
-</tr>
-<tr>
-<th scope="row">report-uri 
-</th>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">? — 72</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">33 — 51</td>
-<td class="bc-supports-no"> No</td>
-<td class="bc-supports-no">? — 11.0</td>
-</tr>
-</tbody>
-</table>
-</div> <h2 id="See_also">See also</h2> <ul> <li><a href="headers/public-key-pins"><code>Public-Key-Pins</code></a></li> <li><a href="headers/public-key-pins-report-only"><code>Public-Key-Pins-Report-Only</code></a></li> <li>Browser test site: <a href="https://projects.dm.id.lv/Public-Key-Pins_test">HSTS and HPKP test</a>
+<h2 id="see_also">See also</h2>
+<ul> <li><a href="headers/public-key-pins"><code>Public-Key-Pins</code></a></li> <li><a href="headers/public-key-pins-report-only"><code>Public-Key-Pins-Report-Only</code></a></li> <li>Browser test site: <a href="https://projects.dm.id.lv/Public-Key-Pins_test" rel=" noopener">HSTS and HPKP test</a>
 </li> <li><a href="headers/expect-ct"><code>Expect-CT</code></a></li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
-    <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning%24edit" class="_attribution-link">Edit this page on MDN</a>
-  </p>
-</div>
-<div class="_attribution">
-  <p class="_attribution-p">
-    © 2005–2020 Mozilla and individual contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
+    © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/HTTP/Public_Key_Pinning</a>
   </p>
 </div>
