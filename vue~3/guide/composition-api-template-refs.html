@@ -5,10 +5,10 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Composition API&#58; Template Refs - Vue.js 3 - W3cubDocs</title>
+  <title>30. Template Refs - Vue.js 3 - W3cubDocs</title>
   
   <meta name="description" content=" This section uses single-file component syntax for code examples ">
-  <meta name="keywords" content="template, refs, composition, api, vue, js, vue~3">
+  <meta name="keywords" content="template, refs, vue, js, vue~3">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/guide/composition-api-template-refs.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/vue~3.js"></script>
   
@@ -90,7 +90,7 @@
 				
 <div class="theme-default-content content__default">
 <h1 id="template-refs"> Template Refs</h1> <blockquote><p>This section uses <a href="single-file-component">single-file component</a> syntax for code examples</p></blockquote> <blockquote><p>This guide assumes that you have already read the <a href="composition-api-introduction">Composition API Introduction</a> and <a href="reactivity-fundamentals">Reactivity Fundamentals</a>. Read that first if you are new to Composition API.</p></blockquote> <p>When using the Composition API, the concept of <a href="reactivity-fundamentals#creating-standalone-reactive-values-as-refs">reactive refs</a> and <a href="component-template-refs">template refs</a> are unified. In order to obtain a reference to an in-template element or component instance, we can declare a ref as usual and return it from <a href="composition-api-setup">setup()</a>:</p> <div class="language-html line-numbers-mode">
-<pre class="language-html" data-language="html">&lt;template&gt;
+<pre class="language-html" data-language="javascript">&lt;template&gt;
   &lt;div ref="root"&gt;This is a root element&lt;/div&gt;
 &lt;/template&gt;
 
@@ -113,7 +113,7 @@
   }
 &lt;/script&gt;</pre> </div>
 <p>Here we are exposing <code>root</code> on the render context and binding it to the div as its ref via <code>ref="root"</code>. In the Virtual DOM patching algorithm, if a VNode's <code>ref</code> key corresponds to a ref on the render context, the VNode's corresponding element or component instance will be assigned to the value of that ref. This is performed during the Virtual DOM mount / patch process, so template refs will only get assigned values after the initial render.</p> <p>Refs used as templates refs behave just like any other refs: they are reactive and can be passed into (or returned from) composition functions.</p> <h2 id="usage-with-jsx"> Usage with JSX</h2> <div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="js">export default {
+<pre class="language-js" data-language="javascript">export default {
   setup() {
     const root = ref(null)
 
@@ -128,7 +128,7 @@
 }</pre> </div>
 <h2 id="usage-inside-v-for"> Usage inside <code>v-for</code>
 </h2> <p>Composition API template refs do not have special handling when used inside <code>v-for</code>. Instead, use function refs to perform custom handling:</p> <div class="language-html line-numbers-mode">
-<pre class="language-html" data-language="html">&lt;template&gt;
+<pre class="language-html" data-language="javascript">&lt;template&gt;
   &lt;div v-for="(item, i) in list" :ref="el =&gt; { if (el) divs[i] = el }"&gt;
     {{ item }}
   &lt;/div&gt;
@@ -154,8 +154,58 @@
     }
   }
 &lt;/script&gt;</pre> </div>
-</div>  <div class="page-nav" style="text-align: center; margin-bottom: 1rem;"><p class="inner"><span class="prev" style="text-align: left; float: left;"> ← <a href="composition-api-provide-inject" class="prev">Provide / Inject</a></span> <span class="next" style="text-align: right; float: right;"><a href="optimizations">Rendering Mechanisms and Optimizations</a> → </span></p></div>
-<div class="_attribution">
+<h2 id="watching-template-refs"> Watching Template Refs</h2> <p>Watching a template ref for changes can be an alternative to the use of lifecycle hooks that was demonstrated in the previous examples.</p> <p>But a key difference to lifecycle hooks is that <code>watch()</code> and <code>watchEffect()</code> effects are run <em>before</em> the DOM is mounted or updated so the template ref hasn't been updated when the watcher runs the effect:</p> <div class="language-vue line-numbers-mode">
+<pre class="language-vue" data-language="javascript">&lt;template&gt;
+  &lt;div ref="root"&gt;This is a root element&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import { ref, watchEffect } from 'vue'
+
+  export default {
+    setup() {
+      const root = ref(null)
+
+      watchEffect(() =&gt; {
+        // This effect runs before the DOM is updated, and consequently,
+        // the template ref does not hold a reference to the element yet.
+        console.log(root.value) // =&gt; null
+      })
+
+      return {
+        root
+      }
+    }
+  }
+&lt;/script&gt;</pre> </div>
+<p>Therefore, watchers that use template refs should be defined with the <code>flush: 'post'</code> option. This will run the effect <em>after</em> the DOM has been updated and ensure that the template ref stays in sync with the DOM and references the correct element.</p> <div class="language-vue line-numbers-mode">
+<pre class="language-vue" data-language="javascript">&lt;template&gt;
+  &lt;div ref="root"&gt;This is a root element&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import { ref, watchEffect } from 'vue'
+
+  export default {
+    setup() {
+      const root = ref(null)
+
+      watchEffect(() =&gt; {
+        console.log(root.value) // =&gt; &lt;div&gt;This is a root element&lt;/div&gt;
+      }, 
+      {
+        flush: 'post'
+      })
+
+      return {
+        root
+      }
+    }
+  }
+&lt;/script&gt;</pre> </div>
+<ul><li>See also: <a href="reactivity-computed-watchers#effect-flush-timing">Computed and Watchers</a>
+</li></ul>
+</div>   <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
     <a href="https://v3.vuejs.org/guide/composition-api-template-refs.html" class="_attribution-link">https://v3.vuejs.org/guide/composition-api-template-refs.html</a>

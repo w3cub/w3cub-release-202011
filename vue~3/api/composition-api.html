@@ -5,10 +5,10 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Options&#58; Composition API - Vue.js 3 - W3cubDocs</title>
+  <title>19. Composition API - Vue.js 3 - W3cubDocs</title>
   
   <meta name="description" content=" This section uses single-file component syntax for code examples ">
-  <meta name="keywords" content="composition, api, options, vue, js, vue~3">
+  <meta name="keywords" content="composition, api, vue, js, vue~3">
   <meta name="HandheldFriendly" content="True">
   <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/api/composition-api.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-01fda2ddb8339756caccf7add5ad4cf849ab52d069bd799015c7f04f93164f64753bff0d15a49d8060b1e66e41002bb301ccadc2350937df079cea3cd52d3cca.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/vue~3.js"></script>
   
@@ -90,14 +90,26 @@
 				
 <div class="theme-default-content content__default">
 <h1 id="composition-api"> Composition API</h1> <blockquote><p>This section uses <a href="../guide/single-file-component">single-file component</a> syntax for code examples</p></blockquote> <h2 id="setup"> <code>setup</code>
-</h2> <p>A component option that is executed <strong>before</strong> the component is created, once the <code>props</code> are resolved, and serves as the entry point for composition API's</p> <ul>
+</h2> <p>A component option that is executed <strong>before</strong> the component is created, once the <code>props</code> are resolved. It serves as the entry point for composition APIs.</p> <ul>
 <li>
 <p><strong>Arguments:</strong></p> <ul>
 <li><code>{Data} props</code></li> <li><code>{SetupContext} context</code></li>
-</ul>
-</li> <li><p><strong>Typing</strong>:</p></li>
-</ul> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">interface Data {
+</ul> <p>Similar to <code>this.$props</code> when using Options API, the <code>props</code> object will only contain explicitly declared props. Also, all declared prop keys will be present on the <code>props</code> object, regardless of whether it was passed by the parent component or not. Absent optional props will have a value of <code>undefined</code>.</p> <p>If you need to check the absence of an optional prop, you can give it a Symbol as its default value:</p> <div class="language-js line-numbers-mode">
+<pre class="language-js" data-language="javascript">const isAbsent = Symbol()
+
+export default {
+  props: {
+    foo: { default: isAbsent }
+  },
+  setup(props) {
+    if (props.foo === isAbsent) {
+      // foo was not provided.
+    }
+  }
+}</pre> </div>
+</li> <li>
+<p><strong>Typing</strong>:</p> <div class="language-ts line-numbers-mode">
+<pre class="language-ts" data-language="javascript">interface Data {
   [key: string]: unknown
 }
 
@@ -105,15 +117,16 @@ interface SetupContext {
   attrs: Data
   slots: Slots
   emit: (event: string, ...args: unknown[]) =&gt; void
+  expose: (exposed?: Record&lt;string, any&gt;) =&gt; void
 }
 
 function setup(props: Data, context: SetupContext): Data</pre> </div>
 <div class="custom-block tip">
-<p class="custom-block-title">TIP</p> <p>To get type inference for the arguments passed to <code>setup()</code>, the use of <a href="global-api#definecomponent">defineComponent</a> is needed.</p>
-</div> <ul>
-<li>
+<strong class="custom-block-title">TIP</strong> <p>To get type inference for the arguments passed to <code>setup()</code>, the use of <a href="global-api#definecomponent">defineComponent</a> is needed.</p>
+</div>
+</li> <li>
 <p><strong>Example</strong></p> <p>With the template:</p> <div class="language-vue-html line-numbers-mode">
-<pre class="language-vue-html" data-language="vue">&lt;!-- MyBook.vue --&gt;
+<pre class="language-vue-html" data-language="javascript">&lt;!-- MyBook.vue --&gt;
 &lt;template&gt;
   &lt;div&gt;{{ readersNumber }} {{ book.title }}&lt;/div&gt;
 &lt;/template&gt;
@@ -135,7 +148,7 @@ function setup(props: Data, context: SetupContext): Data</pre> </div>
   }
 &lt;/script&gt;</pre> </div>
 <p>With render function:</p> <div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="js">// MyBook.vue
+<pre class="language-js" data-language="javascript">// MyBook.vue
 
 import { h, ref, reactive } from 'vue'
 
@@ -143,13 +156,34 @@ export default {
   setup() {
     const readersNumber = ref(0)
     const book = reactive({ title: 'Vue 3 Guide' })
-    // Please note that we need to explicitly expose ref value here
+    // Please note that we need to explicitly use ref value here
     return () =&gt; h('div', [readersNumber.value, book.title])
+  }
+}</pre> </div>
+<p>If you return a render function then you can't return any other properties. If you need to expose properties so that they can be accessed externally, e.g. via a <code>ref</code> in the parent, you can use <code>expose</code>:</p> <div class="language-js line-numbers-mode">
+<pre class="language-js" data-language="javascript">// MyBook.vue
+
+import { h } from 'vue'
+
+export default {
+  setup(props, { expose }) {
+    const reset = () =&gt; {
+      // Some reset logic
+    }
+
+    // Expose can only be called once.
+    // If you need to expose multiple properties, they must all
+    // be included in the object passed to expose. 
+    expose({
+      reset
+    })
+
+    return () =&gt; h('div')
   }
 }</pre> </div>
 </li> <li><p><strong>See also</strong>: <a href="../guide/composition-api-setup">Composition API <code>setup</code></a></p></li>
 </ul> <h2 id="lifecycle-hooks"> Lifecycle Hooks</h2> <p>Lifecycle hooks can be registered with directly-imported <code>onX</code> functions:</p> <div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="js">import { onMounted, onUpdated, onUnmounted } from 'vue'
+<pre class="language-js" data-language="javascript">import { onMounted, onUpdated, onUnmounted } from 'vue'
 
 const MyComponent = {
   setup() {
@@ -189,12 +223,17 @@ const MyComponent = {
 <code>renderTracked</code> -&gt; <code>onRenderTracked</code>
 </li> <li>
 <code>renderTriggered</code> -&gt; <code>onRenderTriggered</code>
+</li> <li>
+<code>activated</code> -&gt; <code>onActivated</code>
+</li> <li>
+<code>deactivated</code> -&gt; <code>onDeactivated</code>
 </li>
 </ul>
 </li> <li><p><strong>See also</strong>: <a href="../guide/composition-api-lifecycle-hooks">Composition API lifecycle hooks</a></p></li>
-</ul> <h2 id="provide-inject"> Provide / Inject</h2> <p><code>provide</code> and <code>inject</code> enables dependency injection. Both can only be called during <a href="#setup"><code>setup()</code></a> with a current active instance.</p> <ul><li>
-<strong>Typing</strong>:</li></ul> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">interface InjectionKey&lt;T&gt; extends Symbol {}
+</ul> <h2 id="provide-inject"> Provide / Inject</h2> <p><code>provide</code> and <code>inject</code> enables dependency injection. Both can only be called during <a href="#setup"><code>setup()</code></a> with a current active instance.</p> <ul>
+<li>
+<p><strong>Typing</strong>:</p> <div class="language-ts line-numbers-mode">
+<pre class="language-ts" data-language="javascript">interface InjectionKey&lt;T&gt; extends Symbol {}
 
 function provide&lt;T&gt;(key: InjectionKey&lt;T&gt; | string, value: T): void
 
@@ -209,7 +248,7 @@ function inject&lt;T&gt;(
   treatDefaultAsFactory: true
 ): T</pre> </div>
 <p>Vue provides an <code>InjectionKey</code> interface which is a generic type that extends <code>Symbol</code>. It can be used to sync the type of the injected value between the provider and the consumer:</p> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">import { InjectionKey, provide, inject } from 'vue'
+<pre class="language-ts" data-language="javascript">import { InjectionKey, provide, inject } from 'vue'
 
 const key: InjectionKey&lt;string&gt; = Symbol()
 
@@ -217,14 +256,17 @@ provide(key, 'foo') // providing non-string value will result in error
 
 const foo = inject(key) // type of foo: string | undefined</pre> </div>
 <p>If using string keys or non-typed symbols, the type of the injected value will need to be explicitly declared:</p> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">const foo = inject&lt;string&gt;('foo') // string | undefined</pre> </div>
-<ul><li>
-<strong>See also</strong>: <ul>
+<pre class="language-ts" data-language="javascript">const foo = inject&lt;string&gt;('foo') // string | undefined</pre> </div>
+</li> <li>
+<p><strong>See also</strong>:</p> <ul>
 <li><a href="../guide/component-provide-inject">Provide / Inject</a></li> <li><a href="../guide/composition-api-provide-inject">Composition API Provide / Inject</a></li>
 </ul>
-</li></ul> <h2 id="getcurrentinstance"> <code>getCurrentInstance</code>
-</h2> <p><code>getCurrentInstance</code> enables access to an internal component instance useful for advanced usages or for library creators.</p> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">import { getCurrentInstance } from 'vue'
+</li>
+</ul> <h2 id="getcurrentinstance"> <code>getCurrentInstance</code>
+</h2> <p><code>getCurrentInstance</code> enables access to an internal component instance.</p> <div class="custom-block warning">
+<strong class="custom-block-title">WARNING</strong> <p><code>getCurrentInstance</code> is only exposed for advanced use cases, typically in libraries. Usage of <code>getCurrentInstance</code> is strongly discouraged in application code. Do <strong>NOT</strong> use it as an escape hatch to get the equivalent of <code>this</code> in Composition API.</p>
+</div> <div class="language-ts line-numbers-mode">
+<pre class="language-ts" data-language="javascript">import { getCurrentInstance } from 'vue'
 
 const MyComponent = {
   setup() {
@@ -234,7 +276,7 @@ const MyComponent = {
   }
 }</pre> </div>
 <p><code>getCurrentInstance</code> <strong>only</strong> works during <a href="#setup">setup</a> or <a href="#lifecycle-hooks">Lifecycle Hooks</a></p> <blockquote><p>When using outside of <a href="#setup">setup</a> or <a href="#lifecycle-hooks">Lifecycle Hooks</a>, please call <code>getCurrentInstance()</code> on <code>setup</code> and use the instance instead.</p></blockquote> <div class="language-ts line-numbers-mode">
-<pre class="language-ts" data-language="ts">const MyComponent = {
+<pre class="language-ts" data-language="javascript">const MyComponent = {
   setup() {
     const internalInstance = getCurrentInstance() // works
 
@@ -266,8 +308,7 @@ const MyComponent = {
 function useComponentId() {
   return getCurrentInstance().uid
 }</pre> </div>
-</div>  <div class="page-nav" style="text-align: center; margin-bottom: 1rem;"><p class="inner"><span class="prev" style="text-align: left; float: left;"> ← <a href="computed-watch-api" class="prev">Computed and watch</a></span> </p></div>
-<div class="_attribution">
+</div>   <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
     <a href="https://v3.vuejs.org/api/composition-api.html" class="_attribution-link">https://v3.vuejs.org/api/composition-api.html</a>
