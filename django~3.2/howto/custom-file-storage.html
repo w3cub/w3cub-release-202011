@@ -1,0 +1,143 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Writing a Custom Storage System - Django 3.2 - W3cubDocs</title>
+  
+  <meta name="description" content="If you need to provide custom file storage – a common example is storing files on some remote system – you can do so by defining a custom storage &hellip;">
+  <meta name="keywords" content="writing, custom, storage, system, django, django~3.2">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/django~3.2/howto/custom-file-storage.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/django~3.2.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/django~3.2/" class="_nav-link" title="" style="margin-left:0;">Django 3.2</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="writing-a-custom-storage-system">Writing a custom storage system</h1> <p id="s-writing-a-custom-storage-system">If you need to provide custom file storage – a common example is storing files on some remote system – you can do so by defining a custom storage class. You’ll need to follow these steps:</p> <ol class="arabic"> <li>
+<p class="first">Your custom storage system must be a subclass of <code>django.core.files.storage.Storage</code>:</p> <pre data-language="python">from django.core.files.storage import Storage
+
+class MyStorage(Storage):
+    ...
+</pre> </li> <li>
+<p class="first">Django must be able to instantiate your storage system without any arguments. This means that any settings should be taken from <code>django.conf.settings</code>:</p> <pre data-language="python">from django.conf import settings
+from django.core.files.storage import Storage
+
+class MyStorage(Storage):
+    def __init__(self, option=None):
+        if not option:
+            option = settings.CUSTOM_STORAGE_OPTIONS
+        ...
+</pre> </li> <li>
+<p class="first">Your storage class must implement the <a class="reference internal" href="#django.core.files.storage._open" title="django.core.files.storage._open"><code>_open()</code></a> and <a class="reference internal" href="#django.core.files.storage._save" title="django.core.files.storage._save"><code>_save()</code></a> methods, along with any other methods appropriate to your storage class. See below for more on these methods.</p> <p>In addition, if your class provides local file storage, it must override the <code>path()</code> method.</p> </li> <li>Your storage class must be <a class="reference internal" href="../topics/migrations#custom-deconstruct-method"><span class="std std-ref">deconstructible</span></a> so it can be serialized when it’s used on a field in a migration. As long as your field has arguments that are themselves <a class="reference internal" href="../topics/migrations#migration-serializing"><span class="std std-ref">serializable</span></a>, you can use the <code>django.utils.deconstruct.deconstructible</code> class decorator for this (that’s what Django uses on FileSystemStorage). </li> </ol> <p>By default, the following methods raise <code>NotImplementedError</code> and will typically have to be overridden:</p> <ul class="simple"> <li><a class="reference internal" href="../ref/files/storage#django.core.files.storage.Storage.delete" title="django.core.files.storage.Storage.delete"><code>Storage.delete()</code></a></li> <li><a class="reference internal" href="../ref/files/storage#django.core.files.storage.Storage.exists" title="django.core.files.storage.Storage.exists"><code>Storage.exists()</code></a></li> <li><a class="reference internal" href="../ref/files/storage#django.core.files.storage.Storage.listdir" title="django.core.files.storage.Storage.listdir"><code>Storage.listdir()</code></a></li> <li><a class="reference internal" href="../ref/files/storage#django.core.files.storage.Storage.size" title="django.core.files.storage.Storage.size"><code>Storage.size()</code></a></li> <li><a class="reference internal" href="../ref/files/storage#django.core.files.storage.Storage.url" title="django.core.files.storage.Storage.url"><code>Storage.url()</code></a></li> </ul> <p>Note however that not all these methods are required and may be deliberately omitted. As it happens, it is possible to leave each method unimplemented and still have a working Storage.</p> <p>By way of example, if listing the contents of certain storage backends turns out to be expensive, you might decide not to implement <code>Storage.listdir()</code>.</p> <p>Another example would be a backend that only handles writing to files. In this case, you would not need to implement any of the above methods.</p> <p>Ultimately, which of these methods are implemented is up to you. Leaving some methods unimplemented will result in a partial (possibly broken) interface.</p> <p>You’ll also usually want to use hooks specifically designed for custom storage objects. These are:</p> <dl class="method"> <dt id="django.core.files.storage._open">
+<code>_open(name, mode='rb')</code> </dt> 
+</dl> <p><strong>Required</strong>.</p> <p>Called by <code>Storage.open()</code>, this is the actual mechanism the storage class uses to open the file. This must return a <code>File</code> object, though in most cases, you’ll want to return some subclass here that implements logic specific to the backend storage system.</p> <dl class="method"> <dt id="django.core.files.storage._save">
+<code>_save(name, content)</code> </dt> 
+</dl> <p>Called by <code>Storage.save()</code>. The <code>name</code> will already have gone through <code>get_valid_name()</code> and <code>get_available_name()</code>, and the <code>content</code> will be a <code>File</code> object itself.</p> <p>Should return the actual name of name of the file saved (usually the <code>name</code> passed in, but if the storage needs to change the file name return the new name instead).</p> <dl class="method"> <dt id="django.core.files.storage.get_valid_name">
+<code>get_valid_name(name)</code> </dt> 
+</dl> <p>Returns a filename suitable for use with the underlying storage system. The <code>name</code> argument passed to this method is either the original filename sent to the server or, if <code>upload_to</code> is a callable, the filename returned by that method after any path information is removed. Override this to customize how non-standard characters are converted to safe filenames.</p> <p>The code provided on <code>Storage</code> retains only alpha-numeric characters, periods and underscores from the original filename, removing everything else.</p> <dl class="method"> <dt id="django.core.files.storage.get_alternative_name">
+<code>get_alternative_name(file_root, file_ext)</code> </dt> 
+</dl> <p>Returns an alternative filename based on the <code>file_root</code> and <code>file_ext</code> parameters. By default, an underscore plus a random 7 character alphanumeric string is appended to the filename before the extension.</p> <dl class="method"> <dt id="django.core.files.storage.get_available_name">
+<code>get_available_name(name, max_length=None)</code> </dt> 
+</dl> <p>Returns a filename that is available in the storage mechanism, possibly taking the provided filename into account. The <code>name</code> argument passed to this method will have already cleaned to a filename valid for the storage system, according to the <code>get_valid_name()</code> method described above.</p> <p>The length of the filename will not exceed <code>max_length</code>, if provided. If a free unique filename cannot be found, a <a class="reference internal" href="../ref/exceptions#django.core.exceptions.SuspiciousOperation" title="django.core.exceptions.SuspiciousOperation"><code>SuspiciousFileOperation</code></a> exception is raised.</p> <p>If a file with <code>name</code> already exists, <code>get_alternative_name()</code> is called to obtain an alternative name.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © Django Software Foundation and individual contributors<br>Licensed under the BSD License.<br>
+    <a href="https://docs.djangoproject.com/en/3.2/howto/custom-file-storage/" class="_attribution-link">https://docs.djangoproject.com/en/3.2/howto/custom-file-storage/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

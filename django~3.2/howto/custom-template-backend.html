@@ -1,0 +1,200 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Custom Template Backend - Django 3.2 - W3cubDocs</title>
+  
+  <meta name="description" content="Here’s how to implement a custom template backend in order to use another template system. A template backend is a class that inherits django. &hellip;">
+  <meta name="keywords" content="custom, template, backend, django, django~3.2">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/django~3.2/howto/custom-template-backend.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/django~3.2.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/django~3.2/" class="_nav-link" title="" style="margin-left:0;">Django 3.2</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="custom-template-backend">Custom template backend</h1>  <h2 id="custom-backends">Custom backends</h2> <p id="s-custom-template-backend">Here’s how to implement a custom template backend in order to use another template system. A template backend is a class that inherits <code>django.template.backends.base.BaseEngine</code>. It must implement <code>get_template()</code> and optionally <code>from_string()</code>. Here’s an example for a fictional <code>foobar</code> template library:</p> <pre data-language="python">from django.template import TemplateDoesNotExist, TemplateSyntaxError
+from django.template.backends.base import BaseEngine
+from django.template.backends.utils import csrf_input_lazy, csrf_token_lazy
+
+import foobar
+
+
+class FooBar(BaseEngine):
+
+    # Name of the subdirectory containing the templates for this engine
+    # inside an installed application.
+    app_dirname = 'foobar'
+
+    def __init__(self, params):
+        params = params.copy()
+        options = params.pop('OPTIONS').copy()
+        super().__init__(params)
+
+        self.engine = foobar.Engine(**options)
+
+    def from_string(self, template_code):
+        try:
+            return Template(self.engine.from_string(template_code))
+        except foobar.TemplateCompilationFailed as exc:
+            raise TemplateSyntaxError(exc.args)
+
+    def get_template(self, template_name):
+        try:
+            return Template(self.engine.get_template(template_name))
+        except foobar.TemplateNotFound as exc:
+            raise TemplateDoesNotExist(exc.args, backend=self)
+        except foobar.TemplateCompilationFailed as exc:
+            raise TemplateSyntaxError(exc.args)
+
+
+class Template:
+
+    def __init__(self, template):
+        self.template = template
+
+    def render(self, context=None, request=None):
+        if context is None:
+            context = {}
+        if request is not None:
+            context['request'] = request
+            context['csrf_input'] = csrf_input_lazy(request)
+            context['csrf_token'] = csrf_token_lazy(request)
+        return self.template.render(context)
+</pre> <p>See <a class="reference external" href="https://github.com/django/deps/blob/main/final/0182-multiple-template-engines.rst">DEP 182</a> for more information.</p>   <h2 id="template-debug-integration">Debug integration for custom engines</h2> <p id="s-debug-integration-for-custom-engines">The Django debug page has hooks to provide detailed information when a template error arises. Custom template engines can use these hooks to enhance the traceback information that appears to users. The following hooks are available:</p>  <h3 id="id1">Template postmortem</h3> <p id="s-template-postmortem">The postmortem appears when <a class="reference internal" href="../topics/templates#django.template.TemplateDoesNotExist" title="django.template.TemplateDoesNotExist"><code>TemplateDoesNotExist</code></a> is raised. It lists the template engines and loaders that were used when trying to find a given template. For example, if two Django engines are configured, the postmortem will appear like:</p> <img alt="../_images/postmortem.png" src="data:image/png;base64,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"> <p>Custom engines can populate the postmortem by passing the <code>backend</code> and <code>tried</code> arguments when raising <a class="reference internal" href="../topics/templates#django.template.TemplateDoesNotExist" title="django.template.TemplateDoesNotExist"><code>TemplateDoesNotExist</code></a>. Backends that use the postmortem <a class="reference internal" href="#template-origin-api"><span class="std std-ref">should specify an origin</span></a> on the template object.</p>   <h3 id="contextual-line-information">Contextual line information</h3> <p id="s-contextual-line-information">If an error happens during template parsing or rendering, Django can display the line the error happened on. For example:</p> <img alt="../_images/template-lines.png" src="data:image/png;base64,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"> <p>Custom engines can populate this information by setting a <code>template_debug</code> attribute on exceptions raised during parsing and rendering. This attribute is a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code>dict</code></a> with the following values:</p> <ul class="simple"> <li>
+<code>'name'</code>: The name of the template in which the exception occurred.</li> <li>
+<code>'message'</code>: The exception message.</li> <li>
+<code>'source_lines'</code>: The lines before, after, and including the line the exception occurred on. This is for context, so it shouldn’t contain more than 20 lines or so.</li> <li>
+<code>'line'</code>: The line number on which the exception occurred.</li> <li>
+<code>'before'</code>: The content on the error line before the token that raised the error.</li> <li>
+<code>'during'</code>: The token that raised the error.</li> <li>
+<code>'after'</code>: The content on the error line after the token that raised the error.</li> <li>
+<code>'total'</code>: The number of lines in <code>source_lines</code>.</li> <li>
+<code>'top'</code>: The line number where <code>source_lines</code> starts.</li> <li>
+<code>'bottom'</code>: The line number where <code>source_lines</code> ends.</li> </ul> <p>Given the above template error, <code>template_debug</code> would look like:</p> <pre data-language="python">{
+    'name': '/path/to/template.html',
+    'message': "Invalid block tag: 'syntax'",
+    'source_lines': [
+        (1, 'some\n'),
+        (2, 'lines\n'),
+        (3, 'before\n'),
+        (4, 'Hello {% syntax error %} {{ world }}\n'),
+        (5, 'some\n'),
+        (6, 'lines\n'),
+        (7, 'after\n'),
+        (8, ''),
+    ],
+    'line': 4,
+    'before': 'Hello ',
+    'during': '{% syntax error %}',
+    'after': ' {{ world }}\n',
+    'total': 9,
+    'bottom': 9,
+    'top': 1,
+}
+</pre>   <h3 id="template-origin-api">Origin API and 3rd-party integration</h3> <p id="s-origin-api-and-3rd-party-integration">Django templates have an <a class="reference internal" href="../ref/templates/api#django.template.base.Origin" title="django.template.base.Origin"><code>Origin</code></a> object available through the <code>template.origin</code> attribute. This enables debug information to be displayed in the <a class="reference internal" href="#template-postmortem"><span class="std std-ref">template postmortem</span></a>, as well as in 3rd-party libraries, like the <a class="reference external" href="https://github.com/jazzband/django-debug-toolbar">Django Debug Toolbar</a>.</p> <p>Custom engines can provide their own <code>template.origin</code> information by creating an object that specifies the following attributes:</p> <ul class="simple"> <li>
+<code>'name'</code>: The full path to the template.</li> <li>
+<code>'template_name'</code>: The relative path to the template as passed into the template loading methods.</li> <li>
+<code>'loader_name'</code>: An optional string identifying the function or class used to load the template, e.g. <code>django.template.loaders.filesystem.Loader</code>.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © Django Software Foundation and individual contributors<br>Licensed under the BSD License.<br>
+    <a href="https://docs.djangoproject.com/en/3.2/howto/custom-template-backend/" class="_attribution-link">https://docs.djangoproject.com/en/3.2/howto/custom-template-backend/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
