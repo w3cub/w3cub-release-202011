@@ -1,0 +1,242 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Troubleshooting - Redux 3 - W3cubDocs</title>
+  
+  <meta name="description" content="This is a place to share common problems and solutions to them.The examples use React, but you should still find them useful if you use something &hellip;">
+  <meta name="keywords" content="troubleshooting, redux, redux~3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux~3/troubleshooting.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/redux~3.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux~3/" class="_nav-link" title="" style="margin-left:0;">Redux 3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="troubleshooting">Troubleshooting</h1> <p>This is a place to share common problems and solutions to them.<br>The examples use React, but you should still find them useful if you use something else.</p> <h3 id="nothing-happens-when-i-dispatch-an-action">Nothing happens when I dispatch an action</h3> <p>Sometimes, you are trying to dispatch an action, but your view does not update. Why does this happen? There may be several reasons for this.</p> <h4 id="never-mutate-reducer-arguments">Never mutate reducer arguments</h4> <p>It is tempting to modify the <code>state</code> or <code>action</code> passed to you by Redux. Don't do this!</p> <p>Redux assumes that you never mutate the objects it gives to you in the reducer. <strong>Every single time, you must return the new state object.</strong> Even if you don't use a library like <a href="https://facebook.github.io/immutable-js/" target="_blank">Immutable</a>, you need to completely avoid mutation.</p> <p>Immutability is what lets <a href="https://github.com/gaearon/react-redux" target="_blank">react-redux</a> efficiently subscribe to fine-grained updates of your state. It also enables great developer experience features such as time travel with <a href="http://github.com/gaearon/redux-devtools" target="_blank">redux-devtools</a>.</p> <p>For example, a reducer like this is wrong because it mutates the state:</p> <pre class="language-" data-language="js">function todos(state = [], action) {
+  switch (action.type) {
+    case 'ADD_TODO':
+      // Wrong! This mutates state
+      state.push({
+        text: action.text,
+        completed: false
+      })
+      return state
+    case 'COMPLETE_TODO':
+      // Wrong! This mutates state[action.index].
+      state[action.index].completed = true
+      return state
+    default:
+      return state
+  }
+}
+</pre> <p>It needs to be rewritten like this:</p> <pre class="language-" data-language="js">function todos(state = [], action) {
+  switch (action.type) {
+    case 'ADD_TODO':
+      // Return a new array
+      return [
+        ...state,
+        {
+          text: action.text,
+          completed: false
+        }
+      ]
+    case 'COMPLETE_TODO':
+      // Return a new array
+      return state.map((todo, index) =&gt; {
+        if (index === action.index) {
+          // Copy the object before mutating
+          return Object.assign({}, todo, {
+            completed: true
+          })
+        }
+        return todo
+      })
+    default:
+      return state
+  }
+}
+</pre> <p>It's more code, but it's exactly what makes Redux predictable and efficient. If you want to have less code, you can use a helper like <a href="https://facebook.github.io/react/docs/update.html" target="_blank"><code>React.addons.update</code></a> to write immutable transformations with a terse syntax:</p> <pre class="language-" data-language="js">// Before:
+return state.map((todo, index) =&gt; {
+  if (index === action.index) {
+    return Object.assign({}, todo, {
+      completed: true
+    })
+  }
+  return todo
+})
+
+// After
+return update(state, {
+  [action.index]: {
+    completed: {
+      $set: true
+    }
+  }
+})
+</pre> <p>Finally, to update objects, you'll need something like <code>_.extend</code> from Underscore, or better, an <a href="https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign" target="_blank"><code>Object.assign</code></a> polyfill.</p> <p>Make sure that you use <code>Object.assign</code> correctly. For example, instead of returning something like <code>Object.assign(state, newData)</code> from your reducers, return <code>Object.assign({}, state, newData)</code>. This way you don't override the previous <code>state</code>.</p> <p>You can also enable the <a href="recipes/usingobjectspreadoperator">object spread operator proposal</a> for a more succinct syntax:</p> <pre class="language-" data-language="js">// Before:
+return state.map((todo, index) =&gt; {
+  if (index === action.index) {
+    return Object.assign({}, todo, {
+      completed: true
+    })
+  }
+  return todo
+})
+
+// After:
+return state.map((todo, index) =&gt; {
+  if (index === action.index) {
+    return { ...todo, completed: true }
+  }
+  return todo
+})
+</pre> <p>Note that experimental language features are subject to change.</p> <p>Also keep an eye out for nested state objects that need to be deeply copied. Both <code>_.extend</code> and <code>Object.assign</code> make a shallow copy of the state. See <a href="recipes/reducers/immutableupdatepatterns#updating-nested-objects">Updating Nested Objects</a> for suggestions on how to deal with nested state objects.</p> <h4 id="dont-forget-to-call-dispatchaction">Don't forget to call <a href="api/store#dispatch"><code>dispatch(action)</code></a>
+</h4> <p>If you define an action creator, calling it will <em>not</em> automatically dispatch the action. For example, this code will do nothing:</p> <h4 id="todoactionsjs"><code>TodoActions.js</code></h4> <pre class="language-" data-language="js">export function addTodo(text) {
+  return { type: 'ADD_TODO', text }
+}
+</pre> <h4 id="addtodojs"><code>AddTodo.js</code></h4> <pre class="language-" data-language="js">import React, { Component } from 'react'
+import { addTodo } from './TodoActions'
+
+class AddTodo extends Component {
+  handleClick() {
+    // Won't work!
+    addTodo('Fix the issue')
+  }
+
+  render() {
+    return (
+      &lt;button onClick={() =&gt; this.handleClick()}&gt;
+        Add
+      &lt;/button&gt;
+    )
+  }
+}
+</pre> <p>It doesn't work because your action creator is just a function that <em>returns</em> an action. It is up to you to actually dispatch it. We can't bind your action creators to a particular Store instance during the definition because apps that render on the server need a separate Redux store for every request.</p> <p>The fix is to call <a href="api/store#dispatch"><code>dispatch()</code></a> method on the <a href="api/store">store</a> instance:</p> <pre class="language-" data-language="js">handleClick() {
+  // Works! (but you need to grab store somehow)
+  store.dispatch(addTodo('Fix the issue'))
+}
+</pre> <p>If you're somewhere deep in the component hierarchy, it is cumbersome to pass the store down manually. This is why <a href="https://github.com/gaearon/react-redux" target="_blank">react-redux</a> lets you use a <code>connect</code> <a href="https://medium.com/@dan_abramov/mixins-are-dead-long-live-higher-order-components-94a0d2f9e750" target="_blank">higher-order component</a> that will, apart from subscribing you to a Redux store, inject <code>dispatch</code> into your component's props.</p> <p>The fixed code looks like this:</p> <h4 id="addtodojs"><code>AddTodo.js</code></h4> <pre class="language-" data-language="js">import React, { Component } from 'react'
+import { connect } from 'react-redux'
+import { addTodo } from './TodoActions'
+
+class AddTodo extends Component {
+  handleClick() {
+    // Works!
+    this.props.dispatch(addTodo('Fix the issue'))
+  }
+
+  render() {
+    return (
+      &lt;button onClick={() =&gt; this.handleClick()}&gt;
+        Add
+      &lt;/button&gt;
+    )
+  }
+}
+
+// In addition to the state, `connect` puts `dispatch` in our props.
+export default connect()(AddTodo)
+</pre> <p>You can then pass <code>dispatch</code> down to other components manually, if you want to.</p> <h4 id="make-sure-mapstatetoprops-is-correct">Make sure mapStateToProps is correct</h4> <p>It's possible you're correctly dispatching an action and applying your reducer but the corresponding state is not being correctly translated into props.</p> <h2 id="something-else-doesnt-work">Something else doesn't work</h2> <p>Ask around on the <strong>#redux</strong> <a href="http://reactiflux.com/" target="_blank">Reactiflux</a> Discord channel, or <a href="https://github.com/reactjs/redux/issues" target="_blank">create an issue</a>.<br>If you figure it out, <a href="https://github.com/reactjs/redux/edit/master/docs/Troubleshooting.md" target="_blank">edit this document</a> as a courtesy to the next person having the same problem.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/Troubleshooting.html" class="_attribution-link">http://redux.js.org/docs/Troubleshooting.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

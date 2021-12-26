@@ -1,0 +1,432 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Writing Tests - Redux 3 - W3cubDocs</title>
+  
+  <meta name="description" content=" Because most of the Redux code you write are functions, and many of them are pure, they are easy to test without mocking. ">
+  <meta name="keywords" content="writing, tests, redux, redux~3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux~3/recipes/writingtests.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/redux~3.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux~3/" class="_nav-link" title="" style="margin-left:0;">Redux 3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="writing-tests">Writing Tests</h1> <p>Because most of the Redux code you write are functions, and many of them are pure, they are easy to test without mocking.</p> <h3 id="setting-up">Setting Up</h3> <p>We recommend <a href="http://facebook.github.io/jest/" target="_blank">Jest</a> as the testing engine. Note that it runs in a Node environment, so you won't have access to the DOM.</p> <pre class="language-">npm install --save-dev jest
+</pre>
+<p>To use it together with <a href="http://babeljs.io" target="_blank">Babel</a>, you will need to install <code>babel-jest</code>:</p> <pre class="language-">npm install --save-dev babel-jest
+</pre>
+<p>and configure it to use ES2015 features in <code>.babelrc</code>:</p> <pre class="language-" data-language="js">{
+  "presets": ["es2015"]
+}
+</pre> <p>Then, add this to <code>scripts</code> in your <code>package.json</code>:</p> <pre class="language-" data-language="js">{
+  ...
+  "scripts": {
+    ...
+    "test": "jest",
+    "test:watch": "npm test -- --watch"
+  },
+  ...
+}
+</pre> <p>and run <code>npm test</code> to run it once, or <code>npm run test:watch</code> to test on every file change.</p> <h3 id="action-creators">Action Creators</h3> <p>In Redux, action creators are functions which return plain objects. When testing action creators we want to test whether the correct action creator was called and also whether the right action was returned.</p> <h4 id="example">Example</h4> <pre class="language-" data-language="js">export function addTodo(text) {
+  return {
+    type: 'ADD_TODO',
+    text
+  }
+}
+</pre> <p>can be tested like:</p> <pre class="language-" data-language="js">import * as actions from '../../actions/TodoActions'
+import * as types from '../../constants/ActionTypes'
+
+describe('actions', () =&gt; {
+  it('should create an action to add a todo', () =&gt; {
+    const text = 'Finish docs'
+    const expectedAction = {
+      type: types.ADD_TODO,
+      text
+    }
+    expect(actions.addTodo(text)).toEqual(expectedAction)
+  })
+})
+</pre> <h3 id="async-action-creators">Async Action Creators</h3> <p>For async action creators using <a href="https://github.com/gaearon/redux-thunk" target="_blank">Redux Thunk</a> or other middleware, it's best to completely mock the Redux store for tests. You can apply the middleware to a mock store using <a href="https://github.com/arnaudbenard/redux-mock-store" target="_blank">redux-mock-store</a>. You can also use <a href="https://github.com/pgte/nock" target="_blank">nock</a> to mock the HTTP requests.</p> <h4 id="example">Example</h4> <pre class="language-" data-language="js">import fetch from 'isomorphic-fetch'
+
+function fetchTodosRequest() {
+  return {
+    type: FETCH_TODOS_REQUEST
+  }
+}
+
+function fetchTodosSuccess(body) {
+  return {
+    type: FETCH_TODOS_SUCCESS,
+    body
+  }
+}
+
+function fetchTodosFailure(ex) {
+  return {
+    type: FETCH_TODOS_FAILURE,
+    ex
+  }
+}
+
+export function fetchTodos() {
+  return dispatch =&gt; {
+    dispatch(fetchTodosRequest())
+    return fetch('http://example.com/todos')
+      .then(res =&gt; res.json())
+      .then(json =&gt; dispatch(fetchTodosSuccess(json.body)))
+      .catch(ex =&gt; dispatch(fetchTodosFailure(ex)))
+  }
+}
+</pre> <p>can be tested like:</p> <pre class="language-" data-language="js">import configureMockStore from 'redux-mock-store'
+import thunk from 'redux-thunk'
+import * as actions from '../../actions/TodoActions'
+import * as types from '../../constants/ActionTypes'
+import nock from 'nock'
+import expect from 'expect' // You can use any testing library
+
+const middlewares = [thunk]
+const mockStore = configureMockStore(middlewares)
+
+describe('async actions', () =&gt; {
+  afterEach(() =&gt; {
+    nock.cleanAll()
+  })
+
+  it('creates FETCH_TODOS_SUCCESS when fetching todos has been done', () =&gt; {
+    nock('http://example.com/')
+      .get('/todos')
+      .reply(200, { body: { todos: ['do something'] } })
+
+    const expectedActions = [
+      { type: types.FETCH_TODOS_REQUEST },
+      { type: types.FETCH_TODOS_SUCCESS, body: { todos: ['do something'] } }
+    ]
+    const store = mockStore({ todos: [] })
+
+    return store.dispatch(actions.fetchTodos()).then(() =&gt; {
+      // return of async actions
+      expect(store.getActions()).toEqual(expectedActions)
+    })
+  })
+})
+</pre> <h3 id="reducers">Reducers</h3> <p>A reducer should return the new state after applying the action to the previous state, and that's the behavior tested below.</p> <h4 id="example">Example</h4> <pre class="language-" data-language="js">import { ADD_TODO } from '../constants/ActionTypes'
+
+const initialState = [
+  {
+    text: 'Use Redux',
+    completed: false,
+    id: 0
+  }
+]
+
+export default function todos(state = initialState, action) {
+  switch (action.type) {
+    case ADD_TODO:
+      return [
+        {
+          id: state.reduce((maxId, todo) =&gt; Math.max(todo.id, maxId), -1) + 1,
+          completed: false,
+          text: action.text
+        },
+        ...state
+      ]
+
+    default:
+      return state
+  }
+}
+</pre> <p>can be tested like:</p> <pre class="language-" data-language="js">import reducer from '../../reducers/todos'
+import * as types from '../../constants/ActionTypes'
+
+describe('todos reducer', () =&gt; {
+  it('should return the initial state', () =&gt; {
+    expect(reducer(undefined, {})).toEqual([
+      {
+        text: 'Use Redux',
+        completed: false,
+        id: 0
+      }
+    ])
+  })
+
+  it('should handle ADD_TODO', () =&gt; {
+    expect(
+      reducer([], {
+        type: types.ADD_TODO,
+        text: 'Run the tests'
+      })
+    ).toEqual([
+      {
+        text: 'Run the tests',
+        completed: false,
+        id: 0
+      }
+    ])
+
+    expect(
+      reducer(
+        [
+          {
+            text: 'Use Redux',
+            completed: false,
+            id: 0
+          }
+        ],
+        {
+          type: types.ADD_TODO,
+          text: 'Run the tests'
+        }
+      )
+    ).toEqual([
+      {
+        text: 'Run the tests',
+        completed: false,
+        id: 1
+      },
+      {
+        text: 'Use Redux',
+        completed: false,
+        id: 0
+      }
+    ])
+  })
+})
+</pre> <h3 id="components">Components</h3> <p>A nice thing about React components is that they are usually small and only rely on their props. That makes them easy to test.</p> <p>First, we will install <a href="http://airbnb.io/enzyme/" target="_blank">Enzyme</a>. Enzyme uses the <a href="https://facebook.github.io/react/docs/test-utils.html" target="_blank">React Test Utilities</a> underneath, but is more convenient, readable, and powerful.</p> <pre class="language-">npm install --save-dev enzyme
+</pre>
+<p>To test the components we make a <code>setup()</code> helper that passes the stubbed callbacks as props and renders the component with <a href="http://airbnb.io/enzyme/docs/api/shallow.html" target="_blank">shallow rendering</a>. This lets individual tests assert on whether the callbacks were called when expected.</p> <h4 id="example">Example</h4> <pre class="language-" data-language="js">import React, { Component } from 'react'
+import PropTypes from 'prop-types'
+import TodoTextInput from './TodoTextInput'
+
+class Header extends Component {
+  handleSave(text) {
+    if (text.length !== 0) {
+      this.props.addTodo(text)
+    }
+  }
+
+  render() {
+    return (
+      &lt;header className="header"&gt;
+        &lt;h1&gt;todos&lt;/h1&gt;
+        &lt;TodoTextInput
+          newTodo={true}
+          onSave={this.handleSave.bind(this)}
+          placeholder="What needs to be done?"
+        /&gt;
+      &lt;/header&gt;
+    )
+  }
+}
+
+Header.propTypes = {
+  addTodo: PropTypes.func.isRequired
+}
+
+export default Header
+</pre> <p>can be tested like:</p> <pre class="language-" data-language="js">import React from 'react'
+import { mount } from 'enzyme'
+import Header from '../../components/Header'
+
+function setup() {
+  const props = {
+    addTodo: jest.fn()
+  }
+
+  const enzymeWrapper = mount(&lt;Header {...props} /&gt;)
+
+  return {
+    props,
+    enzymeWrapper
+  }
+}
+
+describe('components', () =&gt; {
+  describe('Header', () =&gt; {
+    it('should render self and subcomponents', () =&gt; {
+      const { enzymeWrapper } = setup()
+
+      expect(enzymeWrapper.find('header').hasClass('header')).toBe(true)
+
+      expect(enzymeWrapper.find('h1').text()).toBe('todos')
+
+      const todoInputProps = enzymeWrapper.find('TodoTextInput').props()
+      expect(todoInputProps.newTodo).toBe(true)
+      expect(todoInputProps.placeholder).toEqual('What needs to be done?')
+    })
+
+    it('should call addTodo if length of text is greater than 0', () =&gt; {
+      const { enzymeWrapper, props } = setup()
+      const input = enzymeWrapper.find('TodoTextInput')
+      input.props().onSave('')
+      expect(props.addTodo.mock.calls.length).toBe(0)
+      input.props().onSave('Use Redux')
+      expect(props.addTodo.mock.calls.length).toBe(1)
+    })
+  })
+})
+</pre> <h3 id="connected-components">Connected Components</h3> <p>If you use a library like <a href="https://github.com/reactjs/react-redux" target="_blank">React Redux</a>, you might be using <a href="https://medium.com/@dan_abramov/mixins-are-dead-long-live-higher-order-components-94a0d2f9e750" target="_blank">higher-order components</a> like <a href="https://github.com/reactjs/react-redux/blob/master/docs/api.md#connectmapstatetoprops-mapdispatchtoprops-mergeprops-options" target="_blank"><code>connect()</code></a>. This lets you inject Redux state into a regular React component.</p> <p>Consider the following <code>App</code> component:</p> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+
+class App extends Component { /* ... */ }
+
+export default connect(mapStateToProps)(App)
+</pre> <p>In a unit test, you would normally import the <code>App</code> component like this:</p> <pre class="language-" data-language="js">import App from './App'
+</pre> <p>However, when you import it, you're actually holding the wrapper component returned by <code>connect()</code>, and not the <code>App</code> component itself. If you want to test its interaction with Redux, this is good news: you can wrap it in a <a href="https://github.com/reactjs/react-redux/blob/master/docs/api.md#provider-store" target="_blank"><code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>Provider</span><span class="token punctuation">&gt;</span></span></code></a> with a store created specifically for this unit test. But sometimes you want to test just the rendering of the component, without a Redux store.</p> <p>In order to be able to test the App component itself without having to deal with the decorator, we recommend you to also export the undecorated component:</p> <pre class="language-" data-language="js">import { connect } from 'react-redux'
+
+// Use named export for unconnected component (for tests)
+export class App extends Component { /* ... */ }
+
+// Use default export for the connected component (for app)
+export default connect(mapStateToProps)(App)
+</pre> <p>Since the default export is still the decorated component, the import statement pictured above will work as before so you won't have to change your application code. However, you can now import the undecorated <code>App</code> components in your test file like this:</p> <pre class="language-" data-language="js">// Note the curly braces: grab the named export instead of default export
+import { App } from './App'
+</pre> <p>And if you need both:</p> <pre class="language-" data-language="js">import ConnectedApp, { App } from './App'
+</pre> <p>In the app itself, you would still import it normally:</p> <pre class="language-" data-language="js">import App from './App'
+</pre> <p>You would only use the named export for tests.</p> <blockquote> <h5 id="a-note-on-mixing-es6-modules-and-commonjs">A Note on Mixing ES6 Modules and CommonJS</h5> <p>If you are using ES6 in your application source, but write your tests in ES5, you should know that Babel handles the interchangeable use of ES6 <code>import</code> and CommonJS <code>require</code> through its <a href="http://babeljs.io/docs/usage/modules/#interop" target="_blank">interop</a> capability to run two module formats side-by-side, but the behavior is <a href="https://github.com/babel/babel/issues/2047" target="_blank">slightly different</a>. If you add a second export beside your default export, you can no longer import the default using <code>require('./App')</code>. Instead you have to use <code>require('./App').default</code>.</p> </blockquote> <h3 id="middleware">Middleware</h3> <p>Middleware functions wrap behavior of <code>dispatch</code> calls in Redux, so to test this modified behavior we need to mock the behavior of the <code>dispatch</code> call.</p> <h4 id="example">Example</h4> <p>First, we'll need a middleware function. This is similar to the real <a href="https://github.com/gaearon/redux-thunk/blob/master/src/index.js" target="_blank">redux-thunk</a>.</p> <pre class="language-" data-language="js">const thunk = ({ dispatch, getState }) =&gt; next =&gt; action =&gt; {
+  if (typeof action === 'function') {
+    return action(dispatch, getState)
+  }
+
+  return next(action)
+}
+</pre> <p>We need to create a fake <code>getState</code>, <code>dispatch</code>, and <code>next</code> functions. We use <code>jest.fn()</code> to create stubs, but with other test frameworks you would likely use sinon.</p> <p>The invoke function runs our middleware in the same way Redux does.</p> <pre class="language-" data-language="js">const create = () =&gt; {
+  const store = {
+    getState: jest.fn(() =&gt; ({})),
+    dispatch: jest.fn(),
+  };
+  const next = jest.fn()
+
+  const invoke = (action) =&gt; thunk(store)(next)(action)
+
+  return {store, next, invoke}
+};
+</pre> <p>We test that our middleware is calling the <code>getState</code>, <code>dispatch</code>, and <code>next</code> functions at the right time.</p> <pre class="language-" data-language="js">it(`passes through non-function action`, () =&gt; {
+  const { next, invoke } = create()
+  const action = {type: 'TEST'}
+  invoke(action)
+  expect(next).toHaveBeenCalledWith(action)
+})
+
+it('calls the function', () =&gt; {
+  const { invoke } = create()
+  const fn = jest.fn()
+  invoke(fn)
+  expect(fn).toHaveBeenCalled()
+});
+
+it('passes dispatch and getState', () =&gt; {
+  const { store, invoke } = create()
+  invoke((dispatch, getState) =&gt; {
+    dispatch('TEST DISPATCH')
+    getState();
+  })
+  expect(store.dispatch).toHaveBeenCalledWith('TEST DISPATCH')
+  expect(store.getState).toHaveBeenCalled()
+});
+</pre> <p>In some cases, you will need to modify the <code>create</code> function to use different mock implementations of <code>getState</code> and <code>next</code>.</p> <h3 id="glossary">Glossary</h3> <ul> <li>
+<p><a href="http://airbnb.io/enzyme/" target="_blank">Enzyme</a>: Enzyme is a JavaScript Testing utility for React that makes it easier to assert, manipulate, and traverse your React Components' output.</p> </li> <li>
+<p><a href="http://facebook.github.io/react/docs/test-utils.html" target="_blank">React Test Utils</a>: Test Utilities for React. Used by Enzyme.</p> </li> <li>
+<p><a href="http://airbnb.io/enzyme/docs/api/shallow.html" target="_blank">Shallow rendering</a>: Shallow rendering lets you instantiate a component and effectively get the result of its <code>render</code> method just a single level deep instead of rendering components recursively to a DOM. Shallow rendering is useful for unit tests, where you test a particular component only, and importantly not its children. This also means that changing a child component won't affect the tests for the parent component. Testing a component and all its children can be accomplished with <a href="http://airbnb.io/enzyme/docs/api/mount.html" target="_blank">Enzyme's <code>mount()</code> method</a>, aka full DOM rendering.</p> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/recipes/WritingTests.html" class="_attribution-link">http://redux.js.org/docs/recipes/WritingTests.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

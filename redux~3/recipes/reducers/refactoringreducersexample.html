@@ -1,0 +1,450 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Refactoring Reducer Logic Using Functional Decomposition and Reducer Composition - Redux 3 - W3cubDocs</title>
+  
+  <meta name="description" content="It may be helpful to see examples of what the different types of sub-reducer functions look like and how they fit together. Let&#39;s look at a &hellip;">
+  <meta name="keywords" content="refactoring, reducer, logic, using, functional, decomposition, and, composition, redux, redux~3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux~3/recipes/reducers/refactoringreducersexample.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/redux~3.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux~3/" class="_nav-link" title="" style="margin-left:0;">Redux 3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="refactoring-reducer-logic-using-functional-decomposition-and-reducer-composition">Refactoring Reducer Logic Using Functional Decomposition and Reducer Composition</h1> <p>It may be helpful to see examples of what the different types of sub-reducer functions look like and how they fit together. Let's look at a demonstration of how a large single reducer function can be refactored into a composition of several smaller functions.</p> <blockquote> <p><strong>Note</strong>: this example is deliberately written in a verbose style in order to illustrate the concepts and the process of refactoring, rather than perfectly concise code.</p> </blockquote> <h4 id="initial-reducer">Initial Reducer</h4> <p>Let's say that our initial reducer looks like this:</p> <pre class="language-" data-language="js">const initialState = {
+    visibilityFilter : 'SHOW_ALL',
+    todos : []
+};
+
+
+function appReducer(state = initialState, action) {
+    switch(action.type) {
+        case 'SET_VISIBILITY_FILTER' : { 
+            return Object.assign({}, state, {
+                visibilityFilter : action.filter
+            });
+        }
+        case 'ADD_TODO' : {
+            return Object.assign({}, state, {
+                todos : state.todos.concat({
+                    id: action.id,
+                    text: action.text,
+                    completed: false
+                })
+            });
+        }
+        case 'TOGGLE_TODO' : {
+            return Object.assign({}, state, {
+                todos : state.todos.map(todo =&gt; {
+                    if (todo.id !== action.id) {
+                      return todo;
+                    }
+
+                    return Object.assign({}, todo, {
+                        completed : !todo.completed
+                    })
+                  })
+            });
+        } 
+        case 'EDIT_TODO' : {
+            return Object.assign({}, state, {
+                todos : state.todos.map(todo =&gt; {
+                    if (todo.id !== action.id) {
+                      return todo;
+                    }
+
+                    return Object.assign({}, todo, {
+                        text : action.text
+                    })
+                  })
+            });
+        } 
+        default : return state;
+    }
+}
+</pre> <p>That function is fairly short, but already becoming overly complex. We're dealing with two different areas of concern (filtering vs managing our list of todos), the nesting is making the update logic harder to read, and it's not exactly clear what's going on everywhere.</p> <h4 id="extracting-utility-functions">Extracting Utility Functions</h4> <p>A good first step might be to break out a utility function to return a new object with updated fields. There's also a repeated pattern with trying to update a specific item in an array that we could extract to a function: </p> <pre class="language-" data-language="js">function updateObject(oldObject, newValues) {
+    // Encapsulate the idea of passing a new object as the first parameter
+    // to Object.assign to ensure we correctly copy data instead of mutating
+    return Object.assign({}, oldObject, newValues);
+}
+
+function updateItemInArray(array, itemId, updateItemCallback) {
+    const updatedItems = array.map(item =&gt; {
+        if(item.id !== itemId) {
+            // Since we only want to update one item, preserve all others as they are now
+            return item;
+        }
+
+        // Use the provided callback to create an updated item
+        const updatedItem = updateItemCallback(item);
+        return updatedItem;
+    });
+
+    return updatedItems;
+}
+
+function appReducer(state = initialState, action) {
+    switch(action.type) {
+        case 'SET_VISIBILITY_FILTER' : { 
+            return updateObject(state, {visibilityFilter : action.filter});
+        }
+        case 'ADD_TODO' : {
+            const newTodos = state.todos.concat({
+                id: action.id,
+                text: action.text,
+                completed: false
+            });
+
+            return updateObject(state, {todos : newTodos});
+        }
+        case 'TOGGLE_TODO' : {
+            const newTodos = updateItemInArray(state.todos, action.id, todo =&gt; {
+                return updateObject(todo, {completed : !todo.completed});
+            });
+
+            return updateObject(state, {todos : newTodos});
+        } 
+        case 'EDIT_TODO' : {
+            const newTodos = updateItemInArray(state.todos, action.id, todo =&gt; {
+                return updateObject(todo, {text : action.text});
+            });
+
+            return updateObject(state, {todos : newTodos});
+        } 
+        default : return state;
+    }
+}
+</pre> <p>That reduced the duplication and made things a bit easier to read.</p> <h4 id="extracting-case-reducers">Extracting Case Reducers</h4> <p>Next, we can split each specific case into its own function:</p> <pre class="language-" data-language="js">// Omitted
+function updateObject(oldObject, newValues) {}
+function updateItemInArray(array, itemId, updateItemCallback) {}
+
+
+function setVisibilityFilter(state, action) {
+    return updateObject(state, {visibilityFilter : action.filter });
+}
+
+function addTodo(state, action) {
+    const newTodos = state.todos.concat({
+        id: action.id,
+        text: action.text,
+        completed: false
+    });
+
+    return updateObject(state, {todos : newTodos});
+}
+
+function toggleTodo(state, action) {
+    const newTodos = updateItemInArray(state.todos, action.id, todo =&gt; {
+        return updateObject(todo, {completed : !todo.completed});
+    });
+
+    return updateObject(state, {todos : newTodos});
+}
+
+function editTodo(state, action) {
+    const newTodos = updateItemInArray(state.todos, action.id, todo =&gt; {
+        return updateObject(todo, {text : action.text});
+    });
+
+    return updateObject(state, {todos : newTodos});
+}
+
+function appReducer(state = initialState, action) {
+    switch(action.type) {
+        case 'SET_VISIBILITY_FILTER' : return setVisibilityFilter(state, action);
+        case 'ADD_TODO' : return addTodo(state, action);
+        case 'TOGGLE_TODO' : return toggleTodo(state, action);
+        case 'EDIT_TODO' : return editTodo(state, action);
+        default : return state;
+    }
+}
+</pre> <p>Now it's <em>very</em> clear what's happening in each case. We can also start to see some patterns emerging. </p> <h4 id="separating-data-handling-by-domain">Separating Data Handling by Domain</h4> <p>Our app reducer is still aware of all the different cases for our application. Let's try splitting things up so that the filter logic and the todo logic are separated:</p> <pre class="language-" data-language="js">// Omitted
+function updateObject(oldObject, newValues) {}
+function updateItemInArray(array, itemId, updateItemCallback) {}
+
+
+
+function setVisibilityFilter(visibilityState, action) {
+    // Technically, we don't even care about the previous state
+    return action.filter;
+}
+
+function visibilityReducer(visibilityState = 'SHOW_ALL', action) {
+    switch(action.type) {
+        case 'SET_VISIBILITY_FILTER' : return setVisibilityFilter(visibilityState, action);
+        default : return visibilityState;
+    }
+};
+
+
+function addTodo(todosState, action) {
+    const newTodos = todosState.concat({
+        id: action.id,
+        text: action.text,
+        completed: false
+    });
+
+    return newTodos;
+}
+
+function toggleTodo(todosState, action) {
+    const newTodos = updateItemInArray(todosState, action.id, todo =&gt; {
+        return updateObject(todo, {completed : !todo.completed});
+    });
+
+    return newTodos;
+}
+
+function editTodo(todosState, action) {
+    const newTodos = updateItemInArray(todosState, action.id, todo =&gt; {
+        return updateObject(todo, {text : action.text});
+    });
+
+    return newTodos;
+}
+
+function todosReducer(todosState = [], action) {
+    switch(action.type) {
+        case 'ADD_TODO' : return addTodo(todosState, action);
+        case 'TOGGLE_TODO' : return toggleTodo(todosState, action);
+        case 'EDIT_TODO' : return editTodo(todosState, action);
+        default : return todosState;
+    }
+}
+
+function appReducer(state = initialState, action) {
+    return {
+        todos : todosReducer(state.todos, action),
+        visibilityFilter : visibilityReducer(state.visibilityFilter, action)
+    };
+}
+</pre> <p>Notice that because the two "slice of state" reducers are now getting only their own part of the whole state as arguments, they no longer need to return complex nested state objects, and are now simpler as a result.</p> <h4 id="reducing-boilerplate">Reducing Boilerplate</h4> <p>We're almost done. Since many people don't like switch statements, it's very common to use a function that creates a lookup table of action types to case functions. We'll use the <code>createReducer</code> function described in <a href="../reducingboilerplate#generating-reducers">Reducing Boilerplate</a>:</p> <pre class="language-" data-language="js">// Omitted
+function updateObject(oldObject, newValues) {}
+function updateItemInArray(array, itemId, updateItemCallback) {}
+
+function createReducer(initialState, handlers) {
+  return function reducer(state = initialState, action) {
+    if (handlers.hasOwnProperty(action.type)) {
+      return handlers[action.type](state, action)
+    } else {
+      return state
+    }
+  }
+}
+
+
+// Omitted
+function setVisibilityFilter(visibilityState, action) {}
+
+const visibilityReducer = createReducer('SHOW_ALL', {
+    'SET_VISIBILITY_FILTER' : setVisibilityFilter
+});
+
+// Omitted
+function addTodo(todosState, action) {}
+function toggleTodo(todosState, action) {}
+function editTodo(todosState, action) {}
+
+const todosReducer = createReducer([], {
+    'ADD_TODO' : addTodo,
+    'TOGGLE_TODO' : toggleTodo,
+    'EDIT_TODO' : editTodo
+});
+
+function appReducer(state = initialState, action) {
+    return {
+        todos : todosReducer(state.todos, action),
+        visibilityFilter : visibilityReducer(state.visibilityFilter, action)
+    };
+}
+</pre> <h4 id="combining-reducers-by-slice">Combining Reducers by Slice</h4> <p>As our last step, we can now use Redux's built-in <code>combineReducers</code> utility to handle the "slice-of-state" logic for our top-level app reducer. Here's the final result:</p> <pre class="language-" data-language="js">// Reusable utility functions
+
+function updateObject(oldObject, newValues) {
+    // Encapsulate the idea of passing a new object as the first parameter
+    // to Object.assign to ensure we correctly copy data instead of mutating
+    return Object.assign({}, oldObject, newValues);
+}
+
+function updateItemInArray(array, itemId, updateItemCallback) {
+    const updatedItems = array.map(item =&gt; {
+        if(item.id !== itemId) {
+            // Since we only want to update one item, preserve all others as they are now
+            return item;
+        }
+
+        // Use the provided callback to create an updated item
+        const updatedItem = updateItemCallback(item);
+        return updatedItem;
+    });
+
+    return updatedItems;
+}
+
+function createReducer(initialState, handlers) {
+  return function reducer(state = initialState, action) {
+    if (handlers.hasOwnProperty(action.type)) {
+      return handlers[action.type](state, action)
+    } else {
+      return state
+    }
+  }
+}
+
+
+// Handler for a specific case ("case reducer")
+function setVisibilityFilter(visibilityState, action) {
+    // Technically, we don't even care about the previous state
+    return action.filter;
+}
+
+// Handler for an entire slice of state ("slice reducer")
+const visibilityReducer = createReducer('SHOW_ALL', {
+    'SET_VISIBILITY_FILTER' : setVisibilityFilter
+});
+
+// Case reducer
+function addTodo(todosState, action) {
+    const newTodos = todosState.concat({
+        id: action.id,
+        text: action.text,
+        completed: false
+    });
+
+    return newTodos;
+}
+
+// Case reducer
+function toggleTodo(todosState, action) {
+    const newTodos = updateItemInArray(todosState, action.id, todo =&gt; {
+        return updateObject(todo, {completed : !todo.completed});
+    });
+
+    return newTodos;
+}
+
+// Case reducer
+function editTodo(todosState, action) {
+    const newTodos = updateItemInArray(todosState, action.id, todo =&gt; {
+        return updateObject(todo, {text : action.text});
+    });
+
+    return newTodos;
+}
+
+// Slice reducer
+const todosReducer = createReducer([], {
+    'ADD_TODO' : addTodo,
+    'TOGGLE_TODO' : toggleTodo,
+    'EDIT_TODO' : editTodo
+});
+
+// "Root reducer"
+const appReducer = combineReducers({
+    visibilityFilter : visibilityReducer,
+    todos : todosReducer
+});
+</pre> <p>We now have examples of several kinds of split-up reducer functions: helper utilities like <code>updateObject</code> and <code>createReducer</code>, handlers for specific cases like <code>setVisibilityFilter</code> and <code>addTodo</code>, and slice-of-state handlers like <code>visibilityReducer</code> and <code>todosReducer</code>. We also can see that <code>appReducer</code> is an example of a "root reducer".</p> <p>Although the final result in this example is noticeably longer than the original version, this is primarily due to the extraction of the utility functions, the addition of comments, and some deliberate verbosity for the sake of clarity, such as separate return statements. Looking at each function individually, the amount of responsibility is now smaller, and the intent is hopefully clearer. Also, in a real application, these functions would probably then be split into separate files such as <code>reducerUtilities.js</code>, <code>visibilityReducer.js</code>, <code>todosReducer.js</code>, and <code>rootReducer.js</code>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/recipes/reducers/RefactoringReducersExample.html" class="_attribution-link">http://redux.js.org/docs/recipes/reducers/RefactoringReducersExample.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

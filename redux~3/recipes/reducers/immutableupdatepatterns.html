@@ -1,0 +1,197 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Immutable Update Patterns - Redux 3 - W3cubDocs</title>
+  
+  <meta name="description" content="The articles listed in Prerequisite Concepts#Immutable Data Management give a number of good examples for how to perform basic update operations &hellip;">
+  <meta name="keywords" content="immutable, update, patterns, redux, redux~3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/redux~3/recipes/reducers/immutableupdatepatterns.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/redux~3.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/redux~3/" class="_nav-link" title="" style="margin-left:0;">Redux 3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="immutable-update-patterns">Immutable Update Patterns</h1> <p>The articles listed in <a href="prerequisiteconcepts#immutable-data-management">Prerequisite Concepts#Immutable Data Management</a> give a number of good examples for how to perform basic update operations immutably, such as updating a field in an object or adding an item to the end of an array. However, reducers will often need to use those basic operations in combination to perform more complicated tasks. Here are some examples for some of the more common tasks you might have to implement.</p> <h2 id="updating-nested-objects">Updating Nested Objects</h2> <p>The key to updating nested data is <strong>that <em>every</em> level of nesting must be copied and updated appropriately</strong>. This is often a difficult concept for those learning Redux, and there are some specific problems that frequently occur when trying to update nested objects. These lead to accidental direct mutation, and should be avoided.</p> <h5 id="common-mistake-1-new-variables-that-point-to-the-same-objects">Common Mistake #1: New variables that point to the same objects</h5> <p>Defining a new variable does <em>not</em> create a new actual object - it only creates another reference to the same object. An example of this error would be:</p> <pre class="language-" data-language="js">function updateNestedState(state, action) {
+    let nestedState = state.nestedState;
+    // ERROR: this directly modifies the existing object reference - don't do this!
+    nestedState.nestedField = action.data;
+
+    return {
+        ...state,
+        nestedState
+    };
+}
+</pre> <p>This function does correctly return a shallow copy of the top-level state object, but because the <code>nestedState</code> variable was still pointing at the existing object, the state was directly mutated. </p> <h5 id="common-mistake-2-only-making-a-shallow-copy-of-one-level">Common Mistake #2: Only making a shallow copy of one level</h5> <p>Another common version of this error looks like this:</p> <pre class="language-" data-language="js">function updateNestedState(state, action) {
+    // Problem: this only does a shallow copy!
+    let newState = {...state};
+
+    // ERROR: nestedState is still the same object!
+    newState.nestedState.nestedField = action.data;
+
+    return newState;
+}
+</pre> <p>Doing a shallow copy of the top level is <em>not</em> sufficient - the <code>nestedState</code> object should be copied as well.</p> <h5 id="correct-approach-copying-all-levels-of-nested-data">Correct Approach: Copying All Levels of Nested Data</h5> <p>Unfortunately, the process of correctly applying immutable updates to deeply nested state can easily become verbose and hard to read. Here's what an example of updating <code>state.first.second[someId].fourth</code> might look like:</p> <pre class="language-" data-language="js">function updateVeryNestedField(state, action) {
+    return {
+        ...state,
+        first : {
+            ...state.first,
+            second : {
+                ...state.first.second,
+                [action.someId] : {
+                    ...state.first.second[action.someId],
+                    fourth : action.someValue
+                }
+            }
+        }
+    }
+}
+</pre> <p>Obviously, each layer of nesting makes this harder to read, and gives more chances to make mistakes. This is one of several reasons why you are encouraged to keep your state flattened, and compose reducers as much as possible.</p> <h2 id="inserting-and-removing-items-in-arrays">Inserting and Removing Items in Arrays</h2> <p>Normally, a Javascript array's contents are modified using mutative functions like <code>push</code>, <code>unshift</code>, and <code>splice</code>. Since we don't want to mutate state directly in reducers, those should normally be avoided. Because of that, you might see "insert" or "remove" behavior written like this:</p> <pre class="language-" data-language="js">function insertItem(array, action) {
+    return [
+        ...array.slice(0, action.index),
+        action.item,
+        ...array.slice(action.index)
+    ]
+}
+
+function removeItem(array, action) {
+    return [
+        ...array.slice(0, action.index),
+        ...array.slice(action.index + 1)
+    ];
+}
+</pre> <p>However, remember that the key is that the <em>original in-memory reference</em> is not modified. <strong>As long as we make a copy first, we can safely mutate the copy</strong>. Note that this is true for both arrays and objects, but nested values still must be updated using the same rules.</p> <p>This means that we could also write the insert and remove functions like this:</p> <pre class="language-" data-language="js">function insertItem(array, action) {
+    let newArray = array.slice();
+    newArray.splice(action.index, 0, action.item);
+    return newArray;
+}
+
+function removeItem(array, action) {
+    let newArray = array.slice();
+    newArray.splice(action.index, 1);
+    return newArray;
+}
+</pre> <p>The remove function could also be implemented as:</p> <pre class="language-" data-language="js">function removeItem(array, action) {
+    return array.filter( (item, index) =&gt; index !== action.index);
+}
+</pre> <h2 id="updating-an-item-in-an-array">Updating an Item in an Array</h2> <p>Updating one item in an array can be accomplished by using <code>Array.map</code>, returning a new value for the item we want to update, and returning the existing values for all other items:</p> <pre class="language-" data-language="js">function updateObjectInArray(array, action) {
+    return array.map( (item, index) =&gt; {
+        if(index !== action.index) {
+            // This isn't the item we care about - keep it as-is
+            return item;
+        }
+
+        // Otherwise, this is the one we want - return an updated value
+        return {
+            ...item,
+            ...action.item
+        };    
+    });
+}
+</pre> <h2 id="immutable-update-utility-libraries">Immutable Update Utility Libraries</h2> <p>Because writing immutable update code can become tedious, there are a number of utility libraries that try to abstract out the process. These libraries vary in APIs and usage, but all try to provide a shorter and more succinct way of writing these updates. Some, like <a href="https://github.com/debitoor/dot-prop-immutable" target="_blank">dot-prop-immutable</a>, take string paths for commands:</p> <pre class="language-" data-language="js">state = dotProp.set(state, `todos.${index}.complete`, true)
+</pre> <p>Others, like <a href="https://github.com/kolodny/immutability-helper" target="_blank">immutability-helper</a> (a fork of the now-deprecated React Immutability Helpers addon), use nested values and helper functions:</p> <pre class="language-" data-language="js">var collection = [1, 2, {a: [12, 17, 15]}];
+var newCollection = update(collection, {2: {a: {$splice: [[1, 1, 13, 14]]}}});
+</pre> <p>They can provide a useful alternative to writing manual immutable update logic.</p> <p>A list of many immutable update utilities can be found in the <a href="https://github.com/markerikson/redux-ecosystem-links/blob/master/immutable-data.md#immutable-update-utilities" target="_blank">Immutable Data#Immutable Update Utilities</a> section of the <a href="https://github.com/markerikson/redux-ecosystem-links" target="_blank">Redux Addons Catalog</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2015–2017 Dan Abramov<br>Licensed under the MIT License.<br>
+    <a href="http://redux.js.org/docs/recipes/reducers/ImmutableUpdatePatterns.html" class="_attribution-link">http://redux.js.org/docs/recipes/reducers/ImmutableUpdatePatterns.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
