@@ -1,0 +1,148 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>8.4. Garbage Collection - GCC 11 - W3cubDocs</title>
+  
+  <meta name="description" content=" This section is specific for the GNU Objective-C runtime. If you are using a different runtime, you can skip it. ">
+  <meta name="keywords" content="garbage, collection, gcc, gcc~11">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/gcc~11/garbage-collection.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-9352e6910fe51dd10a2c4166dc5a7847892ebc84c0bb52d7e40dcdccbf262592790483d09e6dbfd62c689609a706227727ca9acb967a718e944c111f43ca96a0.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/gcc~11.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/gcc~11/" class="_nav-link" title="" style="margin-left:0;">GCC 11</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 class="section" id="Garbage-Collection-1">8.4 Garbage Collection</h1> <p>This section is specific for the GNU Objective-C runtime. If you are using a different runtime, you can skip it. </p> <p>Support for garbage collection with the GNU runtime has been added by using a powerful conservative garbage collector, known as the Boehm-Demers-Weiser conservative garbage collector. </p> <p>To enable the support for it you have to configure the compiler using an additional argument, <code>--enable-objc-gc</code>. This will build the boehm-gc library, and build an additional runtime library which has several enhancements to support the garbage collector. The new library has a new name, <samp>libobjc_gc.a</samp> to not conflict with the non-garbage-collected library. </p> <p>When the garbage collector is used, the objects are allocated using the so-called typed memory allocation mechanism available in the Boehm-Demers-Weiser collector. This mode requires precise information on where pointers are located inside objects. This information is computed once per class, immediately after the class has been initialized. </p> <p>There is a new runtime function <code>class_ivar_set_gcinvisible()</code> which can be used to declare a so-called <em>weak pointer</em> reference. Such a pointer is basically hidden for the garbage collector; this can be useful in certain situations, especially when you want to keep track of the allocated objects, yet allow them to be collected. This kind of pointers can only be members of objects, you cannot declare a global pointer as a weak reference. Every type which is a pointer type can be declared a weak pointer, including <code>id</code>, <code>Class</code> and <code>SEL</code>. </p> <p>Here is an example of how to use this feature. Suppose you want to implement a class whose instances hold a weak pointer reference; the following class does this: </p> <div class="smallexample"> <pre class="smallexample" data-language="cpp">@interface WeakPointer : Object
+{
+    const void* weakPointer;
+}
+
+- initWithPointer:(const void*)p;
+- (const void*)weakPointer;
+@end
+
+
+@implementation WeakPointer
+
++ (void)initialize
+{
+  if (self == objc_lookUpClass ("WeakPointer"))
+    class_ivar_set_gcinvisible (self, "weakPointer", YES);
+}
+
+- initWithPointer:(const void*)p
+{
+  weakPointer = p;
+  return self;
+}
+
+- (const void*)weakPointer
+{
+  return weakPointer;
+}
+
+@end</pre>
+</div> <p>Weak pointers are supported through a new type character specifier represented by the ‘<samp>!</samp>’ character. The <code>class_ivar_set_gcinvisible()</code> function adds or removes this specifier to the string type description of the instance variable named as argument. </p>  <p class="header"> </p>
+<p> Next: <a href="constant-string-objects#Constant-string-objects" accesskey="n" rel="next">Constant string objects</a>, Previous: <a href="type-encoding#Type-encoding" accesskey="p" rel="prev">Type encoding</a>, Up: <a href="objective_002dc#Objective_002dC" accesskey="u" rel="up">Objective-C</a> [<a href="index#SEC_Contents" title="Table of contents" rel="contents">Contents</a>][<a href="https://gcc.gnu.org/onlinedocs/gcc-11.1.0/gcc/Option-Index.html#Option-Index" title="Index" rel="index">Index</a>]</p> <div class="_attribution">
+  <p class="_attribution-p">
+    © Free Software Foundation<br>Licensed under the GNU Free Documentation License, Version 1.3.<br>
+    <a href="https://gcc.gnu.org/onlinedocs/gcc-11.1.0/gcc/Garbage-Collection.html" class="_attribution-link">https://gcc.gnu.org/onlinedocs/gcc-11.1.0/gcc/Garbage-Collection.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
