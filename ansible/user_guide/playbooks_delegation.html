@@ -1,0 +1,186 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Controlling Where Tasks Run&#58; Delegation and Local Actions - Ansible - W3cubDocs</title>
+  
+  <meta name="description" content="By default Ansible gathers facts and executes all tasks on the machines that match the hosts line of your playbook. This page shows you how to &hellip;">
+  <meta name="keywords" content="controlling, where, tasks, run, delegation, and, local, actions, ansible">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/ansible/user_guide/playbooks_delegation.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-9352e6910fe51dd10a2c4166dc5a7847892ebc84c0bb52d7e40dcdccbf262592790483d09e6dbfd62c689609a706227727ca9acb967a718e944c111f43ca96a0.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/ansible.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/ansible/" class="_nav-link" title="" style="margin-left:0;">Ansible</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="playbooks-delegation">Controlling where tasks run: delegation and local actions</h1> <p id="controlling-where-tasks-run-delegation-and-local-actions">By default Ansible gathers facts and executes all tasks on the machines that match the <code>hosts</code> line of your playbook. This page shows you how to delegate tasks to a different machine or group, delegate facts to specific machines or groups, or run an entire playbook locally. Using these approaches, you can manage inter-related environments precisely and efficiently. For example, when updating your webservers, you might need to remove them from a load-balanced pool temporarily. You cannot perform this task on the webservers themselves. By delegating the task to localhost, you keep all the tasks within the same play.</p>  <ul class="simple"> <li><a class="reference internal" href="#tasks-that-cannot-be-delegated" id="id2">Tasks that cannot be delegated</a></li> <li><a class="reference internal" href="#delegating-tasks" id="id3">Delegating tasks</a></li> <li><a class="reference internal" href="#delegating-facts" id="id4">Delegating facts</a></li> <li><a class="reference internal" href="#local-playbooks" id="id5">Local playbooks</a></li> </ul>   <h2 id="tasks-that-cannot-be-delegated">Tasks that cannot be delegated</h2> <p>Some tasks always execute on the controller. These tasks, including <code>include</code>, <code>add_host</code>, and <code>debug</code>, cannot be delegated.</p>   <h2 id="delegation">Delegating tasks</h2> <p id="delegating-tasks">If you want to perform a task on one host with reference to other hosts, use the <code>delegate_to</code> keyword on a task. This is ideal for managing nodes in a load balanced pool or for controlling outage windows. You can use delegation with the <a class="reference internal" href="playbooks_strategies#rolling-update-batch-size"><span class="std std-ref">serial</span></a> keyword to control the number of hosts executing at one time:</p> <pre data-language="YAML+Jinja">---
+- hosts: webservers
+  serial: 5
+
+  tasks:
+    - name: Take out of load balancer pool
+      ansible.builtin.command: /usr/bin/take_out_of_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+
+    - name: Actual steps would go here
+      ansible.builtin.yum:
+        name: acme-web-stack
+        state: latest
+
+    - name: Add back to load balancer pool
+      ansible.builtin.command: /usr/bin/add_back_to_pool {{ inventory_hostname }}
+      delegate_to: 127.0.0.1
+</pre> <p>The first and third tasks in this play run on 127.0.0.1, which is the machine running Ansible. There is also a shorthand syntax that you can use on a per-task basis: <code>local_action</code>. Here is the same playbook as above, but using the shorthand syntax for delegating to 127.0.0.1:</p> <pre data-language="YAML+Jinja">---
+# ...
+
+  tasks:
+    - name: Take out of load balancer pool
+      local_action: ansible.builtin.command /usr/bin/take_out_of_pool {{ inventory_hostname }}
+
+# ...
+
+    - name: Add back to load balancer pool
+      local_action: ansible.builtin.command /usr/bin/add_back_to_pool {{ inventory_hostname }}
+</pre> <p>You can use a local action to call ‘rsync’ to recursively copy files to the managed servers:</p> <pre data-language="YAML+Jinja">---
+# ...
+
+  tasks:
+    - name: Recursively copy files from management server to target
+      local_action: ansible.builtin.command rsync -a /path/to/files {{ inventory_hostname }}:/path/to/target/
+</pre> <p>Note that you must have passphrase-less SSH keys or an ssh-agent configured for this to work, otherwise rsync asks for a passphrase.</p> <p>To specify more arguments, use the following syntax:</p> <pre data-language="YAML+Jinja">---
+# ...
+
+  tasks:
+    - name: Send summary mail
+      local_action:
+        module: community.general.mail
+        subject: "Summary Mail"
+        to: "{{ mail_recipient }}"
+        body: "{{ mail_body }}"
+      run_once: True
+</pre> <p>The <code>ansible_host</code> variable reflects the host a task is delegated to.</p>   <h2 id="delegate-facts">Delegating facts</h2> <p id="delegating-facts">Delegating Ansible tasks is like delegating tasks in the real world - your groceries belong to you, even if someone else delivers them to your home. Similarly, any facts gathered by a delegated task are assigned by default to the <code>inventory_hostname</code> (the current host), not to the host which produced the facts (the delegated to host). To assign gathered facts to the delegated host instead of the current host, set <code>delegate_facts</code> to <code>true</code>:</p> <pre data-language="YAML+Jinja">---
+- hosts: app_servers
+
+  tasks:
+    - name: Gather facts from db servers
+      ansible.builtin.setup:
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ groups['dbservers'] }}"
+</pre> <p>This task gathers facts for the machines in the dbservers group and assigns the facts to those machines, even though the play targets the app_servers group. This way you can lookup <code>hostvars[‘dbhost1’][‘ansible_default_ipv4’][‘address’]</code> even though dbservers were not part of the play, or left out by using <code>–limit</code>.</p>   <h2 id="id1">Local playbooks</h2> <p id="local-playbooks">It may be useful to use a playbook locally on a remote host, rather than by connecting over SSH. This can be useful for assuring the configuration of a system by putting a playbook in a crontab. This may also be used to run a playbook inside an OS installer, such as an Anaconda kickstart.</p> <p>To run an entire playbook locally, just set the <code>hosts:</code> line to <code>hosts: 127.0.0.1</code> and then run the playbook like so:</p> <pre data-language="YAML+Jinja">ansible-playbook playbook.yml --connection=local
+</pre> <p>Alternatively, a local connection can be used in a single playbook play, even if other plays in the playbook use the default remote connection type:</p> <pre data-language="YAML+Jinja">---
+- hosts: 127.0.0.1
+  connection: local
+</pre> <div class="admonition note"> <p class="admonition-title">Note</p> <p>If you set the connection to local and there is no ansible_python_interpreter set, modules will run under /usr/bin/python and not under {{ ansible_playbook_python }}. Be sure to set ansible_python_interpreter: “{{ ansible_playbook_python }}” in host_vars/localhost.yml, for example. You can avoid this issue by using <code>local_action</code> or <code>delegate_to: localhost</code> instead.</p> </div> <div class="admonition seealso"> <p class="admonition-title">See also</p> <dl class="simple"> <dt><a class="reference internal" href="playbooks_intro#playbooks-intro"><span class="std std-ref">Intro to playbooks</span></a></dt>
+<dd>
+<p>An introduction to playbooks</p> </dd> <dt><a class="reference internal" href="playbooks_strategies#playbooks-strategies"><span class="std std-ref">Controlling playbook execution: strategies and more</span></a></dt>
+<dd>
+<p>More ways to control how and where Ansible executes</p> </dd> <dt><a class="reference external" href="https://github.com/ansible/ansible-examples">Ansible Examples on GitHub</a></dt>
+<dd>
+<p>Many examples of full-stack deployments</p> </dd> <dt><a class="reference external" href="https://groups.google.com/group/ansible-devel">User Mailing List</a></dt>
+<dd>
+<p>Have a question? Stop by the google group!</p> </dd> <dt><a class="reference external" href="https://libera.chat/">irc.libera.chat</a></dt>
+<dd>
+<p>#ansible IRC chat channel</p> </dd> </dl> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2012–2018 Michael DeHaan<br>© 2018–2021 Red Hat, Inc.<br>Licensed under the GNU General Public License version 3.<br>
+    <a href="https://docs.ansible.com/ansible/latest/user_guide/playbooks_delegation.html" class="_attribution-link">https://docs.ansible.com/ansible/latest/user_guide/playbooks_delegation.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
