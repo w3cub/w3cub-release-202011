@@ -5,7 +5,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>7. Routing and Code-Splitting - Vue.js 3 - W3cubDocs</title>
+  <title>7. Routing and Code-Splitting (Routing and Code-Splitting) - Vue.js 3 - W3cubDocs</title>
   
   <meta name="description" content="You may have noticed that our server code uses a &#42; handler which accepts arbitrary URLs. This allows us to pass the visited URL into our Vue app &hellip;">
   <meta name="keywords" content="routing, and, code-splitting, vue, js, vue~3">
@@ -14,10 +14,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
-  <link rel="canonical" href="https://docs.w3cub.com/vue~3/guide/ssr/routing.html">
+  <link rel="canonical" href="http://0.0.0.0:4000/vue~3/guide/ssr/routing.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-c2f2e7d1236e299f399a2d9bf4342fa70a8839fbe6eb79130546d6bf383b99636ffdf29c557090085d7c4ac34eeb5426851b42d2f4ec63cf218916cbd19aa876.css">
-  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-7027be4f04554b79f4d8a925e9bd7a86708dfe6857fbadd240bb1f7996fee08f117ad0a10fb6b3e9ac9ffc7f7a3c63f53cf4b251dccd1b1b525dd961a8fde0dd.css">
+  <script src="/assets/application-5ca920deaf070b5b414b2eb0806609179668af70f3416d8b68139598cb91baf939d2e4774bbb7a7d0c9f5a0b2277929d21582d9b861504a201ba06424c4ee537.js" type="text/javascript"></script>
   <script src="/json/vue~3.js"></script>
   
   <script type="text/javascript">
@@ -92,30 +92,44 @@
 <h1 id="routing-and-code-splitting"> Routing and Code-Splitting</h1> <h2 id="routing-with-vue-router"> Routing with <code>vue-router</code>
 </h2> <p>You may have noticed that our server code uses a <code>*</code> handler which accepts arbitrary URLs. This allows us to pass the visited URL into our Vue app, and reuse the same routing config for both client and server!</p> <p>It is recommended to use the official <a href="https://github.com/vuejs/vue-router-next" target="_blank" rel="noopener noreferrer">vue-router<span> <span class="sr-only">(opens new window)</span></span></a> library for this purpose. Let's first create a file where we create the router. Note that similar to application instance, we also need a fresh router instance for each request, so the file exports a <code>createRouter</code> function:</p> <div class="language-js line-numbers-mode">
 <pre class="language-js" data-language="javascript">// router.js
-import { createRouter, createMemoryHistory, createWebHistory } from 'vue-router'
+import { createRouter } from 'vue-router'
 import MyUser from './components/MyUser.vue'
-
-const isServer = typeof window === 'undefined'
-
-const createHistory = isServer ? createMemoryHistory : createWebHistory
 
 const routes = [{ path: '/user', component: MyUser }]
 
-export default function() {
+export default function (history) {
   return createRouter({
-    history: createHistory(),
+    history,
     routes
   })
 }</pre> </div>
-<p>And update our <code>app.js</code>, client and server entries:</p> <div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="javascript">// app.js
+<p>And update our client and server entries:</p> <div class="language-js line-numbers-mode">
+<pre class="language-js" data-language="javascript">// entry-client.js
 import { createSSRApp } from 'vue'
+import { createWebHistory } from 'vue-router'
+import createRouter from './router.js'
 import App from './App.vue'
-import createRouter from './router'
 
-export default function(args) {
+// ...
+
+const app = createSSRApp(App)
+
+const router = createRouter(createWebHistory())
+
+app.use(router)
+
+// ...</pre> </div>
+<div class="language-js line-numbers-mode">
+<pre class="language-js" data-language="javascript">// entry-server.js
+import { createSSRApp } from 'vue'
+// server router uses a different history from the client one
+import { createMemoryHistory } from 'vue-router'
+import createRouter from './router.js'
+import App from './App.vue'
+
+export default function () {
   const app = createSSRApp(App)
-  const router = createRouter()
+  const router = createRouter(createMemoryHistory())
 
   app.use(router)
 
@@ -124,16 +138,6 @@ export default function(args) {
     router
   }
 }</pre> </div>
-<div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="javascript">// entry-client.js
-const { app, router } = createApp({
-  /*...*/
-})</pre> </div>
-<div class="language-js line-numbers-mode">
-<pre class="language-js" data-language="javascript">// entry-server.js
-const { app, router } = createApp({
-  /*...*/
-})</pre> </div>
 <h2 id="code-splitting"> Code-Splitting</h2> <p>Code-splitting, or lazy-loading part of your app, helps reduce the size of assets that need to be downloaded by the browser for the initial render, and can greatly improve TTI (time-to-interactive) for apps with large bundles. The key is "loading just what is needed" for the initial screen.</p> <p>Vue Router provides <a href="https://next.router.vuejs.org/guide/advanced/lazy-loading.html" target="_blank" rel="noopener noreferrer">lazy-loading support<span> <span class="sr-only">(opens new window)</span></span></a>, allowing <a href="https://webpack.js.org/guides/code-splitting-async/" target="_blank" rel="noopener noreferrer">webpack to code-split at that point<span> <span class="sr-only">(opens new window)</span></span></a>. All you need to do is:</p> <div class="language-js line-numbers-mode">
 <pre class="language-js" data-language="javascript">// change this...
 import MyUser from './components/MyUser.vue'
@@ -143,13 +147,18 @@ const routes = [{ path: '/user', component: MyUser }]
 const routes = [
   { path: '/user', component: () =&gt; import('./components/MyUser.vue') }
 ]</pre> </div>
-<p>On both client and server we need to wait for router to resolve async route components ahead of time in order to properly invoke in-component hooks. For this we will be using <a href="https://next.router.vuejs.org/api/#isready" target="_blank" rel="noopener noreferrer">router.isReady<span> <span class="sr-only">(opens new window)</span></span></a> method Let's update our client entry:</p> <div class="language-js line-numbers-mode">
+<p>On both client and server we need to wait for the router to resolve async route components ahead of time in order to properly invoke in-component hooks. For this we will be using the <a href="https://next.router.vuejs.org/api/#isready" target="_blank" rel="noopener noreferrer">router.isReady<span> <span class="sr-only">(opens new window)</span></span></a> method. Let's update our client entry:</p> <div class="language-js line-numbers-mode">
 <pre class="language-js" data-language="javascript">// entry-client.js
-import createApp from './app'
+import { createSSRApp } from 'vue'
+import { createWebHistory } from 'vue-router'
+import createRouter from './router.js'
+import App from './App.vue'
 
-const { app, router } = createApp({
-  /* ... */
-})
+const app = createSSRApp(App)
+
+const router = createRouter(createWebHistory())
+
+app.use(router)
 
 router.isReady().then(() =&gt; {
   app.mount('#app')
