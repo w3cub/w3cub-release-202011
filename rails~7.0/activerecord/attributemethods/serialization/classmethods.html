@@ -1,0 +1,194 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>ActiveRecord&#58;&#58;AttributeMethods&#58;&#58;Serialization&#58;&#58;ClassMethods - Ruby on Rails 7.0 - W3cubDocs</title>
+  
+  <meta name="description" content="If you have an attribute that needs to be saved to the database as a serialized object, and retrieved by deserializing into the same object, then &hellip;">
+  <meta name="keywords" content="module, activerecord, attributemethods, serialization, classmethods, ruby, on, rails, rails~7.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rails~7.0/activerecord/attributemethods/serialization/classmethods.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/rails~7.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rails~7.0/" class="_nav-link" title="" style="margin-left:0;">Ruby on Rails 7.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rdoc">
+				
+				
+<h1 id="module-ActiveRecord::AttributeMethods::Serialization::ClassMethods" class="module"> module ActiveRecord::AttributeMethods::Serialization::ClassMethods </h1>  <section id="5Buntitled-5D" class="documentation-section"> <section id="public-instance-5Buntitled-5D-method-details" class="method-section"> <header> <h3>Public Instance Methods</h3> </header> <div class="method-detail "> <div class="method-heading" id="method-i-serialize"> <span class="method-name">serialize</span><span class="method-args">(attr_name, class_name_or_coder = Object, **options)</span> <a class="method-click-advice">Show source</a> </div> <div class="method-description">
+<div class="method-source-code" id="serialize-source"> <pre class="ruby" data-language="ruby"># File activerecord/lib/active_record/attribute_methods/serialization.rb, line 119
+def serialize(attr_name, class_name_or_coder = Object, **options)
+  # When ::JSON is used, force it to go through the Active Support JSON encoder
+  # to ensure special objects (e.g. Active Record models) are dumped correctly
+  # using the #as_json hook.
+  coder = if class_name_or_coder == ::JSON
+    Coders::JSON
+  elsif [:load, :dump].all? { |x| class_name_or_coder.respond_to?(x) }
+    class_name_or_coder
+  else
+    Coders::YAMLColumn.new(attr_name, class_name_or_coder)
+  end
+
+  attribute(attr_name, **options) do |cast_type|
+    if type_incompatible_with_serialize?(cast_type, class_name_or_coder)
+      raise ColumnNotSerializableError.new(attr_name, cast_type)
+    end
+
+    cast_type = cast_type.subtype if Type::Serialized === cast_type
+    Type::Serialized.new(cast_type, coder)
+  end
+end</pre> </div> <p>If you have an attribute that needs to be saved to the database as a serialized object, and retrieved by deserializing into the same object, then specify the name of that attribute using this method and serialization will be handled automatically.</p> <p>The serialization format may be YAML, JSON, or any custom format using a custom coder class.</p> <h3 id="method-i-serialize-label-Serialization+formats"> formats</h3> <pre>serialize attr_name [, class_name_or_coder]
+
+                     |                           |  database storage   |
+class_name_or_coder  | attribute read/write type | serialized | NULL   |
+---------------------+---------------------------+------------+--------+
+  &lt;not given&gt;        | any value that supports   |    YAML    |        |
+                     |   .to_yaml                |            |        |
+                     |                           |            |        |
+Array                | Array **                  |    YAML    |  []    |
+                     |                           |            |        |
+Hash                 | Hash **                   |    YAML    |  {}    |
+                     |                           |            |        |
+JSON                 | any value that supports   |    JSON    |        |
+                     |   .to_json                |            |        |
+                     |                           |            |        |
+&lt;custom coder class&gt; | any value supported by    |   custom   | custom |
+                     | the custom coder class    |            |        |</pre> <p>** If <code>class_name_or_coder</code> is <code>Array</code> or <code>Hash</code>, values retrieved will always be of that type, and any value assigned must be of that type or <code>SerializationTypeMismatch</code> will be raised.</p> <h4 id="method-i-serialize-label-Custom+coders">Custom coders</h4> <p>A custom coder class or module may be given. This must have <code>self.load</code> and <code>self.dump</code> class/module methods. <code>self.dump(object)</code> will be called to serialize an object and should return the serialized value to be stored in the database (<code>nil</code> to store as <code>NULL</code>). <code>self.load(string)</code> will be called to reverse the process and load (unserialize) from the database.</p> <p>Keep in mind that database adapters handle certain serialization tasks for you. For instance: <code>json</code> and <code>jsonb</code> types in PostgreSQL will be converted between JSON object/array syntax and Ruby <code>Hash</code> or <code>Array</code> objects transparently. There is no need to use <a href="classmethods#method-i-serialize"><code>serialize</code></a> in this case.</p> <p>For more complex cases, such as conversion to or from your application domain objects, consider using the <a href="../../attributes"><code>ActiveRecord::Attributes</code></a> API.</p> <h4 id="method-i-serialize-label-Parameters">Parameters</h4> <ul>
+<li> <p><code>attr_name</code> - The field name that should be serialized.</p> </li>
+<li> <p><code>class_name_or_coder</code> - Optional, may be be <code>Array</code> or <code>Hash</code> or <code>JSON</code> or a custom coder class or module which responds to <code>.load</code> and <code>.dump</code>. See table above.</p> </li>
+</ul> <h4 id="method-i-serialize-label-Options">Options</h4> <p><code>default</code> The default value to use when no value is provided. If this option is not passed, the previous default value (if any) will be used. Otherwise, the default will be <code>nil</code>.</p> <h4 id="method-i-serialize-label-Example">Example</h4> <pre class="ruby" data-language="ruby"># Serialize a preferences attribute using YAML coder.
+class User &lt; ActiveRecord::Base
+  serialize :preferences
+end
+
+# Serialize preferences using JSON as coder.
+class User &lt; ActiveRecord::Base
+  serialize :preferences, JSON
+end
+
+# Serialize preferences as Hash using YAML coder.
+class User &lt; ActiveRecord::Base
+  serialize :preferences, Hash
+end
+
+# Serialize preferences using a custom coder.
+class Rot13JSON
+  def self.rot13(string)
+    string.tr("a-zA-Z", "n-za-mN-ZA-M")
+  end
+
+  # returns serialized string that will be stored in the database
+  def self.dump(object)
+    ActiveSupport::JSON.encode(object).rot13
+  end
+
+  # reverses the above, turning the serialized string from the database
+  # back into its original value
+  def self.load(string)
+    ActiveSupport::JSON.decode(string.rot13)
+  end
+end
+
+class User &lt; ActiveRecord::Base
+  serialize :preferences, Rot13JSON
+end
+</pre>  </div> </div> </section> </section><div class="_attribution">
+  <p class="_attribution-p">
+    © 2004–2021 David Heinemeier Hansson<br>Licensed under the MIT License.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,262 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>ActionDispatch&#58;&#58;IntegrationTest - Ruby on Rails 7.0 - W3cubDocs</title>
+  
+  <meta name="description" content="An integration test spans multiple controllers and actions, tying them all together to ensure they work together as expected. It tests more &hellip;">
+  <meta name="keywords" content="class, actiondispatch, integrationtest, ruby, on, rails, rails~7.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rails~7.0/actiondispatch/integrationtest.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/rails~7.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rails~7.0/" class="_nav-link" title="" style="margin-left:0;">Ruby on Rails 7.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rdoc">
+				
+				
+<h1 id="class-ActionDispatch::IntegrationTest" class="class"> class ActionDispatch::IntegrationTest </h1>
+<dl class="meta">
+<dt>Parent:</dt>
+<dd class="meta-parent"><a href="../activesupport/testcase">ActiveSupport::TestCase</a></dd>
+<dt>Included modules:</dt>
+<dd class="meta-includes">
+<a class="include" href="testprocess/fixturefile">ActionDispatch::TestProcess::FixtureFile</a>, <span class="include">ActionDispatch::IntegrationTest::Behavior</span>
+</dd>
+</dl> <section class="description"> <p>An integration test spans multiple controllers and actions, tying them all together to ensure they work together as expected. It tests more completely than either unit or functional tests do, exercising the entire stack, from the dispatcher to the database.</p> <p>At its simplest, you simply extend <code>IntegrationTest</code> and write your tests using the get/post methods:</p> <pre class="ruby" data-language="ruby">require "test_helper"
+
+class ExampleTest &lt; ActionDispatch::IntegrationTest
+  fixtures :people
+
+  def test_login
+    # get the login page
+    get "/login"
+    assert_equal 200, status
+
+    # post the login and follow through to the home page
+    post "/login", params: { username: people(:jamis).username,
+      password: people(:jamis).password }
+    follow_redirect!
+    assert_equal 200, status
+    assert_equal "/home", path
+  end
+end
+</pre> <p>However, you can also have multiple session instances open per test, and even extend those instances with assertions and methods to create a very powerful testing DSL that is specific for your application. You can even reference any named routes you happen to have defined.</p> <pre>require "test_helper"
+
+class AdvancedTest &lt; ActionDispatch::IntegrationTest
+  fixtures :people, :rooms
+
+  def test_login_and_speak
+    jamis, david = login(:jamis), login(:david)
+    room = rooms(:office)
+
+    jamis.enter(room)
+    jamis.speak(room, "anybody home?")
+
+    david.enter(room)
+    david.speak(room, "hello!")
+  end
+
+  private
+
+    module CustomAssertions
+      def enter(room)
+        # reference a named route, for maximum internal consistency!
+        get(room_url(id: room.id))
+        assert(...)
+        ...
+      end
+
+      def speak(room, message)
+        post "/say/#{room.id}", xhr: true, params: { message: message }
+        assert(...)
+        ...
+      end
+    end
+
+    def login(who)
+      open_session do |sess|
+        sess.extend(CustomAssertions)
+        who = people(who)
+        sess.post "/login", params: { username: who.username,
+          password: who.password }
+        assert(...)
+      end
+    end
+end</pre> <p>Another longer example would be:</p> <p>A simple integration test that exercises multiple controllers:</p> <pre class="ruby" data-language="ruby">require "test_helper"
+
+class UserFlowsTest &lt; ActionDispatch::IntegrationTest
+  test "login and browse site" do
+    # login via https
+    https!
+    get "/login"
+    assert_response :success
+
+    post "/login", params: { username: users(:david).username, password: users(:david).password }
+    follow_redirect!
+    assert_equal '/welcome', path
+    assert_equal 'Welcome david!', flash[:notice]
+
+    https!(false)
+    get "/articles/all"
+    assert_response :success
+    assert_select 'h1', 'Articles'
+  end
+end
+</pre> <p>As you can see the integration test involves multiple controllers and exercises the entire stack from database to dispatcher. In addition you can have multiple session instances open simultaneously in a test and extend those instances with assertion methods to create a very powerful testing DSL (domain-specific language) just for your application.</p> <p>Here's an example of multiple sessions and custom DSL in an integration test</p> <pre class="ruby" data-language="ruby">require "test_helper"
+
+class UserFlowsTest &lt; ActionDispatch::IntegrationTest
+  test "login and browse site" do
+    # User david logs in
+    david = login(:david)
+    # User guest logs in
+    guest = login(:guest)
+
+    # Both are now available in different sessions
+    assert_equal 'Welcome david!', david.flash[:notice]
+    assert_equal 'Welcome guest!', guest.flash[:notice]
+
+    # User david can browse site
+    david.browses_site
+    # User guest can browse site as well
+    guest.browses_site
+
+    # Continue with other assertions
+  end
+
+  private
+
+    module CustomDsl
+      def browses_site
+        get "/products/all"
+        assert_response :success
+        assert_select 'h1', 'Products'
+      end
+    end
+
+    def login(user)
+      open_session do |sess|
+        sess.extend(CustomDsl)
+        u = users(user)
+        sess.https!
+        sess.post "/login", params: { username: u.username, password: u.password }
+        assert_equal '/welcome', sess.path
+        sess.https!(false)
+      end
+    end
+end
+</pre> <p>See the <a href="integration/requesthelpers">request helpers documentation</a> for help on how to use <code>get</code>, etc.</p> <h3 id="class-ActionDispatch::IntegrationTest-label-Changing+the+request+encoding">Changing the request encoding</h3> <p>You can also test your JSON API easily by setting what the request should be encoded as:</p> <pre class="ruby" data-language="ruby">require "test_helper"
+
+class ApiTest &lt; ActionDispatch::IntegrationTest
+  test "creates articles" do
+    assert_difference -&gt; { Article.count } do
+      post articles_path, params: { article: { title: "Ahoy!" } }, as: :json
+    end
+
+    assert_response :success
+    assert_equal({ id: Article.last.id, title: "Ahoy!" }, response.parsed_body)
+  end
+end
+</pre> <p>The <code>as</code> option passes an “application/json” Accept header (thereby setting the request format to JSON unless overridden), sets the content type to “application/json” and encodes the parameters as JSON.</p> <p>Calling <code>parsed_body</code> on the response parses the response body based on the last response MIME type.</p> <p>Out of the box, only <code>:json</code> is supported. But for any custom MIME types you've registered, you can add your own encoders with:</p> <pre class="ruby" data-language="ruby">ActionDispatch::IntegrationTest.register_encoder :wibble,
+  param_encoder: -&gt; params { params.to_wibble },
+  response_parser: -&gt; body { body }
+</pre> <p>Where <code>param_encoder</code> defines how the params should be encoded and <code>response_parser</code> defines how the response body should be parsed through <code>parsed_body</code>.</p> <p>Consult the Rails Testing Guide for more.</p> </section> <div class="_attribution">
+  <p class="_attribution-p">
+    © 2004–2021 David Heinemeier Hansson<br>Licensed under the MIT License.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

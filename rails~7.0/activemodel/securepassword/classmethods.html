@@ -1,0 +1,175 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>ActiveModel&#58;&#58;SecurePassword&#58;&#58;ClassMethods - Ruby on Rails 7.0 - W3cubDocs</title>
+  
+  <meta name="description" content="Adds methods to set and authenticate against a BCrypt password. This mechanism requires you to have a XXX_digest attribute. Where XXX is the &hellip;">
+  <meta name="keywords" content="module, activemodel, securepassword, classmethods, ruby, on, rails, rails~7.0">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/rails~7.0/activemodel/securepassword/classmethods.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/rails~7.0.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/rails~7.0/" class="_nav-link" title="" style="margin-left:0;">Ruby on Rails 7.0</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _rdoc">
+				
+				
+<h1 id="module-ActiveModel::SecurePassword::ClassMethods" class="module"> module ActiveModel::SecurePassword::ClassMethods </h1>
+<dl class="meta">
+<dt>Included modules:</dt>
+<dd class="meta-includes"><a class="include" href="../validations">ActiveModel::Validations</a></dd>
+</dl>  <section id="5Buntitled-5D" class="documentation-section"> <section id="public-instance-5Buntitled-5D-method-details" class="method-section"> <header> <h3>Public Instance Methods</h3> </header> <div class="method-detail "> <div class="method-heading" id="method-i-has_secure_password"> <span class="method-name">has_secure_password</span><span class="method-args">(attribute = :password, validations: true)</span> <a class="method-click-advice">Show source</a> </div> <div class="method-description">
+<div class="method-source-code" id="has_secure_password-source"> <pre class="ruby" data-language="ruby"># File activemodel/lib/active_model/secure_password.rb, line 61
+def has_secure_password(attribute = :password, validations: true)
+  # Load bcrypt gem only when has_secure_password is used.
+  # This is to avoid ActiveModel (and by extension the entire framework)
+  # being dependent on a binary library.
+  begin
+    require "bcrypt"
+  rescue LoadError
+    $stderr.puts "You don't have bcrypt installed in your application. Please add it to your Gemfile and run bundle install"
+    raise
+  end
+
+  include InstanceMethodsOnActivation.new(attribute)
+
+  if validations
+    include ActiveModel::Validations
+
+    # This ensures the model has a password by checking whether the password_digest
+    # is present, so that this works with both new and existing records. However,
+    # when there is an error, the message is added to the password attribute instead
+    # so that the error message will make sense to the end-user.
+    validate do |record|
+      record.errors.add(attribute, :blank) unless record.public_send("#{attribute}_digest").present?
+    end
+
+    validates_length_of attribute, maximum: ActiveModel::SecurePassword::MAX_PASSWORD_LENGTH_ALLOWED
+    validates_confirmation_of attribute, allow_blank: true
+  end
+end</pre> </div> <p>Adds methods to set and authenticate against a BCrypt password. This mechanism requires you to have a <code>XXX_digest</code> attribute. Where <code>XXX</code> is the attribute name of your desired password.</p> <p>The following validations are added automatically:</p> <ul>
+<li> <p>Password must be present on creation</p> </li>
+<li> <p>Password length should be less than or equal to 72 bytes</p> </li>
+<li> <p>Confirmation of password (using a <code>XXX_confirmation</code> attribute)</p> </li>
+</ul> <p>If confirmation validation is not needed, simply leave out the value for <code>XXX_confirmation</code> (i.e. don't provide a form field for it). When this attribute has a <code>nil</code> value, the validation will not be triggered.</p> <p>For further customizability, it is possible to suppress the default validations by passing <code>validations: false</code> as an argument.</p> <p>Add bcrypt (~&gt; 3.1.7) to Gemfile to use <a href="classmethods#method-i-has_secure_password"><code>has_secure_password</code></a>:</p> <pre class="ruby" data-language="ruby">gem 'bcrypt', '~&gt; 3.1.7'
+</pre> <p>Example using Active Record (which automatically includes <a href="../securepassword"><code>ActiveModel::SecurePassword</code></a>):</p> <pre class="ruby" data-language="ruby"># Schema: User(name:string, password_digest:string, recovery_password_digest:string)
+class User &lt; ActiveRecord::Base
+  has_secure_password
+  has_secure_password :recovery_password, validations: false
+end
+
+user = User.new(name: 'david', password: '', password_confirmation: 'nomatch')
+user.save                                                  # =&gt; false, password required
+user.password = 'mUc3m00RsqyRe'
+user.save                                                  # =&gt; false, confirmation doesn't match
+user.password_confirmation = 'mUc3m00RsqyRe'
+user.save                                                  # =&gt; true
+user.recovery_password = "42password"
+user.recovery_password_digest                              # =&gt; "$2a$04$iOfhwahFymCs5weB3BNH/uXkTG65HR.qpW.bNhEjFP3ftli3o5DQC"
+user.save                                                  # =&gt; true
+user.authenticate('notright')                              # =&gt; false
+user.authenticate('mUc3m00RsqyRe')                         # =&gt; user
+user.authenticate_recovery_password('42password')          # =&gt; user
+User.find_by(name: 'david')&amp;.authenticate('notright')      # =&gt; false
+User.find_by(name: 'david')&amp;.authenticate('mUc3m00RsqyRe') # =&gt; user
+</pre>  </div> </div> </section> </section><div class="_attribution">
+  <p class="_attribution-p">
+    © 2004–2021 David Heinemeier Hansson<br>Licensed under the MIT License.<br>
+    
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
