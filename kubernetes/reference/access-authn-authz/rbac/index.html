@@ -1,0 +1,509 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Using RBAC Authorization - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Role-based access control (RBAC) is a method of regulating access to computer or network resources based on the roles of individual users within &hellip;">
+  <meta name="keywords" content="using, rbac, authorization, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/reference/access-authn-authz/rbac/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Using RBAC Authorization</h1>  <p>Role-based access control (RBAC) is a method of regulating access to computer or network resources based on the roles of individual users within your organization.</p>  <p>RBAC authorization uses the <code>rbac.authorization.k8s.io</code> <a class="glossary-tooltip" title="A set of related paths in the Kubernetes API." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/kubernetes-api/index#api-groups-and-versioning" target="_blank" aria-label="API group">API group</a> to drive authorization decisions, allowing you to dynamically configure policies through the Kubernetes API.</p> <p>To enable RBAC, start the <a class="glossary-tooltip" title="Control plane component that serves the Kubernetes API." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/components/index#kube-apiserver" target="_blank" aria-label="API server">API server</a> with the <code>--authorization-mode</code> flag set to a comma-separated list that includes <code>RBAC</code>; for example:</p> <pre class="highlight" data-language="shell">kube-apiserver --authorization-mode=Example,RBAC --other-options --more-options
+</pre>
+<h2 id="api-overview">API objects</h2> <p>The RBAC API declares four kinds of Kubernetes object: <em>Role</em>, <em>ClusterRole</em>, <em>RoleBinding</em> and <em>ClusterRoleBinding</em>. You can <a href="../../../concepts/overview/working-with-objects/kubernetes-objects/index#understanding-kubernetes-objects">describe objects</a>, or amend them, using tools such as <code>kubectl,</code> just like any other Kubernetes object.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> These objects, by design, impose access restrictions. If you are making changes to a cluster as you learn, see <a href="#privilege-escalation-prevention-and-bootstrapping">privilege escalation prevention and bootstrapping</a> to understand how those restrictions can prevent you making some changes. </div> <h3 id="role-and-clusterrole">Role and ClusterRole</h3> <p>An RBAC <em>Role</em> or <em>ClusterRole</em> contains rules that represent a set of permissions. Permissions are purely additive (there are no "deny" rules).</p> <p>A Role always sets permissions within a particular <a class="glossary-tooltip" title="An abstraction used by Kubernetes to support multiple virtual clusters on the same physical cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/namespaces" target="_blank" aria-label="namespace">namespace</a>; when you create a Role, you have to specify the namespace it belongs in.</p> <p>ClusterRole, by contrast, is a non-namespaced resource. The resources have different names (Role and ClusterRole) because a Kubernetes object always has to be either namespaced or not namespaced; it can't be both.</p> <p>ClusterRoles have several uses. You can use a ClusterRole to:</p> <ol> <li>define permissions on namespaced resources and be granted within individual namespace(s)</li> <li>define permissions on namespaced resources and be granted across all namespaces</li> <li>define permissions on cluster-scoped resources</li> </ol> <p>If you want to define a role within a namespace, use a Role; if you want to define a role cluster-wide, use a ClusterRole.</p> <h4 id="role-example">Role example</h4> <p>Here's an example Role in the "default" namespace that can be used to grant read access to <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/pods/index" target="_blank" aria-label="pods">pods</a>:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+</pre>
+<h4 id="clusterrole-example">ClusterRole example</h4> <p>A ClusterRole can be used to grant the same permissions as a Role. Because ClusterRoles are cluster-scoped, you can also use them to grant access to:</p> <ul> <li> <p>cluster-scoped resources (like <a class="glossary-tooltip" title="A node is a worker machine in Kubernetes." data-toggle="tooltip" data-placement="top" href="../../../concepts/architecture/nodes/index" target="_blank" aria-label="nodes">nodes</a>)</p> </li> <li> <p>non-resource endpoints (like <code>/healthz</code>)</p> </li> <li> <p>namespaced resources (like Pods), across all namespaces</p> <p>For example: you can use a ClusterRole to allow a particular user to run <code>kubectl get pods --all-namespaces</code></p> </li> </ul> <p>Here is an example of a ClusterRole that can be used to grant read access to <a class="glossary-tooltip" title="Stores sensitive information, such as passwords, OAuth tokens, and ssh keys." data-toggle="tooltip" data-placement="top" href="../../../concepts/configuration/secret/index" target="_blank" aria-label="secrets">secrets</a> in any particular namespace, or across all namespaces (depending on how it is <a href="#rolebinding-and-clusterrolebinding">bound</a>):</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: secret-reader
+rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing Secret
+  # objects is "secrets"
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+</pre>
+<p>The name of a Role or a ClusterRole object must be a valid <a href="../../../concepts/overview/working-with-objects/names#path-segment-names">path segment name</a>.</p> <h3 id="rolebinding-and-clusterrolebinding">RoleBinding and ClusterRoleBinding</h3> <p>A role binding grants the permissions defined in a role to a user or set of users. It holds a list of <em>subjects</em> (users, groups, or service accounts), and a reference to the role being granted. A RoleBinding grants permissions within a specific namespace whereas a ClusterRoleBinding grants that access cluster-wide.</p> <p>A RoleBinding may reference any Role in the same namespace. Alternatively, a RoleBinding can reference a ClusterRole and bind that ClusterRole to the namespace of the RoleBinding. If you want to bind a ClusterRole to all the namespaces in your cluster, you use a ClusterRoleBinding.</p> <p>The name of a RoleBinding or ClusterRoleBinding object must be a valid <a href="../../../concepts/overview/working-with-objects/names#path-segment-names">path segment name</a>.</p> <h4 id="rolebinding-example">RoleBinding examples</h4> <p>Here is an example of a RoleBinding that grants the "pod-reader" Role to the user "jane" within the "default" namespace. This allows "jane" to read pods in the "default" namespace.</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+# This role binding allows "jane" to read pods in the "default" namespace.
+# You need to already have a Role named "pod-reader" in that namespace.
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+# You can specify more than one "subject"
+- kind: User
+  name: jane # "name" is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  # "roleRef" specifies the binding to a Role / ClusterRole
+  kind: Role #this must be Role or ClusterRole
+  name: pod-reader # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>A RoleBinding can also reference a ClusterRole to grant the permissions defined in that ClusterRole to resources inside the RoleBinding's namespace. This kind of reference lets you define a set of common roles across your cluster, then reuse them within multiple namespaces.</p> <p>For instance, even though the following RoleBinding refers to a ClusterRole, "dave" (the subject, case sensitive) will only be able to read Secrets in the "development" namespace, because the RoleBinding's namespace (in its metadata) is "development".</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+# This role binding allows "dave" to read secrets in the "development" namespace.
+# You need to already have a ClusterRole named "secret-reader".
+kind: RoleBinding
+metadata:
+  name: read-secrets
+  #
+  # The namespace of the RoleBinding determines where the permissions are granted.
+  # This only grants permissions within the "development" namespace.
+  namespace: development
+subjects:
+- kind: User
+  name: dave # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<h4 id="clusterrolebinding-example">ClusterRoleBinding example</h4> <p>To grant permissions across a whole cluster, you can use a ClusterRoleBinding. The following ClusterRoleBinding allows any user in the group "manager" to read secrets in any namespace.</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+# This cluster role binding allows anyone in the "manager" group to read secrets in any namespace.
+kind: ClusterRoleBinding
+metadata:
+  name: read-secrets-global
+subjects:
+- kind: Group
+  name: manager # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secret-reader
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>After you create a binding, you cannot change the Role or ClusterRole that it refers to. If you try to change a binding's <code>roleRef</code>, you get a validation error. If you do want to change the <code>roleRef</code> for a binding, you need to remove the binding object and create a replacement.</p> <p>There are two reasons for this restriction:</p> <ol> <li>Making <code>roleRef</code> immutable allows granting someone <code>update</code> permission on an existing binding object, so that they can manage the list of subjects, without being able to change the role that is granted to those subjects.</li> <li>A binding to a different role is a fundamentally different binding. Requiring a binding to be deleted/recreated in order to change the <code>roleRef</code> ensures the full list of subjects in the binding is intended to be granted the new role (as opposed to enabling or accidentally modifying only the roleRef without verifying all of the existing subjects should be given the new role's permissions).</li> </ol> <p>The <code>kubectl auth reconcile</code> command-line utility creates or updates a manifest file containing RBAC objects, and handles deleting and recreating binding objects if required to change the role they refer to. See <a href="#kubectl-auth-reconcile">command usage and examples</a> for more information.</p> <h3 id="referring-to-resources">Referring to resources</h3> <p>In the Kubernetes API, most resources are represented and accessed using a string representation of their object name, such as <code>pods</code> for a Pod. RBAC refers to resources using exactly the same name that appears in the URL for the relevant API endpoint. Some Kubernetes APIs involve a <em>subresource</em>, such as the logs for a Pod. A request for a Pod's logs looks like:</p> <pre class="highlight" data-language="http">GET /api/v1/namespaces/{namespace}/pods/{name}/log
+</pre>
+<p>In this case, <code>pods</code> is the namespaced resource for Pod resources, and <code>log</code> is a subresource of <code>pods</code>. To represent this in an RBAC role, use a slash (<code>/</code>) to delimit the resource and subresource. To allow a subject to read <code>pods</code> and also access the <code>log</code> subresource for each of those Pods, you write:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-and-pod-logs-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list"]
+</pre>
+<p>You can also refer to resources by name for certain requests through the <code>resourceNames</code> list. When specified, requests can be restricted to individual instances of a resource. Here is an example that restricts its subject to only <code>get</code> or <code>update</code> a <a class="glossary-tooltip" title="An API object used to store non-confidential data in key-value pairs. Can be consumed as environment variables, command-line arguments, or configuration files in a volume." data-toggle="tooltip" data-placement="top" href="../../../concepts/configuration/configmap/index" target="_blank" aria-label="ConfigMap">ConfigMap</a> named <code>my-configmap</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: configmap-updater
+rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing ConfigMap
+  # objects is "configmaps"
+  resources: ["configmaps"]
+  resourceNames: ["my-configmap"]
+  verbs: ["update", "get"]
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> You cannot restrict <code>create</code> or <code>deletecollection</code> requests by their resource name. For <code>create</code>, this limitation is because the name of the new object may not be known at authorization time. If you restrict <code>list</code> or <code>watch</code> by resourceName, clients must include a <code>metadata.name</code> field selector in their <code>list</code> or <code>watch</code> request that matches the specified resourceName in order to be authorized. For example, <code>kubectl get configmaps --field-selector=metadata.name=my-configmap</code> </div> <h3 id="aggregated-clusterroles">Aggregated ClusterRoles</h3> <p>You can <em>aggregate</em> several ClusterRoles into one combined ClusterRole. A controller, running as part of the cluster control plane, watches for ClusterRole objects with an <code>aggregationRule</code> set. The <code>aggregationRule</code> defines a label <a class="glossary-tooltip" title="Allows users to filter a list of resources based on labels." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/labels/index" target="_blank" aria-label="selector">selector</a> that the controller uses to match other ClusterRole objects that should be combined into the <code>rules</code> field of this one.</p> <p>Here is an example aggregated ClusterRole:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      rbac.example.com/aggregate-to-monitoring: "true"
+rules: [] # The control plane automatically fills in the rules
+</pre>
+<p>If you create a new ClusterRole that matches the label selector of an existing aggregated ClusterRole, that change triggers adding the new rules into the aggregated ClusterRole. Here is an example that adds rules to the "monitoring" ClusterRole, by creating another ClusterRole labeled <code>rbac.example.com/aggregate-to-monitoring: true</code>.</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-endpoints
+  labels:
+    rbac.example.com/aggregate-to-monitoring: "true"
+# When you create the "monitoring-endpoints" ClusterRole,
+# the rules below will be added to the "monitoring" ClusterRole.
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch"]
+</pre>
+<p>The <a href="#default-roles-and-role-bindings">default user-facing roles</a> use ClusterRole aggregation. This lets you, as a cluster administrator, include rules for custom resources, such as those served by <a class="glossary-tooltip" title="Custom code that defines a resource to add to your Kubernetes API server without building a complete custom server." data-toggle="tooltip" data-placement="top" href="../../../tasks/extend-kubernetes/custom-resources/custom-resource-definitions/index" target="_blank" aria-label="CustomResourceDefinitions">CustomResourceDefinitions</a> or aggregated API servers, to extend the default roles.</p> <p>For example: the following ClusterRoles let the "admin" and "edit" default roles manage the custom resource named CronTab, whereas the "view" role can perform only read actions on CronTab resources. You can assume that CronTab objects are named <code>"crontabs"</code> in URLs as seen by the API server.</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aggregate-cron-tabs-edit
+  labels:
+    # Add these permissions to the "admin" and "edit" default roles.
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+- apiGroups: ["stable.example.com"]
+  resources: ["crontabs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: aggregate-cron-tabs-view
+  labels:
+    # Add these permissions to the "view" default role.
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+- apiGroups: ["stable.example.com"]
+  resources: ["crontabs"]
+  verbs: ["get", "list", "watch"]
+</pre>
+<h4 id="role-examples">Role examples</h4> <p>The following examples are excerpts from Role or ClusterRole objects, showing only the <code>rules</code> section.</p> <p>Allow reading <code>"pods"</code> resources in the core <a class="glossary-tooltip" title="A set of related paths in the Kubernetes API." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/kubernetes-api/index#api-groups-and-versioning" target="_blank" aria-label="API Group">API Group</a>:</p> <pre class="highlight" data-language="yaml">rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing Pod
+  # objects is "pods"
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+</pre>
+<p>Allow reading/writing Deployments (at the HTTP level: objects with <code>"deployments"</code> in the resource part of their URL) in both the <code>"extensions"</code> and <code>"apps"</code> API groups:</p> <pre class="highlight" data-language="yaml">rules:
+- apiGroups: ["extensions", "apps"]
+  #
+  # at the HTTP level, the name of the resource for accessing Deployment
+  # objects is "deployments"
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+</pre>
+<p>Allow reading Pods in the core API group, as well as reading or writing Job resources in the <code>"batch"</code> or <code>"extensions"</code> API groups:</p> <pre class="highlight" data-language="yaml">rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing Pod
+  # objects is "pods"
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch", "extensions"]
+  #
+  # at the HTTP level, the name of the resource for accessing Job
+  # objects is "jobs"
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+</pre>
+<p>Allow reading a ConfigMap named "my-config" (must be bound with a RoleBinding to limit to a single ConfigMap in a single namespace):</p> <pre class="highlight" data-language="yaml">rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing ConfigMap
+  # objects is "configmaps"
+  resources: ["configmaps"]
+  resourceNames: ["my-config"]
+  verbs: ["get"]
+</pre>
+<p>Allow reading the resource <code>"nodes"</code> in the core group (because a Node is cluster-scoped, this must be in a ClusterRole bound with a ClusterRoleBinding to be effective):</p> <pre class="highlight" data-language="yaml">rules:
+- apiGroups: [""]
+  #
+  # at the HTTP level, the name of the resource for accessing Node
+  # objects is "nodes"
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+</pre>
+<p>Allow GET and POST requests to the non-resource endpoint <code>/healthz</code> and all subpaths (must be in a ClusterRole bound with a ClusterRoleBinding to be effective):</p> <pre class="highlight" data-language="yaml">rules:
+- nonResourceURLs: ["/healthz", "/healthz/*"] # '*' in a nonResourceURL is a suffix glob match
+  verbs: ["get", "post"]
+</pre>
+<h3 id="referring-to-subjects">Referring to subjects</h3> <p>A RoleBinding or ClusterRoleBinding binds a role to subjects. Subjects can be groups, users or <a class="glossary-tooltip" title="Provides an identity for processes that run in a Pod." data-toggle="tooltip" data-placement="top" href="../../../tasks/configure-pod-container/configure-service-account/index" target="_blank" aria-label="ServiceAccounts">ServiceAccounts</a>.</p> <p>Kubernetes represents usernames as strings. These can be: plain names, such as "alice"; email-style names, like "bob@example.com"; or numeric user IDs represented as a string. It is up to you as a cluster administrator to configure the <a href="../authentication/index">authentication modules</a> so that authentication produces usernames in the format you want.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> The prefix <code>system:</code> is reserved for Kubernetes system use, so you should ensure that you don't have users or groups with names that start with <code>system:</code> by accident. Other than this special prefix, the RBAC authorization system does not require any format for usernames. </div> <p>In Kubernetes, Authenticator modules provide group information. Groups, like users, are represented as strings, and that string has no format requirements, other than that the prefix <code>system:</code> is reserved.</p> <p><a href="../../../tasks/configure-pod-container/configure-service-account/index">ServiceAccounts</a> have names prefixed with <code>system:serviceaccount:</code>, and belong to groups that have names prefixed with <code>system:serviceaccounts:</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <ul> <li>
+<code>system:serviceaccount:</code> (singular) is the prefix for service account usernames.</li> <li>
+<code>system:serviceaccounts:</code> (plural) is the prefix for service account groups.</li> </ul> </div> <h4 id="role-binding-examples">RoleBinding examples</h4> <p>The following examples are <code>RoleBinding</code> excerpts that only show the <code>subjects</code> section.</p> <p>For a user named <code>alice@example.com</code>:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: User
+  name: "alice@example.com"
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For a group named <code>frontend-admins</code>:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: "frontend-admins"
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For the default service account in the "kube-system" namespace:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+</pre>
+<p>For all service accounts in the "qa" group in any namespace:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:serviceaccounts:qa
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For all service accounts in the "dev" group in the "development" namespace:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:serviceaccounts:dev
+  apiGroup: rbac.authorization.k8s.io
+  namespace: development
+</pre>
+<p>For all service accounts in any namespace:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:serviceaccounts
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For all authenticated users:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For all unauthenticated users:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<p>For all users:</p> <pre class="highlight" data-language="yaml">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+<h2 id="default-roles-and-role-bindings">Default roles and role bindings</h2> <p>API servers create a set of default ClusterRole and ClusterRoleBinding objects. Many of these are <code>system:</code> prefixed, which indicates that the resource is directly managed by the cluster control plane. All of the default ClusterRoles and ClusterRoleBindings are labeled with <code>kubernetes.io/bootstrapping=rbac-defaults</code>.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> Take care when modifying ClusterRoles and ClusterRoleBindings with names that have a <code>system:</code> prefix. Modifications to these resources can result in non-functional clusters. </div> <h3 id="auto-reconciliation">Auto-reconciliation</h3> <p>At each start-up, the API server updates default cluster roles with any missing permissions, and updates default cluster role bindings with any missing subjects. This allows the cluster to repair accidental modifications, and helps to keep roles and role bindings up-to-date as permissions and subjects change in new Kubernetes releases.</p> <p>To opt out of this reconciliation, set the <code>rbac.authorization.kubernetes.io/autoupdate</code> annotation on a default cluster role or rolebinding to <code>false</code>. Be aware that missing default permissions and subjects can result in non-functional clusters.</p> <p>Auto-reconciliation is enabled by default if the RBAC authorizer is active.</p> <h3 id="discovery-roles">API discovery roles</h3> <p>Default role bindings authorize unauthenticated and authenticated users to read API information that is deemed safe to be publicly accessible (including CustomResourceDefinitions). To disable anonymous unauthenticated access, add <code>--anonymous-auth=false</code> to the API server configuration.</p> <p>To view the configuration of these roles via <code>kubectl</code> run:</p> <pre class="highlight" data-language="shell">kubectl get clusterroles system:discovery -o yaml
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> If you edit that ClusterRole, your changes will be overwritten on API server restart via <a href="#auto-reconciliation">auto-reconciliation</a>. To avoid that overwriting, either do not manually edit the role, or disable auto-reconciliation. </div> <table> <caption>Kubernetes RBAC API discovery roles</caption> <colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col>
+</colgroup> <thead> <tr> <th>Default ClusterRole</th> <th>Default ClusterRoleBinding</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><b>system:basic-user</b></td> <td>
+<b>system:authenticated</b> group</td> <td>Allows a user read-only access to basic information about themselves. Prior to v1.14, this role was also bound to <tt>system:unauthenticated</tt> by default.</td> </tr> <tr> <td><b>system:discovery</b></td> <td>
+<b>system:authenticated</b> group</td> <td>Allows read-only access to API discovery endpoints needed to discover and negotiate an API level. Prior to v1.14, this role was also bound to <tt>system:unauthenticated</tt> by default.</td> </tr> <tr> <td><b>system:public-info-viewer</b></td> <td>
+<b>system:authenticated</b> and <b>system:unauthenticated</b> groups</td> <td>Allows read-only access to non-sensitive information about the cluster. Introduced in Kubernetes v1.14.</td> </tr> </tbody> </table> <h3 id="user-facing-roles">User-facing roles</h3> <p>Some of the default ClusterRoles are not <code>system:</code> prefixed. These are intended to be user-facing roles. They include super-user roles (<code>cluster-admin</code>), roles intended to be granted cluster-wide using ClusterRoleBindings, and roles intended to be granted within particular namespaces using RoleBindings (<code>admin</code>, <code>edit</code>, <code>view</code>).</p> <p>User-facing ClusterRoles use <a href="#aggregated-clusterroles">ClusterRole aggregation</a> to allow admins to include rules for custom resources on these ClusterRoles. To add rules to the <code>admin</code>, <code>edit</code>, or <code>view</code> roles, create a ClusterRole with one or more of the following labels:</p> <pre class="highlight" data-language="yaml">metadata:
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+</pre>
+<table> <colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col>
+</colgroup> <thead> <tr> <th>Default ClusterRole</th> <th>Default ClusterRoleBinding</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><b>cluster-admin</b></td> <td>
+<b>system:masters</b> group</td> <td>Allows super-user access to perform any action on any resource. When used in a <b>ClusterRoleBinding</b>, it gives full control over every resource in the cluster and in all namespaces. When used in a <b>RoleBinding</b>, it gives full control over every resource in the role binding's namespace, including the namespace itself.</td> </tr> <tr> <td><b>admin</b></td> <td>None</td> <td>Allows admin access, intended to be granted within a namespace using a <b>RoleBinding</b>. <p>If used in a <b>RoleBinding</b>, allows read/write access to most resources in a namespace, including the ability to create roles and role bindings within the namespace. This role does not allow write access to resource quota or to the namespace itself. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. More information is available in the <a href="#write-access-for-endpoints">"Write Access for Endpoints" section</a>.</p>
+</td> </tr> <tr> <td><b>edit</b></td> <td>None</td> <td>Allows read/write access to most objects in a namespace. <p>This role does not allow viewing or modifying roles or role bindings. However, this role allows accessing Secrets and running Pods as any ServiceAccount in the namespace, so it can be used to gain the API access levels of any ServiceAccount in the namespace. This role also does not allow write access to Endpoints in clusters created using Kubernetes v1.22+. More information is available in the <a href="#write-access-for-endpoints">"Write Access for Endpoints" section</a>.</p>
+</td> </tr> <tr> <td><b>view</b></td> <td>None</td> <td>Allows read-only access to see most objects in a namespace. It does not allow viewing roles or role bindings. <p>This role does not allow viewing Secrets, since reading the contents of Secrets enables access to ServiceAccount credentials in the namespace, which would allow API access as any ServiceAccount in the namespace (a form of privilege escalation).</p>
+</td> </tr> </tbody> </table> <h3 id="core-component-roles">Core component roles</h3> <table> <colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col>
+</colgroup> <thead> <tr> <th>Default ClusterRole</th> <th>Default ClusterRoleBinding</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><b>system:kube-scheduler</b></td> <td>
+<b>system:kube-scheduler</b> user</td> <td>Allows access to the resources required by the <a class="glossary-tooltip" title="Control plane component that watches for newly created pods with no assigned node, and selects a node for them to run on." data-toggle="tooltip" data-placement="top" href="../../command-line-tools-reference/kube-scheduler/index" target="_blank" aria-label="scheduler">scheduler</a> component.</td> </tr> <tr> <td><b>system:volume-scheduler</b></td> <td>
+<b>system:kube-scheduler</b> user</td> <td>Allows access to the volume resources required by the kube-scheduler component.</td> </tr> <tr> <td><b>system:kube-controller-manager</b></td> <td>
+<b>system:kube-controller-manager</b> user</td> <td>Allows access to the resources required by the <a class="glossary-tooltip" title="Control Plane component that runs controller processes." data-toggle="tooltip" data-placement="top" href="../../command-line-tools-reference/kube-controller-manager/index" target="_blank" aria-label="controller manager">controller manager</a> component. The permissions required by individual controllers are detailed in the <a href="#controller-roles">controller roles</a>.</td> </tr> <tr> <td><b>system:node</b></td> <td>None</td> <td>Allows access to resources required by the kubelet, <b>including read access to all secrets, and write access to all pod status objects</b>. <p>You should use the <a href="../node/index">Node authorizer</a> and <a href="../admission-controllers/index#noderestriction">NodeRestriction admission plugin</a> instead of the <tt>system:node</tt> role, and allow granting API access to kubelets based on the Pods scheduled to run on them.</p> <p>The <tt>system:node</tt> role only exists for compatibility with Kubernetes clusters upgraded from versions prior to v1.8.</p> </td> </tr> <tr> <td><b>system:node-proxier</b></td> <td>
+<b>system:kube-proxy</b> user</td> <td>Allows access to the resources required by the <a class="glossary-tooltip" title="kube-proxy is a network proxy that runs on each node in the cluster." data-toggle="tooltip" data-placement="top" href="../../command-line-tools-reference/kube-proxy/index" target="_blank" aria-label="kube-proxy">kube-proxy</a> component.</td> </tr> </tbody> </table> <h3 id="other-component-roles">Other component roles</h3> <table> <colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col>
+</colgroup> <thead> <tr> <th>Default ClusterRole</th> <th>Default ClusterRoleBinding</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><b>system:auth-delegator</b></td> <td>None</td> <td>Allows delegated authentication and authorization checks. This is commonly used by add-on API servers for unified authentication and authorization.</td> </tr> <tr> <td><b>system:heapster</b></td> <td>None</td> <td>Role for the <a href="https://github.com/kubernetes/heapster">Heapster</a> component (deprecated).</td> </tr> <tr> <td><b>system:kube-aggregator</b></td> <td>None</td> <td>Role for the <a href="https://github.com/kubernetes/kube-aggregator">kube-aggregator</a> component.</td> </tr> <tr> <td><b>system:kube-dns</b></td> <td>
+<b>kube-dns</b> service account in the <b>kube-system</b> namespace</td> <td>Role for the <a href="../../../concepts/services-networking/dns-pod-service/index">kube-dns</a> component.</td> </tr> <tr> <td><b>system:kubelet-api-admin</b></td> <td>None</td> <td>Allows full access to the kubelet API.</td> </tr> <tr> <td><b>system:node-bootstrapper</b></td> <td>None</td> <td>Allows access to the resources required to perform <a href="../../command-line-tools-reference/kubelet-tls-bootstrapping/index">kubelet TLS bootstrapping</a>.</td> </tr> <tr> <td><b>system:node-problem-detector</b></td> <td>None</td> <td>Role for the <a href="https://github.com/kubernetes/node-problem-detector">node-problem-detector</a> component.</td> </tr> <tr> <td><b>system:persistent-volume-provisioner</b></td> <td>None</td> <td>Allows access to the resources required by most <a href="../../../concepts/storage/persistent-volumes/index#dynamic">dynamic volume provisioners</a>.</td> </tr> <tr> <td><b>system:monitoring</b></td> <td>
+<b>system:monitoring</b> group</td> <td>Allows read access to control-plane monitoring endpoints (i.e. <a class="glossary-tooltip" title="Control plane component that serves the Kubernetes API." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/components/index#kube-apiserver" target="_blank" aria-label="kube-apiserver">kube-apiserver</a> liveness and readiness endpoints (<tt>/healthz</tt>, <tt>/livez</tt>, <tt>/readyz</tt>), the individual health-check endpoints (<tt>/healthz/*</tt>, <tt>/livez/*</tt>, <tt>/readyz/*</tt>), and <tt>/metrics</tt>). Note that individual health check endpoints and the metric endpoint may expose sensitive information.</td> </tr> </tbody> </table> <h3 id="controller-roles">Roles for built-in controllers</h3> <p>The Kubernetes <a class="glossary-tooltip" title="Control Plane component that runs controller processes." data-toggle="tooltip" data-placement="top" href="../../command-line-tools-reference/kube-controller-manager/index" target="_blank" aria-label="controller manager">controller manager</a> runs <a class="glossary-tooltip" title="A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state." data-toggle="tooltip" data-placement="top" href="../../../concepts/architecture/controller/index" target="_blank" aria-label="controllers">controllers</a> that are built in to the Kubernetes control plane. When invoked with <code>--use-service-account-credentials</code>, kube-controller-manager starts each controller using a separate service account. Corresponding roles exist for each built-in controller, prefixed with <code>system:controller:</code>. If the controller manager is not started with <code>--use-service-account-credentials</code>, it runs all control loops using its own credential, which must be granted all the relevant roles. These roles include:</p> <ul> <li><code>system:controller:attachdetach-controller</code></li> <li><code>system:controller:certificate-controller</code></li> <li><code>system:controller:clusterrole-aggregation-controller</code></li> <li><code>system:controller:cronjob-controller</code></li> <li><code>system:controller:daemon-set-controller</code></li> <li><code>system:controller:deployment-controller</code></li> <li><code>system:controller:disruption-controller</code></li> <li><code>system:controller:endpoint-controller</code></li> <li><code>system:controller:expand-controller</code></li> <li><code>system:controller:generic-garbage-collector</code></li> <li><code>system:controller:horizontal-pod-autoscaler</code></li> <li><code>system:controller:job-controller</code></li> <li><code>system:controller:namespace-controller</code></li> <li><code>system:controller:node-controller</code></li> <li><code>system:controller:persistent-volume-binder</code></li> <li><code>system:controller:pod-garbage-collector</code></li> <li><code>system:controller:pv-protection-controller</code></li> <li><code>system:controller:pvc-protection-controller</code></li> <li><code>system:controller:replicaset-controller</code></li> <li><code>system:controller:replication-controller</code></li> <li><code>system:controller:resourcequota-controller</code></li> <li><code>system:controller:root-ca-cert-publisher</code></li> <li><code>system:controller:route-controller</code></li> <li><code>system:controller:service-account-controller</code></li> <li><code>system:controller:service-controller</code></li> <li><code>system:controller:statefulset-controller</code></li> <li><code>system:controller:ttl-controller</code></li> </ul> <h2 id="privilege-escalation-prevention-and-bootstrapping">Privilege escalation prevention and bootstrapping</h2> <p>The RBAC API prevents users from escalating privileges by editing roles or role bindings. Because this is enforced at the API level, it applies even when the RBAC authorizer is not in use.</p> <h3 id="restrictions-on-role-creation-or-update">Restrictions on role creation or update</h3> <p>You can only create/update a role if at least one of the following things is true:</p> <ol> <li>You already have all the permissions contained in the role, at the same scope as the object being modified (cluster-wide for a ClusterRole, within the same namespace or cluster-wide for a Role).</li> <li>You are granted explicit permission to perform the <code>escalate</code> verb on the <code>roles</code> or <code>clusterroles</code> resource in the <code>rbac.authorization.k8s.io</code> API group.</li> </ol> <p>For example, if <code>user-1</code> does not have the ability to list Secrets cluster-wide, they cannot create a ClusterRole containing that permission. To allow a user to create/update roles:</p> <ol> <li>Grant them a role that allows them to create/update Role or ClusterRole objects, as desired.</li> <li>Grant them permission to include specific permissions in the roles they create/update: <ul> <li>implicitly, by giving them those permissions (if they attempt to create or modify a Role or ClusterRole with permissions they themselves have not been granted, the API request will be forbidden)</li> <li>or explicitly allow specifying any permission in a <code>Role</code> or <code>ClusterRole</code> by giving them permission to perform the <code>escalate</code> verb on <code>roles</code> or <code>clusterroles</code> resources in the <code>rbac.authorization.k8s.io</code> API group</li> </ul> </li> </ol> <h3 id="restrictions-on-role-binding-creation-or-update">Restrictions on role binding creation or update</h3> <p>You can only create/update a role binding if you already have all the permissions contained in the referenced role (at the same scope as the role binding) <em>or</em> if you have been authorized to perform the <code>bind</code> verb on the referenced role. For example, if <code>user-1</code> does not have the ability to list Secrets cluster-wide, they cannot create a ClusterRoleBinding to a role that grants that permission. To allow a user to create/update role bindings:</p> <ol> <li>Grant them a role that allows them to create/update RoleBinding or ClusterRoleBinding objects, as desired.</li> <li>Grant them permissions needed to bind a particular role: <ul> <li>implicitly, by giving them the permissions contained in the role.</li> <li>explicitly, by giving them permission to perform the <code>bind</code> verb on the particular Role (or ClusterRole).</li> </ul> </li> </ol> <p>For example, this ClusterRole and RoleBinding would allow <code>user-1</code> to grant other users the <code>admin</code>, <code>edit</code>, and <code>view</code> roles in the namespace <code>user-1-namespace</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: role-grantor
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings"]
+  verbs: ["create"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles"]
+  verbs: ["bind"]
+  # omit resourceNames to allow binding any ClusterRole
+  resourceNames: ["admin","edit","view"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: role-grantor-binding
+  namespace: user-1-namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: role-grantor
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: user-1
+</pre>
+<p>When bootstrapping the first roles and role bindings, it is necessary for the initial user to grant permissions they do not yet have. To bootstrap initial roles and role bindings:</p> <ul> <li>Use a credential with the "system:masters" group, which is bound to the "cluster-admin" super-user role by the default bindings.</li> <li>If your API server runs with the insecure port enabled (<code>--insecure-port</code>), you can also make API calls via that port, which does not enforce authentication or authorization.</li> </ul> <h2 id="command-line-utilities">Command-line utilities</h2> <h3 id="kubectl-create-role"><code>kubectl create role</code></h3> <p>Creates a Role object defining permissions within a single namespace. Examples:</p> <ul> <li> <p>Create a Role named "pod-reader" that allows users to perform <code>get</code>, <code>watch</code> and <code>list</code> on pods:</p> <pre class="highlight" data-language="shell">kubectl create role pod-reader --verb=get --verb=list --verb=watch --resource=pods
+</pre>
+</li> <li> <p>Create a Role named "pod-reader" with resourceNames specified:</p> <pre class="highlight" data-language="shell">kubectl create role pod-reader --verb=get --resource=pods --resource-name=readablepod --resource-name=anotherpod
+</pre>
+</li> <li> <p>Create a Role named "foo" with apiGroups specified:</p> <pre class="highlight" data-language="shell">kubectl create role foo --verb=get,list,watch --resource=replicasets.apps
+</pre>
+</li> <li> <p>Create a Role named "foo" with subresource permissions:</p> <pre class="highlight" data-language="shell">kubectl create role foo --verb=get,list,watch --resource=pods,pods/status
+</pre>
+</li> <li> <p>Create a Role named "my-component-lease-holder" with permissions to get/update a resource with a specific name:</p> <pre class="highlight" data-language="shell">kubectl create role my-component-lease-holder --verb=get,list,watch,update --resource=lease --resource-name=my-component
+</pre>
+</li> </ul> <h3 id="kubectl-create-clusterrole"><code>kubectl create clusterrole</code></h3> <p>Creates a ClusterRole. Examples:</p> <ul> <li> <p>Create a ClusterRole named "pod-reader" that allows user to perform <code>get</code>, <code>watch</code> and <code>list</code> on pods:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole pod-reader --verb=get,list,watch --resource=pods
+</pre>
+</li> <li> <p>Create a ClusterRole named "pod-reader" with resourceNames specified:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole pod-reader --verb=get --resource=pods --resource-name=readablepod --resource-name=anotherpod
+</pre>
+</li> <li> <p>Create a ClusterRole named "foo" with apiGroups specified:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole foo --verb=get,list,watch --resource=replicasets.apps
+</pre>
+</li> <li> <p>Create a ClusterRole named "foo" with subresource permissions:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole foo --verb=get,list,watch --resource=pods,pods/status
+</pre>
+</li> <li> <p>Create a ClusterRole named "foo" with nonResourceURL specified:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole "foo" --verb=get --non-resource-url=/logs/*
+</pre>
+</li> <li> <p>Create a ClusterRole named "monitoring" with an aggregationRule specified:</p> <pre class="highlight" data-language="shell">kubectl create clusterrole monitoring --aggregation-rule="rbac.example.com/aggregate-to-monitoring=true"
+</pre>
+</li> </ul> <h3 id="kubectl-create-rolebinding"><code>kubectl create rolebinding</code></h3> <p>Grants a Role or ClusterRole within a specific namespace. Examples:</p> <ul> <li> <p>Within the namespace "acme", grant the permissions in the "admin" ClusterRole to a user named "bob":</p> <pre class="highlight" data-language="shell">kubectl create rolebinding bob-admin-binding --clusterrole=admin --user=bob --namespace=acme
+</pre>
+</li> <li> <p>Within the namespace "acme", grant the permissions in the "view" ClusterRole to the service account in the namespace "acme" named "myapp":</p> <pre class="highlight" data-language="shell">kubectl create rolebinding myapp-view-binding --clusterrole=view --serviceaccount=acme:myapp --namespace=acme
+</pre>
+</li> <li> <p>Within the namespace "acme", grant the permissions in the "view" ClusterRole to a service account in the namespace "myappnamespace" named "myapp":</p> <pre class="highlight" data-language="shell">kubectl create rolebinding myappnamespace-myapp-view-binding --clusterrole=view --serviceaccount=myappnamespace:myapp --namespace=acme
+</pre>
+</li> </ul> <h3 id="kubectl-create-clusterrolebinding"><code>kubectl create clusterrolebinding</code></h3> <p>Grants a ClusterRole across the entire cluster (all namespaces). Examples:</p> <ul> <li> <p>Across the entire cluster, grant the permissions in the "cluster-admin" ClusterRole to a user named "root":</p> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding root-cluster-admin-binding --clusterrole=cluster-admin --user=root
+</pre>
+</li> <li> <p>Across the entire cluster, grant the permissions in the "system:node-proxier" ClusterRole to a user named "system:kube-proxy":</p> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding kube-proxy-binding --clusterrole=system:node-proxier --user=system:kube-proxy
+</pre>
+</li> <li> <p>Across the entire cluster, grant the permissions in the "view" ClusterRole to a service account named "myapp" in the namespace "acme":</p> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding myapp-view-binding --clusterrole=view --serviceaccount=acme:myapp
+</pre>
+</li> </ul> <h3 id="kubectl-auth-reconcile"><code>kubectl auth reconcile</code></h3> <p>Creates or updates <code>rbac.authorization.k8s.io/v1</code> API objects from a manifest file.</p> <p>Missing objects are created, and the containing namespace is created for namespaced objects, if required.</p> <p>Existing roles are updated to include the permissions in the input objects, and remove extra permissions if <code>--remove-extra-permissions</code> is specified.</p> <p>Existing bindings are updated to include the subjects in the input objects, and remove extra subjects if <code>--remove-extra-subjects</code> is specified.</p> <p>Examples:</p> <ul> <li> <p>Test applying a manifest file of RBAC objects, displaying changes that would be made:</p> <pre><code>kubectl auth reconcile -f my-rbac-rules.yaml --dry-run=client
+</code></pre>
+</li> <li> <p>Apply a manifest file of RBAC objects, preserving any extra permissions (in roles) and any extra subjects (in bindings):</p> <pre class="highlight" data-language="shell">kubectl auth reconcile -f my-rbac-rules.yaml
+</pre>
+</li> <li> <p>Apply a manifest file of RBAC objects, removing any extra permissions (in roles) and any extra subjects (in bindings):</p> <pre class="highlight" data-language="shell">kubectl auth reconcile -f my-rbac-rules.yaml --remove-extra-subjects --remove-extra-permissions
+</pre>
+</li> </ul> <h2 id="service-account-permissions">ServiceAccount permissions</h2> <p>Default RBAC policies grant scoped permissions to control-plane components, nodes, and controllers, but grant <em>no permissions</em> to service accounts outside the <code>kube-system</code> namespace (beyond discovery permissions given to all authenticated users).</p> <p>This allows you to grant particular roles to particular ServiceAccounts as needed. Fine-grained role bindings provide greater security, but require more effort to administrate. Broader grants can give unnecessary (and potentially escalating) API access to ServiceAccounts, but are easier to administrate.</p> <p>In order from most secure to least secure, the approaches are:</p> <ol> <li> <p>Grant a role to an application-specific service account (best practice)</p> <p>This requires the application to specify a <code>serviceAccountName</code> in its pod spec, and for the service account to be created (via the API, application manifest, <code>kubectl create serviceaccount</code>, etc.).</p> <p>For example, grant read-only permission within "my-namespace" to the "my-sa" service account:</p> <pre class="highlight" data-language="shell">kubectl create rolebinding my-sa-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:my-sa \
+  --namespace=my-namespace
+</pre>
+</li> <li> <p>Grant a role to the "default" service account in a namespace</p> <p>If an application does not specify a <code>serviceAccountName</code>, it uses the "default" service account.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Permissions given to the "default" service account are available to any pod in the namespace that does not specify a <code>serviceAccountName</code>. </div> <p>For example, grant read-only permission within "my-namespace" to the "default" service account:</p> <pre class="highlight" data-language="shell">kubectl create rolebinding default-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:default \
+  --namespace=my-namespace
+</pre>
+<p>Many <a href="https://kubernetes.io/docs/concepts/cluster-administration/addons/">add-ons</a> run as the "default" service account in the <code>kube-system</code> namespace. To allow those add-ons to run with super-user access, grant cluster-admin permissions to the "default" service account in the <code>kube-system</code> namespace.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> Enabling this means the <code>kube-system</code> namespace contains Secrets that grant super-user access to your cluster's API. </div> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding add-on-cluster-admin \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:default
+</pre>
+</li> <li> <p>Grant a role to all service accounts in a namespace</p> <p>If you want all applications in a namespace to have a role, no matter what service account they use, you can grant a role to the service account group for that namespace.</p> <p>For example, grant read-only permission within "my-namespace" to all service accounts in that namespace:</p> <pre class="highlight" data-language="shell">kubectl create rolebinding serviceaccounts-view \
+  --clusterrole=view \
+  --group=system:serviceaccounts:my-namespace \
+  --namespace=my-namespace
+</pre>
+</li> <li> <p>Grant a limited role to all service accounts cluster-wide (discouraged)</p> <p>If you don't want to manage permissions per-namespace, you can grant a cluster-wide role to all service accounts.</p> <p>For example, grant read-only permission across all namespaces to all service accounts in the cluster:</p> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding serviceaccounts-view \
+  --clusterrole=view \
+ --group=system:serviceaccounts
+</pre>
+</li> <li> <p>Grant super-user access to all service accounts cluster-wide (strongly discouraged)</p> <p>If you don't care about partitioning permissions at all, you can grant super-user access to all service accounts.</p> <div class="alert alert-danger warning callout" role="alert"> <strong>Warning:</strong> This allows any application full access to your cluster, and also grants any user with read access to Secrets (or the ability to create any pod) full access to your cluster. </div> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding serviceaccounts-cluster-admin \
+  --clusterrole=cluster-admin \
+  --group=system:serviceaccounts
+</pre>
+</li> </ol> <h2 id="write-access-for-endpoints">Write access for Endpoints</h2> <p>Kubernetes clusters created before Kubernetes v1.22 include write access to Endpoints in the aggregated "edit" and "admin" roles. As a mitigation for <a href="https://github.com/kubernetes/kubernetes/issues/103675">CVE-2021-25740</a>, this access is not part of the aggregated roles in clusters that you create using Kubernetes v1.22 or later.</p> <p>Existing clusters that have been upgraded to Kubernetes v1.22 will not be subject to this change. The <a href="https://github.com/kubernetes/kubernetes/issues/103675">CVE announcement</a> includes guidance for restricting this access in existing clusters.</p> <p>If you want new clusters to retain this level of access in the aggregated roles, you can create the following ClusterRole:</p> <pre class="highlight" data-language="">access/endpoints-aggregated.yaml</pre> <h2 id="upgrading-from-abac">Upgrading from ABAC</h2> <p>Clusters that originally ran older Kubernetes versions often used permissive ABAC policies, including granting full API access to all service accounts.</p> <p>Default RBAC policies grant scoped permissions to control-plane components, nodes, and controllers, but grant <em>no permissions</em> to service accounts outside the <code>kube-system</code> namespace (beyond discovery permissions given to all authenticated users).</p> <p>While far more secure, this can be disruptive to existing workloads expecting to automatically receive API permissions. Here are two approaches for managing this transition:</p> <h3 id="parallel-authorizers">Parallel authorizers</h3> <p>Run both the RBAC and ABAC authorizers, and specify a policy file that contains the <a href="../abac/index#policy-file-format">legacy ABAC policy</a>:</p> <pre><code>--authorization-mode=...,RBAC,ABAC --authorization-policy-file=mypolicy.json
+</code></pre>
+<p>To explain that first command line option in detail: if earlier authorizers, such as Node, deny a request, then the RBAC authorizer attempts to authorize the API request. If RBAC also denies that API request, the ABAC authorizer is then run. This means that any request allowed by <em>either</em> the RBAC or ABAC policies is allowed.</p> <p>When the kube-apiserver is run with a log level of 5 or higher for the RBAC component (<code>--vmodule=rbac*=5</code> or <code>--v=5</code>), you can see RBAC denials in the API server log (prefixed with <code>RBAC</code>). You can use that information to determine which roles need to be granted to which users, groups, or service accounts.</p> <p>Once you have <a href="#service-account-permissions">granted roles to service accounts</a> and workloads are running with no RBAC denial messages in the server logs, you can remove the ABAC authorizer.</p> <h3 id="permissive-rbac-permissions">Permissive RBAC permissions</h3> <p>You can replicate a permissive ABAC policy using RBAC role bindings.</p> <div class="alert alert-danger warning callout" role="alert"> <strong>Warning:</strong> <p>The following policy allows <strong>ALL</strong> service accounts to act as cluster administrators. Any application running in a container receives service account credentials automatically, and could perform any action against the API, including viewing secrets and modifying permissions. This is not a recommended policy.</p> <pre class="highlight" data-language="shell">kubectl create clusterrolebinding permissive-binding \
+  --clusterrole=cluster-admin \
+  --user=admin \
+  --user=kubelet \
+  --group=system:serviceaccounts
+</pre> </div> <p>After you have transitioned to use RBAC, you should adjust the access controls for your cluster to ensure that these meet your information security needs.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/" class="_attribution-link">https://kubernetes.io/docs/reference/access-authn-authz/rbac/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

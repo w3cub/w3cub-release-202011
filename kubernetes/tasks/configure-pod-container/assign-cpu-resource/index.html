@@ -1,0 +1,164 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Assign CPU Resources to Containers and Pods - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="This page shows how to assign a CPU request and a CPU limit to a container. Containers cannot use more CPU than the configured limit. Provided the &hellip;">
+  <meta name="keywords" content="assign, cpu, resources, containers, and, pods, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/configure-pod-container/assign-cpu-resource/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Assign CPU Resources to Containers and Pods</h1>  <p>This page shows how to assign a CPU <em>request</em> and a CPU <em>limit</em> to a container. Containers cannot use more CPU than the configured limit. Provided the system has CPU time free, a container is guaranteed to be allocated as much CPU as it requests.</p> <h2 id="before-you-begin">Before you begin</h2> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>. <p>Your cluster must have at least 1 CPU available for use to run the task examples.</p> <p>A few of the steps on this page require you to run the <a href="https://github.com/kubernetes-sigs/metrics-server">metrics-server</a> service in your cluster. If you have the metrics-server running, you can skip those steps.</p> <p>If you are running <a class="glossary-tooltip" title="A tool for running Kubernetes locally." data-toggle="tooltip" data-placement="top" href="../../../setup/learning-environment/minikube/index" target="_blank" aria-label="Minikube">Minikube</a>, run the following command to enable metrics-server:</p> <pre class="highlight" data-language="shell">minikube addons enable metrics-server
+</pre>
+<p>To see whether metrics-server (or another provider of the resource metrics API, <code>metrics.k8s.io</code>) is running, type the following command:</p> <pre class="highlight" data-language="shell">kubectl get apiservices
+</pre>
+<p>If the resource metrics API is available, the output will include a reference to <code>metrics.k8s.io</code>.</p> <pre><code>NAME
+v1beta1.metrics.k8s.io
+</code></pre> <h2 id="create-a-namespace">Create a namespace</h2> <p>Create a <a class="glossary-tooltip" title="An abstraction used by Kubernetes to support multiple virtual clusters on the same physical cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/namespaces" target="_blank" aria-label="Namespace">Namespace</a> so that the resources you create in this exercise are isolated from the rest of your cluster.</p> <pre class="highlight" data-language="shell">kubectl create namespace cpu-example
+</pre>
+<h2 id="specify-a-cpu-request-and-a-cpu-limit">Specify a CPU request and a CPU limit</h2> <p>To specify a CPU request for a container, include the <code>resources:requests</code> field in the Container resource manifest. To specify a CPU limit, include <code>resources:limits</code>.</p> <p>In this exercise, you create a Pod that has one container. The container has a request of 0.5 CPU and a limit of 1 CPU. Here is the configuration file for the Pod:</p> <pre class="highlight" data-language="">pods/resource/cpu-request-limit.yaml</pre> <p>The <code>args</code> section of the configuration file provides arguments for the container when it starts. The <code>-cpus "2"</code> argument tells the Container to attempt to use 2 CPUs.</p> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/resource/cpu-request-limit.yaml --namespace=cpu-example
+</pre>
+<p>Verify that the Pod is running:</p> <pre class="highlight" data-language="shell">kubectl get pod cpu-demo --namespace=cpu-example
+</pre>
+<p>View detailed information about the Pod:</p> <pre class="highlight" data-language="shell">kubectl get pod cpu-demo --output=yaml --namespace=cpu-example
+</pre>
+<p>The output shows that the one container in the Pod has a CPU request of 500 milliCPU and a CPU limit of 1 CPU.</p> <pre class="highlight" data-language="yaml">resources:
+  limits:
+    cpu: "1"
+  requests:
+    cpu: 500m
+</pre>
+<p>Use <code>kubectl top</code> to fetch the metrics for the pod:</p> <pre class="highlight" data-language="shell">kubectl top pod cpu-demo --namespace=cpu-example
+</pre>
+<p>This example output shows that the Pod is using 974 milliCPU, which is slightly less than the limit of 1 CPU specified in the Pod configuration.</p> <pre><code>NAME                        CPU(cores)   MEMORY(bytes)
+cpu-demo                    974m         &lt;something&gt;
+</code></pre>
+<p>Recall that by setting <code>-cpu "2"</code>, you configured the Container to attempt to use 2 CPUs, but the Container is only being allowed to use about 1 CPU. The container's CPU use is being throttled, because the container is attempting to use more CPU resources than its limit.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Another possible explanation for the CPU use being below 1.0 is that the Node might not have enough CPU resources available. Recall that the prerequisites for this exercise require your cluster to have at least 1 CPU available for use. If your Container runs on a Node that has only 1 CPU, the Container cannot use more than 1 CPU regardless of the CPU limit specified for the Container. </div> <h2 id="cpu-units">CPU units</h2> <p>The CPU resource is measured in <em>CPU</em> units. One CPU, in Kubernetes, is equivalent to:</p> <ul> <li>1 AWS vCPU</li> <li>1 GCP Core</li> <li>1 Azure vCore</li> <li>1 Hyperthread on a bare-metal Intel processor with Hyperthreading</li> </ul> <p>Fractional values are allowed. A Container that requests 0.5 CPU is guaranteed half as much CPU as a Container that requests 1 CPU. You can use the suffix m to mean milli. For example 100m CPU, 100 milliCPU, and 0.1 CPU are all the same. Precision finer than 1m is not allowed.</p> <p>CPU is always requested as an absolute quantity, never as a relative quantity; 0.1 is the same amount of CPU on a single-core, dual-core, or 48-core machine.</p> <p>Delete your Pod:</p> <pre class="highlight" data-language="shell">kubectl delete pod cpu-demo --namespace=cpu-example
+</pre>
+<h2 id="specify-a-cpu-request-that-is-too-big-for-your-nodes">Specify a CPU request that is too big for your Nodes</h2> <p>CPU requests and limits are associated with Containers, but it is useful to think of a Pod as having a CPU request and limit. The CPU request for a Pod is the sum of the CPU requests for all the Containers in the Pod. Likewise, the CPU limit for a Pod is the sum of the CPU limits for all the Containers in the Pod.</p> <p>Pod scheduling is based on requests. A Pod is scheduled to run on a Node only if the Node has enough CPU resources available to satisfy the Pod CPU request.</p> <p>In this exercise, you create a Pod that has a CPU request so big that it exceeds the capacity of any Node in your cluster. Here is the configuration file for a Pod that has one Container. The Container requests 100 CPU, which is likely to exceed the capacity of any Node in your cluster.</p> <pre class="highlight" data-language="">pods/resource/cpu-request-limit-2.yaml</pre> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/resource/cpu-request-limit-2.yaml --namespace=cpu-example
+</pre>
+<p>View the Pod status:</p> <pre class="highlight" data-language="shell">kubectl get pod cpu-demo-2 --namespace=cpu-example
+</pre>
+<p>The output shows that the Pod status is Pending. That is, the Pod has not been scheduled to run on any Node, and it will remain in the Pending state indefinitely:</p> <pre><code>NAME         READY     STATUS    RESTARTS   AGE
+cpu-demo-2   0/1       Pending   0          7m
+</code></pre>
+<p>View detailed information about the Pod, including events:</p> <pre class="highlight" data-language="shell">kubectl describe pod cpu-demo-2 --namespace=cpu-example
+</pre>
+<p>The output shows that the Container cannot be scheduled because of insufficient CPU resources on the Nodes:</p> <pre><code>Events:
+  Reason                        Message
+  ------                        -------
+  FailedScheduling      No nodes are available that match all of the following predicates:: Insufficient cpu (3).
+</code></pre>
+<p>Delete your Pod:</p> <pre class="highlight" data-language="shell">kubectl delete pod cpu-demo-2 --namespace=cpu-example
+</pre>
+<h2 id="if-you-do-not-specify-a-cpu-limit">If you do not specify a CPU limit</h2> <p>If you do not specify a CPU limit for a Container, then one of these situations applies:</p> <ul> <li> <p>The Container has no upper bound on the CPU resources it can use. The Container could use all of the CPU resources available on the Node where it is running.</p> </li> <li> <p>The Container is running in a namespace that has a default CPU limit, and the Container is automatically assigned the default limit. Cluster administrators can use a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#limitrange-v1-core/">LimitRange</a> to specify a default value for the CPU limit.</p> </li> </ul> <h2 id="if-you-specify-a-cpu-limit-but-do-not-specify-a-cpu-request">If you specify a CPU limit but do not specify a CPU request</h2> <p>If you specify a CPU limit for a Container but do not specify a CPU request, Kubernetes automatically assigns a CPU request that matches the limit. Similarly, if a Container specifies its own memory limit, but does not specify a memory request, Kubernetes automatically assigns a memory request that matches the limit.</p> <h2 id="motivation-for-cpu-requests-and-limits">Motivation for CPU requests and limits</h2> <p>By configuring the CPU requests and limits of the Containers that run in your cluster, you can make efficient use of the CPU resources available on your cluster Nodes. By keeping a Pod CPU request low, you give the Pod a good chance of being scheduled. By having a CPU limit that is greater than the CPU request, you accomplish two things:</p> <ul> <li>The Pod can have bursts of activity where it makes use of CPU resources that happen to be available.</li> <li>The amount of CPU resources a Pod can use during a burst is limited to some reasonable amount.</li> </ul> <h2 id="clean-up">Clean up</h2> <p>Delete your namespace:</p> <pre class="highlight" data-language="shell">kubectl delete namespace cpu-example
+</pre>
+<h2 id="what-s-next">What's next</h2> <h3 id="for-app-developers">For app developers</h3> <ul> <li> <p><a href="../assign-memory-resource/index">Assign Memory Resources to Containers and Pods</a></p> </li> <li> <p><a href="../quality-service-pod/index">Configure Quality of Service for Pods</a></p> </li> </ul> <h3 id="for-cluster-administrators">For cluster administrators</h3> <ul> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/">Configure Default Memory Requests and Limits for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/">Configure Default CPU Requests and Limits for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/">Configure Minimum and Maximum Memory Constraints for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/">Configure Minimum and Maximum CPU Constraints for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/">Configure Memory and CPU Quotas for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-pod-namespace/">Configure a Pod Quota for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/quota-api-object/">Configure Quotas for API Objects</a></p> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/" class="_attribution-link">https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

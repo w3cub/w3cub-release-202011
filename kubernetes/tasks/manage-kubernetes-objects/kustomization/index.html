@@ -1,0 +1,854 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Declarative Management of Kubernetes Objects Using Kustomize - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" Kustomize is a standalone tool to customize Kubernetes objects through a kustomization file. ">
+  <meta name="keywords" content="declarative, management, kubernetes, objects, using, kustomize">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/manage-kubernetes-objects/kustomization/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Declarative Management of Kubernetes Objects Using Kustomize</h1>  <p><a href="https://github.com/kubernetes-sigs/kustomize">Kustomize</a> is a standalone tool to customize Kubernetes objects through a <a href="https://kubectl.docs.kubernetes.io/references/kustomize/glossary/#kustomization">kustomization file</a>.</p> <p>Since 1.14, Kubectl also supports the management of Kubernetes objects using a kustomization file. To view Resources found in a directory containing a kustomization file, run the following command:</p> <pre class="highlight" data-language="shell">kubectl kustomize &lt;kustomization_directory&gt;
+</pre>
+<p>To apply those Resources, run <code>kubectl apply</code> with <code>--kustomize</code> or <code>-k</code> flag:</p> <pre class="highlight" data-language="shell">kubectl apply -k &lt;kustomization_directory&gt;
+</pre>
+<h2 id="before-you-begin">Before you begin</h2> <p>Install <a href="../../tools/index"><code>kubectl</code></a>.</p> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>.  <h2 id="overview-of-kustomize">Overview of Kustomize</h2> <p>Kustomize is a tool for customizing Kubernetes configurations. It has the following features to manage application configuration files:</p> <ul> <li>generating resources from other sources</li> <li>setting cross-cutting fields for resources</li> <li>composing and customizing collections of resources</li> </ul> <h3 id="generating-resources">Generating Resources</h3> <p>ConfigMaps and Secrets hold configuration or sensitive data that are used by other Kubernetes objects, such as Pods. The source of truth of ConfigMaps or Secrets are usually external to a cluster, such as a <code>.properties</code> file or an SSH keyfile. Kustomize has <code>secretGenerator</code> and <code>configMapGenerator</code>, which generate Secret and ConfigMap from files or literals.</p> <h4 id="configmapgenerator">configMapGenerator</h4> <p>To generate a ConfigMap from a file, add an entry to the <code>files</code> list in <code>configMapGenerator</code>. Here is an example of generating a ConfigMap with a data item from a <code>.properties</code> file:</p> <pre class="highlight" data-language="shell"># Create a application.properties file
+cat &lt;&lt;EOF &gt;application.properties
+FOO=Bar
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+configMapGenerator:
+- name: example-configmap-1
+  files:
+  - application.properties
+EOF
+</pre>
+<p>The generated ConfigMap can be examined with the following command:</p> <pre class="highlight" data-language="shell">kubectl kustomize ./
+</pre>
+<p>The generated ConfigMap is:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  application.properties: |
+        FOO=Bar
+kind: ConfigMap
+metadata:
+  name: example-configmap-1-8mbdf7882g
+</pre>
+<p>To generate a ConfigMap from an env file, add an entry to the <code>envs</code> list in <code>configMapGenerator</code>. This can also be used to set values from local environment variables by omitting the <code>=</code> and the value.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> It's recommended to use the local environment variable population functionality sparingly - an overlay with a patch is often more maintainable. Setting values from the environment may be useful when they cannot easily be predicted, such as a git SHA. </div> <p>Here is an example of generating a ConfigMap with a data item from a <code>.env</code> file:</p> <pre class="highlight" data-language="shell"># Create a .env file
+# BAZ will be populated from the local environment variable $BAZ
+cat &lt;&lt;EOF &gt;.env
+FOO=Bar
+BAZ
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+configMapGenerator:
+- name: example-configmap-1
+  envs:
+  - .env
+EOF
+</pre>
+<p>The generated ConfigMap can be examined with the following command:</p> <pre class="highlight" data-language="shell">BAZ=Qux kubectl kustomize ./
+</pre>
+<p>The generated ConfigMap is:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  BAZ: Qux
+  FOO: Bar
+kind: ConfigMap
+metadata:
+  name: example-configmap-1-892ghb99c8
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Each variable in the <code>.env</code> file becomes a separate key in the ConfigMap that you generate. This is different from the previous example which embeds a file named <code>.properties</code> (and all its entries) as the value for a single key. </div> <p>ConfigMaps can also be generated from literal key-value pairs. To generate a ConfigMap from a literal key-value pair, add an entry to the <code>literals</code> list in configMapGenerator. Here is an example of generating a ConfigMap with a data item from a key-value pair:</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF &gt;./kustomization.yaml
+configMapGenerator:
+- name: example-configmap-2
+  literals:
+  - FOO=Bar
+EOF
+</pre>
+<p>The generated ConfigMap can be checked by the following command:</p> <pre class="highlight" data-language="shell">kubectl kustomize ./
+</pre>
+<p>The generated ConfigMap is:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  FOO: Bar
+kind: ConfigMap
+metadata:
+  name: example-configmap-2-g2hdhfc6tk
+</pre>
+<p>To use a generated ConfigMap in a Deployment, reference it by the name of the configMapGenerator. Kustomize will automatically replace this name with the generated name.</p> <p>This is an example deployment that uses a generated ConfigMap:</p> <pre class="highlight" data-language="yaml"># Create a application.properties file
+cat &lt;&lt;EOF &gt;application.properties
+FOO=Bar
+EOF
+
+cat &lt;&lt;EOF &gt;deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: app
+        image: my-app
+        volumeMounts:
+        - name: config
+          mountPath: /config
+      volumes:
+      - name: config
+        configMap:
+          name: example-configmap-1
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+configMapGenerator:
+- name: example-configmap-1
+  files:
+  - application.properties
+EOF
+</pre>
+<p>Generate the ConfigMap and Deployment:</p> <pre class="highlight" data-language="shell">kubectl kustomize ./
+</pre>
+<p>The generated Deployment will refer to the generated ConfigMap by name:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  application.properties: |
+        FOO=Bar
+kind: ConfigMap
+metadata:
+  name: example-configmap-1-g4hk9g2ff8
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-app
+  name: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - image: my-app
+        name: app
+        volumeMounts:
+        - mountPath: /config
+          name: config
+      volumes:
+      - configMap:
+          name: example-configmap-1-g4hk9g2ff8
+        name: config
+</pre>
+<h4 id="secretgenerator">secretGenerator</h4> <p>You can generate Secrets from files or literal key-value pairs. To generate a Secret from a file, add an entry to the <code>files</code> list in <code>secretGenerator</code>. Here is an example of generating a Secret with a data item from a file:</p> <pre class="highlight" data-language="shell"># Create a password.txt file
+cat &lt;&lt;EOF &gt;./password.txt
+username=admin
+password=secret
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+secretGenerator:
+- name: example-secret-1
+  files:
+  - password.txt
+EOF
+</pre>
+<p>The generated Secret is as follows:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  password.txt: dXNlcm5hbWU9YWRtaW4KcGFzc3dvcmQ9c2VjcmV0Cg==
+kind: Secret
+metadata:
+  name: example-secret-1-t2kt65hgtb
+type: Opaque
+</pre>
+<p>To generate a Secret from a literal key-value pair, add an entry to <code>literals</code> list in <code>secretGenerator</code>. Here is an example of generating a Secret with a data item from a key-value pair:</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF &gt;./kustomization.yaml
+secretGenerator:
+- name: example-secret-2
+  literals:
+  - username=admin
+  - password=secret
+EOF
+</pre>
+<p>The generated Secret is as follows:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  password: c2VjcmV0
+  username: YWRtaW4=
+kind: Secret
+metadata:
+  name: example-secret-2-t52t6g96d8
+type: Opaque
+</pre>
+<p>Like ConfigMaps, generated Secrets can be used in Deployments by refering to the name of the secretGenerator:</p> <pre class="highlight" data-language="shell"># Create a password.txt file
+cat &lt;&lt;EOF &gt;./password.txt
+username=admin
+password=secret
+EOF
+
+cat &lt;&lt;EOF &gt;deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: app
+        image: my-app
+        volumeMounts:
+        - name: password
+          mountPath: /secrets
+      volumes:
+      - name: password
+        secret:
+          secretName: example-secret-1
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+secretGenerator:
+- name: example-secret-1
+  files:
+  - password.txt
+EOF
+</pre>
+<h4 id="generatoroptions">generatorOptions</h4> <p>The generated ConfigMaps and Secrets have a content hash suffix appended. This ensures that a new ConfigMap or Secret is generated when the contents are changed. To disable the behavior of appending a suffix, one can use <code>generatorOptions</code>. Besides that, it is also possible to specify cross-cutting options for generated ConfigMaps and Secrets.</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF &gt;./kustomization.yaml
+configMapGenerator:
+- name: example-configmap-3
+  literals:
+  - FOO=Bar
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
+EOF
+</pre>
+<p>Run<code>kubectl kustomize ./</code> to view the generated ConfigMap:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  FOO: Bar
+kind: ConfigMap
+metadata:
+  annotations:
+    note: generated
+  labels:
+    type: generated
+  name: example-configmap-3
+</pre>
+<h3 id="setting-cross-cutting-fields">Setting cross-cutting fields</h3> <p>It is quite common to set cross-cutting fields for all Kubernetes resources in a project. Some use cases for setting cross-cutting fields:</p> <ul> <li>setting the same namespace for all Resources</li> <li>adding the same name prefix or suffix</li> <li>adding the same set of labels</li> <li>adding the same set of annotations</li> </ul> <p>Here is an example:</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml
+cat &lt;&lt;EOF &gt;./deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+namespace: my-namespace
+namePrefix: dev-
+nameSuffix: "-001"
+commonLabels:
+  app: bingo
+commonAnnotations:
+  oncallPager: 800-555-1212
+resources:
+- deployment.yaml
+EOF
+</pre>
+<p>Run <code>kubectl kustomize ./</code> to view those fields are all set in the Deployment Resource:</p> <pre class="highlight" data-language="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    oncallPager: 800-555-1212
+  labels:
+    app: bingo
+  name: dev-nginx-deployment-001
+  namespace: my-namespace
+spec:
+  selector:
+    matchLabels:
+      app: bingo
+  template:
+    metadata:
+      annotations:
+        oncallPager: 800-555-1212
+      labels:
+        app: bingo
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+</pre>
+<h3 id="composing-and-customizing-resources">Composing and Customizing Resources</h3> <p>It is common to compose a set of Resources in a project and manage them inside the same file or directory. Kustomize offers composing Resources from different files and applying patches or other customization to them.</p> <h4 id="composing">Composing</h4> <p>Kustomize supports composition of different resources. The <code>resources</code> field, in the <code>kustomization.yaml</code> file, defines the list of resources to include in a configuration. Set the path to a resource's configuration file in the <code>resources</code> list. Here is an example of an NGINX application comprised of a Deployment and a Service:</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml file
+cat &lt;&lt;EOF &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+EOF
+
+# Create a service.yaml file
+cat &lt;&lt;EOF &gt; service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  labels:
+    run: my-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: my-nginx
+EOF
+
+# Create a kustomization.yaml composing them
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+- service.yaml
+EOF
+</pre>
+<p>The Resources from <code>kubectl kustomize ./</code> contain both the Deployment and the Service objects.</p> <h4 id="customizing">Customizing</h4> <p>Patches can be used to apply different customizations to Resources. Kustomize supports different patching mechanisms through <code>patchesStrategicMerge</code> and <code>patchesJson6902</code>. <code>patchesStrategicMerge</code> is a list of file paths. Each file should be resolved to a <a href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md">strategic merge patch</a>. The names inside the patches must match Resource names that are already loaded. Small patches that do one thing are recommended. For example, create one patch for increasing the deployment replica number and another patch for setting the memory limit.</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml file
+cat &lt;&lt;EOF &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+EOF
+
+# Create a patch increase_replicas.yaml
+cat &lt;&lt;EOF &gt; increase_replicas.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  replicas: 3
+EOF
+
+# Create another patch set_memory.yaml
+cat &lt;&lt;EOF &gt; set_memory.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  template:
+    spec:
+      containers:
+      - name: my-nginx
+        resources:
+          limits:
+            memory: 512Mi
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+patchesStrategicMerge:
+- increase_replicas.yaml
+- set_memory.yaml
+EOF
+</pre>
+<p>Run <code>kubectl kustomize ./</code> to view the Deployment:</p> <pre class="highlight" data-language="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - image: nginx
+        name: my-nginx
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: 512Mi
+</pre>
+<p>Not all Resources or fields support strategic merge patches. To support modifying arbitrary fields in arbitrary Resources, Kustomize offers applying <a href="https://tools.ietf.org/html/rfc6902">JSON patch</a> through <code>patchesJson6902</code>. To find the correct Resource for a Json patch, the group, version, kind and name of that Resource need to be specified in <code>kustomization.yaml</code>. For example, increasing the replica number of a Deployment object can also be done through <code>patchesJson6902</code>.</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml file
+cat &lt;&lt;EOF &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+EOF
+
+# Create a json patch
+cat &lt;&lt;EOF &gt; patch.yaml
+- op: replace
+  path: /spec/replicas
+  value: 3
+EOF
+
+# Create a kustomization.yaml
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+
+patchesJson6902:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: my-nginx
+  path: patch.yaml
+EOF
+</pre>
+<p>Run <code>kubectl kustomize ./</code> to see the <code>replicas</code> field is updated:</p> <pre class="highlight" data-language="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - image: nginx
+        name: my-nginx
+        ports:
+        - containerPort: 80
+</pre>
+<p>In addition to patches, Kustomize also offers customizing container images or injecting field values from other objects into containers without creating patches. For example, you can change the image used inside containers by specifying the new image in <code>images</code> field in <code>kustomization.yaml</code>.</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+resources:
+- deployment.yaml
+images:
+- name: nginx
+  newName: my.image.registry/nginx
+  newTag: 1.4.0
+EOF
+</pre>
+<p>Run <code>kubectl kustomize ./</code> to see that the image being used is updated:</p> <pre class="highlight" data-language="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - image: my.image.registry/nginx:1.4.0
+        name: my-nginx
+        ports:
+        - containerPort: 80
+</pre>
+<p>Sometimes, the application running in a Pod may need to use configuration values from other objects. For example, a Pod from a Deployment object need to read the corresponding Service name from Env or as a command argument. Since the Service name may change as <code>namePrefix</code> or <code>nameSuffix</code> is added in the <code>kustomization.yaml</code> file. It is not recommended to hard code the Service name in the command argument. For this usage, Kustomize can inject the Service name into containers through <code>vars</code>.</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml file (quoting the here doc delimiter)
+cat &lt;&lt;'EOF' &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        command: ["start", "--host", "$(MY_SERVICE_NAME)"]
+EOF
+
+# Create a service.yaml file
+cat &lt;&lt;EOF &gt; service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  labels:
+    run: my-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: my-nginx
+EOF
+
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+namePrefix: dev-
+nameSuffix: "-001"
+
+resources:
+- deployment.yaml
+- service.yaml
+
+vars:
+- name: MY_SERVICE_NAME
+  objref:
+    kind: Service
+    name: my-nginx
+    apiVersion: v1
+EOF
+</pre>
+<p>Run <code>kubectl kustomize ./</code> to see that the Service name injected into containers is <code>dev-my-nginx-001</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-my-nginx-001
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - command:
+        - start
+        - --host
+        - dev-my-nginx-001
+        image: nginx
+        name: my-nginx
+</pre>
+<h2 id="bases-and-overlays">Bases and Overlays</h2> <p>Kustomize has the concepts of <strong>bases</strong> and <strong>overlays</strong>. A <strong>base</strong> is a directory with a <code>kustomization.yaml</code>, which contains a set of resources and associated customization. A base could be either a local directory or a directory from a remote repo, as long as a <code>kustomization.yaml</code> is present inside. An <strong>overlay</strong> is a directory with a <code>kustomization.yaml</code> that refers to other kustomization directories as its <code>bases</code>. A <strong>base</strong> has no knowledge of an overlay and can be used in multiple overlays. An overlay may have multiple bases and it composes all resources from bases and may also have customization on top of them.</p> <p>Here is an example of a base:</p> <pre class="highlight" data-language="shell"># Create a directory to hold the base
+mkdir base
+# Create a base/deployment.yaml
+cat &lt;&lt;EOF &gt; base/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+EOF
+
+# Create a base/service.yaml file
+cat &lt;&lt;EOF &gt; base/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  labels:
+    run: my-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: my-nginx
+EOF
+# Create a base/kustomization.yaml
+cat &lt;&lt;EOF &gt; base/kustomization.yaml
+resources:
+- deployment.yaml
+- service.yaml
+EOF
+</pre>
+<p>This base can be used in multiple overlays. You can add different <code>namePrefix</code> or other cross-cutting fields in different overlays. Here are two overlays using the same base.</p> <pre class="highlight" data-language="shell">mkdir dev
+cat &lt;&lt;EOF &gt; dev/kustomization.yaml
+bases:
+- ../base
+namePrefix: dev-
+EOF
+
+mkdir prod
+cat &lt;&lt;EOF &gt; prod/kustomization.yaml
+bases:
+- ../base
+namePrefix: prod-
+EOF
+</pre>
+<h2 id="how-to-apply-view-delete-objects-using-kustomize">How to apply/view/delete objects using Kustomize</h2> <p>Use <code>--kustomize</code> or <code>-k</code> in <code>kubectl</code> commands to recognize Resources managed by <code>kustomization.yaml</code>. Note that <code>-k</code> should point to a kustomization directory, such as</p> <pre class="highlight" data-language="shell">kubectl apply -k &lt;kustomization directory&gt;/
+</pre>
+<p>Given the following <code>kustomization.yaml</code>,</p> <pre class="highlight" data-language="shell"># Create a deployment.yaml file
+cat &lt;&lt;EOF &gt; deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+EOF
+
+# Create a kustomization.yaml
+cat &lt;&lt;EOF &gt;./kustomization.yaml
+namePrefix: dev-
+commonLabels:
+  app: my-nginx
+resources:
+- deployment.yaml
+EOF
+</pre>
+<p>Run the following command to apply the Deployment object <code>dev-my-nginx</code>:</p> <pre class="highlight" data-language="shell">&gt; kubectl apply -k ./
+deployment.apps/dev-my-nginx created
+</pre>
+<p>Run one of the following commands to view the Deployment object <code>dev-my-nginx</code>:</p> <pre class="highlight" data-language="shell">kubectl get -k ./
+</pre>
+<pre class="highlight" data-language="shell">kubectl describe -k ./
+</pre>
+<p>Run the following command to compare the Deployment object <code>dev-my-nginx</code> against the state that the cluster would be in if the manifest was applied:</p> <pre class="highlight" data-language="shell">kubectl diff -k ./
+</pre>
+<p>Run the following command to delete the Deployment object <code>dev-my-nginx</code>:</p> <pre class="highlight" data-language="shell">&gt; kubectl delete -k ./
+deployment.apps "dev-my-nginx" deleted
+</pre>
+<h2 id="kustomize-feature-list">Kustomize Feature List</h2> <table> <thead> <tr> <th>Field</th> <th>Type</th> <th>Explanation</th> </tr> </thead> <tbody> <tr> <td>namespace</td> <td>string</td> <td>add namespace to all resources</td> </tr> <tr> <td>namePrefix</td> <td>string</td> <td>value of this field is prepended to the names of all resources</td> </tr> <tr> <td>nameSuffix</td> <td>string</td> <td>value of this field is appended to the names of all resources</td> </tr> <tr> <td>commonLabels</td> <td>map[string]string</td> <td>labels to add to all resources and selectors</td> </tr> <tr> <td>commonAnnotations</td> <td>map[string]string</td> <td>annotations to add to all resources</td> </tr> <tr> <td>resources</td> <td>[]string</td> <td>each entry in this list must resolve to an existing resource configuration file</td> </tr> <tr> <td>configMapGenerator</td> <td>[]<a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/configmapargs.go#L7">ConfigMapArgs</a>
+</td> <td>Each entry in this list generates a ConfigMap</td> </tr> <tr> <td>secretGenerator</td> <td>[]<a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/secretargs.go#L7">SecretArgs</a>
+</td> <td>Each entry in this list generates a Secret</td> </tr> <tr> <td>generatorOptions</td> <td><a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/generatoroptions.go#L7">GeneratorOptions</a></td> <td>Modify behaviors of all ConfigMap and Secret generator</td> </tr> <tr> <td>bases</td> <td>[]string</td> <td>Each entry in this list should resolve to a directory containing a kustomization.yaml file</td> </tr> <tr> <td>patchesStrategicMerge</td> <td>[]string</td> <td>Each entry in this list should resolve a strategic merge patch of a Kubernetes object</td> </tr> <tr> <td>patchesJson6902</td> <td>[]<a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/patch.go#L10">Patch</a>
+</td> <td>Each entry in this list should resolve to a Kubernetes object and a Json Patch</td> </tr> <tr> <td>vars</td> <td>[]<a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/var.go#L19">Var</a>
+</td> <td>Each entry is to capture text from one resource's field</td> </tr> <tr> <td>images</td> <td>[]<a href="https://github.com/kubernetes-sigs/kustomize/blob/master/api/types/image.go#L8">Image</a>
+</td> <td>Each entry is to modify the name, tags and/or digest for one image without creating patches</td> </tr> <tr> <td>configurations</td> <td>[]string</td> <td>Each entry in this list should resolve to a file containing <a href="https://github.com/kubernetes-sigs/kustomize/tree/master/examples/transformerconfigs">Kustomize transformer configurations</a>
+</td> </tr> <tr> <td>crds</td> <td>[]string</td> <td>Each entry in this list should resolve to an OpenAPI definition file for Kubernetes types</td> </tr> </tbody> </table> <h2 id="what-s-next">What's next</h2> <ul> <li><a href="https://github.com/kubernetes-sigs/kustomize">Kustomize</a></li> <li><a href="https://kubectl.docs.kubernetes.io">Kubectl Book</a></li> <li><a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/">Kubectl Command Reference</a></li> <li><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/">Kubernetes API Reference</a></li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/" class="_attribution-link">https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,170 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Customizing Components With the Kubeadm API - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="This page covers how to customize the components that kubeadm deploys. For control plane components you can use flags in the ClusterConfiguration &hellip;">
+  <meta name="keywords" content="customizing, components, with, kubeadm, api, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/setup/production-environment/tools/kubeadm/control-plane-flags/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Customizing components with the kubeadm API</h1>  <p>This page covers how to customize the components that kubeadm deploys. For control plane components you can use flags in the <code>ClusterConfiguration</code> structure or patches per-node. For the kubelet and kube-proxy you can use <code>KubeletConfiguration</code> and <code>KubeProxyConfiguration</code>, accordingly.</p> <p>All of these options are possible via the kubeadm configuration API. For more details on each field in the configuration you can navigate to our <a href="../../../../../reference/config-api/kubeadm-config.v1beta3/index">API reference pages</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Customizing the CoreDNS deployment of kubeadm is currently not supported. You must manually patch the <code>kube-system/coredns</code> <a class="glossary-tooltip" title="An API object used to store non-confidential data in key-value pairs. Can be consumed as environment variables, command-line arguments, or configuration files in a volume." data-toggle="tooltip" data-placement="top" href="../../../../../concepts/configuration/configmap/index" target="_blank" aria-label="ConfigMap">ConfigMap</a> and recreate the CoreDNS <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../../../../concepts/workloads/pods/index" target="_blank" aria-label="Pods">Pods</a> after that. Alternatively, you can skip the default CoreDNS deployment and deploy your own variant. For more details on that see <a href="../../../../../reference/setup-tools/kubeadm/kubeadm-init/index#init-phases">Using init phases with kubeadm</a>. </div>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.12 [stable]</code> </div> <h2 id="customizing-the-control-plane-with-flags-in-clusterconfiguration">Customizing the control plane with flags in <code>ClusterConfiguration</code>
+</h2> <p>The kubeadm <code>ClusterConfiguration</code> object exposes a way for users to override the default flags passed to control plane components such as the APIServer, ControllerManager, Scheduler and Etcd. The components are defined using the following structures:</p> <ul> <li><code>apiServer</code></li> <li><code>controllerManager</code></li> <li><code>scheduler</code></li> <li><code>etcd</code></li> </ul> <p>These structures contain a common <code>extraArgs</code> field, that consists of <code>key: value</code> pairs. To override a flag for a control plane component:</p> <ol> <li>Add the appropriate <code>extraArgs</code> to your configuration.</li> <li>Add flags to the <code>extraArgs</code> field.</li> <li>Run <code>kubeadm init</code> with <code>--config &lt;YOUR CONFIG YAML&gt;</code>.</li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> You can generate a <code>ClusterConfiguration</code> object with default values by running <code>kubeadm config print init-defaults</code> and saving the output to a file of your choice. </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The <code>ClusterConfiguration</code> object is currently global in kubeadm clusters. This means that any flags that you add, will apply to all instances of the same component on different nodes. To apply individual configuration per component on different nodes you can use <a href="#patches">patches</a>. </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Duplicate flags (keys), or passing the same flag <code>--foo</code> multiple times, is currently not supported. To workaround that you must use <a href="#patches">patches</a>. </div> <h3 id="apiserver-flags">APIServer flags</h3> <p>For details, see the <a href="../../../../../reference/command-line-tools-reference/kube-apiserver/index">reference documentation for kube-apiserver</a>.</p> <p>Example usage:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.0
+apiServer:
+  extraArgs:
+    anonymous-auth: "false"
+    enable-admission-plugins: AlwaysPullImages,DefaultStorageClass
+    audit-log-path: /home/johndoe/audit.log
+</pre>
+<h3 id="controllermanager-flags">ControllerManager flags</h3> <p>For details, see the <a href="../../../../../reference/command-line-tools-reference/kube-controller-manager/index">reference documentation for kube-controller-manager</a>.</p> <p>Example usage:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.0
+controllerManager:
+  extraArgs:
+    cluster-signing-key-file: /home/johndoe/keys/ca.key
+    deployment-controller-sync-period: "50"
+</pre>
+<h3 id="scheduler-flags">Scheduler flags</h3> <p>For details, see the <a href="../../../../../reference/command-line-tools-reference/kube-scheduler/index">reference documentation for kube-scheduler</a>.</p> <p>Example usage:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.16.0
+scheduler:
+  extraArgs:
+    config: /etc/kubernetes/scheduler-config.yaml
+  extraVolumes:
+    - name: schedulerconfig
+      hostPath: /home/johndoe/schedconfig.yaml
+      mountPath: /etc/kubernetes/scheduler-config.yaml
+      readOnly: true
+      pathType: "File"
+</pre>
+<h3 id="etcd-flags">Etcd flags</h3> <p>For details, see the <a href="https://etcd.io/docs/">etcd server documentation</a>.</p> <p>Example usage:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+etcd:
+  local:
+    extraArgs:
+      election-timeout: 1000
+</pre>
+<h2 id="patches">Customizing the control plane with patches</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [beta]</code> </div> <p>Kubeadm allows you to pass a directory with patch files to <code>InitConfiguration</code> and <code>JoinConfiguration</code> on individual nodes. These patches can be used as the last customization step before the control plane component manifests are written to disk.</p> <p>You can pass this file to <code>kubeadm init</code> with <code>--config &lt;YOUR CONFIG YAML&gt;</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+patches:
+  directory: /home/user/somedir
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> For <code>kubeadm init</code> you can pass a file containing both a <code>ClusterConfiguration</code> and <code>InitConfiguration</code> separated by <code>---</code>. </div> <p>You can pass this file to <code>kubeadm join</code> with <code>--config &lt;YOUR CONFIG YAML&gt;</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+patches:
+  directory: /home/user/somedir
+</pre>
+<p>The directory must contain files named <code>target[suffix][+patchtype].extension</code>. For example, <code>kube-apiserver0+merge.yaml</code> or just <code>etcd.json</code>.</p> <ul> <li>
+<code>target</code> can be one of <code>kube-apiserver</code>, <code>kube-controller-manager</code>, <code>kube-scheduler</code> and <code>etcd</code>.</li> <li>
+<code>patchtype</code> can be one of <code>strategic</code>, <code>merge</code> or <code>json</code> and these must match the patching formats <a href="../../../../../tasks/manage-kubernetes-objects/update-api-object-kubectl-patch">supported by kubectl</a>. The default <code>patchtype</code> is <code>strategic</code>.</li> <li>
+<code>extension</code> must be either <code>json</code> or <code>yaml</code>.</li> <li>
+<code>suffix</code> is an optional string that can be used to determine which patches are applied first alpha-numerically.</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> If you are using <code>kubeadm upgrade</code> to upgrade your kubeadm nodes you must again provide the same patches, so that the customization is preserved after upgrade. To do that you can use the <code>--patches</code> flag, which must point to the same directory. <code>kubeadm upgrade</code> currently does not support a configuration API structure that can be used for the same purpose. </div> <h2 id="customizing-the-kubelet">Customizing the kubelet</h2> <p>To customize the kubelet you can add a <code>KubeletConfiguration</code> next to the <code>ClusterConfiguration</code> or <code>InitConfiguration</code> separated by <code>---</code> within the same configuration file. This file can then be passed to <code>kubeadm init</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> kubeadm applies the same <code>KubeletConfiguration</code> to all nodes in the cluster. To apply node specific settings you can use kubelet flags as overrides by passing them in the <code>nodeRegistration.kubeletExtraArgs</code> field supported by both <code>InitConfiguration</code> and <code>JoinConfiguration</code>. Some kubelet flags are deprecated, so check their status in the <a href="../../../../../reference/command-line-tools-reference/kubelet">kubelet reference documentation</a> before using them. </div> <p>For more details see <a href="../kubelet-integration">Configuring each kubelet in your cluster using kubeadm</a></p> <h2 id="customizing-kube-proxy">Customizing kube-proxy</h2> <p>To customize kube-proxy you can pass a <code>KubeProxyConfiguration</code> next your <code>ClusterConfiguration</code> or <code>InitConfiguration</code> to <code>kubeadm init</code> separated by <code>---</code>.</p> <p>For more details you can navigate to our <a href="../../../../../reference/config-api/kubeadm-config.v1beta3/index">API reference pages</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> kubeadm deploys kube-proxy as a <a class="glossary-tooltip" title="Ensures a copy of a Pod is running across a set of nodes in a cluster." data-toggle="tooltip" data-placement="top" href="../../../../../concepts/workloads/controllers/daemonset" target="_blank" aria-label="DaemonSet">DaemonSet</a>, which means that the <code>KubeProxyConfiguration</code> would apply to all instances of kube-proxy in the cluster. </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/" class="_attribution-link">https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

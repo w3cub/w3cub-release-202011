@@ -1,0 +1,266 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Debugging Kubernetes Nodes With Crictl - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="crictl is a command-line interface for CRI-compatible container runtimes. You can use it to inspect and debug container runtimes and applications on &hellip;">
+  <meta name="keywords" content="debugging, kubernetes, nodes, with, crictl">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/debug-application-cluster/crictl/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Debugging Kubernetes nodes with crictl</h1>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.11 [stable]</code> </div> <p><code>crictl</code> is a command-line interface for CRI-compatible container runtimes. You can use it to inspect and debug container runtimes and applications on a Kubernetes node. <code>crictl</code> and its source are hosted in the <a href="https://github.com/kubernetes-sigs/cri-tools">cri-tools</a> repository.</p> <h2 id="before-you-begin">Before you begin</h2> <p><code>crictl</code> requires a Linux operating system with a CRI runtime.</p>  <h2 id="installing-crictl">Installing crictl</h2> <p>You can download a compressed archive <code>crictl</code> from the cri-tools <a href="https://github.com/kubernetes-sigs/cri-tools/releases">release page</a>, for several different architectures. Download the version that corresponds to your version of Kubernetes. Extract it and move it to a location on your system path, such as <code>/usr/local/bin/</code>.</p> <h2 id="general-usage">General usage</h2> <p>The <code>crictl</code> command has several subcommands and runtime flags. Use <code>crictl help</code> or <code>crictl &lt;subcommand&gt; help</code> for more details.</p> <p><code>crictl</code> connects to <code>unix:///var/run/dockershim.sock</code> by default. For other runtimes, you can set the endpoint in multiple different ways:</p> <ul> <li>By setting flags <code>--runtime-endpoint</code> and <code>--image-endpoint</code>
+</li> <li>By setting environment variables <code>CONTAINER_RUNTIME_ENDPOINT</code> and <code>IMAGE_SERVICE_ENDPOINT</code>
+</li> <li>By setting the endpoint in the config file <code>--config=/etc/crictl.yaml</code>
+</li> </ul> <p>You can also specify timeout values when connecting to the server and enable or disable debugging, by specifying <code>timeout</code> or <code>debug</code> values in the configuration file or using the <code>--timeout</code> and <code>--debug</code> command-line flags.</p> <p>To view or edit the current configuration, view or edit the contents of <code>/etc/crictl.yaml</code>.</p> <pre class="highlight" data-language="shell">cat /etc/crictl.yaml
+runtime-endpoint: unix:///var/run/dockershim.sock
+image-endpoint: unix:///var/run/dockershim.sock
+timeout: 10
+debug: true
+</pre>
+<h2 id="example-crictl-commands">Example crictl commands</h2> <p>The following examples show some <code>crictl</code> commands and example output.</p> <div class="alert alert-danger warning callout" role="alert"> <strong>Warning:</strong> If you use <code>crictl</code> to create pod sandboxes or containers on a running Kubernetes cluster, the Kubelet will eventually delete them. <code>crictl</code> is not a general purpose workflow tool, but a tool that is useful for debugging. </div> <h3 id="list-pods">List pods</h3> <p>List all pods:</p> <pre class="highlight" data-language="shell">crictl pods
+</pre>
+<p>The output is similar to this:</p> <pre><code>POD ID              CREATED              STATE               NAME                         NAMESPACE           ATTEMPT
+926f1b5a1d33a       About a minute ago   Ready               sh-84d7dcf559-4r2gq          default             0
+4dccb216c4adb       About a minute ago   Ready               nginx-65899c769f-wv2gp       default             0
+a86316e96fa89       17 hours ago         Ready               kube-proxy-gblk4             kube-system         0
+919630b8f81f1       17 hours ago         Ready               nvidia-device-plugin-zgbbv   kube-system         0
+</code></pre>
+<p>List pods by name:</p> <pre class="highlight" data-language="shell">crictl pods --name nginx-65899c769f-wv2gp
+</pre>
+<p>The output is similar to this:</p> <pre><code>POD ID              CREATED             STATE               NAME                     NAMESPACE           ATTEMPT
+4dccb216c4adb       2 minutes ago       Ready               nginx-65899c769f-wv2gp   default             0
+</code></pre>
+<p>List pods by label:</p> <pre class="highlight" data-language="shell">crictl pods --label run=nginx
+</pre>
+<p>The output is similar to this:</p> <pre><code>POD ID              CREATED             STATE               NAME                     NAMESPACE           ATTEMPT
+4dccb216c4adb       2 minutes ago       Ready               nginx-65899c769f-wv2gp   default             0
+</code></pre>
+<h3 id="list-images">List images</h3> <p>List all images:</p> <pre class="highlight" data-language="shell">crictl images
+</pre>
+<p>The output is similar to this:</p> <pre><code>IMAGE                                     TAG                 IMAGE ID            SIZE
+busybox                                   latest              8c811b4aec35f       1.15MB
+k8s-gcrio.azureedge.net/hyperkube-amd64   v1.10.3             e179bbfe5d238       665MB
+k8s-gcrio.azureedge.net/pause-amd64       3.1                 da86e6ba6ca19       742kB
+nginx                                     latest              cd5239a0906a6       109MB
+</code></pre>
+<p>List images by repository:</p> <pre class="highlight" data-language="shell">crictl images nginx
+</pre>
+<p>The output is similar to this:</p> <pre><code>IMAGE               TAG                 IMAGE ID            SIZE
+nginx               latest              cd5239a0906a6       109MB
+</code></pre>
+<p>Only list image IDs:</p> <pre class="highlight" data-language="shell">crictl images -q
+</pre>
+<p>The output is similar to this:</p> <pre><code>sha256:8c811b4aec35f259572d0f79207bc0678df4c736eeec50bc9fec37ed936a472a
+sha256:e179bbfe5d238de6069f3b03fccbecc3fb4f2019af741bfff1233c4d7b2970c5
+sha256:da86e6ba6ca197bf6bc5e9d900febd906b133eaa4750e6bed647b0fbe50ed43e
+sha256:cd5239a0906a6ccf0562354852fae04bc5b52d72a2aff9a871ddb6bd57553569
+</code></pre>
+<h3 id="list-containers">List containers</h3> <p>List all containers:</p> <pre class="highlight" data-language="shell">crictl ps -a
+</pre>
+<p>The output is similar to this:</p> <pre><code>CONTAINER ID        IMAGE                                                                                                             CREATED             STATE               NAME                       ATTEMPT
+1f73f2d81bf98       busybox@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47                                   7 minutes ago       Running             sh                         1
+9c5951df22c78       busybox@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47                                   8 minutes ago       Exited              sh                         0
+87d3992f84f74       nginx@sha256:d0a8828cccb73397acb0073bf34f4d7d8aa315263f1e7806bf8c55d8ac139d5f                                     8 minutes ago       Running             nginx                      0
+1941fb4da154f       k8s-gcrio.azureedge.net/hyperkube-amd64@sha256:00d814b1f7763f4ab5be80c58e98140dfc69df107f253d7fdd714b30a714260a   18 hours ago        Running             kube-proxy                 0
+</code></pre>
+<p>List running containers:</p> <pre><code>crictl ps
+</code></pre>
+<p>The output is similar to this:</p> <pre><code>CONTAINER ID        IMAGE                                                                                                             CREATED             STATE               NAME                       ATTEMPT
+1f73f2d81bf98       busybox@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47                                   6 minutes ago       Running             sh                         1
+87d3992f84f74       nginx@sha256:d0a8828cccb73397acb0073bf34f4d7d8aa315263f1e7806bf8c55d8ac139d5f                                     7 minutes ago       Running             nginx                      0
+1941fb4da154f       k8s-gcrio.azureedge.net/hyperkube-amd64@sha256:00d814b1f7763f4ab5be80c58e98140dfc69df107f253d7fdd714b30a714260a   17 hours ago        Running             kube-proxy                 0
+</code></pre>
+<h3 id="execute-a-command-in-a-running-container">Execute a command in a running container</h3> <pre class="highlight" data-language="shell">crictl exec -i -t 1f73f2d81bf98 ls
+</pre>
+<p>The output is similar to this:</p> <pre><code>bin   dev   etc   home  proc  root  sys   tmp   usr   var
+</code></pre>
+<h3 id="get-a-container-s-logs">Get a container's logs</h3> <p>Get all container logs:</p> <pre class="highlight" data-language="shell">crictl logs 87d3992f84f74
+</pre>
+<p>The output is similar to this:</p> <pre><code>10.240.0.96 - - [06/Jun/2018:02:45:49 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.47.0" "-"
+10.240.0.96 - - [06/Jun/2018:02:45:50 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.47.0" "-"
+10.240.0.96 - - [06/Jun/2018:02:45:51 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.47.0" "-"
+</code></pre>
+<p>Get only the latest <code>N</code> lines of logs:</p> <pre class="highlight" data-language="shell">crictl logs --tail=1 87d3992f84f74
+</pre>
+<p>The output is similar to this:</p> <pre><code>10.240.0.96 - - [06/Jun/2018:02:45:51 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.47.0" "-"
+</code></pre>
+<h3 id="run-a-pod-sandbox">Run a pod sandbox</h3> <p>Using <code>crictl</code> to run a pod sandbox is useful for debugging container runtimes. On a running Kubernetes cluster, the sandbox will eventually be stopped and deleted by the Kubelet.</p> <ol> <li> <p>Create a JSON file like the following:</p> <pre class="highlight" data-language="json">{
+    "metadata": {
+        "name": "nginx-sandbox",
+        "namespace": "default",
+        "attempt": 1,
+        "uid": "hdishd83djaidwnduwk28bcsb"
+    },
+    "logDirectory": "/tmp",
+    "linux": {
+    }
+}
+</pre>
+</li> <li> <p>Use the <code>crictl runp</code> command to apply the JSON and run the sandbox.</p> <pre class="highlight" data-language="shell">crictl runp pod-config.json
+</pre>
+<p>The ID of the sandbox is returned.</p> </li> </ol> <h3 id="create-a-container">Create a container</h3> <p>Using <code>crictl</code> to create a container is useful for debugging container runtimes. On a running Kubernetes cluster, the sandbox will eventually be stopped and deleted by the Kubelet.</p> <ol> <li> <p>Pull a busybox image</p> <pre class="highlight" data-language="shell">crictl pull busybox
+Image is up to date for busybox@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47
+</pre>
+</li> <li> <p>Create configs for the pod and the container:</p> <p><strong>Pod config</strong>:</p> <pre class="highlight" data-language="yaml">{
+    "metadata": {
+        "name": "nginx-sandbox",
+        "namespace": "default",
+        "attempt": 1,
+        "uid": "hdishd83djaidwnduwk28bcsb"
+    },
+    "log_directory": "/tmp",
+    "linux": {
+    }
+}
+</pre>
+<p><strong>Container config</strong>:</p> <pre class="highlight" data-language="yaml">{
+  "metadata": {
+      "name": "busybox"
+  },
+  "image":{
+      "image": "busybox"
+  },
+  "command": [
+      "top"
+  ],
+  "log_path":"busybox.log",
+  "linux": {
+  }
+}
+</pre>
+</li> <li> <p>Create the container, passing the ID of the previously-created pod, the container config file, and the pod config file. The ID of the container is returned.</p> <pre class="highlight" data-language="shell">crictl create f84dd361f8dc51518ed291fbadd6db537b0496536c1d2d6c05ff943ce8c9a54f container-config.json pod-config.json
+</pre>
+</li> <li> <p>List all containers and verify that the newly-created container has its state set to <code>Created</code>.</p> <pre class="highlight" data-language="shell">crictl ps -a
+</pre>
+<p>The output is similar to this:</p> <pre><code>CONTAINER ID        IMAGE               CREATED             STATE               NAME                ATTEMPT
+3e025dd50a72d       busybox             32 seconds ago      Created             busybox             0
+</code></pre>
+</li> </ol> <h3 id="start-a-container">Start a container</h3> <p>To start a container, pass its ID to <code>crictl start</code>:</p> <pre class="highlight" data-language="shell">crictl start 3e025dd50a72d956c4f14881fbb5b1080c9275674e95fb67f965f6478a957d60
+</pre>
+<p>The output is similar to this:</p> <pre><code>3e025dd50a72d956c4f14881fbb5b1080c9275674e95fb67f965f6478a957d60
+</code></pre>
+<p>Check the container has its state set to <code>Running</code>.</p> <pre class="highlight" data-language="shell">crictl ps
+</pre>
+<p>The output is similar to this:</p> <pre><code>CONTAINER ID        IMAGE               CREATED              STATE               NAME                ATTEMPT
+3e025dd50a72d       busybox             About a minute ago   Running             busybox             0
+</code></pre> <p>See <a href="https://github.com/kubernetes-sigs/cri-tools">kubernetes-sigs/cri-tools</a> for more information.</p> <h2 id="mapping-from-docker-cli-to-crictl">Mapping from docker cli to crictl</h2> <p>The exact versions for below mapping table are for docker cli v1.40 and crictl v1.19.0. Please note that the list is not exhaustive. For example, it doesn't include experimental commands of docker cli.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The output format of CRICTL is similar to Docker CLI, despite some missing columns for some CLI. Make sure to check output for the specific command if your script output parsing. </div> <h3 id="retrieve-debugging-information">Retrieve Debugging Information</h3> <table>
+<caption style="display: none;">mapping from docker cli to crictl - retrieve debugging information</caption> <thead> <tr> <th>docker cli</th> <th>crictl</th> <th>Description</th> <th>Unsupported Features</th> </tr> </thead> <tbody> <tr> <td><code>attach</code></td> <td><code>attach</code></td> <td>Attach to a running container</td> <td>
+<code>--detach-keys</code>, <code>--sig-proxy</code>
+</td> </tr> <tr> <td><code>exec</code></td> <td><code>exec</code></td> <td>Run a command in a running container</td> <td>
+<code>--privileged</code>, <code>--user</code>, <code>--detach-keys</code>
+</td> </tr> <tr> <td><code>images</code></td> <td><code>images</code></td> <td>List images</td> <td> </td> </tr> <tr> <td><code>info</code></td> <td><code>info</code></td> <td>Display system-wide information</td> <td> </td> </tr> <tr> <td><code>inspect</code></td> <td>
+<code>inspect</code>, <code>inspecti</code>
+</td> <td>Return low-level information on a container, image or task</td> <td> </td> </tr> <tr> <td><code>logs</code></td> <td><code>logs</code></td> <td>Fetch the logs of a container</td> <td><code>--details</code></td> </tr> <tr> <td><code>ps</code></td> <td><code>ps</code></td> <td>List containers</td> <td> </td> </tr> <tr> <td><code>stats</code></td> <td><code>stats</code></td> <td>Display a live stream of container(s) resource usage statistics</td> <td>Column: NET/BLOCK I/O, PIDs</td> </tr> <tr> <td><code>version</code></td> <td><code>version</code></td> <td>Show the runtime (Docker, ContainerD, or others) version information</td> <td> </td> </tr> </tbody> </table> <h3 id="perform-changes">Perform Changes</h3> <table>
+<caption style="display: none;">mapping from docker cli to crictl - perform changes</caption> <thead> <tr> <th>docker cli</th> <th>crictl</th> <th>Description</th> <th>Unsupported Features</th> </tr> </thead> <tbody> <tr> <td><code>create</code></td> <td><code>create</code></td> <td>Create a new container</td> <td> </td> </tr> <tr> <td><code>kill</code></td> <td>
+<code>stop</code> (timeout = 0)</td> <td>Kill one or more running container</td> <td><code>--signal</code></td> </tr> <tr> <td><code>pull</code></td> <td><code>pull</code></td> <td>Pull an image or a repository from a registry</td> <td>
+<code>--all-tags</code>, <code>--disable-content-trust</code>
+</td> </tr> <tr> <td><code>rm</code></td> <td><code>rm</code></td> <td>Remove one or more containers</td> <td> </td> </tr> <tr> <td><code>rmi</code></td> <td><code>rmi</code></td> <td>Remove one or more images</td> <td> </td> </tr> <tr> <td><code>run</code></td> <td><code>run</code></td> <td>Run a command in a new container</td> <td> </td> </tr> <tr> <td><code>start</code></td> <td><code>start</code></td> <td>Start one or more stopped containers</td> <td><code>--detach-keys</code></td> </tr> <tr> <td><code>stop</code></td> <td><code>stop</code></td> <td>Stop one or more running containers</td> <td> </td> </tr> <tr> <td><code>update</code></td> <td><code>update</code></td> <td>Update configuration of one or more containers</td> <td>
+<code>--restart</code>, <code>--blkio-weight</code> and some other resource limit not supported by CRI.</td> </tr> </tbody> </table> <h3 id="supported-only-in-crictl">Supported only in crictl</h3> <table>
+<caption style="display: none;">mapping from docker cli to crictl - supported only in crictl</caption> <thead> <tr> <th>crictl</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><code>imagefsinfo</code></td> <td>Return image filesystem info</td> </tr> <tr> <td><code>inspectp</code></td> <td>Display the status of one or more pods</td> </tr> <tr> <td><code>port-forward</code></td> <td>Forward local port to a pod</td> </tr> <tr> <td><code>pods</code></td> <td>List pods</td> </tr> <tr> <td><code>runp</code></td> <td>Run a new pod</td> </tr> <tr> <td><code>rmp</code></td> <td>Remove one or more pods</td> </tr> <tr> <td><code>stopp</code></td> <td>Stop one or more running pods</td> </tr> </tbody> </table>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/debug-application-cluster/crictl/" class="_attribution-link">https://kubernetes.io/docs/tasks/debug-application-cluster/crictl/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

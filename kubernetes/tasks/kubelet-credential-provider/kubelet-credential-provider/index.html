@@ -1,0 +1,184 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Configure a Kubelet Image Credential Provider - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Starting from Kubernetes v1.20, the kubelet can dynamically retrieve credentials for a container image registry using exec plugins. The kubelet and &hellip;">
+  <meta name="keywords" content="configure, kubelet, image, credential, provider, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/kubelet-credential-provider/kubelet-credential-provider/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Configure a kubelet image credential provider</h1> <div class="lead">Configure the kubelet's image credential provider plugin</div> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.20 [alpha]</code> </div>  <p>Starting from Kubernetes v1.20, the kubelet can dynamically retrieve credentials for a container image registry using exec plugins. The kubelet and the exec plugin communicate through stdio (stdin, stdout, and stderr) using Kubernetes versioned APIs. These plugins allow the kubelet to request credentials for a container registry dynamically as opposed to storing static credentials on disk. For example, the plugin may talk to a local metadata server to retrieve short-lived credentials for an image that is being pulled by the kubelet.</p> <p>You may be interested in using this capability if any of the below are true:</p> <ul> <li>API calls to a cloud provider service are required to retrieve authentication information for a registry.</li> <li>Credentials have short expiration times and requesting new credentials frequently is required.</li> <li>Storing registry credentials on disk or in imagePullSecrets is not acceptable.</li> </ul> <p>This guide demonstrates how to configure the kubelet's image credential provider plugin mechanism.</p> <h2 id="before-you-begin">Before you begin</h2> <ul> <li>The kubelet image credential provider is introduced in v1.20 as an alpha feature. As with other alpha features, a feature gate <code>KubeletCredentialProviders</code> must be enabled on only the kubelet for the feature to work.</li> <li>A working implementation of a credential provider exec plugin. You can build your own plugin or use one provided by cloud providers.</li> </ul>  <h2 id="installing-plugins-on-nodes">Installing Plugins on Nodes</h2> <p>A credential provider plugin is an executable binary that will be run by the kubelet. Ensure that the plugin binary exists on every node in your cluster and stored in a known directory. The directory will be required later when configuring kubelet flags.</p> <h2 id="configuring-the-kubelet">Configuring the Kubelet</h2> <p>In order to use this feature, the kubelet expects two flags to be set:</p> <ul> <li>
+<code>--image-credential-provider-config</code> - the path to the credential provider plugin config file.</li> <li>
+<code>--image-credential-provider-bin-dir</code> - the path to the directory where credential provider plugin binaries are located.</li> </ul> <h3 id="configure-a-kubelet-credential-provider">Configure a kubelet credential provider</h3> <p>The configuration file passed into <code>--image-credential-provider-config</code> is read by the kubelet to determine which exec plugins should be invoked for which container images. Here's an example configuration file you may end up using if you are using the <a href="https://aws.amazon.com/ecr/">ECR</a>-based plugin:</p> <pre class="highlight" data-language="yaml">apiVersion: kubelet.config.k8s.io/v1alpha1
+kind: CredentialProviderConfig
+# providers is a list of credential provider plugins that will be enabled by the kubelet.
+# Multiple providers may match against a single image, in which case credentials
+# from all providers will be returned to the kubelet. If multiple providers are called
+# for a single image, the results are combined. If providers return overlapping
+# auth keys, the value from the provider earlier in this list is used.
+providers:
+  # name is the required name of the credential provider. It must match the name of the
+  # provider executable as seen by the kubelet. The executable must be in the kubelet's
+  # bin directory (set by the --image-credential-provider-bin-dir flag).
+  - name: ecr
+    # matchImages is a required list of strings used to match against images in order to
+    # determine if this provider should be invoked. If one of the strings matches the
+    # requested image from the kubelet, the plugin will be invoked and given a chance
+    # to provide credentials. Images are expected to contain the registry domain
+    # and URL path.
+    #
+    # Each entry in matchImages is a pattern which can optionally contain a port and a path.
+    # Globs can be used in the domain, but not in the port or the path. Globs are supported
+    # as subdomains like '*.k8s.io' or 'k8s.*.io', and top-level-domains such as 'k8s.*'.
+    # Matching partial subdomains like 'app*.k8s.io' is also supported. Each glob can only match
+    # a single subdomain segment, so *.io does not match *.k8s.io.
+    #
+    # A match exists between an image and a matchImage when all of the below are true:
+    # - Both contain the same number of domain parts and each part matches.
+    # - The URL path of an imageMatch must be a prefix of the target image URL path.
+    # - If the imageMatch contains a port, then the port must match in the image as well.
+    #
+    # Example values of matchImages:
+    # - 123456789.dkr.ecr.us-east-1.amazonaws.com
+    # - *.azurecr.io
+    # - gcr.io
+    # - *.*.registry.io
+    # - registry.io:8080/path
+    matchImages:
+      - "*.dkr.ecr.*.amazonaws.com"
+      - "*.dkr.ecr.*.amazonaws.cn"
+      - "*.dkr.ecr-fips.*.amazonaws.com"
+      - "*.dkr.ecr.us-iso-east-1.c2s.ic.gov"
+      - "*.dkr.ecr.us-isob-east-1.sc2s.sgov.gov"
+    # defaultCacheDuration is the default duration the plugin will cache credentials in-memory
+    # if a cache duration is not provided in the plugin response. This field is required.
+    defaultCacheDuration: "12h"
+    # Required input version of the exec CredentialProviderRequest. The returned CredentialProviderResponse
+    # MUST use the same encoding version as the input. Current supported values are:
+    # - credentialprovider.kubelet.k8s.io/v1alpha1
+    apiVersion: credentialprovider.kubelet.k8s.io/v1alpha1
+    # Arguments to pass to the command when executing it.
+    # +optional
+    args:
+      - get-credentials
+    # Env defines additional environment variables to expose to the process. These
+    # are unioned with the host's environment, as well as variables client-go uses
+    # to pass argument to the plugin.
+    # +optional
+    env:
+      - name: AWS_PROFILE
+        value: example_profile
+</pre>
+<p>The <code>providers</code> field is a list of enabled plugins used by the kubelet. Each entry has a few required fields:</p> <ul> <li>
+<code>name</code>: the name of the plugin which MUST match the name of the executable binary that exists in the directory passed into <code>--image-credential-provider-bin-dir</code>.</li> <li>
+<code>matchImages</code>: a list of strings used to match against images in order to determine if this provider should be invoked. More on this below.</li> <li>
+<code>defaultCacheDuration</code>: the default duration the kubelet will cache credentials in-memory if a cache duration was not specified by the plugin.</li> <li>
+<code>apiVersion</code>: the API version that the kubelet and the exec plugin will use when communicating.</li> </ul> <p>Each credential provider can also be given optional args and environment variables as well. Consult the plugin implementors to determine what set of arguments and environment variables are required for a given plugin.</p> <h4 id="configure-image-matching">Configure image matching</h4> <p>The <code>matchImages</code> field for each credential provider is used by the kubelet to determine whether a plugin should be invoked for a given image that a Pod is using. Each entry in <code>matchImages</code> is an image pattern which can optionally contain a port and a path. Globs can be used in the domain, but not in the port or the path. Globs are supported as subdomains like <code>*.k8s.io</code> or <code>k8s.*.io</code>, and top-level domains such as <code>k8s.*</code>. Matching partial subdomains like <code>app*.k8s.io</code> is also supported. Each glob can only match a single subdomain segment, so <code>*.io</code> does NOT match <code>*.k8s.io</code>.</p> <p>A match exists between an image name and a <code>matchImage</code> entry when all of the below are true:</p> <ul> <li>Both contain the same number of domain parts and each part matches.</li> <li>The URL path of match image must be a prefix of the target image URL path.</li> <li>If the imageMatch contains a port, then the port must match in the image as well.</li> </ul> <p>Some example values of <code>matchImages</code> patterns are:</p> <ul> <li><code>123456789.dkr.ecr.us-east-1.amazonaws.com</code></li> <li><code>*.azurecr.io</code></li> <li><code>gcr.io</code></li> <li><code>*.*.registry.io</code></li> <li><code>foo.registry.io:8080/path</code></li> </ul> <h2 id="what-s-next">What's next</h2> <ul> <li>Read the details about <code>CredentialProviderConfig</code> in the <a href="../../../reference/config-api/kubelet-config.v1alpha1/index">kubelet configuration API (v1alpha1) reference</a>.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/kubelet-credential-provider/kubelet-credential-provider/" class="_attribution-link">https://kubernetes.io/docs/tasks/kubelet-credential-provider/kubelet-credential-provider/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

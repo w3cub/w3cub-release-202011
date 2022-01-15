@@ -1,0 +1,127 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Troubleshoot Clusters - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="This doc is about cluster troubleshooting; we assume you have already ruled out your application as the root cause of the problem you are &hellip;">
+  <meta name="keywords" content="troubleshoot, clusters, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/debug-application-cluster/debug-cluster.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Troubleshoot Clusters</h1>  <p>This doc is about cluster troubleshooting; we assume you have already ruled out your application as the root cause of the problem you are experiencing. See the <a href="debug-application">application troubleshooting guide</a> for tips on application debugging. You may also visit <a href="troubleshooting/index">troubleshooting document</a> for more information.</p>  <h2 id="listing-your-cluster">Listing your cluster</h2> <p>The first thing to debug in your cluster is if your nodes are all registered correctly.</p> <p>Run</p> <pre class="highlight" data-language="shell">kubectl get nodes
+</pre>
+<p>And verify that all of the nodes you expect to see are present and that they are all in the <code>Ready</code> state.</p> <p>To get detailed information about the overall health of your cluster, you can run:</p> <pre class="highlight" data-language="shell">kubectl cluster-info dump
+</pre>
+<h2 id="looking-at-logs">Looking at logs</h2> <p>For now, digging deeper into the cluster requires logging into the relevant machines. Here are the locations of the relevant log files. (note that on systemd-based systems, you may need to use <code>journalctl</code> instead)</p> <h3 id="master">Master</h3> <ul> <li>
+<code>/var/log/kube-apiserver.log</code> - API Server, responsible for serving the API</li> <li>
+<code>/var/log/kube-scheduler.log</code> - Scheduler, responsible for making scheduling decisions</li> <li>
+<code>/var/log/kube-controller-manager.log</code> - Controller that manages replication controllers</li> </ul> <h3 id="worker-nodes">Worker Nodes</h3> <ul> <li>
+<code>/var/log/kubelet.log</code> - Kubelet, responsible for running containers on the node</li> <li>
+<code>/var/log/kube-proxy.log</code> - Kube Proxy, responsible for service load balancing</li> </ul> <h2 id="a-general-overview-of-cluster-failure-modes">A general overview of cluster failure modes</h2> <p>This is an incomplete list of things that could go wrong, and how to adjust your cluster setup to mitigate the problems.</p> <h3 id="root-causes">Root causes:</h3> <ul> <li>VM(s) shutdown</li> <li>Network partition within cluster, or between cluster and users</li> <li>Crashes in Kubernetes software</li> <li>Data loss or unavailability of persistent storage (e.g. GCE PD or AWS EBS volume)</li> <li>Operator error, for example misconfigured Kubernetes software or application software</li> </ul> <h3 id="specific-scenarios">Specific scenarios:</h3> <ul> <li>Apiserver VM shutdown or apiserver crashing <ul> <li>Results <ul> <li>unable to stop, update, or start new pods, services, replication controller</li> <li>existing pods and services should continue to work normally, unless they depend on the Kubernetes API</li> </ul> </li> </ul> </li> <li>Apiserver backing storage lost <ul> <li>Results <ul> <li>apiserver should fail to come up</li> <li>kubelets will not be able to reach it but will continue to run the same pods and provide the same service proxying</li> <li>manual recovery or recreation of apiserver state necessary before apiserver is restarted</li> </ul> </li> </ul> </li> <li>Supporting services (node controller, replication controller manager, scheduler, etc) VM shutdown or crashes <ul> <li>currently those are colocated with the apiserver, and their unavailability has similar consequences as apiserver</li> <li>in future, these will be replicated as well and may not be co-located</li> <li>they do not have their own persistent state</li> </ul> </li> <li>Individual node (VM or physical machine) shuts down <ul> <li>Results <ul> <li>pods on that Node stop running</li> </ul> </li> </ul> </li> <li>Network partition <ul> <li>Results <ul> <li>partition A thinks the nodes in partition B are down; partition B thinks the apiserver is down. (Assuming the master VM ends up in partition A.)</li> </ul> </li> </ul> </li> <li>Kubelet software fault <ul> <li>Results <ul> <li>crashing kubelet cannot start new pods on the node</li> <li>kubelet might delete the pods or not</li> <li>node marked unhealthy</li> <li>replication controllers start new pods elsewhere</li> </ul> </li> </ul> </li> <li>Cluster operator error <ul> <li>Results <ul> <li>loss of pods, services, etc</li> <li>lost of apiserver backing store</li> <li>users unable to read API</li> <li>etc.</li> </ul> </li> </ul> </li> </ul> <h3 id="mitigations">Mitigations:</h3> <ul> <li> <p>Action: Use IaaS provider's automatic VM restarting feature for IaaS VMs</p> <ul> <li>Mitigates: Apiserver VM shutdown or apiserver crashing</li> <li>Mitigates: Supporting services VM shutdown or crashes</li> </ul> </li> <li> <p>Action: Use IaaS providers reliable storage (e.g. GCE PD or AWS EBS volume) for VMs with apiserver+etcd</p> <ul> <li>Mitigates: Apiserver backing storage lost</li> </ul> </li> <li> <p>Action: Use <a href="../../setup/production-environment/tools/kubeadm/high-availability/index">high-availability</a> configuration</p> <ul> <li>Mitigates: Control plane node shutdown or control plane components (scheduler, API server, controller-manager) crashing <ul> <li>Will tolerate one or more simultaneous node or component failures</li> </ul> </li> <li>Mitigates: API server backing storage (i.e., etcd's data directory) lost <ul> <li>Assumes HA (highly-available) etcd configuration</li> </ul> </li> </ul> </li> <li> <p>Action: Snapshot apiserver PDs/EBS-volumes periodically</p> <ul> <li>Mitigates: Apiserver backing storage lost</li> <li>Mitigates: Some cases of operator error</li> <li>Mitigates: Some cases of Kubernetes software fault</li> </ul> </li> <li> <p>Action: use replication controller and services in front of pods</p> <ul> <li>Mitigates: Node shutdown</li> <li>Mitigates: Kubelet software fault</li> </ul> </li> <li> <p>Action: applications (containers) designed to tolerate unexpected restarts</p> <ul> <li>Mitigates: Node shutdown</li> <li>Mitigates: Kubelet software fault</li> </ul> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster" class="_attribution-link">https://kubernetes.io/docs/tasks/debug-application-cluster/debug-cluster</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

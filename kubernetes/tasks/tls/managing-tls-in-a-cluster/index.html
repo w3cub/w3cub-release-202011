@@ -1,0 +1,188 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Manage TLS Certificates in a Cluster - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Kubernetes provides a certificates.k8s.io API, which lets you provision TLS certificates signed by a Certificate Authority (CA) that you control. &hellip;">
+  <meta name="keywords" content="manage, tls, certificates, cluster, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/tls/managing-tls-in-a-cluster/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Manage TLS Certificates in a Cluster</h1>  <p>Kubernetes provides a <code>certificates.k8s.io</code> API, which lets you provision TLS certificates signed by a Certificate Authority (CA) that you control. These CA and certificates can be used by your workloads to establish trust.</p> <p><code>certificates.k8s.io</code> API uses a protocol that is similar to the <a href="https://github.com/ietf-wg-acme/acme/">ACME draft</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Certificates created using the <code>certificates.k8s.io</code> API are signed by a dedicated CA. It is possible to configure your cluster to use the cluster root CA for this purpose, but you should never rely on this. Do not assume that these certificates will validate against the cluster root CA. </div> <h2 id="before-you-begin">Before you begin</h2> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>.  <h2 id="trusting-tls-in-a-cluster">Trusting TLS in a Cluster</h2> <p>Trusting the custom CA from an application running as a pod usually requires some extra application configuration. You will need to add the CA certificate bundle to the list of CA certificates that the TLS client or server trusts. For example, you would do this with a golang TLS config by parsing the certificate chain and adding the parsed certificates to the <code>RootCAs</code> field in the <a href="https://godoc.org/crypto/tls#Config"><code>tls.Config</code></a> struct.</p> <p>You can distribute the CA certificate as a <a href="../../configure-pod-container/configure-pod-configmap">ConfigMap</a> that your pods have access to use.</p> <h2 id="requesting-a-certificate">Requesting a Certificate</h2> <p>The following section demonstrates how to create a TLS certificate for a Kubernetes service accessed through DNS.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This tutorial uses CFSSL: Cloudflare's PKI and TLS toolkit <a href="https://blog.cloudflare.com/introducing-cfssl/">click here</a> to know more. </div> <h2 id="download-and-install-cfssl">Download and install CFSSL</h2> <p>The cfssl tools used in this example can be downloaded at <a href="https://github.com/cloudflare/cfssl/releases">https://github.com/cloudflare/cfssl/releases</a>.</p> <h2 id="create-a-certificate-signing-request">Create a Certificate Signing Request</h2> <p>Generate a private key and certificate signing request (or CSR) by running the following command:</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF | cfssl genkey - | cfssljson -bare server
+{
+  "hosts": [
+    "my-svc.my-namespace.svc.cluster.local",
+    "my-pod.my-namespace.pod.cluster.local",
+    "192.0.2.24",
+    "10.0.34.2"
+  ],
+  "CN": "system:node:my-pod.my-namespace.pod.cluster.local",
+  "key": {
+    "algo": "ecdsa",
+    "size": 256
+  },
+  "names": [
+    {
+      "O": "system:nodes"
+    }
+  ]
+}
+EOF
+</pre>
+<p>Where <code>192.0.2.24</code> is the service's cluster IP, <code>my-svc.my-namespace.svc.cluster.local</code> is the service's DNS name, <code>10.0.34.2</code> is the pod's IP and <code>my-pod.my-namespace.pod.cluster.local</code> is the pod's DNS name. You should see the following output:</p> <pre><code>2017/03/21 06:48:17 [INFO] generate received request
+2017/03/21 06:48:17 [INFO] received CSR
+2017/03/21 06:48:17 [INFO] generating key: ecdsa-256
+2017/03/21 06:48:17 [INFO] encoded CSR
+</code></pre>
+<p>This command generates two files; it generates <code>server.csr</code> containing the PEM encoded <a href="https://tools.ietf.org/html/rfc2986">pkcs#10</a> certification request, and <code>server-key.pem</code> containing the PEM encoded key to the certificate that is still to be created.</p> <h2 id="create-a-certificate-signing-request-object-to-send-to-the-kubernetes-api">Create a Certificate Signing Request object to send to the Kubernetes API</h2> <p>Generate a CSR yaml blob and send it to the apiserver by running the following command:</p> <pre class="highlight" data-language="shell">cat &lt;&lt;EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: my-svc.my-namespace
+spec:
+  request: $(cat server.csr | base64 | tr -d '\n')
+  signerName: kubernetes.io/kubelet-serving
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+EOF
+</pre>
+<p>Notice that the <code>server.csr</code> file created in step 1 is base64 encoded and stashed in the <code>.spec.request</code> field. We are also requesting a certificate with the "digital signature", "key encipherment", and "server auth" key usages, signed by the <code>kubernetes.io/kubelet-serving</code> signer. A specific <code>signerName</code> must be requested. View documentation for <a href="../../../reference/access-authn-authz/certificate-signing-requests/index#signers">supported signer names</a> for more information.</p> <p>The CSR should now be visible from the API in a Pending state. You can see it by running:</p> <pre class="highlight" data-language="shell">kubectl describe csr my-svc.my-namespace
+</pre>
+<pre><code class="language-none" data-lang="none">Name:                   my-svc.my-namespace
+Labels:                 &lt;none&gt;
+Annotations:            &lt;none&gt;
+CreationTimestamp:      Tue, 21 Mar 2017 07:03:51 -0700
+Requesting User:        yourname@example.com
+Status:                 Pending
+Subject:
+        Common Name:    my-svc.my-namespace.svc.cluster.local
+        Serial Number:
+Subject Alternative Names:
+        DNS Names:      my-svc.my-namespace.svc.cluster.local
+        IP Addresses:   192.0.2.24
+                        10.0.34.2
+Events: &lt;none&gt;
+</code></pre>
+<h2 id="get-the-certificate-signing-request-approved">Get the Certificate Signing Request Approved</h2> <p>Approving the <a href="../../../reference/access-authn-authz/certificate-signing-requests/index">certificate signing request</a> is either done by an automated approval process or on a one off basis by a cluster administrator. If you're authorized to approve a certificate request, you can do that manually using <code>kubectl</code>; for example:</p> <pre class="highlight" data-language="shell">kubectl certificate approve my-svc.my-namespace
+</pre>
+<pre><code class="language-none" data-lang="none">certificatesigningrequest.certificates.k8s.io/my-svc.my-namespace approved
+</code></pre>
+<h2 id="download-the-certificate-and-use-it">Download the Certificate and Use It</h2> <p>Once the CSR is signed and approved you should see the following:</p> <pre class="highlight" data-language="shell">kubectl get csr
+</pre>
+<pre><code class="language-none" data-lang="none">NAME                  AGE       REQUESTOR               CONDITION
+my-svc.my-namespace   10m       yourname@example.com    Approved,Issued
+</code></pre>
+<p>You can download the issued certificate and save it to a <code>server.crt</code> file by running the following:</p> <pre class="highlight" data-language="shell">kubectl get csr my-svc.my-namespace -o jsonpath='{.status.certificate}' \
+    | base64 --decode &gt; server.crt
+</pre>
+<p>Now you can use <code>server.crt</code> and <code>server-key.pem</code> as the keypair to start your HTTPS server.</p> <h2 id="approving-certificate-signing-requests">Approving Certificate Signing Requests</h2> <p>A Kubernetes administrator (with appropriate permissions) can manually approve (or deny) Certificate Signing Requests by using the <code>kubectl certificate approve</code> and <code>kubectl certificate deny</code> commands. However if you intend to make heavy usage of this API, you might consider writing an automated certificates controller.</p> <p>Whether a machine or a human using kubectl as above, the role of the approver is to verify that the CSR satisfies two requirements:</p> <ol> <li>The subject of the CSR controls the private key used to sign the CSR. This addresses the threat of a third party masquerading as an authorized subject. In the above example, this step would be to verify that the pod controls the private key used to generate the CSR.</li> <li>The subject of the CSR is authorized to act in the requested context. This addresses the threat of an undesired subject joining the cluster. In the above example, this step would be to verify that the pod is allowed to participate in the requested service.</li> </ol> <p>If and only if these two requirements are met, the approver should approve the CSR and otherwise should deny the CSR.</p> <h2 id="a-word-of-warning-on-the-approval-permission">A Word of Warning on the Approval Permission</h2> <p>The ability to approve CSRs decides who trusts whom within your environment. The ability to approve CSRs should not be granted broadly or lightly. The requirements of the challenge noted in the previous section and the repercussions of issuing a specific certificate should be fully understood before granting this permission.</p> <h2 id="a-note-to-cluster-administrators">A Note to Cluster Administrators</h2> <p>This tutorial assumes that a signer is setup to serve the certificates API. The Kubernetes controller manager provides a default implementation of a signer. To enable it, pass the <code>--cluster-signing-cert-file</code> and <code>--cluster-signing-key-file</code> parameters to the controller manager with paths to your Certificate Authority's keypair.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/" class="_attribution-link">https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

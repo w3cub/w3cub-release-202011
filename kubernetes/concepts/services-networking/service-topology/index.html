@@ -1,0 +1,181 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Topology-aware Traffic Routing With Topology Keys - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Service Topology enables a service to route traffic based upon the Node topology of the cluster. For example, a service can specify that traffic be &hellip;">
+  <meta name="keywords" content="topology-aware, traffic, routing, with, topology, keys, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/services-networking/service-topology/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Topology-aware traffic routing with topology keys</h1>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.21 [deprecated]</code> </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This feature, specifically the alpha <code>topologyKeys</code> API, is deprecated since Kubernetes v1.21. <a href="../topology-aware-hints/index">Topology Aware Hints</a>, introduced in Kubernetes v1.21, provide similar functionality. </div> <p><em>Service Topology</em> enables a service to route traffic based upon the Node topology of the cluster. For example, a service can specify that traffic be preferentially routed to endpoints that are on the same Node as the client, or in the same availability zone.</p>  <h2 id="topology-aware-traffic-routing">Topology-aware traffic routing</h2> <p>By default, traffic sent to a <code>ClusterIP</code> or <code>NodePort</code> Service may be routed to any backend address for the Service. Kubernetes 1.7 made it possible to route "external" traffic to the Pods running on the same Node that received the traffic. For <code>ClusterIP</code> Services, the equivalent same-node preference for routing wasn't possible; nor could you configure your cluster to favor routing to endpoints within the same zone. By setting <code>topologyKeys</code> on a Service, you're able to define a policy for routing traffic based upon the Node labels for the originating and destination Nodes.</p> <p>The label matching between the source and destination lets you, as a cluster operator, designate sets of Nodes that are "closer" and "farther" from one another. You can define labels to represent whatever metric makes sense for your own requirements. In public clouds, for example, you might prefer to keep network traffic within the same zone, because interzonal traffic has a cost associated with it (and intrazonal traffic typically does not). Other common needs include being able to route traffic to a local Pod managed by a DaemonSet, or directing traffic to Nodes connected to the same top-of-rack switch for the lowest latency.</p> <h2 id="using-service-topology">Using Service Topology</h2> <p>If your cluster has the <code>ServiceTopology</code> <a href="../../../reference/command-line-tools-reference/feature-gates/index">feature gate</a> enabled, you can control Service traffic routing by specifying the <code>topologyKeys</code> field on the Service spec. This field is a preference-order list of Node labels which will be used to sort endpoints when accessing this Service. Traffic will be directed to a Node whose value for the first label matches the originating Node's value for that label. If there is no backend for the Service on a matching Node, then the second label will be considered, and so forth, until no labels remain.</p> <p>If no match is found, the traffic will be rejected, as if there were no backends for the Service at all. That is, endpoints are chosen based on the first topology key with available backends. If this field is specified and all entries have no backends that match the topology of the client, the service has no backends for that client and connections should fail. The special value <code>"*"</code> may be used to mean "any topology". This catch-all value, if used, only makes sense as the last value in the list.</p> <p>If <code>topologyKeys</code> is not specified or empty, no topology constraints will be applied.</p> <p>Consider a cluster with Nodes that are labeled with their hostname, zone name, and region name. Then you can set the <code>topologyKeys</code> values of a service to direct traffic as follows.</p> <ul> <li>Only to endpoints on the same node, failing if no endpoint exists on the node: <code>["kubernetes.io/hostname"]</code>.</li> <li>Preferentially to endpoints on the same node, falling back to endpoints in the same zone, followed by the same region, and failing otherwise: <code>["kubernetes.io/hostname", "topology.kubernetes.io/zone", "topology.kubernetes.io/region"]</code>. This may be useful, for example, in cases where data locality is critical.</li> <li>Preferentially to the same zone, but fallback on any available endpoint if none are available within this zone: <code>["topology.kubernetes.io/zone", "*"]</code>.</li> </ul> <h2 id="constraints">Constraints</h2> <ul> <li> <p>Service topology is not compatible with <code>externalTrafficPolicy=Local</code>, and therefore a Service cannot use both of these features. It is possible to use both features in the same cluster on different Services, only not on the same Service.</p> </li> <li> <p>Valid topology keys are currently limited to <code>kubernetes.io/hostname</code>, <code>topology.kubernetes.io/zone</code>, and <code>topology.kubernetes.io/region</code>, but will be generalized to other node labels in the future.</p> </li> <li> <p>Topology keys must be valid label keys and at most 16 keys may be specified.</p> </li> <li> <p>The catch-all value, <code>"*"</code>, must be the last value in the topology keys, if it is used.</p> </li> </ul> <h2 id="examples">Examples</h2> <p>The following are common examples of using the Service Topology feature.</p> <h3 id="only-node-local-endpoints">Only Node Local Endpoints</h3> <p>A Service that only routes to node local endpoints. If no endpoints exist on the node, traffic is dropped:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+  topologyKeys:
+    - "kubernetes.io/hostname"
+</pre>
+<h3 id="prefer-node-local-endpoints">Prefer Node Local Endpoints</h3> <p>A Service that prefers node local Endpoints but falls back to cluster wide endpoints if node local endpoints do not exist:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+  topologyKeys:
+    - "kubernetes.io/hostname"
+    - "*"
+</pre>
+<h3 id="only-zonal-or-regional-endpoints">Only Zonal or Regional Endpoints</h3> <p>A Service that prefers zonal then regional endpoints. If no endpoints exist in either, traffic is dropped.</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+  topologyKeys:
+    - "topology.kubernetes.io/zone"
+    - "topology.kubernetes.io/region"
+</pre>
+<h3 id="prefer-node-local-zonal-then-regional-endpoints">Prefer Node Local, Zonal, then Regional Endpoints</h3> <p>A Service that prefers node local, zonal, then regional endpoints but falls back to cluster wide endpoints.</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: my-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+  topologyKeys:
+    - "kubernetes.io/hostname"
+    - "topology.kubernetes.io/zone"
+    - "topology.kubernetes.io/region"
+    - "*"
+</pre>
+<h2 id="what-s-next">What's next</h2> <ul> <li>Read about <a href="https://kubernetes.io/docs/tasks/administer-cluster/enabling-service-topology">enabling Service Topology</a>
+</li> <li>Read <a href="../connect-applications-service/index">Connecting Applications with Services</a>
+</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/services-networking/service-topology/" class="_attribution-link">https://kubernetes.io/docs/concepts/services-networking/service-topology/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

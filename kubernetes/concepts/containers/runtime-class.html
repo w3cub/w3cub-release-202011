@@ -1,0 +1,138 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Runtime Class - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" This page describes the RuntimeClass resource and runtime selection mechanism. ">
+  <meta name="keywords" content="runtime, class, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/containers/runtime-class.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Runtime Class</h1>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.20 [stable]</code> </div> <p>This page describes the RuntimeClass resource and runtime selection mechanism.</p> <p>RuntimeClass is a feature for selecting the container runtime configuration. The container runtime configuration is used to run a Pod's containers.</p>  <h2 id="motivation">Motivation</h2> <p>You can set a different RuntimeClass between different Pods to provide a balance of performance versus security. For example, if part of your workload deserves a high level of information security assurance, you might choose to schedule those Pods so that they run in a container runtime that uses hardware virtualization. You'd then benefit from the extra isolation of the alternative runtime, at the expense of some additional overhead.</p> <p>You can also use RuntimeClass to run different Pods with the same container runtime but with different settings.</p> <h2 id="setup">Setup</h2> <ol> <li>Configure the CRI implementation on nodes (runtime dependent)</li> <li>Create the corresponding RuntimeClass resources</li> </ol> <h3 id="1-configure-the-cri-implementation-on-nodes">1. Configure the CRI implementation on nodes</h3> <p>The configurations available through RuntimeClass are Container Runtime Interface (CRI) implementation dependent. See the corresponding documentation (<a href="#cri-configuration">below</a>) for your CRI implementation for how to configure.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> RuntimeClass assumes a homogeneous node configuration across the cluster by default (which means that all nodes are configured the same way with respect to container runtimes). To support heterogeneous node configurations, see <a href="#scheduling">Scheduling</a> below. </div> <p>The configurations have a corresponding <code>handler</code> name, referenced by the RuntimeClass. The handler must be a valid <a href="../overview/working-with-objects/names/index#dns-label-names">DNS label name</a>.</p> <h3 id="2-create-the-corresponding-runtimeclass-resources">2. Create the corresponding RuntimeClass resources</h3> <p>The configurations setup in step 1 should each have an associated <code>handler</code> name, which identifies the configuration. For each handler, create a corresponding RuntimeClass object.</p> <p>The RuntimeClass resource currently only has 2 significant fields: the RuntimeClass name (<code>metadata.name</code>) and the handler (<code>handler</code>). The object definition looks like this:</p> <pre class="highlight" data-language="yaml">apiVersion: node.k8s.io/v1  # RuntimeClass is defined in the node.k8s.io API group
+kind: RuntimeClass
+metadata:
+  name: myclass  # The name the RuntimeClass will be referenced by
+  # RuntimeClass is a non-namespaced resource
+handler: myconfiguration  # The name of the corresponding CRI configuration
+</pre>
+<p>The name of a RuntimeClass object must be a valid <a href="../overview/working-with-objects/names#dns-subdomain-names">DNS subdomain name</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> It is recommended that RuntimeClass write operations (create/update/patch/delete) be restricted to the cluster administrator. This is typically the default. See <a href="../../reference/access-authn-authz/authorization/index">Authorization Overview</a> for more details. </div> <h2 id="usage">Usage</h2> <p>Once RuntimeClasses are configured for the cluster, using them is very simple. Specify a <code>runtimeClassName</code> in the Pod spec. For example:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  runtimeClassName: myclass
+  # ...
+</pre>
+<p>This will instruct the kubelet to use the named RuntimeClass to run this pod. If the named RuntimeClass does not exist, or the CRI cannot run the corresponding handler, the pod will enter the <code>Failed</code> terminal <a href="../workloads/pods/pod-lifecycle/index#pod-phase">phase</a>. Look for a corresponding <a href="../../tasks/debug-application-cluster/debug-application-introspection/index">event</a> for an error message.</p> <p>If no <code>runtimeClassName</code> is specified, the default RuntimeHandler will be used, which is equivalent to the behavior when the RuntimeClass feature is disabled.</p> <h3 id="cri-configuration">CRI Configuration</h3> <p>For more details on setting up CRI runtimes, see <a href="../../setup/production-environment/container-runtimes/index">CRI installation</a>.</p> <h4 id="dockershim">dockershim</h4> <p>RuntimeClasses with dockershim must set the runtime handler to <code>docker</code>. Dockershim does not support custom configurable runtime handlers.</p> <h4 id="hahahugoshortcode-s3-hbhb"><a class="glossary-tooltip" title="A container runtime with an emphasis on simplicity, robustness and portability" data-toggle="tooltip" data-placement="top" href="https://containerd.io/docs/" target="_blank" aria-label="containerd">containerd</a></h4> <p>Runtime handlers are configured through containerd's configuration at <code>/etc/containerd/config.toml</code>. Valid handlers are configured under the runtimes section:</p> <pre><code>[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.${HANDLER_NAME}]
+</code></pre>
+<p>See containerd's config documentation for more details: <a href="https://github.com/containerd/cri/blob/master/docs/config.md">https://github.com/containerd/cri/blob/master/docs/config.md</a></p> <h4 id="hahahugoshortcode-s4-hbhb"><a class="glossary-tooltip" title="A lightweight container runtime specifically for Kubernetes" data-toggle="tooltip" data-placement="top" href="https://cri-o.io/#what-is-cri-o" target="_blank" aria-label="CRI-O">CRI-O</a></h4> <p>Runtime handlers are configured through CRI-O's configuration at <code>/etc/crio/crio.conf</code>. Valid handlers are configured under the <a href="https://github.com/cri-o/cri-o/blob/master/docs/crio.conf.5.md#crioruntime-table">crio.runtime table</a>:</p> <pre><code>[crio.runtime.runtimes.${HANDLER_NAME}]
+  runtime_path = "${PATH_TO_BINARY}"
+</code></pre>
+<p>See CRI-O's <a href="https://github.com/cri-o/cri-o/blob/master/docs/crio.conf.5.md">config documentation</a> for more details.</p> <h2 id="scheduling">Scheduling</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.16 [beta]</code> </div> <p>By specifying the <code>scheduling</code> field for a RuntimeClass, you can set constraints to ensure that Pods running with this RuntimeClass are scheduled to nodes that support it. If <code>scheduling</code> is not set, this RuntimeClass is assumed to be supported by all nodes.</p> <p>To ensure pods land on nodes supporting a specific RuntimeClass, that set of nodes should have a common label which is then selected by the <code>runtimeclass.scheduling.nodeSelector</code> field. The RuntimeClass's nodeSelector is merged with the pod's nodeSelector in admission, effectively taking the intersection of the set of nodes selected by each. If there is a conflict, the pod will be rejected.</p> <p>If the supported nodes are tainted to prevent other RuntimeClass pods from running on the node, you can add <code>tolerations</code> to the RuntimeClass. As with the <code>nodeSelector</code>, the tolerations are merged with the pod's tolerations in admission, effectively taking the union of the set of nodes tolerated by each.</p> <p>To learn more about configuring the node selector and tolerations, see <a href="../scheduling-eviction/assign-pod-node/index">Assigning Pods to Nodes</a>.</p> <h3 id="pod-overhead">Pod Overhead</h3> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.18 [beta]</code> </div> <p>You can specify <em>overhead</em> resources that are associated with running a Pod. Declaring overhead allows the cluster (including the scheduler) to account for it when making decisions about Pods and resources. To use Pod overhead, you must have the PodOverhead <a href="../../reference/command-line-tools-reference/feature-gates/index">feature gate</a> enabled (it is on by default).</p> <p>Pod overhead is defined in RuntimeClass through the <code>overhead</code> fields. Through the use of these fields, you can specify the overhead of running pods utilizing this RuntimeClass and ensure these overheads are accounted for in Kubernetes.</p> <h2 id="what-s-next">What's next</h2> <ul> <li><a href="https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/585-runtime-class/README.md">RuntimeClass Design</a></li> <li><a href="https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/585-runtime-class/README.md#runtimeclass-scheduling">RuntimeClass Scheduling Design</a></li> <li>Read about the <a href="../scheduling-eviction/pod-overhead/index">Pod Overhead</a> concept</li> <li><a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-node/688-pod-overhead">PodOverhead Feature Design</a></li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/containers/runtime-class" class="_attribution-link">https://kubernetes.io/docs/concepts/containers/runtime-class</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,194 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Example&#58; Deploying Cassandra With a StatefulSet - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="This tutorial shows you how to run Apache Cassandra on Kubernetes. Cassandra, a database, needs persistent storage to provide data durability ( &hellip;">
+  <meta name="keywords" content="example, deploying, cassandra, with, statefulset, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tutorials/stateful-application/cassandra/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Example: Deploying Cassandra with a StatefulSet</h1>  <p>This tutorial shows you how to run <a href="https://cassandra.apache.org/">Apache Cassandra</a> on Kubernetes. Cassandra, a database, needs persistent storage to provide data durability (application <em>state</em>). In this example, a custom Cassandra seed provider lets the database discover new Cassandra instances as they join the Cassandra cluster.</p> <p><em>StatefulSets</em> make it easier to deploy stateful applications into your Kubernetes cluster. For more information on the features used in this tutorial, see <a href="../../../concepts/workloads/controllers/statefulset/index">StatefulSet</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>Cassandra and Kubernetes both use the term <em>node</em> to mean a member of a cluster. In this tutorial, the Pods that belong to the StatefulSet are Cassandra nodes and are members of the Cassandra cluster (called a <em>ring</em>). When those Pods run in your Kubernetes cluster, the Kubernetes control plane schedules those Pods onto Kubernetes <a class="glossary-tooltip" title="A node is a worker machine in Kubernetes." data-toggle="tooltip" data-placement="top" href="../../../concepts/architecture/nodes/index" target="_blank" aria-label="Nodes">Nodes</a>.</p> <p>When a Cassandra node starts, it uses a <em>seed list</em> to bootstrap discovery of other nodes in the ring. This tutorial deploys a custom Cassandra seed provider that lets the database discover new Cassandra Pods as they appear inside your Kubernetes cluster.</p> </div> <h2 id="objectives">Objectives</h2> <ul> <li>Create and validate a Cassandra headless <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../../../concepts/services-networking/service/index" target="_blank" aria-label="Service">Service</a>.</li> <li>Use a <a class="glossary-tooltip" title="Manages deployment and scaling of a set of Pods, with durable storage and persistent identifiers for each Pod." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/controllers/statefulset/index" target="_blank" aria-label="StatefulSet">StatefulSet</a> to create a Cassandra ring.</li> <li>Validate the StatefulSet.</li> <li>Modify the StatefulSet.</li> <li>Delete the StatefulSet and its <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/pods/index" target="_blank" aria-label="Pods">Pods</a>.</li> </ul> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> <p>To complete this tutorial, you should already have a basic familiarity with <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/pods/index" target="_blank" aria-label="Pods">Pods</a>, <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../../../concepts/services-networking/service/index" target="_blank" aria-label="Services">Services</a>, and <a class="glossary-tooltip" title="Manages deployment and scaling of a set of Pods, with durable storage and persistent identifiers for each Pod." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/controllers/statefulset/index" target="_blank" aria-label="StatefulSets">StatefulSets</a>.</p> <h3 id="additional-minikube-setup-instructions">Additional Minikube setup instructions</h3> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> <p><a href="https://minikube.sigs.k8s.io/docs/">Minikube</a> defaults to 2048MB of memory and 2 CPU. Running Minikube with the default resource configuration results in insufficient resource errors during this tutorial. To avoid these errors, start Minikube with the following settings:</p> <pre class="highlight" data-language="shell">minikube start --memory 5120 --cpus=4
+</pre> </div>  <h2 id="creating-a-cassandra-headless-service">Creating a headless Service for Cassandra</h2> <p>In Kubernetes, a <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../../../concepts/services-networking/service/index" target="_blank" aria-label="Service">Service</a> describes a set of <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/pods/index" target="_blank" aria-label="Pods">Pods</a> that perform the same task.</p> <p>The following Service is used for DNS lookups between Cassandra Pods and clients within your cluster:</p> <pre class="highlight" data-language="">application/cassandra/cassandra-service.yaml</pre> <p>Create a Service to track all Cassandra StatefulSet members from the <code>cassandra-service.yaml</code> file:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/cassandra/cassandra-service.yaml
+</pre>
+<h3 id="validating">Validating (optional)</h3> <p>Get the Cassandra Service.</p> <pre class="highlight" data-language="shell">kubectl get svc cassandra
+</pre>
+<p>The response is</p> <pre><code>NAME        TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
+cassandra   ClusterIP   None         &lt;none&gt;        9042/TCP   45s
+</code></pre>
+<p>If you don't see a Service named <code>cassandra</code>, that means creation failed. Read <a href="../../../tasks/debug-application-cluster/debug-service/index">Debug Services</a> for help troubleshooting common issues.</p> <h2 id="using-a-statefulset-to-create-a-cassandra-ring">Using a StatefulSet to create a Cassandra ring</h2> <p>The StatefulSet manifest, included below, creates a Cassandra ring that consists of three Pods.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This example uses the default provisioner for Minikube. Please update the following StatefulSet for the cloud you are working with. </div> <pre class="highlight" data-language="">application/cassandra/cassandra-statefulset.yaml</pre> <p>Create the Cassandra StatefulSet from the <code>cassandra-statefulset.yaml</code> file:</p> <pre class="highlight" data-language="shell"># Use this if you are able to apply cassandra-statefulset.yaml unmodified
+kubectl apply -f https://k8s.io/examples/application/cassandra/cassandra-statefulset.yaml
+</pre>
+<p>If you need to modify <code>cassandra-statefulset.yaml</code> to suit your cluster, download <a href="https://k8s.io/examples/application/cassandra/cassandra-statefulset.yaml">https://k8s.io/examples/application/cassandra/cassandra-statefulset.yaml</a> and then apply that manifest, from the folder you saved the modified version into:</p> <pre class="highlight" data-language="shell"># Use this if you needed to modify cassandra-statefulset.yaml locally
+kubectl apply -f cassandra-statefulset.yaml
+</pre>
+<h2 id="validating-the-cassandra-statefulset">Validating the Cassandra StatefulSet</h2> <ol> <li> <p>Get the Cassandra StatefulSet:</p> <pre class="highlight" data-language="shell">kubectl get statefulset cassandra
+</pre>
+<p>The response should be similar to:</p> <pre><code>NAME        DESIRED   CURRENT   AGE
+cassandra   3         0         13s
+</code></pre>
+<p>The <code>StatefulSet</code> resource deploys Pods sequentially.</p> </li> <li> <p>Get the Pods to see the ordered creation status:</p> <pre class="highlight" data-language="shell">kubectl get pods -l="app=cassandra"
+</pre>
+<p>The response should be similar to:</p> <pre class="highlight" data-language="shell">NAME          READY     STATUS              RESTARTS   AGE
+cassandra-0   1/1       Running             0          1m
+cassandra-1   0/1       ContainerCreating   0          8s
+</pre>
+<p>It can take several minutes for all three Pods to deploy. Once they are deployed, the same command returns output similar to:</p> <pre><code>NAME          READY     STATUS    RESTARTS   AGE
+cassandra-0   1/1       Running   0          10m
+cassandra-1   1/1       Running   0          9m
+cassandra-2   1/1       Running   0          8m
+</code></pre>
+</li> <li> <p>Run the Cassandra <a href="https://cwiki.apache.org/confluence/display/CASSANDRA2/NodeTool">nodetool</a> inside the first Pod, to display the status of the ring.</p> <pre class="highlight" data-language="shell">kubectl exec -it cassandra-0 -- nodetool status
+</pre>
+<p>The response should look something like:</p> <pre><code>Datacenter: DC1-K8Demo
+======================
+Status=Up/Down
+|/ State=Normal/Leaving/Joining/Moving
+--  Address     Load       Tokens       Owns (effective)  Host ID                               Rack
+UN  172.17.0.5  83.57 KiB  32           74.0%             e2dd09e6-d9d3-477e-96c5-45094c08db0f  Rack1-K8Demo
+UN  172.17.0.4  101.04 KiB  32           58.8%             f89d6835-3a42-4419-92b3-0e62cae1479c  Rack1-K8Demo
+UN  172.17.0.6  84.74 KiB  32           67.1%             a6a1e8c2-3dc5-4417-b1a0-26507af2aaad  Rack1-K8Demo
+</code></pre>
+</li> </ol> <h2 id="modifying-the-cassandra-statefulset">Modifying the Cassandra StatefulSet</h2> <p>Use <code>kubectl edit</code> to modify the size of a Cassandra StatefulSet.</p> <ol> <li> <p>Run the following command:</p> <pre class="highlight" data-language="shell">kubectl edit statefulset cassandra
+</pre>
+<p>This command opens an editor in your terminal. The line you need to change is the <code>replicas</code> field. The following sample is an excerpt of the StatefulSet file:</p> <pre class="highlight" data-language="yaml"># Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: 2016-08-13T18:40:58Z
+  generation: 1
+  labels:
+  app: cassandra
+  name: cassandra
+  namespace: default
+  resourceVersion: "323"
+  uid: 7a219483-6185-11e6-a910-42010a8a0fc0
+spec:
+  replicas: 3
+</pre>
+</li> <li> <p>Change the number of replicas to 4, and then save the manifest.</p> <p>The StatefulSet now scales to run with 4 Pods.</p> </li> <li> <p>Get the Cassandra StatefulSet to verify your change:</p> <pre class="highlight" data-language="shell">kubectl get statefulset cassandra
+</pre>
+<p>The response should be similar to:</p> <pre><code>NAME        DESIRED   CURRENT   AGE
+cassandra   4         4         36m
+</code></pre>
+</li> </ol> <h2 id="cleaning-up">Cleaning up</h2> <p>Deleting or scaling a StatefulSet down does not delete the volumes associated with the StatefulSet. This setting is for your safety because your data is more valuable than automatically purging all related StatefulSet resources.</p> <div class="alert alert-danger warning callout" role="alert"> <strong>Warning:</strong> Depending on the storage class and reclaim policy, deleting the <em>PersistentVolumeClaims</em> may cause the associated volumes to also be deleted. Never assume you'll be able to access data if its volume claims are deleted. </div> <ol> <li> <p>Run the following commands (chained together into a single command) to delete everything in the Cassandra StatefulSet:</p> <pre class="highlight" data-language="shell">grace=$(kubectl get pod cassandra-0 -o=jsonpath='{.spec.terminationGracePeriodSeconds}') \
+  &amp;&amp; kubectl delete statefulset -l app=cassandra \
+  &amp;&amp; echo "Sleeping ${grace} seconds" 1&gt;&amp;2 \
+  &amp;&amp; sleep $grace \
+  &amp;&amp; kubectl delete persistentvolumeclaim -l app=cassandra
+</pre>
+</li> <li> <p>Run the following command to delete the Service you set up for Cassandra:</p> <pre class="highlight" data-language="shell">kubectl delete service -l app=cassandra
+</pre>
+</li> </ol> <h2 id="cassandra-container-environment-variables">Cassandra container environment variables</h2> <p>The Pods in this tutorial use the <a href="https://github.com/kubernetes/examples/blob/master/cassandra/image/Dockerfile"><code>gcr.io/google-samples/cassandra:v13</code></a> image from Google's <a href="https://cloud.google.com/container-registry/docs/">container registry</a>. The Docker image above is based on <a href="https://github.com/kubernetes/release/tree/master/images/build/debian-base">debian-base</a> and includes OpenJDK 8.</p> <p>This image includes a standard Cassandra installation from the Apache Debian repo. By using environment variables you can change values that are inserted into <code>cassandra.yaml</code>.</p> <table> <thead> <tr> <th>Environment variable</th> <th style="text-align:center">Default value</th> </tr> </thead> <tbody> <tr> <td><code>CASSANDRA_CLUSTER_NAME</code></td> <td style="text-align:center"><code>'Test Cluster'</code></td> </tr> <tr> <td><code>CASSANDRA_NUM_TOKENS</code></td> <td style="text-align:center"><code>32</code></td> </tr> <tr> <td><code>CASSANDRA_RPC_ADDRESS</code></td> <td style="text-align:center"><code>0.0.0.0</code></td> </tr> </tbody> </table> <h2 id="what-s-next">What's next</h2> <ul> <li>Learn how to <a href="../../../tasks/run-application/scale-stateful-set/index">Scale a StatefulSet</a>.</li> <li>Learn more about the <a href="https://github.com/kubernetes/examples/blob/master/cassandra/java/src/main/java/io/k8s/cassandra/KubernetesSeedProvider.java"><em>KubernetesSeedProvider</em></a>
+</li> <li>See more custom <a href="https://git.k8s.io/examples/cassandra/java/README.md">Seed Provider Configurations</a>
+</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tutorials/stateful-application/cassandra/" class="_attribution-link">https://kubernetes.io/docs/tutorials/stateful-application/cassandra/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

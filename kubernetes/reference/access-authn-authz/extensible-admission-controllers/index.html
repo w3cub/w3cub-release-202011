@@ -1,0 +1,1078 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Dynamic Admission Control - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="In addition to compiled-in admission plugins, admission plugins can be developed as extensions and run as webhooks configured at runtime. This page &hellip;">
+  <meta name="keywords" content="dynamic, admission, control, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/reference/access-authn-authz/extensible-admission-controllers/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Dynamic Admission Control</h1>  <p>In addition to <a href="../admission-controllers/index">compiled-in admission plugins</a>, admission plugins can be developed as extensions and run as webhooks configured at runtime. This page describes how to build, configure, use, and monitor admission webhooks.</p>  <h2 id="what-are-admission-webhooks">What are admission webhooks?</h2> <p>Admission webhooks are HTTP callbacks that receive admission requests and do something with them. You can define two types of admission webhooks, <a href="../admission-controllers/index#validatingadmissionwebhook">validating admission webhook</a> and <a href="../admission-controllers/index#mutatingadmissionwebhook">mutating admission webhook</a>. Mutating admission webhooks are invoked first, and can modify objects sent to the API server to enforce custom defaults. After all object modifications are complete, and after the incoming object is validated by the API server, validating admission webhooks are invoked and can reject requests to enforce custom policies.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Admission webhooks that need to guarantee they see the final state of the object in order to enforce policy should use a validating admission webhook, since objects can be modified after being seen by mutating webhooks. </div> <h2 id="experimenting-with-admission-webhooks">Experimenting with admission webhooks</h2> <p>Admission webhooks are essentially part of the cluster control-plane. You should write and deploy them with great caution. Please read the <a href="index#write-an-admission-webhook-server">user guides</a> for instructions if you intend to write/deploy production-grade admission webhooks. In the following, we describe how to quickly experiment with admission webhooks.</p> <h3 id="prerequisites">Prerequisites</h3> <ul> <li> <p>Ensure that the Kubernetes cluster is at least as new as v1.16 (to use <code>admissionregistration.k8s.io/v1</code>), or v1.9 (to use <code>admissionregistration.k8s.io/v1beta1</code>).</p> </li> <li> <p>Ensure that MutatingAdmissionWebhook and ValidatingAdmissionWebhook admission controllers are enabled. <a href="../admission-controllers/index#is-there-a-recommended-set-of-admission-controllers-to-use">Here</a> is a recommended set of admission controllers to enable in general.</p> </li> <li> <p>Ensure that the <code>admissionregistration.k8s.io/v1</code> or <code>admissionregistration.k8s.io/v1beta1</code> API is enabled.</p> </li> </ul> <h3 id="write-an-admission-webhook-server">Write an admission webhook server</h3> <p>Please refer to the implementation of the <a href="https://github.com/kubernetes/kubernetes/blob/release-1.21/test/images/agnhost/webhook/main.go">admission webhook server</a> that is validated in a Kubernetes e2e test. The webhook handles the <code>AdmissionReview</code> request sent by the apiservers, and sends back its decision as an <code>AdmissionReview</code> object in the same version it received.</p> <p>See the <a href="#request">webhook request</a> section for details on the data sent to webhooks.</p> <p>See the <a href="#response">webhook response</a> section for the data expected from webhooks.</p> <p>The example admission webhook server leaves the <code>ClientAuth</code> field <a href="https://github.com/kubernetes/kubernetes/blob/v1.22.0/test/images/agnhost/webhook/config.go#L38-L39">empty</a>, which defaults to <code>NoClientCert</code>. This means that the webhook server does not authenticate the identity of the clients, supposedly apiservers. If you need mutual TLS or other ways to authenticate the clients, see how to <a href="#authenticate-apiservers">authenticate apiservers</a>.</p> <h3 id="deploy-the-admission-webhook-service">Deploy the admission webhook service</h3> <p>The webhook server in the e2e test is deployed in the Kubernetes cluster, via the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#deployment-v1-apps">deployment API</a>. The test also creates a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#service-v1-core">service</a> as the front-end of the webhook server. See <a href="https://github.com/kubernetes/kubernetes/blob/v1.22.0/test/e2e/apimachinery/webhook.go#L748">code</a>.</p> <p>You may also deploy your webhooks outside of the cluster. You will need to update your webhook configurations accordingly.</p> <h3 id="configure-admission-webhooks-on-the-fly">Configure admission webhooks on the fly</h3> <p>You can dynamically configure what resources are subject to what admission webhooks via <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#validatingwebhookconfiguration-v1-admissionregistration-k8s-io">ValidatingWebhookConfiguration</a> or <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#mutatingwebhookconfiguration-v1-admissionregistration-k8s-io">MutatingWebhookConfiguration</a>.</p> <p>The following is an example <code>ValidatingWebhookConfiguration</code>, a mutating webhook configuration is similar. See the <a href="#webhook-configuration">webhook configuration</a> section for details about each config field.</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-example-1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-example-1-0" role="tab" aria-controls="validatingwebhookconfiguration-example-1-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-example-1-1" role="tab" aria-controls="validatingwebhookconfiguration-example-1-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-example-1">
+<div id="validatingwebhookconfiguration-example-1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-example-1-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "pod-policy.example.com"
+webhooks:
+- name: "pod-policy.example.com"
+  rules:
+  - apiGroups:   [""]
+    apiVersions: ["v1"]
+    operations:  ["CREATE"]
+    resources:   ["pods"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      namespace: "example-namespace"
+      name: "example-service"
+    caBundle: "Ci0tLS0tQk...&lt;`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate.&gt;...tLS0K"
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  timeoutSeconds: 5
+</pre>
+</div> <div id="validatingwebhookconfiguration-example-1-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-example-1-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "pod-policy.example.com"
+webhooks:
+- name: "pod-policy.example.com"
+  rules:
+  - apiGroups:   [""]
+    apiVersions: ["v1"]
+    operations:  ["CREATE"]
+    resources:   ["pods"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      namespace: "example-namespace"
+      name: "example-service"
+    caBundle: "Ci0tLS0tQk...&lt;`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate&gt;...tLS0K"
+  admissionReviewVersions: ["v1beta1"]
+  timeoutSeconds: 5
+</pre>
+</div>
+</div> <p>The scope field specifies if only cluster-scoped resources ("Cluster") or namespace-scoped resources ("Namespaced") will match this rule. "∗" means that there are no scope restrictions.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> When using <code>clientConfig.service</code>, the server cert must be valid for <code>&lt;svc_name&gt;.&lt;svc_namespace&gt;.svc</code>. </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Default timeout for a webhook call is 10 seconds for webhooks registered created using <code>admissionregistration.k8s.io/v1</code>, and 30 seconds for webhooks created using <code>admissionregistration.k8s.io/v1beta1</code>. Starting in kubernetes 1.14 you can set the timeout and it is encouraged to use a small timeout for webhooks. If the webhook call times out, the request is handled according to the webhook's failure policy. </div> <p>When an apiserver receives a request that matches one of the <code>rules</code>, the apiserver sends an <code>admissionReview</code> request to webhook as specified in the <code>clientConfig</code>.</p> <p>After you create the webhook configuration, the system will take a few seconds to honor the new configuration.</p> <h3 id="authenticate-apiservers">Authenticate apiservers</h3> <p>If your admission webhooks require authentication, you can configure the apiservers to use basic auth, bearer token, or a cert to authenticate itself to the webhooks. There are three steps to complete the configuration.</p> <ul> <li> <p>When starting the apiserver, specify the location of the admission control configuration file via the <code>--admission-control-config-file</code> flag.</p> </li> <li> <p>In the admission control configuration file, specify where the MutatingAdmissionWebhook controller and ValidatingAdmissionWebhook controller should read the credentials. The credentials are stored in kubeConfig files (yes, the same schema that's used by kubectl), so the field name is <code>kubeConfigFile</code>. Here is an example admission control configuration file:</p> </li> </ul> <ul class="nav nav-tabs" id="admissionconfiguration-example1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionconfiguration-example1-0" role="tab" aria-controls="admissionconfiguration-example1-0" aria-selected="true">apiserver.config.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionconfiguration-example1-1" role="tab" aria-controls="admissionconfiguration-example1-1">apiserver.k8s.io/v1alpha1</a></li>
+</ul> <div class="tab-content" id="admissionconfiguration-example1">
+<div id="admissionconfiguration-example1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionconfiguration-example1-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: apiserver.config.k8s.io/v1
+kind: AdmissionConfiguration
+plugins:
+- name: ValidatingAdmissionWebhook
+  configuration:
+    apiVersion: apiserver.config.k8s.io/v1
+    kind: WebhookAdmissionConfiguration
+    kubeConfigFile: "&lt;path-to-kubeconfig-file&gt;"
+- name: MutatingAdmissionWebhook
+  configuration:
+    apiVersion: apiserver.config.k8s.io/v1
+    kind: WebhookAdmissionConfiguration
+    kubeConfigFile: "&lt;path-to-kubeconfig-file&gt;"
+</pre>
+</div> <div id="admissionconfiguration-example1-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionconfiguration-example1-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.17 in favor of apiserver.config.k8s.io/v1
+apiVersion: apiserver.k8s.io/v1alpha1
+kind: AdmissionConfiguration
+plugins:
+- name: ValidatingAdmissionWebhook
+  configuration:
+    # Deprecated in v1.17 in favor of apiserver.config.k8s.io/v1, kind=WebhookAdmissionConfiguration
+    apiVersion: apiserver.config.k8s.io/v1alpha1
+    kind: WebhookAdmission
+    kubeConfigFile: "&lt;path-to-kubeconfig-file&gt;"
+- name: MutatingAdmissionWebhook
+  configuration:
+    # Deprecated in v1.17 in favor of apiserver.config.k8s.io/v1, kind=WebhookAdmissionConfiguration
+    apiVersion: apiserver.config.k8s.io/v1alpha1
+    kind: WebhookAdmission
+    kubeConfigFile: "&lt;path-to-kubeconfig-file&gt;"
+</pre>
+</div>
+</div> <p>For more information about <code>AdmissionConfiguration</code>, see the <a href="../../config-api/apiserver-webhookadmission.v1/index">AdmissionConfiguration (v1) reference</a>. See the <a href="#webhook-configuration">webhook configuration</a> section for details about each config field.</p> <ul> <li> <p>In the kubeConfig file, provide the credentials:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Config
+users:
+# name should be set to the DNS name of the service or the host (including port) of the URL the webhook is configured to speak to.
+# If a non-443 port is used for services, it must be included in the name when configuring 1.16+ API servers.
+#
+# For a webhook configured to speak to a service on the default port (443), specify the DNS name of the service:
+# - name: webhook1.ns1.svc
+#   user: ...
+#
+# For a webhook configured to speak to a service on non-default port (e.g. 8443), specify the DNS name and port of the service in 1.16+:
+# - name: webhook1.ns1.svc:8443
+#   user: ...
+# and optionally create a second stanza using only the DNS name of the service for compatibility with 1.15 API servers:
+# - name: webhook1.ns1.svc
+#   user: ...
+#
+# For webhooks configured to speak to a URL, match the host (and port) specified in the webhook's URL. Examples:
+# A webhook with `url: https://www.example.com`:
+# - name: www.example.com
+#   user: ...
+#
+# A webhook with `url: https://www.example.com:443`:
+# - name: www.example.com:443
+#   user: ...
+#
+# A webhook with `url: https://www.example.com:8443`:
+# - name: www.example.com:8443
+#   user: ...
+#
+- name: 'webhook1.ns1.svc'
+  user:
+    client-certificate-data: "&lt;pem encoded certificate&gt;"
+    client-key-data: "&lt;pem encoded key&gt;"
+# The `name` supports using * to wildcard-match prefixing segments.
+- name: '*.webhook-company.org'
+  user:
+    password: "&lt;password&gt;"
+    username: "&lt;name&gt;"
+# '*' is the default match.
+- name: '*'
+  user:
+    token: "&lt;token&gt;"
+</pre>
+</li> </ul> <p>Of course you need to set up the webhook server to handle these authentications.</p> <h2 id="webhook-request-and-response">Webhook request and response</h2> <h3 id="request">Request</h3> <p>Webhooks are sent as POST requests, with <code>Content-Type: application/json</code>, with an <code>AdmissionReview</code> API object in the <code>admission.k8s.io</code> API group serialized to JSON as the body.</p> <p>Webhooks can specify what versions of <code>AdmissionReview</code> objects they accept with the <code>admissionReviewVersions</code> field in their configuration:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-admissionreviewversions" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-admissionreviewversions-0" role="tab" aria-controls="validatingwebhookconfiguration-admissionreviewversions-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-admissionreviewversions-1" role="tab" aria-controls="validatingwebhookconfiguration-admissionreviewversions-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-admissionreviewversions">
+<div id="validatingwebhookconfiguration-admissionreviewversions-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-admissionreviewversions-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  admissionReviewVersions: ["v1", "v1beta1"]
+  ...
+</pre>
+<p><code>admissionReviewVersions</code> is a required field when creating <code>admissionregistration.k8s.io/v1</code> webhook configurations. Webhooks are required to support at least one <code>AdmissionReview</code> version understood by the current and previous API server.</p> </div> <div id="validatingwebhookconfiguration-admissionreviewversions-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-admissionreviewversions-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  admissionReviewVersions: ["v1beta1"]
+  ...
+</pre>
+<p>If no <code>admissionReviewVersions</code> are specified, the default when creating <code>admissionregistration.k8s.io/v1beta1</code> webhook configurations is <code>v1beta1</code>.</p> </div>
+</div> <p>API servers send the first <code>AdmissionReview</code> version in the <code>admissionReviewVersions</code> list they support. If none of the versions in the list are supported by the API server, the configuration will not be allowed to be created. If an API server encounters a webhook configuration that was previously created and does not support any of the <code>AdmissionReview</code> versions the API server knows how to send, attempts to call to the webhook will fail and be subject to the <a href="#failure-policy">failure policy</a>.</p> <p>This example shows the data contained in an <code>AdmissionReview</code> object for a request to update the <code>scale</code> subresource of an <code>apps/v1</code> <code>Deployment</code>:</p> <ul class="nav nav-tabs" id="admissionreview-request" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-request-0" role="tab" aria-controls="admissionreview-request-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-request-1" role="tab" aria-controls="admissionreview-request-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-request">
+<div id="admissionreview-request-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-request-0"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "request": {
+    # Random uid uniquely identifying this admission call
+    "uid": "705ab4f5-6393-11e8-b7cc-42010a800002",
+
+    # Fully-qualified group/version/kind of the incoming object
+    "kind": {"group":"autoscaling","version":"v1","kind":"Scale"},
+    # Fully-qualified group/version/kind of the resource being modified
+    "resource": {"group":"apps","version":"v1","resource":"deployments"},
+    # subresource, if the request is to a subresource
+    "subResource": "scale",
+
+    # Fully-qualified group/version/kind of the incoming object in the original request to the API server.
+    # This only differs from `kind` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    "requestKind": {"group":"autoscaling","version":"v1","kind":"Scale"},
+    # Fully-qualified group/version/kind of the resource being modified in the original request to the API server.
+    # This only differs from `resource` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    "requestResource": {"group":"apps","version":"v1","resource":"deployments"},
+    # subresource, if the request is to a subresource
+    # This only differs from `subResource` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    "requestSubResource": "scale",
+
+    # Name of the resource being modified
+    "name": "my-deployment",
+    # Namespace of the resource being modified, if the resource is namespaced (or is a Namespace object)
+    "namespace": "my-namespace",
+
+    # operation can be CREATE, UPDATE, DELETE, or CONNECT
+    "operation": "UPDATE",
+
+    "userInfo": {
+      # Username of the authenticated user making the request to the API server
+      "username": "admin",
+      # UID of the authenticated user making the request to the API server
+      "uid": "014fbff9a07c",
+      # Group memberships of the authenticated user making the request to the API server
+      "groups": ["system:authenticated","my-admin-group"],
+      # Arbitrary extra info associated with the user making the request to the API server.
+      # This is populated by the API server authentication layer and should be included
+      # if any SubjectAccessReview checks are performed by the webhook.
+      "extra": {
+        "some-key":["some-value1", "some-value2"]
+      }
+    },
+
+    # object is the new object being admitted.
+    # It is null for DELETE operations.
+    "object": {"apiVersion":"autoscaling/v1","kind":"Scale",...},
+    # oldObject is the existing object.
+    # It is null for CREATE and CONNECT operations.
+    "oldObject": {"apiVersion":"autoscaling/v1","kind":"Scale",...},
+    # options contains the options for the operation being admitted, like meta.k8s.io/v1 CreateOptions, UpdateOptions, or DeleteOptions.
+    # It is null for CONNECT operations.
+    "options": {"apiVersion":"meta.k8s.io/v1","kind":"UpdateOptions",...},
+
+    # dryRun indicates the API request is running in dry run mode and will not be persisted.
+    # Webhooks with side effects should avoid actuating those side effects when dryRun is true.
+    # See http://k8s.io/docs/reference/using-api/api-concepts/#make-a-dry-run-request for more details.
+    "dryRun": false
+  }
+}
+</pre>
+</div> <div id="admissionreview-request-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-request-1"> 
+<pre class="highlight" data-language="yaml">{
+  # Deprecated in v1.16 in favor of admission.k8s.io/v1
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "request": {
+    # Random uid uniquely identifying this admission call
+    "uid": "705ab4f5-6393-11e8-b7cc-42010a800002",
+
+    # Fully-qualified group/version/kind of the incoming object
+    "kind": {"group":"autoscaling","version":"v1","kind":"Scale"},
+    # Fully-qualified group/version/kind of the resource being modified
+    "resource": {"group":"apps","version":"v1","resource":"deployments"},
+    # subresource, if the request is to a subresource
+    "subResource": "scale",
+
+    # Fully-qualified group/version/kind of the incoming object in the original request to the API server.
+    # This only differs from `kind` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    # Only sent by v1.15+ API servers.
+    "requestKind": {"group":"autoscaling","version":"v1","kind":"Scale"},
+    # Fully-qualified group/version/kind of the resource being modified in the original request to the API server.
+    # This only differs from `resource` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    # Only sent by v1.15+ API servers.
+    "requestResource": {"group":"apps","version":"v1","resource":"deployments"},
+    # subresource, if the request is to a subresource
+    # This only differs from `subResource` if the webhook specified `matchPolicy: Equivalent` and the
+    # original request to the API server was converted to a version the webhook registered for.
+    # Only sent by v1.15+ API servers.
+    "requestSubResource": "scale",
+
+    # Name of the resource being modified
+    "name": "my-deployment",
+    # Namespace of the resource being modified, if the resource is namespaced (or is a Namespace object)
+    "namespace": "my-namespace",
+
+    # operation can be CREATE, UPDATE, DELETE, or CONNECT
+    "operation": "UPDATE",
+
+    "userInfo": {
+      # Username of the authenticated user making the request to the API server
+      "username": "admin",
+      # UID of the authenticated user making the request to the API server
+      "uid": "014fbff9a07c",
+      # Group memberships of the authenticated user making the request to the API server
+      "groups": ["system:authenticated","my-admin-group"],
+      # Arbitrary extra info associated with the user making the request to the API server.
+      # This is populated by the API server authentication layer and should be included
+      # if any SubjectAccessReview checks are performed by the webhook.
+      "extra": {
+        "some-key":["some-value1", "some-value2"]
+      }
+    },
+
+    # object is the new object being admitted.
+    # It is null for DELETE operations.
+    "object": {"apiVersion":"autoscaling/v1","kind":"Scale",...},
+    # oldObject is the existing object.
+    # It is null for CREATE and CONNECT operations (and for DELETE operations in API servers prior to v1.15.0)
+    "oldObject": {"apiVersion":"autoscaling/v1","kind":"Scale",...},
+    # options contains the options for the operation being admitted, like meta.k8s.io/v1 CreateOptions, UpdateOptions, or DeleteOptions.
+    # It is null for CONNECT operations.
+    # Only sent by v1.15+ API servers.
+    "options": {"apiVersion":"meta.k8s.io/v1","kind":"UpdateOptions",...},
+
+    # dryRun indicates the API request is running in dry run mode and will not be persisted.
+    # Webhooks with side effects should avoid actuating those side effects when dryRun is true.
+    # See http://k8s.io/docs/reference/using-api/api-concepts/#make-a-dry-run-request for more details.
+    "dryRun": false
+  }
+}
+</pre>
+</div>
+</div> <h3 id="response">Response</h3> <p>Webhooks respond with a 200 HTTP status code, <code>Content-Type: application/json</code>, and a body containing an <code>AdmissionReview</code> object (in the same version they were sent), with the <code>response</code> stanza populated, serialized to JSON.</p> <p>At a minimum, the <code>response</code> stanza must contain the following fields:</p> <ul> <li>
+<code>uid</code>, copied from the <code>request.uid</code> sent to the webhook</li> <li>
+<code>allowed</code>, either set to <code>true</code> or <code>false</code>
+</li> </ul> <p>Example of a minimal response from a webhook to allow a request: </p>
+<ul class="nav nav-tabs" id="admissionreview-response-allow" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-response-allow-0" role="tab" aria-controls="admissionreview-response-allow-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-response-allow-1" role="tab" aria-controls="admissionreview-response-allow-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-response-allow">
+<div id="admissionreview-response-allow-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-response-allow-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true
+  }
+}
+</pre>
+</div> <div id="admissionreview-response-allow-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-response-allow-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true
+  }
+}
+</pre>
+</div>
+</div> <p>Example of a minimal response from a webhook to forbid a request: </p>
+<ul class="nav nav-tabs" id="admissionreview-response-forbid-minimal" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-response-forbid-minimal-0" role="tab" aria-controls="admissionreview-response-forbid-minimal-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-response-forbid-minimal-1" role="tab" aria-controls="admissionreview-response-forbid-minimal-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-response-forbid-minimal">
+<div id="admissionreview-response-forbid-minimal-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-response-forbid-minimal-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": false
+  }
+}
+</pre>
+</div> <div id="admissionreview-response-forbid-minimal-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-response-forbid-minimal-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": false
+  }
+}
+</pre>
+</div>
+</div> <p>When rejecting a request, the webhook can customize the http code and message returned to the user using the <code>status</code> field. The specified status object is returned to the user. See the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#status-v1-meta">API documentation</a> for details about the status type. Example of a response to forbid a request, customizing the HTTP status code and message presented to the user: </p>
+<ul class="nav nav-tabs" id="admissionreview-response-forbid-details" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-response-forbid-details-0" role="tab" aria-controls="admissionreview-response-forbid-details-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-response-forbid-details-1" role="tab" aria-controls="admissionreview-response-forbid-details-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-response-forbid-details">
+<div id="admissionreview-response-forbid-details-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-response-forbid-details-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": false,
+    "status": {
+      "code": 403,
+      "message": "You cannot do this because it is Tuesday and your name starts with A"
+    }
+  }
+}
+</pre>
+</div> <div id="admissionreview-response-forbid-details-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-response-forbid-details-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": false,
+    "status": {
+      "code": 403,
+      "message": "You cannot do this because it is Tuesday and your name starts with A"
+    }
+  }
+}
+</pre>
+</div>
+</div> <p>When allowing a request, a mutating admission webhook may optionally modify the incoming object as well. This is done using the <code>patch</code> and <code>patchType</code> fields in the response. The only currently supported <code>patchType</code> is <code>JSONPatch</code>. See <a href="https://jsonpatch.com/">JSON patch</a> documentation for more details. For <code>patchType: JSONPatch</code>, the <code>patch</code> field contains a base64-encoded array of JSON patch operations.</p> <p>As an example, a single patch operation that would set <code>spec.replicas</code> would be <code>[{"op": "add", "path": "/spec/replicas", "value": 3}]</code></p> <p>Base64-encoded, this would be <code>W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvcmVwbGljYXMiLCAidmFsdWUiOiAzfV0=</code></p> <p>So a webhook response to add that label would be: </p>
+<ul class="nav nav-tabs" id="admissionreview-response-modify" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-response-modify-0" role="tab" aria-controls="admissionreview-response-modify-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-response-modify-1" role="tab" aria-controls="admissionreview-response-modify-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-response-modify">
+<div id="admissionreview-response-modify-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-response-modify-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true,
+    "patchType": "JSONPatch",
+    "patch": "W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvcmVwbGljYXMiLCAidmFsdWUiOiAzfV0="
+  }
+}
+</pre>
+</div> <div id="admissionreview-response-modify-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-response-modify-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true,
+    "patchType": "JSONPatch",
+    "patch": "W3sib3AiOiAiYWRkIiwgInBhdGgiOiAiL3NwZWMvcmVwbGljYXMiLCAidmFsdWUiOiAzfV0="
+  }
+}
+</pre>
+</div>
+</div> <p>Starting in v1.19, admission webhooks can optionally return warning messages that are returned to the requesting client in HTTP <code>Warning</code> headers with a warning code of 299. Warnings can be sent with allowed or rejected admission responses.</p> <p>If you're implementing a webhook that returns a warning:</p> <ul> <li>Don't include a "Warning:" prefix in the message</li> <li>Use warning messages to describe problems the client making the API request should correct or be aware of</li> <li>Limit warnings to 120 characters if possible</li> </ul> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> Individual warning messages over 256 characters may be truncated by the API server before being returned to clients. If more than 4096 characters of warning messages are added (from all sources), additional warning messages are ignored. </div> <ul class="nav nav-tabs" id="admissionreview-response-warning" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#admissionreview-response-warning-0" role="tab" aria-controls="admissionreview-response-warning-0" aria-selected="true">admission.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#admissionreview-response-warning-1" role="tab" aria-controls="admissionreview-response-warning-1">admission.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="admissionreview-response-warning">
+<div id="admissionreview-response-warning-0" class="tab-pane show active" role="tabpanel" aria-labelledby="admissionreview-response-warning-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true,
+    "warnings": [
+      "duplicate envvar entries specified with name MY_ENV",
+      "memory request less than 4MB specified for container mycontainer, which will not start successfully"
+    ]
+  }
+}
+</pre>
+</div> <div id="admissionreview-response-warning-1" class="tab-pane" role="tabpanel" aria-labelledby="admissionreview-response-warning-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "response": {
+    "uid": "&lt;value from request.uid&gt;",
+    "allowed": true,
+    "warnings": [
+      "duplicate envvar entries specified with name MY_ENV",
+      "memory request less than 4MB specified for container mycontainer, which will not start successfully"
+    ]
+  }
+}
+</pre>
+</div>
+</div> <h2 id="webhook-configuration">Webhook configuration</h2> <p>To register admission webhooks, create <code>MutatingWebhookConfiguration</code> or <code>ValidatingWebhookConfiguration</code> API objects. The name of a <code>MutatingWebhookConfiguration</code> or a <code>ValidatingWebhookConfiguration</code> object must be a valid <a href="../../../concepts/overview/working-with-objects/names#dns-subdomain-names">DNS subdomain name</a>.</p> <p>Each configuration can contain one or more webhooks. If multiple webhooks are specified in a single configuration, each should be given a unique name. This is required in <code>admissionregistration.k8s.io/v1</code>, but strongly recommended when using <code>admissionregistration.k8s.io/v1beta1</code>, in order to make resulting audit logs and metrics easier to match up to active configurations.</p> <p>Each webhook defines the following things.</p> <h3 id="matching-requests-rules">Matching requests: rules</h3> <p>Each webhook must specify a list of rules used to determine if a request to the API server should be sent to the webhook. Each rule specifies one or more operations, apiGroups, apiVersions, and resources, and a resource scope:</p> <ul> <li>
+<code>operations</code> lists one or more operations to match. Can be <code>"CREATE"</code>, <code>"UPDATE"</code>, <code>"DELETE"</code>, <code>"CONNECT"</code>, or <code>"*"</code> to match all.</li> <li>
+<code>apiGroups</code> lists one or more API groups to match. <code>""</code> is the core API group. <code>"*"</code> matches all API groups.</li> <li>
+<code>apiVersions</code> lists one or more API versions to match. <code>"*"</code> matches all API versions.</li> <li>
+<code>resources</code> lists one or more resources to match. <ul> <li>
+<code>"*"</code> matches all resources, but not subresources.</li> <li>
+<code>"*/*"</code> matches all resources and subresources.</li> <li>
+<code>"pods/*"</code> matches all subresources of pods.</li> <li>
+<code>"*/status"</code> matches all status subresources.</li> </ul> </li> <li>
+<code>scope</code> specifies a scope to match. Valid values are <code>"Cluster"</code>, <code>"Namespaced"</code>, and <code>"*"</code>. Subresources match the scope of their parent resource. Supported in v1.14+. Default is <code>"*"</code>, matching pre-1.14 behavior. <ul> <li>
+<code>"Cluster"</code> means that only cluster-scoped resources will match this rule (Namespace API objects are cluster-scoped).</li> <li>
+<code>"Namespaced"</code> means that only namespaced resources will match this rule.</li> <li>
+<code>"*"</code> means that there are no scope restrictions.</li> </ul> </li> </ul> <p>If an incoming request matches one of the specified operations, groups, versions, resources, and scope for any of a webhook's rules, the request is sent to the webhook.</p> <p>Here are other examples of rules that could be used to specify which resources should be intercepted.</p> <p>Match <code>CREATE</code> or <code>UPDATE</code> requests to <code>apps/v1</code> and <code>apps/v1beta1</code> <code>deployments</code> and <code>replicasets</code>:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-rules-1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-rules-1-0" role="tab" aria-controls="validatingwebhookconfiguration-rules-1-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-rules-1-1" role="tab" aria-controls="validatingwebhookconfiguration-rules-1-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-rules-1">
+<div id="validatingwebhookconfiguration-rules-1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-1-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1", "v1beta1"]
+    resources: ["deployments", "replicasets"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div> <div id="validatingwebhookconfiguration-rules-1-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-1-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1", "v1beta1"]
+    resources: ["deployments", "replicasets"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div>
+</div> <p>Match create requests for all resources (but not subresources) in all API groups and versions:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-rules-2" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-rules-2-0" role="tab" aria-controls="validatingwebhookconfiguration-rules-2-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-rules-2-1" role="tab" aria-controls="validatingwebhookconfiguration-rules-2-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-rules-2">
+<div id="validatingwebhookconfiguration-rules-2-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-2-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "*"
+  ...
+</pre>
+</div> <div id="validatingwebhookconfiguration-rules-2-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-2-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "*"
+  ...
+</pre>
+</div>
+</div> <p>Match update requests for all <code>status</code> subresources in all API groups and versions:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-rules-3" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-rules-3-0" role="tab" aria-controls="validatingwebhookconfiguration-rules-3-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-rules-3-1" role="tab" aria-controls="validatingwebhookconfiguration-rules-3-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-rules-3">
+<div id="validatingwebhookconfiguration-rules-3-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-3-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["UPDATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*/status"]
+    scope: "*"
+  ...
+</pre>
+</div> <div id="validatingwebhookconfiguration-rules-3-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-rules-3-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  rules:
+  - operations: ["UPDATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*/status"]
+    scope: "*"
+  ...
+</pre>
+</div>
+</div> <h3 id="matching-requests-objectselector">Matching requests: objectSelector</h3> <p>In v1.15+, webhooks may optionally limit which requests are intercepted based on the labels of the objects they would be sent, by specifying an <code>objectSelector</code>. If specified, the objectSelector is evaluated against both the object and oldObject that would be sent to the webhook, and is considered to match if either object matches the selector.</p> <p>A null object (oldObject in the case of create, or newObject in the case of delete), or an object that cannot have labels (like a <code>DeploymentRollback</code> or a <code>PodProxyOptions</code> object) is not considered to match.</p> <p>Use the object selector only if the webhook is opt-in, because end users may skip the admission webhook by setting the labels.</p> <p>This example shows a mutating webhook that would match a <code>CREATE</code> of any resource with the label <code>foo: bar</code>:</p> <ul class="nav nav-tabs" id="objectselector-example" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#objectselector-example-0" role="tab" aria-controls="objectselector-example-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#objectselector-example-1" role="tab" aria-controls="objectselector-example-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="objectselector-example">
+<div id="objectselector-example-0" class="tab-pane show active" role="tabpanel" aria-labelledby="objectselector-example-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  objectSelector:
+    matchLabels:
+      foo: bar
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "*"
+  ...
+</pre>
+</div> <div id="objectselector-example-1" class="tab-pane" role="tabpanel" aria-labelledby="objectselector-example-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  objectSelector:
+    matchLabels:
+      foo: bar
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "*"
+  ...
+</pre>
+</div>
+</div> <p>See <a href="../../../concepts/overview/working-with-objects/labels">https://kubernetes.io/docs/concepts/overview/working-with-objects/labels</a> for more examples of label selectors.</p> <h3 id="matching-requests-namespaceselector">Matching requests: namespaceSelector</h3> <p>Webhooks may optionally limit which requests for namespaced resources are intercepted, based on the labels of the containing namespace, by specifying a <code>namespaceSelector</code>.</p> <p>The <code>namespaceSelector</code> decides whether to run the webhook on a request for a namespaced resource (or a Namespace object), based on whether the namespace's labels match the selector. If the object itself is a namespace, the matching is performed on object.metadata.labels. If the object is a cluster scoped resource other than a Namespace, <code>namespaceSelector</code> has no effect.</p> <p>This example shows a mutating webhook that matches a <code>CREATE</code> of any namespaced resource inside a namespace that does not have a "runlevel" label of "0" or "1":</p> <ul class="nav nav-tabs" id="mutatingwebhookconfiguration-namespaceselector-1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#mutatingwebhookconfiguration-namespaceselector-1-0" role="tab" aria-controls="mutatingwebhookconfiguration-namespaceselector-1-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#mutatingwebhookconfiguration-namespaceselector-1-1" role="tab" aria-controls="mutatingwebhookconfiguration-namespaceselector-1-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="mutatingwebhookconfiguration-namespaceselector-1">
+<div id="mutatingwebhookconfiguration-namespaceselector-1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-namespaceselector-1-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  namespaceSelector:
+    matchExpressions:
+    - key: runlevel
+      operator: NotIn
+      values: ["0","1"]
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div> <div id="mutatingwebhookconfiguration-namespaceselector-1-1" class="tab-pane" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-namespaceselector-1-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  namespaceSelector:
+    matchExpressions:
+    - key: runlevel
+      operator: NotIn
+      values: ["0","1"]
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div>
+</div> <p>This example shows a validating webhook that matches a <code>CREATE</code> of any namespaced resource inside a namespace that is associated with the "environment" of "prod" or "staging":</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-namespaceselector-2" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-namespaceselector-2-0" role="tab" aria-controls="validatingwebhookconfiguration-namespaceselector-2-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-namespaceselector-2-1" role="tab" aria-controls="validatingwebhookconfiguration-namespaceselector-2-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-namespaceselector-2">
+<div id="validatingwebhookconfiguration-namespaceselector-2-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-namespaceselector-2-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  namespaceSelector:
+    matchExpressions:
+    - key: environment
+      operator: In
+      values: ["prod","staging"]
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div> <div id="validatingwebhookconfiguration-namespaceselector-2-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-namespaceselector-2-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  namespaceSelector:
+    matchExpressions:
+    - key: environment
+      operator: In
+      values: ["prod","staging"]
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+    scope: "Namespaced"
+  ...
+</pre>
+</div>
+</div> <p>See <a href="../../../concepts/overview/working-with-objects/labels">https://kubernetes.io/docs/concepts/overview/working-with-objects/labels</a> for more examples of label selectors.</p> <h3 id="matching-requests-matchpolicy">Matching requests: matchPolicy</h3> <p>API servers can make objects available via multiple API groups or versions. For example, the Kubernetes API server may allow creating and modifying <code>Deployment</code> objects via <code>extensions/v1beta1</code>, <code>apps/v1beta1</code>, <code>apps/v1beta2</code>, and <code>apps/v1</code> APIs.</p> <p>For example, if a webhook only specified a rule for some API groups/versions (like <code>apiGroups:["apps"], apiVersions:["v1","v1beta1"]</code>), and a request was made to modify the resource via another API group/version (like <code>extensions/v1beta1</code>), the request would not be sent to the webhook.</p> <p>In v1.15+, <code>matchPolicy</code> lets a webhook define how its <code>rules</code> are used to match incoming requests. Allowed values are <code>Exact</code> or <code>Equivalent</code>.</p> <ul> <li>
+<code>Exact</code> means a request should be intercepted only if it exactly matches a specified rule.</li> <li>
+<code>Equivalent</code> means a request should be intercepted if modifies a resource listed in <code>rules</code>, even via another API group or version.</li> </ul> <p>In the example given above, the webhook that only registered for <code>apps/v1</code> could use <code>matchPolicy</code>:</p> <ul> <li>
+<code>matchPolicy: Exact</code> would mean the <code>extensions/v1beta1</code> request would not be sent to the webhook</li> <li>
+<code>matchPolicy: Equivalent</code> means the <code>extensions/v1beta1</code> request would be sent to the webhook (with the objects converted to a version the webhook had specified: <code>apps/v1</code>)</li> </ul> <p>Specifying <code>Equivalent</code> is recommended, and ensures that webhooks continue to intercept the resources they expect when upgrades enable new versions of the resource in the API server.</p> <p>When a resource stops being served by the API server, it is no longer considered equivalent to other versions of that resource that are still served. For example, <code>extensions/v1beta1</code> deployments were first deprecated and then removed (in Kubernetes v1.16).</p> <p>Since that removal, a webhook with a <code>apiGroups:["extensions"], apiVersions:["v1beta1"], resources:["deployments"]</code> rule does not intercept deployments created via <code>apps/v1</code> APIs. For that reason, webhooks should prefer registering for stable versions of resources.</p> <p>This example shows a validating webhook that intercepts modifications to deployments (no matter the API group or version), and is always sent an <code>apps/v1</code> <code>Deployment</code> object:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-matchpolicy" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-matchpolicy-0" role="tab" aria-controls="validatingwebhookconfiguration-matchpolicy-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-matchpolicy-1" role="tab" aria-controls="validatingwebhookconfiguration-matchpolicy-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-matchpolicy">
+<div id="validatingwebhookconfiguration-matchpolicy-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-matchpolicy-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  matchPolicy: Equivalent
+  rules:
+  - operations: ["CREATE","UPDATE","DELETE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments"]
+    scope: "Namespaced"
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1</code> default to <code>Equivalent</code>.</p> </div> <div id="validatingwebhookconfiguration-matchpolicy-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-matchpolicy-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  matchPolicy: Equivalent
+  rules:
+  - operations: ["CREATE","UPDATE","DELETE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments"]
+    scope: "Namespaced"
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1beta1</code> default to <code>Exact</code>.</p> </div>
+</div> <h3 id="contacting-the-webhook">Contacting the webhook</h3> <p>Once the API server has determined a request should be sent to a webhook, it needs to know how to contact the webhook. This is specified in the <code>clientConfig</code> stanza of the webhook configuration.</p> <p>Webhooks can either be called via a URL or a service reference, and can optionally include a custom CA bundle to use to verify the TLS connection.</p> <h4 id="url">URL</h4> <p><code>url</code> gives the location of the webhook, in standard URL form (<code>scheme://host:port/path</code>).</p> <p>The <code>host</code> should not refer to a service running in the cluster; use a service reference by specifying the <code>service</code> field instead. The host might be resolved via external DNS in some apiservers (e.g., <code>kube-apiserver</code> cannot resolve in-cluster DNS as that would be a layering violation). <code>host</code> may also be an IP address.</p> <p>Please note that using <code>localhost</code> or <code>127.0.0.1</code> as a <code>host</code> is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installations are likely to be non-portable or not readily run in a new cluster.</p> <p>The scheme must be "https"; the URL must begin with "https://".</p> <p>Attempting to use a user or basic auth (for example "user:password@") is not allowed. Fragments ("#...") and query parameters ("?...") are also not allowed.</p> <p>Here is an example of a mutating webhook configured to call a URL (and expects the TLS certificate to be verified using system trust roots, so does not specify a caBundle):</p> <ul class="nav nav-tabs" id="mutatingwebhookconfiguration-url" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#mutatingwebhookconfiguration-url-0" role="tab" aria-controls="mutatingwebhookconfiguration-url-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#mutatingwebhookconfiguration-url-1" role="tab" aria-controls="mutatingwebhookconfiguration-url-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="mutatingwebhookconfiguration-url">
+<div id="mutatingwebhookconfiguration-url-0" class="tab-pane show active" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-url-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  clientConfig:
+    url: "https://my-webhook.example.com:9443/my-webhook-path"
+  ...
+</pre>
+</div> <div id="mutatingwebhookconfiguration-url-1" class="tab-pane" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-url-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  clientConfig:
+    url: "https://my-webhook.example.com:9443/my-webhook-path"
+  ...
+</pre>
+</div>
+</div> <h4 id="service-reference">Service reference</h4> <p>The <code>service</code> stanza inside <code>clientConfig</code> is a reference to the service for this webhook. If the webhook is running within the cluster, then you should use <code>service</code> instead of <code>url</code>. The service namespace and name are required. The port is optional and defaults to 443. The path is optional and defaults to "/".</p> <p>Here is an example of a mutating webhook configured to call a service on port "1234" at the subpath "/my-path", and to verify the TLS connection against the ServerName <code>my-service-name.my-service-namespace.svc</code> using a custom CA bundle:</p> <ul class="nav nav-tabs" id="mutatingwebhookconfiguration-service" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#mutatingwebhookconfiguration-service-0" role="tab" aria-controls="mutatingwebhookconfiguration-service-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#mutatingwebhookconfiguration-service-1" role="tab" aria-controls="mutatingwebhookconfiguration-service-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="mutatingwebhookconfiguration-service">
+<div id="mutatingwebhookconfiguration-service-0" class="tab-pane show active" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-service-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  clientConfig:
+    caBundle: "Ci0tLS0tQk...&lt;base64-encoded PEM bundle containing the CA that signed the webhook's serving certificate&gt;...tLS0K"
+    service:
+      namespace: my-service-namespace
+      name: my-service-name
+      path: /my-path
+      port: 1234
+  ...
+</pre>
+</div> <div id="mutatingwebhookconfiguration-service-1" class="tab-pane" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-service-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  clientConfig:
+    caBundle: "Ci0tLS0tQk...&lt;`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate&gt;...tLS0K"
+    service:
+      namespace: my-service-namespace
+      name: my-service-name
+      path: /my-path
+      port: 1234
+  ...
+</pre>
+</div>
+</div> <h3 id="side-effects">Side effects</h3> <p>Webhooks typically operate only on the content of the <code>AdmissionReview</code> sent to them. Some webhooks, however, make out-of-band changes as part of processing admission requests.</p> <p>Webhooks that make out-of-band changes ("side effects") must also have a reconciliation mechanism (like a controller) that periodically determines the actual state of the world, and adjusts the out-of-band data modified by the admission webhook to reflect reality. This is because a call to an admission webhook does not guarantee the admitted object will be persisted as is, or at all. Later webhooks can modify the content of the object, a conflict could be encountered while writing to storage, or the server could power off before persisting the object.</p> <p>Additionally, webhooks with side effects must skip those side-effects when <code>dryRun: true</code> admission requests are handled. A webhook must explicitly indicate that it will not have side-effects when run with <code>dryRun</code>, or the dry-run request will not be sent to the webhook and the API request will fail instead.</p> <p>Webhooks indicate whether they have side effects using the <code>sideEffects</code> field in the webhook configuration:</p> <ul> <li>
+<code>Unknown</code>: no information is known about the side effects of calling the webhook. If a request with <code>dryRun: true</code> would trigger a call to this webhook, the request will instead fail, and the webhook will not be called.</li> <li>
+<code>None</code>: calling the webhook will have no side effects.</li> <li>
+<code>Some</code>: calling the webhook will possibly have side effects. If a request with the dry-run attribute would trigger a call to this webhook, the request will instead fail, and the webhook will not be called.</li> <li>
+<code>NoneOnDryRun</code>: calling the webhook will possibly have side effects, but if a request with <code>dryRun: true</code> is sent to the webhook, the webhook will suppress the side effects (the webhook is <code>dryRun</code>-aware).</li> </ul> <p>Allowed values:</p> <ul> <li>In <code>admissionregistration.k8s.io/v1beta1</code>, <code>sideEffects</code> may be set to <code>Unknown</code>, <code>None</code>, <code>Some</code>, or <code>NoneOnDryRun</code>, and defaults to <code>Unknown</code>.</li> <li>In <code>admissionregistration.k8s.io/v1</code>, <code>sideEffects</code> must be set to <code>None</code> or <code>NoneOnDryRun</code>.</li> </ul> <p>Here is an example of a validating webhook indicating it has no side effects on <code>dryRun: true</code> requests:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-sideeffects" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-sideeffects-0" role="tab" aria-controls="validatingwebhookconfiguration-sideeffects-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-sideeffects-1" role="tab" aria-controls="validatingwebhookconfiguration-sideeffects-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-sideeffects">
+<div id="validatingwebhookconfiguration-sideeffects-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-sideeffects-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  sideEffects: NoneOnDryRun
+  ...
+</pre>
+</div> <div id="validatingwebhookconfiguration-sideeffects-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-sideeffects-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  sideEffects: NoneOnDryRun
+  ...
+</pre>
+</div>
+</div> <h3 id="timeouts">Timeouts</h3> <p>Because webhooks add to API request latency, they should evaluate as quickly as possible. <code>timeoutSeconds</code> allows configuring how long the API server should wait for a webhook to respond before treating the call as a failure.</p> <p>If the timeout expires before the webhook responds, the webhook call will be ignored or the API call will be rejected based on the <a href="#failure-policy">failure policy</a>.</p> <p>The timeout value must be between 1 and 30 seconds.</p> <p>Here is an example of a validating webhook with a custom timeout of 2 seconds:</p> <ul class="nav nav-tabs" id="validatingwebhookconfiguration-timeoutseconds" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#validatingwebhookconfiguration-timeoutseconds-0" role="tab" aria-controls="validatingwebhookconfiguration-timeoutseconds-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#validatingwebhookconfiguration-timeoutseconds-1" role="tab" aria-controls="validatingwebhookconfiguration-timeoutseconds-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="validatingwebhookconfiguration-timeoutseconds">
+<div id="validatingwebhookconfiguration-timeoutseconds-0" class="tab-pane show active" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-timeoutseconds-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  timeoutSeconds: 2
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1</code> default timeouts to 10 seconds.</p> </div> <div id="validatingwebhookconfiguration-timeoutseconds-1" class="tab-pane" role="tabpanel" aria-labelledby="validatingwebhookconfiguration-timeoutseconds-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  timeoutSeconds: 2
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1</code> default timeouts to 30 seconds.</p> </div>
+</div> <h3 id="reinvocation-policy">Reinvocation policy</h3> <p>A single ordering of mutating admissions plugins (including webhooks) does not work for all cases (see <a href="https://issue.k8s.io/64333">https://issue.k8s.io/64333</a> as an example). A mutating webhook can add a new sub-structure to the object (like adding a <code>container</code> to a <code>pod</code>), and other mutating plugins which have already run may have opinions on those new structures (like setting an <code>imagePullPolicy</code> on all containers).</p> <p>In v1.15+, to allow mutating admission plugins to observe changes made by other plugins, built-in mutating admission plugins are re-run if a mutating webhook modifies an object, and mutating webhooks can specify a <code>reinvocationPolicy</code> to control whether they are reinvoked as well.</p> <p><code>reinvocationPolicy</code> may be set to <code>Never</code> or <code>IfNeeded</code>. It defaults to <code>Never</code>.</p> <ul> <li>
+<code>Never</code>: the webhook must not be called more than once in a single admission evaluation</li> <li>
+<code>IfNeeded</code>: the webhook may be called again as part of the admission evaluation if the object being admitted is modified by other admission plugins after the initial webhook call.</li> </ul> <p>The important elements to note are:</p> <ul> <li>The number of additional invocations is not guaranteed to be exactly one.</li> <li>If additional invocations result in further modifications to the object, webhooks are not guaranteed to be invoked again.</li> <li>Webhooks that use this option may be reordered to minimize the number of additional invocations.</li> <li>To validate an object after all mutations are guaranteed complete, use a validating admission webhook instead (recommended for webhooks with side-effects).</li> </ul> <p>Here is an example of a mutating webhook opting into being re-invoked if later admission plugins modify the object:</p> <ul class="nav nav-tabs" id="mutatingwebhookconfiguration-reinvocationpolicy" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#mutatingwebhookconfiguration-reinvocationpolicy-0" role="tab" aria-controls="mutatingwebhookconfiguration-reinvocationpolicy-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#mutatingwebhookconfiguration-reinvocationpolicy-1" role="tab" aria-controls="mutatingwebhookconfiguration-reinvocationpolicy-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="mutatingwebhookconfiguration-reinvocationpolicy">
+<div id="mutatingwebhookconfiguration-reinvocationpolicy-0" class="tab-pane show active" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-reinvocationpolicy-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  reinvocationPolicy: IfNeeded
+  ...
+</pre>
+</div> <div id="mutatingwebhookconfiguration-reinvocationpolicy-1" class="tab-pane" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-reinvocationpolicy-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  reinvocationPolicy: IfNeeded
+  ...
+</pre>
+</div>
+</div> <p>Mutating webhooks must be <a href="#idempotence">idempotent</a>, able to successfully process an object they have already admitted and potentially modified. This is true for all mutating admission webhooks, since any change they can make in an object could already exist in the user-provided object, but it is essential for webhooks that opt into reinvocation.</p> <h3 id="failure-policy">Failure policy</h3> <p><code>failurePolicy</code> defines how unrecognized errors and timeout errors from the admission webhook are handled. Allowed values are <code>Ignore</code> or <code>Fail</code>.</p> <ul> <li>
+<code>Ignore</code> means that an error calling the webhook is ignored and the API request is allowed to continue.</li> <li>
+<code>Fail</code> means that an error calling the webhook causes the admission to fail and the API request to be rejected.</li> </ul> <p>Here is a mutating webhook configured to reject an API request if errors are encountered calling the admission webhook:</p> <ul class="nav nav-tabs" id="mutatingwebhookconfiguration-failurepolicy" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#mutatingwebhookconfiguration-failurepolicy-0" role="tab" aria-controls="mutatingwebhookconfiguration-failurepolicy-0" aria-selected="true">admissionregistration.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#mutatingwebhookconfiguration-failurepolicy-1" role="tab" aria-controls="mutatingwebhookconfiguration-failurepolicy-1">admissionregistration.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="mutatingwebhookconfiguration-failurepolicy">
+<div id="mutatingwebhookconfiguration-failurepolicy-0" class="tab-pane show active" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-failurepolicy-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  failurePolicy: Fail
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1</code> default <code>failurePolicy</code> to <code>Fail</code>.</p> </div> <div id="mutatingwebhookconfiguration-failurepolicy-1" class="tab-pane" role="tabpanel" aria-labelledby="mutatingwebhookconfiguration-failurepolicy-1"> 
+<pre class="highlight" data-language="yaml"># Deprecated in v1.16 in favor of admissionregistration.k8s.io/v1
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+...
+webhooks:
+- name: my-webhook.example.com
+  failurePolicy: Fail
+  ...
+</pre>
+<p>Admission webhooks created using <code>admissionregistration.k8s.io/v1beta1</code> default <code>failurePolicy</code> to <code>Ignore</code>.</p> </div>
+</div> <h2 id="monitoring-admission-webhooks">Monitoring admission webhooks</h2> <p>The API server provides ways to monitor admission webhook behaviors. These monitoring mechanisms help cluster admins to answer questions like:</p> <ol> <li> <p>Which mutating webhook mutated the object in a API request?</p> </li> <li> <p>What change did the mutating webhook applied to the object?</p> </li> <li> <p>Which webhooks are frequently rejecting API requests? What's the reason for a rejection?</p> </li> </ol> <h3 id="mutating-webhook-auditing-annotations">Mutating webhook auditing annotations</h3> <p>Sometimes it's useful to know which mutating webhook mutated the object in a API request, and what change did the webhook apply.</p> <p>In v1.16+, kube-apiserver performs <a href="../../../tasks/debug-application-cluster/audit/index">auditing</a> on each mutating webhook invocation. Each invocation generates an auditing annotation capturing if a request object is mutated by the invocation, and optionally generates an annotation capturing the applied patch from the webhook admission response. The annotations are set in the audit event for given request on given stage of its execution, which is then pre-processed according to a certain policy and written to a backend.</p> <p>The audit level of a event determines which annotations get recorded:</p> <ul> <li>At <code>Metadata</code> audit level or higher, an annotation with key <code>mutation.webhook.admission.k8s.io/round_{round idx}_index_{order idx}</code> gets logged with JSON payload indicating a webhook gets invoked for given request and whether it mutated the object or not.</li> </ul> <p>For example, the following annotation gets recorded for a webhook being reinvoked. The webhook is ordered the third in the mutating webhook chain, and didn't mutated the request object during the invocation.</p> <pre class="highlight" data-language="yaml"># the audit event recorded
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "annotations": {
+        "mutation.webhook.admission.k8s.io/round_1_index_2": "{\"configuration\":\"my-mutating-webhook-configuration.example.com\",\"webhook\":\"my-webhook.example.com\",\"mutated\": false}"
+        # other annotations
+        ...
+    }
+    # other fields
+    ...
+}
+</pre>
+<pre class="highlight" data-language="yaml"># the annotation value deserialized
+{
+    "configuration": "my-mutating-webhook-configuration.example.com",
+    "webhook": "my-webhook.example.com",
+    "mutated": false
+}
+</pre>
+<p>The following annotation gets recorded for a webhook being invoked in the first round. The webhook is ordered the first in<br> the mutating webhook chain, and mutated the request object during the invocation.</p> <pre class="highlight" data-language="yaml"># the audit event recorded
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "annotations": {
+        "mutation.webhook.admission.k8s.io/round_0_index_0": "{\"configuration\":\"my-mutating-webhook-configuration.example.com\",\"webhook\":\"my-webhook-always-mutate.example.com\",\"mutated\": true}"
+        # other annotations
+        ...
+    }
+    # other fields
+    ...
+}
+</pre>
+<pre class="highlight" data-language="yaml"># the annotation value deserialized
+{
+    "configuration": "my-mutating-webhook-configuration.example.com",
+    "webhook": "my-webhook-always-mutate.example.com",
+    "mutated": true
+}
+</pre>
+<ul> <li>At <code>Request</code> audit level or higher, an annotation with key <code>patch.webhook.admission.k8s.io/round_{round idx}_index_{order idx}</code> gets logged with JSON payload indicating a webhook gets invoked for given request and what patch gets applied to the request object.</li> </ul> <p>For example, the following annotation gets recorded for a webhook being reinvoked. The webhook is ordered the fourth in the mutating webhook chain, and responded with a JSON patch which got applied to the request object.</p> <pre class="highlight" data-language="yaml"># the audit event recorded
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "annotations": {
+        "patch.webhook.admission.k8s.io/round_1_index_3": "{\"configuration\":\"my-other-mutating-webhook-configuration.example.com\",\"webhook\":\"my-webhook-always-mutate.example.com\",\"patch\":[{\"op\":\"add\",\"path\":\"/data/mutation-stage\",\"value\":\"yes\"}],\"patchType\":\"JSONPatch\"}"
+        # other annotations
+        ...
+    }
+    # other fields
+    ...
+}
+</pre>
+<pre class="highlight" data-language="yaml"># the annotation value deserialized
+{
+    "configuration": "my-other-mutating-webhook-configuration.example.com",
+    "webhook": "my-webhook-always-mutate.example.com",
+    "patchType": "JSONPatch",
+    "patch": [
+        {
+            "op": "add",
+            "path": "/data/mutation-stage",
+            "value": "yes"
+        }
+    ]
+}
+</pre>
+<h3 id="admission-webhook-metrics">Admission webhook metrics</h3> <p>Kube-apiserver exposes Prometheus metrics from the <code>/metrics</code> endpoint, which can be used for monitoring and diagnosing API server status. The following metrics record status related to admission webhooks.</p> <h4 id="api-server-admission-webhook-rejection-count">API server admission webhook rejection count</h4> <p>Sometimes it's useful to know which admission webhooks are frequently rejecting API requests, and the reason for a rejection.</p> <p>In v1.16+, kube-apiserver exposes a Prometheus counter metric recording admission webhook rejections. The metrics are labelled to identify the causes of webhook rejection(s):</p> <ul> <li>
+<code>name</code>: the name of the webhook that rejected a request.</li> <li>
+<code>operation</code>: the operation type of the request, can be one of <code>CREATE</code>, <code>UPDATE</code>, <code>DELETE</code> and <code>CONNECT</code>.</li> <li>
+<code>type</code>: the admission webhook type, can be one of <code>admit</code> and <code>validating</code>.</li> <li>
+<code>error_type</code>: identifies if an error occurred during the webhook invocation that caused the rejection. Its value can be one of: <ul> <li>
+<code>calling_webhook_error</code>: unrecognized errors or timeout errors from the admission webhook happened and the webhook's <a href="#failure-policy">Failure policy</a> is set to <code>Fail</code>.</li> <li>
+<code>no_error</code>: no error occurred. The webhook rejected the request with <code>allowed: false</code> in the admission response. The metrics label <code>rejection_code</code> records the <code>.status.code</code> set in the admission response.</li> <li>
+<code>apiserver_internal_error</code>: an API server internal error happened.</li> </ul> </li> <li>
+<code>rejection_code</code>: the HTTP status code set in the admission response when a webhook rejected a request.</li> </ul> <p>Example of the rejection count metrics:</p> <pre><code># HELP apiserver_admission_webhook_rejection_count [ALPHA] Admission webhook rejection count, identified by name and broken out for each admission type (validating or admit) and operation. Additional labels specify an error type (calling_webhook_error or apiserver_internal_error if an error occurred; no_error otherwise) and optionally a non-zero rejection code if the webhook rejects the request with an HTTP status code (honored by the apiserver when the code is greater or equal to 400). Codes greater than 600 are truncated to 600, to keep the metrics cardinality bounded.
+# TYPE apiserver_admission_webhook_rejection_count counter
+apiserver_admission_webhook_rejection_count{error_type="calling_webhook_error",name="always-timeout-webhook.example.com",operation="CREATE",rejection_code="0",type="validating"} 1
+apiserver_admission_webhook_rejection_count{error_type="calling_webhook_error",name="invalid-admission-response-webhook.example.com",operation="CREATE",rejection_code="0",type="validating"} 1
+apiserver_admission_webhook_rejection_count{error_type="no_error",name="deny-unwanted-configmap-data.example.com",operation="CREATE",rejection_code="400",type="validating"} 13
+</code></pre>
+<h2 id="best-practices-and-warnings">Best practices and warnings</h2> <h3 id="idempotence">Idempotence</h3> <p>An idempotent mutating admission webhook is able to successfully process an object it has already admitted and potentially modified. The admission can be applied multiple times without changing the result beyond the initial application.</p> <h4 id="example-of-idempotent-mutating-admission-webhooks">Example of idempotent mutating admission webhooks:</h4> <ol> <li> <p>For a <code>CREATE</code> pod request, set the field <code>.spec.securityContext.runAsNonRoot</code> of the pod to true, to enforce security best practices.</p> </li> <li> <p>For a <code>CREATE</code> pod request, if the field <code>.spec.containers[].resources.limits</code> of a container is not set, set default resource limits.</p> </li> <li> <p>For a <code>CREATE</code> pod request, inject a sidecar container with name <code>foo-sidecar</code> if no container with the name <code>foo-sidecar</code> already exists.</p> </li> </ol> <p>In the cases above, the webhook can be safely reinvoked, or admit an object that already has the fields set.</p> <h4 id="example-of-non-idempotent-mutating-admission-webhooks">Example of non-idempotent mutating admission webhooks:</h4> <ol> <li> <p>For a <code>CREATE</code> pod request, inject a sidecar container with name <code>foo-sidecar</code> suffixed with the current timestamp (e.g. <code>foo-sidecar-19700101-000000</code>).</p> </li> <li> <p>For a <code>CREATE</code>/<code>UPDATE</code> pod request, reject if the pod has label <code>"env"</code> set, otherwise add an <code>"env": "prod"</code> label to the pod.</p> </li> <li> <p>For a <code>CREATE</code> pod request, blindly append a sidecar container named <code>foo-sidecar</code> without looking to see if there is already a <code>foo-sidecar</code> container in the pod.</p> </li> </ol> <p>In the first case above, reinvoking the webhook can result in the same sidecar being injected multiple times to a pod, each time with a different container name. Similarly the webhook can inject duplicated containers if the sidecar already exists in a user-provided pod.</p> <p>In the second case above, reinvoking the webhook will result in the webhook failing on its own output.</p> <p>In the third case above, reinvoking the webhook will result in duplicated containers in the pod spec, which makes the request invalid and rejected by the API server.</p> <h3 id="intercepting-all-versions-of-an-object">Intercepting all versions of an object</h3> <p>It is recommended that admission webhooks should always intercept all versions of an object by setting <code>.webhooks[].matchPolicy</code> to <code>Equivalent</code>. It is also recommended that admission webhooks should prefer registering for stable versions of resources. Failure to intercept all versions of an object can result in admission policies not being enforced for requests in certain versions. See <a href="#matching-requests-matchpolicy">Matching requests: matchPolicy</a> for examples.</p> <h3 id="availability">Availability</h3> <p>It is recommended that admission webhooks should evaluate as quickly as possible (typically in milliseconds), since they add to API request latency. It is encouraged to use a small timeout for webhooks. See <a href="#timeouts">Timeouts</a> for more detail.</p> <p>It is recommended that admission webhooks should leverage some format of load-balancing, to provide high availability and performance benefits. If a webhook is running within the cluster, you can run multiple webhook backends behind a service to leverage the load-balancing that service supports.</p> <h3 id="guaranteeing-the-final-state-of-the-object-is-seen">Guaranteeing the final state of the object is seen</h3> <p>Admission webhooks that need to guarantee they see the final state of the object in order to enforce policy should use a validating admission webhook, since objects can be modified after being seen by mutating webhooks.</p> <p>For example, a mutating admission webhook is configured to inject a sidecar container with name "foo-sidecar" on every <code>CREATE</code> pod request. If the sidecar <em>must</em> be present, a validating admisson webhook should also be configured to intercept <code>CREATE</code> pod requests, and validate that a container with name "foo-sidecar" with the expected configuration exists in the to-be-created object.</p> <h3 id="avoiding-deadlocks-in-self-hosted-webhooks">Avoiding deadlocks in self-hosted webhooks</h3> <p>A webhook running inside the cluster might cause deadlocks for its own deployment if it is configured to intercept resources required to start its own pods.</p> <p>For example, a mutating admission webhook is configured to admit <code>CREATE</code> pod requests only if a certain label is set in the pod (e.g. <code>"env": "prod"</code>). The webhook server runs in a deployment which doesn't set the <code>"env"</code> label. When a node that runs the webhook server pods becomes unhealthy, the webhook deployment will try to reschedule the pods to another node. However the requests will get rejected by the existing webhook server since the <code>"env"</code> label is unset, and the migration cannot happen.</p> <p>It is recommended to exclude the namespace where your webhook is running with a <a href="#matching-requests-namespaceselector">namespaceSelector</a>.</p> <h3 id="side-effects-1">Side effects</h3> <p>It is recommended that admission webhooks should avoid side effects if possible, which means the webhooks operate only on the content of the <code>AdmissionReview</code> sent to them, and do not make out-of-band changes. The <code>.webhooks[].sideEffects</code> field should be set to <code>None</code> if a webhook doesn't have any side effect.</p> <p>If side effects are required during the admission evaluation, they must be suppressed when processing an <code>AdmissionReview</code> object with <code>dryRun</code> set to <code>true</code>, and the <code>.webhooks[].sideEffects</code> field should be set to <code>NoneOnDryRun</code>. See <a href="#side-effects">Side effects</a> for more detail.</p> <h3 id="avoiding-operating-on-the-kube-system-namespace">Avoiding operating on the kube-system namespace</h3> <p>The <code>kube-system</code> namespace contains objects created by the Kubernetes system, e.g. service accounts for the control plane components, pods like <code>kube-dns</code>. Accidentally mutating or rejecting requests in the <code>kube-system</code> namespace may cause the control plane components to stop functioning or introduce unknown behavior. If your admission webhooks don't intend to modify the behavior of the Kubernetes control plane, exclude the <code>kube-system</code> namespace from being intercepted using a <a href="#matching-requests-namespaceselector"><code>namespaceSelector</code></a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/" class="_attribution-link">https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

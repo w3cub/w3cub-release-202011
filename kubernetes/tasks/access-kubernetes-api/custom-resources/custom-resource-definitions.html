@@ -1,0 +1,840 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Extend the Kubernetes API With CustomResourceDefinitions - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" This page shows how to install a custom resource into the Kubernetes API by creating a CustomResourceDefinition. ">
+  <meta name="keywords" content="extend, kubernetes, api, with, customresourcedefinitions">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Extend the Kubernetes API with CustomResourceDefinitions</h1>  <p>This page shows how to install a <a href="../../../concepts/extend-kubernetes/api-extension/custom-resources/index">custom resource</a> into the Kubernetes API by creating a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#customresourcedefinition-v1-apiextensions-k8s-io">CustomResourceDefinition</a>.</p> <h2 id="before-you-begin">Before you begin</h2> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> Your Kubernetes server must be at or later than version 1.16. To check the version, enter <code>kubectl version</code>. If you are using an older version of Kubernetes that is still supported, switch to the documentation for that version to see advice that is relevant for your cluster.  <h2 id="create-a-customresourcedefinition">Create a CustomResourceDefinition</h2> <p>When you create a new CustomResourceDefinition (CRD), the Kubernetes API Server creates a new RESTful resource path for each version you specify. The CRD can be either namespaced or cluster-scoped, as specified in the CRD's <code>scope</code> field. As with existing built-in objects, deleting a namespace deletes all custom objects in that namespace. CustomResourceDefinitions themselves are non-namespaced and are available to all namespaces.</p> <p>For example, if you save the following CustomResourceDefinition to <code>resourcedefinition.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: &lt;plural&gt;.&lt;group&gt;
+  name: crontabs.stable.example.com
+spec:
+  # group name to use for REST API: /apis/&lt;group&gt;/&lt;version&gt;
+  group: stable.example.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/&lt;group&gt;/&lt;version&gt;/&lt;plural&gt;
+    plural: crontabs
+    # singular name to be used as an alias on the CLI and for display
+    singular: crontab
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CronTab
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ct
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f resourcedefinition.yaml
+</pre>
+<p>Then a new namespaced RESTful API endpoint is created at:</p> <pre><code>/apis/stable.example.com/v1/namespaces/*/crontabs/...
+</code></pre>
+<p>This endpoint URL can then be used to create and manage custom objects. The <code>kind</code> of these objects will be <code>CronTab</code> from the spec of the CustomResourceDefinition object you created above.</p> <p>It might take a few seconds for the endpoint to be created. You can watch the <code>Established</code> condition of your CustomResourceDefinition to be true or watch the discovery information of the API server for your resource to show up.</p> <h2 id="create-custom-objects">Create custom objects</h2> <p>After the CustomResourceDefinition object has been created, you can create custom objects. Custom objects can contain custom fields. These fields can contain arbitrary JSON. In the following example, the <code>cronSpec</code> and <code>image</code> custom fields are set in a custom object of kind <code>CronTab</code>. The kind <code>CronTab</code> comes from the spec of the CustomResourceDefinition object you created above.</p> <p>If you save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-crontab.yaml
+</pre>
+<p>You can then manage your CronTab objects using kubectl. For example:</p> <pre class="highlight" data-language="shell">kubectl get crontab
+</pre>
+<p>Should print a list like this:</p> <pre><code class="language-none" data-lang="none">NAME                 AGE
+my-new-cron-object   6s
+</code></pre>
+<p>Resource names are not case-sensitive when using kubectl, and you can use either the singular or plural forms defined in the CRD, as well as any short names.</p> <p>You can also view the raw YAML data:</p> <pre class="highlight" data-language="shell">kubectl get ct -o yaml
+</pre>
+<p>You should see that it contains the custom <code>cronSpec</code> and <code>image</code> fields from the YAML you used to create it:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+items:
+- apiVersion: stable.example.com/v1
+  kind: CronTab
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+                {"apiVersion":"stable.example.com/v1","kind":"CronTab","metadata":{"annotations":{},"name":"my-new-cron-object","namespace":"default"},"spec":{"cronSpec":"* * * * */5","image":"my-awesome-cron-image"}}
+    creationTimestamp: "2021-06-20T07:35:27Z"
+    generation: 1
+    name: my-new-cron-object
+    namespace: default
+    resourceVersion: "1326"
+    uid: 9aab1d66-628e-41bb-a422-57b8b3b1f5a9
+  spec:
+    cronSpec: '* * * * */5'
+    image: my-awesome-cron-image
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
+</pre>
+<h2 id="delete-a-customresourcedefinition">Delete a CustomResourceDefinition</h2> <p>When you delete a CustomResourceDefinition, the server will uninstall the RESTful API endpoint and delete all custom objects stored in it.</p> <pre class="highlight" data-language="shell">kubectl delete -f resourcedefinition.yaml
+kubectl get crontabs
+</pre>
+<pre><code class="language-none" data-lang="none">Error from server (NotFound): Unable to list {"stable.example.com" "v1" "crontabs"}: the server could not find the requested resource (get crontabs.stable.example.com)
+</code></pre>
+<p>If you later recreate the same CustomResourceDefinition, it will start out empty.</p> <h2 id="specifying-a-structural-schema">Specifying a structural schema</h2> <p>CustomResources store structured data in custom fields (alongside the built-in fields <code>apiVersion</code>, <code>kind</code> and <code>metadata</code>, which the API server validates implicitly). With <a href="#validation">OpenAPI v3.0 validation</a> a schema can be specified, which is validated during creation and updates, compare below for details and limits of such a schema.</p> <p>With <code>apiextensions.k8s.io/v1</code> the definition of a structural schema is mandatory for CustomResourceDefinitions. In the beta version of CustomResourceDefinition, the structural schema was optional.</p> <p>A structural schema is an <a href="#validation">OpenAPI v3.0 validation schema</a> which:</p> <ol> <li>specifies a non-empty type (via <code>type</code> in OpenAPI) for the root, for each specified field of an object node (via <code>properties</code> or <code>additionalProperties</code> in OpenAPI) and for each item in an array node (via <code>items</code> in OpenAPI), with the exception of: <ul> <li>a node with <code>x-kubernetes-int-or-string: true</code>
+</li> <li>a node with <code>x-kubernetes-preserve-unknown-fields: true</code>
+</li> </ul> </li> <li>for each field in an object and each item in an array which is specified within any of <code>allOf</code>, <code>anyOf</code>, <code>oneOf</code> or <code>not</code>, the schema also specifies the field/item outside of those logical junctors (compare example 1 and 2).</li> <li>does not set <code>description</code>, <code>type</code>, <code>default</code>, <code>additionalProperties</code>, <code>nullable</code> within an <code>allOf</code>, <code>anyOf</code>, <code>oneOf</code> or <code>not</code>, with the exception of the two pattern for <code>x-kubernetes-int-or-string: true</code> (see below).</li> <li>if <code>metadata</code> is specified, then only restrictions on <code>metadata.name</code> and <code>metadata.generateName</code> are allowed.</li> </ol> <p>Non-structural example 1:</p> <pre class="highlight" data-language="yaml">allOf:
+- properties:
+    foo:
+      ...
+</pre>
+<p>conflicts with rule 2. The following would be correct:</p> <pre class="highlight" data-language="yaml">properties:
+  foo:
+    ...
+allOf:
+- properties:
+    foo:
+      ...
+</pre>
+<p>Non-structural example 2:</p> <pre class="highlight" data-language="yaml">allOf:
+- items:
+    properties:
+      foo:
+        ...
+</pre>
+<p>conflicts with rule 2. The following would be correct:</p> <pre class="highlight" data-language="yaml">items:
+  properties:
+    foo:
+      ...
+allOf:
+- items:
+    properties:
+      foo:
+        ...
+</pre>
+<p>Non-structural example 3:</p> <pre class="highlight" data-language="yaml">properties:
+  foo:
+    pattern: "abc"
+  metadata:
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: "^a"
+      finalizers:
+        type: array
+        items:
+          type: string
+          pattern: "my-finalizer"
+anyOf:
+- properties:
+    bar:
+      type: integer
+      minimum: 42
+  required: ["bar"]
+  description: "foo bar object"
+</pre>
+<p>is not a structural schema because of the following violations:</p> <ul> <li>the type at the root is missing (rule 1).</li> <li>the type of <code>foo</code> is missing (rule 1).</li> <li>
+<code>bar</code> inside of <code>anyOf</code> is not specified outside (rule 2).</li> <li>
+<code>bar</code>'s <code>type</code> is within <code>anyOf</code> (rule 3).</li> <li>the description is set within <code>anyOf</code> (rule 3).</li> <li>
+<code>metadata.finalizers</code> might not be restricted (rule 4).</li> </ul> <p>In contrast, the following, corresponding schema is structural:</p> <pre class="highlight" data-language="yaml">type: object
+description: "foo bar object"
+properties:
+  foo:
+    type: string
+    pattern: "abc"
+  bar:
+    type: integer
+  metadata:
+    type: object
+    properties:
+      name:
+        type: string
+        pattern: "^a"
+anyOf:
+- properties:
+    bar:
+      minimum: 42
+  required: ["bar"]
+</pre>
+<p>Violations of the structural schema rules are reported in the <code>NonStructural</code> condition in the CustomResourceDefinition.</p> <h3 id="field-pruning">Field pruning</h3> <p>CustomResourceDefinitions store validated resource data in the cluster's persistence store, <a class="glossary-tooltip" title="Consistent and highly-available key value store used as Kubernetes' backing store for all cluster data." data-toggle="tooltip" data-placement="top" href="https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/" target="_blank" aria-label="etcd">etcd</a>. As with native Kubernetes resources such as <a class="glossary-tooltip" title="An API object used to store non-confidential data in key-value pairs. Can be consumed as environment variables, command-line arguments, or configuration files in a volume." data-toggle="tooltip" data-placement="top" href="../../../concepts/configuration/configmap/index" target="_blank" aria-label="ConfigMap">ConfigMap</a>, if you specify a field that the API server does not recognize, the unknown field is <em>pruned</em> (removed) before being persisted.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>CRDs converted from <code>apiextensions.k8s.io/v1beta1</code> to <code>apiextensions.k8s.io/v1</code> might lack structural schemas, and <code>spec.preserveUnknownFields</code> might be <code>true</code>.</p> <p>For legacy CustomResourceDefinition objects created as <code>apiextensions.k8s.io/v1beta1</code> with <code>spec.preserveUnknownFields</code> set to <code>true</code>, the following is also true:</p> <ul> <li>Pruning is not enabled.</li> <li>You can store arbitrary data.</li> </ul> <p>For compatibility with <code>apiextensions.k8s.io/v1</code>, update your custom resource definitions to:</p> <ol> <li>Use a structural OpenAPI schema.</li> <li>Set <code>spec.preserveUnknownFields</code> to <code>false</code>.</li> </ol> </div> <p>If you save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image
+  someRandomField: 42
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl create --validate=false -f my-crontab.yaml -o yaml
+</pre>
+<p>your output is similar to:</p> <pre><code class="language-console" data-lang="console">apiVersion: stable.example.com/v1
+kind: CronTab
+metadata:
+  creationTimestamp: 2017-05-31T12:56:35Z
+  generation: 1
+  name: my-new-cron-object
+  namespace: default
+  resourceVersion: "285"
+  uid: 9423255b-4600-11e7-af6a-28d2447dc82b
+spec:
+  cronSpec: '* * * * */5'
+  image: my-awesome-cron-image
+</code></pre>
+<p>Notice that the field <code>someRandomField</code> was pruned.</p> <p>This example turned off client-side validation to demonstrate the API server's behavior, by adding the <code>--validate=false</code> command line option. Because the <a href="#publish-validation-schema-in-openapi-v2">OpenAPI validation schemas are also published</a> to clients, <code>kubectl</code> also checks for unknown fields and rejects those objects well before they would be sent to the API server.</p> <h4 id="controlling-pruning">Controlling pruning</h4> <p>By default, all unspecified fields for a custom resource, across all versions, are pruned. It is possible though to opt-out of that for specifc sub-trees of fields by adding <code>x-kubernetes-preserve-unknown-fields: true</code> in the <a href="#specifying-a-structural-schema">structural OpenAPI v3 validation schema</a>. For example:</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  json:
+    x-kubernetes-preserve-unknown-fields: true
+</pre>
+<p>The field <code>json</code> can store any JSON value, without anything being pruned.</p> <p>You can also partially specify the permitted JSON; for example:</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  json:
+    x-kubernetes-preserve-unknown-fields: true
+    type: object
+    description: this is arbitrary JSON
+</pre>
+<p>With this, only <code>object</code> type values are allowed.</p> <p>Pruning is enabled again for each specified property (or <code>additionalProperties</code>):</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  json:
+    x-kubernetes-preserve-unknown-fields: true
+    type: object
+    properties:
+      spec:
+        type: object
+        properties:
+          foo:
+            type: string
+          bar:
+            type: string
+</pre>
+<p>With this, the value:</p> <pre class="highlight" data-language="yaml">json:
+  spec:
+    foo: abc
+    bar: def
+    something: x
+  status:
+    something: x
+</pre>
+<p>is pruned to:</p> <pre class="highlight" data-language="yaml">json:
+  spec:
+    foo: abc
+    bar: def
+  status:
+    something: x
+</pre>
+<p>This means that the <code>something</code> field in the specified <code>spec</code> object is pruned, but everything outside is not.</p> <h3 id="intorstring">IntOrString</h3> <p>Nodes in a schema with <code>x-kubernetes-int-or-string: true</code> are excluded from rule 1, such that the following is structural:</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  foo:
+    x-kubernetes-int-or-string: true
+</pre>
+<p>Also those nodes are partially excluded from rule 3 in the sense that the following two patterns are allowed (exactly those, without variations in order to additional fields):</p> <pre class="highlight" data-language="yaml">x-kubernetes-int-or-string: true
+anyOf:
+- type: integer
+- type: string
+...
+</pre>
+<p>and</p> <pre class="highlight" data-language="yaml">x-kubernetes-int-or-string: true
+allOf:
+- anyOf:
+  - type: integer
+  - type: string
+- ... # zero or more
+...
+</pre>
+<p>With one of those specification, both an integer and a string validate.</p> <p>In <a href="#publish-validation-schema-in-openapi-v2">Validation Schema Publishing</a>, <code>x-kubernetes-int-or-string: true</code> is unfolded to one of the two patterns shown above.</p> <h3 id="rawextension">RawExtension</h3> <p>RawExtensions (as in <code>runtime.RawExtension</code> defined in <a href="https://github.com/kubernetes/apimachinery/blob/03ac7a9ade429d715a1a46ceaa3724c18ebae54f/pkg/runtime/types.go#L94">k8s.io/apimachinery</a>) holds complete Kubernetes objects, i.e. with <code>apiVersion</code> and <code>kind</code> fields.</p> <p>It is possible to specify those embedded objects (both completely without constraints or partially specified) by setting <code>x-kubernetes-embedded-resource: true</code>. For example:</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  foo:
+    x-kubernetes-embedded-resource: true
+    x-kubernetes-preserve-unknown-fields: true
+</pre>
+<p>Here, the field <code>foo</code> holds a complete object, e.g.:</p> <pre class="highlight" data-language="yaml">foo:
+  apiVersion: v1
+  kind: Pod
+  spec:
+    ...
+</pre>
+<p>Because <code>x-kubernetes-preserve-unknown-fields: true</code> is specified alongside, nothing is pruned. The use of <code>x-kubernetes-preserve-unknown-fields: true</code> is optional though.</p> <p>With <code>x-kubernetes-embedded-resource: true</code>, the <code>apiVersion</code>, <code>kind</code> and <code>metadata</code> are implicitly specified and validated.</p> <h2 id="serving-multiple-versions-of-a-crd">Serving multiple versions of a CRD</h2> <p>See <a href="../../extend-kubernetes/custom-resources/custom-resource-definition-versioning/index">Custom resource definition versioning</a> for more information about serving multiple versions of your CustomResourceDefinition and migrating your objects from one version to another.</p>  <h2 id="advanced-topics">Advanced topics</h2> <h3 id="finalizers">Finalizers</h3> <p><em>Finalizers</em> allow controllers to implement asynchronous pre-delete hooks. Custom objects support finalizers similar to built-in objects.</p> <p>You can add a finalizer to a custom object like this:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  finalizers:
+  - stable.example.com/finalizer
+</pre>
+<p>Identifiers of custom finalizers consist of a domain name, a forward slash and the name of the finalizer. Any controller can add a finalizer to any object's list of finalizers.</p> <p>The first delete request on an object with finalizers sets a value for the <code>metadata.deletionTimestamp</code> field but does not delete it. Once this value is set, entries in the <code>finalizers</code> list can only be removed. While any finalizers remain it is also impossible to force the deletion of an object.</p> <p>When the <code>metadata.deletionTimestamp</code> field is set, controllers watching the object execute any finalizers they handle and remove the finalizer from the list after they are done. It is the responsibility of each controller to remove its finalizer from the list.</p> <p>The value of <code>metadata.deletionGracePeriodSeconds</code> controls the interval between polling updates.</p> <p>Once the list of finalizers is empty, meaning all finalizers have been executed, the resource is deleted by Kubernetes.</p> <h3 id="validation">Validation</h3> <p>Custom resources are validated via <a href="https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#schemaObject">OpenAPI v3 schemas</a>, by x-kubernetes-validations when the <a href="#validation-rules">Validation Rules feature</a> is enabled, and you can add additional validation using <a href="../../../reference/access-authn-authz/admission-controllers/index#validatingadmissionwebhook">admission webhooks</a>.</p> <p>Additionally, the following restrictions are applied to the schema:</p> <ul> <li>These fields cannot be set: <ul> <li>
+<code>definitions</code>,</li> <li>
+<code>dependencies</code>,</li> <li>
+<code>deprecated</code>,</li> <li>
+<code>discriminator</code>,</li> <li>
+<code>id</code>,</li> <li>
+<code>patternProperties</code>,</li> <li>
+<code>readOnly</code>,</li> <li>
+<code>writeOnly</code>,</li> <li>
+<code>xml</code>,</li> <li>
+<code>$ref</code>.</li> </ul> </li> <li>The field <code>uniqueItems</code> cannot be set to <code>true</code>.</li> <li>The field <code>additionalProperties</code> cannot be set to <code>false</code>.</li> <li>The field <code>additionalProperties</code> is mutually exclusive with <code>properties</code>.</li> </ul> <p>The <code>x-kubernetes-validations</code> extension can be used to validate custom resources using <a href="https://github.com/google/cel-spec">Common Expression Language (CEL)</a> expressions when the <a href="#validation-rules">Validation rules</a> feature is enabled and the CustomResourceDefinition schema is a <a href="#specifying-a-structural-schema">structural schema</a>.</p> <p>The <code>default</code> field can be set when the <a href="#defaulting">Defaulting feature</a> is enabled, which is the case with <code>apiextensions.k8s.io/v1</code> CustomResourceDefinitions. Defaulting is in GA since 1.17 (beta since 1.16 with the <code>CustomResourceDefaulting</code> <a href="../../../reference/command-line-tools-reference/feature-gates/index">feature gate</a> enabled, which is the case automatically for many clusters for beta features).</p> <p>Refer to the <a href="#specifying-a-structural-schema">structural schemas</a> section for other restrictions and CustomResourceDefinition features.</p> <p>The schema is defined in the CustomResourceDefinition. In the following example, the CustomResourceDefinition applies the following validations on the custom object:</p> <ul> <li>
+<code>spec.cronSpec</code> must be a string and must be of the form described by the regular expression.</li> <li>
+<code>spec.replicas</code> must be an integer and must have a minimum value of 1 and a maximum value of 10.</li> </ul> <p>Save the CustomResourceDefinition to <code>resourcedefinition.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        # openAPIV3Schema is the schema for validating custom objects.
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                  pattern: '^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$'
+                image:
+                  type: string
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f resourcedefinition.yaml
+</pre>
+<p>A request to create a custom object of kind CronTab is rejected if there are invalid values in its fields. In the following example, the custom object contains fields with invalid values:</p> <ul> <li>
+<code>spec.cronSpec</code> does not match the regular expression.</li> <li>
+<code>spec.replicas</code> is greater than 10.</li> </ul> <p>If you save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * *"
+  image: my-awesome-cron-image
+  replicas: 15
+</pre>
+<p>and attempt to create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-crontab.yaml
+</pre>
+<p>then you get an error:</p> <pre><code class="language-console" data-lang="console">The CronTab "my-new-cron-object" is invalid: []: Invalid value: map[string]interface {}{"apiVersion":"stable.example.com/v1", "kind":"CronTab", "metadata":map[string]interface {}{"name":"my-new-cron-object", "namespace":"default", "deletionTimestamp":interface {}(nil), "deletionGracePeriodSeconds":(*int64)(nil), "creationTimestamp":"2017-09-05T05:20:07Z", "uid":"e14d79e7-91f9-11e7-a598-f0761cb232d1", "clusterName":""}, "spec":map[string]interface {}{"cronSpec":"* * * *", "image":"my-awesome-cron-image", "replicas":15}}:
+validation failure list:
+spec.cronSpec in body should match '^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$'
+spec.replicas in body should be less than or equal to 10
+</code></pre>
+<p>If the fields contain valid values, the object creation request is accepted.</p> <p>Save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image
+  replicas: 5
+</pre>
+<p>And create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-crontab.yaml
+crontab "my-new-cron-object" created
+</pre>
+<h2 id="validation-rules">Validation rules</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.23 [alpha]</code> </div> <p>Validation rules are in alpha since 1.23 and validate custom resources when the <code>CustomResourceValidationExpressions</code> <a href="../../../reference/command-line-tools-reference/feature-gates/index">feature gate</a> is enabled. This feature is only available if the schema is a <a href="#specifying-a-structural-schema">structural schema</a>.</p> <p>Validation rules use the <a href="https://github.com/google/cel-spec">Common Expression Language (CEL)</a> to validate custom resource values. Validation rules are included in CustomResourceDefinition schemas using the <code>x-kubernetes-validations</code> extension.</p> <p>The Rule is scoped to the location of the <code>x-kubernetes-validations</code> extension in the schema. And <code>self</code> variable in the CEL expression is bound to the scoped value.</p> <p>For example:</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          x-kubernetes-validation-rules:
+            - rule: "self.minReplicas &lt;= self.replicas"
+              message: "replicas should be greater than or equal to minReplicas."
+            - rule: "self.replicas &lt;= self.maxReplicas"
+              message: "replicas should be smaller than or equal to maxReplicas."
+          properties:
+            ...
+            minReplicas:
+              type: integer
+            replicas:
+              type: integer
+            maxReplicas:
+              type: integer
+          required:
+            - minReplicas
+            - replicas
+            - maxReplicas 
+</pre>
+<p>will reject a request to create this custom resource:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  minReplicas: 0
+  replicas: 20
+  maxReplicas: 10
+</pre>
+<p>with the response:</p> <pre><code>The CronTab "my-new-cron-object" is invalid:
+* spec: Invalid value: map[string]interface {}{"maxReplicas":10, "minReplicas":0, "replicas":20}: replicas should be smaller than or equal to maxReplicas.
+</code></pre>
+<p><code>x-kubernetes-validations</code> could have multiple rules.</p> <p>The <code>rule</code> under <code>x-kubernetes-validations</code> represents the expression which will be evaluated by CEL.</p> <p>The <code>message</code> represents the message displayed when validation fails. If message is unset, the above response would be:</p> <pre><code>The CronTab "my-new-cron-object" is invalid:
+* spec: Invalid value: map[string]interface {}{"maxReplicas":10, "minReplicas":0, "replicas":20}: failed rule: self.replicas &lt;= self.maxReplicas
+</code></pre>
+<p>Validation rules are compiled when CRDs are created/updated. The request of CRDs create/update will fail if compilation of validation rules fail. Compilation process includes type checking as well.</p> <p>The compilation failure:</p> <ul> <li> <p><code>no_matching_overload</code>: this function has no overload for the types of the arguments.</p> <p>e.g. Rule like <code>self == true</code> against a field of integer type will get error:</p> <pre><code>Invalid value: apiextensions.ValidationRule{Rule:"self == true", Message:""}: compilation failed: ERROR: \&lt;input&gt;:1:6: found no matching overload for '_==_' applied to '(int, bool)'
+</code></pre>
+</li> <li> <p><code>no_such_field</code>: does not contain the desired field.</p> <p>e.g. Rule like <code>self.nonExistingField &gt; 0</code> against a non-existing field will return the error:</p> <pre><code>Invalid value: apiextensions.ValidationRule{Rule:"self.nonExistingField &gt; 0", Message:""}: compilation failed: ERROR: \&lt;input&gt;:1:5: undefined field 'nonExistingField'
+</code></pre>
+</li> <li> <p><code>invalid argument</code>: invalid argument to macros.</p> <p>e.g. Rule like <code>has(self)</code> will return error:</p> <pre><code>Invalid value: apiextensions.ValidationRule{Rule:"has(self)", Message:""}: compilation failed: ERROR: &lt;input&gt;:1:4: invalid argument to has() macro
+</code></pre>
+</li> </ul> <p>Validation Rules Examples:</p> <table> <thead> <tr> <th>Rule</th> <th>Purpose</th> </tr> </thead> <tbody> <tr> <td><code>self.minReplicas &lt;= self.replicas &amp;&amp; self.replicas &lt;= self.maxReplicas</code></td> <td>Validate that the three fields defining replicas are ordered appropriately</td> </tr> <tr> <td><code>'Available' in self.stateCounts</code></td> <td>Validate that an entry with the 'Available' key exists in a map</td> </tr> <tr> <td><code>(size(self.list1) == 0) != (size(self.list2) == 0)</code></td> <td>Validate that one of two lists is non-empty, but not both</td> </tr> <tr> <td><code>!('MY_KEY' in self.map1) || self['MY_KEY'].matches('^[a-zA-Z]*$')</code></td> <td>Validate the value of a map for a specific key, if it is in the map</td> </tr> <tr> <td><code>self.envars.filter(e, e.name = 'MY_ENV').all(e, e.value.matches('^[a-zA-Z]*$')</code></td> <td>Validate the 'value' field of a listMap entry where key field 'name' is 'MY_ENV'</td> </tr> <tr> <td><code>has(self.expired) &amp;&amp; self.created + self.ttl &lt; self.expired</code></td> <td>Validate that 'expired' date is after a 'create' date plus a 'ttl' duration</td> </tr> <tr> <td><code>self.health.startsWith('ok')</code></td> <td>Validate a 'health' string field has the prefix 'ok'</td> </tr> <tr> <td><code>self.widgets.exists(w, w.key == 'x' &amp;&amp; w.foo &lt; 10)</code></td> <td>Validate that the 'foo' property of a listMap item with a key 'x' is less than 10</td> </tr> <tr> <td><code>type(self) == string ? self == '100%' : self == 1000</code></td> <td>Validate an int-or-string field for both the the int and string cases</td> </tr> <tr> <td><code>self.metadata.name.startsWith(self.prefix)</code></td> <td>Validate that an object's name has the prefix of another field value</td> </tr> <tr> <td><code>self.set1.all(e, !(e in self.set2))</code></td> <td>Validate that two listSets are disjoint</td> </tr> <tr> <td><code>size(self.names) == size(self.details) &amp;&amp; self.names.all(n, n in self.details)</code></td> <td>Validate the 'details' map is keyed by the items in the 'names' listSet</td> </tr> </tbody> </table> <p>Xref: <a href="https://github.com/google/cel-spec/blob/v0.6.0/doc/langdef.md#evaluation">Supported evaluation on CEL</a></p> <ul> <li> <p>If the Rule is scoped to the root of a resource, it may make field selection into any fields declared in the OpenAPIv3 schema of the CRD as well as <code>apiVersion</code>, <code>kind</code>, <code>metadata.name</code> and <code>metadata.generateName</code>. This includes selection of fields in both the <code>spec</code> and <code>status</code> in the same expression:</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      x-kubernetes-validation-rules:
+        - rule: "self.status.availableReplicas &gt;= self.spec.minReplicas"
+      properties:
+          spec:
+            type: object
+            properties:
+              minReplicas:
+                type: integer
+              ...
+          status:
+            type: object
+            properties:
+              availableReplicas:
+                type: integer
+</pre>
+</li> <li> <p>If the Rule is scoped to an object with properties, the accessible properties of the object are field selectable via <code>self.field</code> and field presence can be checked via <code>has(self.field)</code>. Null valued fields are treated as absent fields in CEL expressions.</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          x-kubernetes-validation-rules:
+            - rule: "has(self.foo)"
+          properties:
+            ...
+            foo:
+              type: integer
+</pre>
+</li> <li> <p>If the Rule is scoped to an object with additionalProperties (i.e. a map) the value of the map are accessible via <code>self[mapKey]</code>, map containment can be checked via <code>mapKey in self</code> and all entries of the map are accessible via CEL macros and functions such as <code>self.all(...)</code>.</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          x-kubernetes-validation-rules:
+            - rule: "self['xyz'].foo &gt; 0"
+          additionalProperties:
+            ...
+            type: object
+            properties:
+              foo:
+                type: integer
+</pre>
+</li> <li> <p>If the Rule is scoped to an array, the elements of the array are accessible via <code>self[i]</code> and also by macros and functions.</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      properties:
+        ...
+        foo:
+          type: array
+          x-kubernetes-validation-rules:
+            - rule: "size(self) == 1"
+          items:
+            type: string
+</pre>
+</li> <li> <p>If the Rule is scoped to a scalar, <code>self</code> is bound to the scalar value.</p> <pre class="highlight" data-language="yaml">    ...
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            ...
+            foo:
+              type: integer
+              x-kubernetes-validation-rules:
+              - rule: "self &gt; 0"
+</pre>
+</li> </ul> <p>Examples:</p> <table> <thead> <tr> <th>type of the field rule scoped to</th> <th>Rule example</th> </tr> </thead> <tbody> <tr> <td>root object</td> <td><code>self.status.actual &lt;= self.spec.maxDesired</code></td> </tr> <tr> <td>map of objects</td> <td><code>self.components['Widget'].priority &lt; 10</code></td> </tr> <tr> <td>list of integers</td> <td><code>self.values.all(value, value &gt;= 0 &amp;&amp; value &lt; 100)</code></td> </tr> <tr> <td>string</td> <td><code>self.startsWith('kube')</code></td> </tr> </tbody> </table> <p>The <code>apiVersion</code>, <code>kind</code>, <code>metadata.name</code> and <code>metadata.generateName</code> are always accessible from the root of the object and from any x-kubernetes-embedded-resource annotated objects. No other metadata properties are accessible.</p> <p>Unknown data preserved in custom resources via <code>x-kubernetes-preserve-unknown-fields</code> is not accessible in CEL expressions. This includes:</p> <ul> <li>Unknown field values that are preserved by object schemas with x-kubernetes-preserve-unknown-fields.</li> <li>Object properties where the property schema is of an "unknown type". An "unknown type" is recursively defined as: <ul> <li>A schema with no type and x-kubernetes-preserve-unknown-fields set to true</li> <li>An array where the items schema is of an "unknown type"</li> <li>An object where the additionalProperties schema is of an "unknown type"</li> </ul> </li> </ul> <p>Only property names of the form <code>[a-zA-Z_.-/][a-zA-Z0-9_.-/]*</code> are accessible. Accessible property names are escaped according to the following rules when accessed in the expression:</p> <table> <thead> <tr> <th>escape sequence</th> <th>property name equivalent</th> </tr> </thead> <tbody> <tr> <td><code>__underscores__</code></td> <td><code>__</code></td> </tr> <tr> <td><code>__dot__</code></td> <td><code>.</code></td> </tr> <tr> <td><code>__dash__</code></td> <td><code>-</code></td> </tr> <tr> <td><code>__slash__</code></td> <td><code>/</code></td> </tr> <tr> <td><code>__{keyword}__</code></td> <td><a href="https://github.com/google/cel-spec/blob/v0.6.0/doc/langdef.md#syntax">CEL RESERVED keyword</a></td> </tr> </tbody> </table> <p>Note: CEL RESERVED keyword needs to match the exact property name to be escaped (e.g. int in the word sprint would not be escaped).</p> <p>Examples on escaping:</p> <table> <thead> <tr> <th>property name</th> <th>rule with escaped property name</th> </tr> </thead> <tbody> <tr> <td>namespace</td> <td><code>self.__namespace__ &gt; 0</code></td> </tr> <tr> <td>x-prop</td> <td><code>self.x__dash__prop &gt; 0</code></td> </tr> <tr> <td>redact__d</td> <td><code>self.redact__underscores__d &gt; 0</code></td> </tr> <tr> <td>string</td> <td><code>self.startsWith('kube')</code></td> </tr> </tbody> </table> <p>Equality on arrays with <code>x-kubernetes-list-type</code> of <code>set</code> or <code>map</code> ignores element order, i.e. [1, 2] == [2, 1]. Concatenation on arrays with x-kubernetes-list-type use the semantics of the list type:</p> <ul> <li>
+<code>set</code>: <code>X + Y</code> performs a union where the array positions of all elements in <code>X</code> are preserved and non-intersecting elements in <code>Y</code> are appended, retaining their partial order.</li> <li>
+<code>map</code>: <code>X + Y</code> performs a merge where the array positions of all keys in <code>X</code> are preserved but the values are overwritten by values in <code>Y</code> when the key sets of <code>X</code> and <code>Y</code> intersect. Elements in <code>Y</code> with non-intersecting keys are appended, retaining their partial order.</li> </ul> <p>Here is the declarations type mapping between OpenAPIv3 and CEL type:</p> <table> <thead> <tr> <th>OpenAPIv3 type</th> <th>CEL type</th> </tr> </thead> <tbody> <tr> <td>'object' with Properties</td> <td>object / "message type"</td> </tr> <tr> <td>'object' with AdditionalProperties</td> <td>map</td> </tr> <tr> <td>'object' with x-kubernetes-embedded-type</td> <td>object / "message type", 'apiVersion', 'kind', 'metadata.name' and 'metadata.generateName' are implicitly included in schema</td> </tr> <tr> <td>'object' with x-kubernetes-preserve-unknown-fields</td> <td>object / "message type", unknown fields are NOT accessible in CEL expression</td> </tr> <tr> <td>x-kubernetes-int-or-string</td> <td>dynamic object that is either an int or a string, <code>type(value)</code> can be used to check the type</td> </tr> <tr> <td>'array</td> <td>list</td> </tr> <tr> <td>'array' with x-kubernetes-list-type=map</td> <td>list with map based Equality &amp; unique key guarantees</td> </tr> <tr> <td>'array' with x-kubernetes-list-type=set</td> <td>list with set based Equality &amp; unique entry guarantees</td> </tr> <tr> <td>'boolean'</td> <td>boolean</td> </tr> <tr> <td>'number' (all formats)</td> <td>double</td> </tr> <tr> <td>'integer' (all formats)</td> <td>int (64)</td> </tr> <tr> <td>'null'</td> <td>null_type</td> </tr> <tr> <td>'string'</td> <td>string</td> </tr> <tr> <td>'string' with format=byte (base64 encoded)</td> <td>bytes</td> </tr> <tr> <td>'string' with format=date</td> <td>timestamp (google.protobuf.Timestamp)</td> </tr> <tr> <td>'string' with format=datetime</td> <td>timestamp (google.protobuf.Timestamp)</td> </tr> <tr> <td>'string' with format=duration</td> <td>duration (google.protobuf.Duration)</td> </tr> </tbody> </table> <p>xref: <a href="https://github.com/google/cel-spec/blob/v0.6.0/doc/langdef.md#values">CEL types</a>, <a href="https://swagger.io/specification/#data-types">OpenAPI types</a>, <a href="../../extend-kubernetes/custom-resources/custom-resource-definitions/index#specifying-a-structural-schema">Kubernetes Structural Schemas</a>.</p> <h3 id="defaulting">Defaulting</h3> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> To use defaulting, your CustomResourceDefinition must use API version <code>apiextensions.k8s.io/v1</code>. </div> <p>Defaulting allows to specify default values in the <a href="#validation">OpenAPI v3 validation schema</a>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        # openAPIV3Schema is the schema for validating custom objects.
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                  pattern: '^(\d+|\*)(/\d+)?(\s+(\d+|\*)(/\d+)?){4}$'
+                  default: "5 0 * * *"
+                image:
+                  type: string
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 1
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+</pre>
+<p>With this both <code>cronSpec</code> and <code>replicas</code> are defaulted:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  image: my-awesome-cron-image
+</pre>
+<p>leads to</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "5 0 * * *"
+  image: my-awesome-cron-image
+  replicas: 1
+</pre>
+<p>Defaulting happens on the object</p> <ul> <li>in the request to the API server using the request version defaults,</li> <li>when reading from etcd using the storage version defaults,</li> <li>after mutating admission plugins with non-empty patches using the admission webhook object version defaults.</li> </ul> <p>Defaults applied when reading data from etcd are not automatically written back to etcd. An update request via the API is required to persist those defaults back into etcd.</p> <p>Default values must be pruned (with the exception of defaults for <code>metadata</code> fields) and must validate against a provided schema.</p> <p>Default values for <code>metadata</code> fields of <code>x-kubernetes-embedded-resources: true</code> nodes (or parts of a default value covering <code>metadata</code>) are not pruned during CustomResourceDefinition creation, but through the pruning step during handling of requests.</p> <h4 id="defaulting-and-nullable">Defaulting and Nullable</h4> <p><strong>New in 1.20:</strong> null values for fields that either don't specify the nullable flag, or give it a <code>false</code> value, will be pruned before defaulting happens. If a default is present, it will be applied. When nullable is <code>true</code>, null values will be conserved and won't be defaulted.</p> <p>For example, given the OpenAPI schema below:</p> <pre class="highlight" data-language="yaml">type: object
+properties:
+  spec:
+    type: object
+    properties:
+      foo:
+        type: string
+        nullable: false
+        default: "default"
+      bar:
+        type: string
+        nullable: true
+      baz:
+        type: string
+</pre>
+<p>creating an object with null values for <code>foo</code> and <code>bar</code> and <code>baz</code></p> <pre class="highlight" data-language="yaml">spec:
+  foo: null
+  bar: null
+  baz: null
+</pre>
+<p>leads to</p> <pre class="highlight" data-language="yaml">spec:
+  foo: "default"
+  bar: null
+</pre>
+<p>with <code>foo</code> pruned and defaulted because the field is non-nullable, <code>bar</code> maintaining the null value due to <code>nullable: true</code>, and <code>baz</code> pruned because the field is non-nullable and has no default.</p> <h3 id="publish-validation-schema-in-openapi-v2">Publish Validation Schema in OpenAPI v2</h3> <p>CustomResourceDefinition <a href="#validation">OpenAPI v3 validation schemas</a> which are <a href="#specifying-a-structural-schema">structural</a> and <a href="#field-pruning">enable pruning</a> are published as part of the <a href="../../../concepts/overview/kubernetes-api/index#openapi-and-swagger-definitions">OpenAPI v2 spec</a> from Kubernetes API server.</p> <p>The <a href="../../../reference/kubectl/overview">kubectl</a> command-line tool consumes the published schema to perform client-side validation (<code>kubectl create</code> and <code>kubectl apply</code>), schema explanation (<code>kubectl explain</code>) on custom resources. The published schema can be consumed for other purposes as well, like client generation or documentation.</p> <p>The OpenAPI v3 validation schema is converted to OpenAPI v2 schema, and show up in <code>definitions</code> and <code>paths</code> fields in the <a href="../../../concepts/overview/kubernetes-api/index#openapi-and-swagger-definitions">OpenAPI v2 spec</a>.</p> <p>The following modifications are applied during the conversion to keep backwards compatibility with kubectl in previous 1.13 version. These modifications prevent kubectl from being over-strict and rejecting valid OpenAPI schemas that it doesn't understand. The conversion won't modify the validation schema defined in CRD, and therefore won't affect <a href="#validation">validation</a> in the API server.</p> <ol> <li>The following fields are removed as they aren't supported by OpenAPI v2 (in future versions OpenAPI v3 will be used without these restrictions) <ul> <li>The fields <code>allOf</code>, <code>anyOf</code>, <code>oneOf</code> and <code>not</code> are removed</li> </ul> </li> <li>If <code>nullable: true</code> is set, we drop <code>type</code>, <code>nullable</code>, <code>items</code> and <code>properties</code> because OpenAPI v2 is not able to express nullable. To avoid kubectl to reject good objects, this is necessary.</li> </ol> <h3 id="additional-printer-columns">Additional printer columns</h3> <p>The kubectl tool relies on server-side output formatting. Your cluster's API server decides which columns are shown by the <code>kubectl get</code> command. You can customize these columns for a CustomResourceDefinition. The following example adds the <code>Spec</code>, <code>Replicas</code>, and <code>Age</code> columns.</p> <p>Save the CustomResourceDefinition to <code>resourcedefinition.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              cronSpec:
+                type: string
+              image:
+                type: string
+              replicas:
+                type: integer
+    additionalPrinterColumns:
+    - name: Spec
+      type: string
+      description: The cron spec defining the interval a CronJob is run
+      jsonPath: .spec.cronSpec
+    - name: Replicas
+      type: integer
+      description: The number of jobs launched by the CronJob
+      jsonPath: .spec.replicas
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+</pre>
+<p>Create the CustomResourceDefinition:</p> <pre class="highlight" data-language="shell">kubectl apply -f resourcedefinition.yaml
+</pre>
+<p>Create an instance using the <code>my-crontab.yaml</code> from the previous section.</p> <p>Invoke the server-side printing:</p> <pre class="highlight" data-language="shell">kubectl get crontab my-new-cron-object
+</pre>
+<p>Notice the <code>NAME</code>, <code>SPEC</code>, <code>REPLICAS</code>, and <code>AGE</code> columns in the output:</p> <pre><code>NAME                 SPEC        REPLICAS   AGE
+my-new-cron-object   * * * * *   1          7s
+</code></pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The <code>NAME</code> column is implicit and does not need to be defined in the CustomResourceDefinition. </div> <h4 id="priority">Priority</h4> <p>Each column includes a <code>priority</code> field. Currently, the priority differentiates between columns shown in standard view or wide view (using the <code>-o wide</code> flag).</p> <ul> <li>Columns with priority <code>0</code> are shown in standard view.</li> <li>Columns with priority greater than <code>0</code> are shown only in wide view.</li> </ul> <h4 id="type">Type</h4> <p>A column's <code>type</code> field can be any of the following (compare <a href="https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#dataTypes">OpenAPI v3 data types</a>):</p> <ul> <li>
+<code>integer</code> – non-floating-point numbers</li> <li>
+<code>number</code> – floating point numbers</li> <li>
+<code>string</code> – strings</li> <li>
+<code>boolean</code> – <code>true</code> or <code>false</code>
+</li> <li>
+<code>date</code> – rendered differentially as time since this timestamp.</li> </ul> <p>If the value inside a CustomResource does not match the type specified for the column, the value is omitted. Use CustomResource validation to ensure that the value types are correct.</p> <h4 id="format">Format</h4> <p>A column's <code>format</code> field can be any of the following:</p> <ul> <li><code>int32</code></li> <li><code>int64</code></li> <li><code>float</code></li> <li><code>double</code></li> <li><code>byte</code></li> <li><code>date</code></li> <li><code>date-time</code></li> <li><code>password</code></li> </ul> <p>The column's <code>format</code> controls the style used when <code>kubectl</code> prints the value.</p> <h3 id="subresources">Subresources</h3> <p>Custom resources support <code>/status</code> and <code>/scale</code> subresources.</p> <p>The status and scale subresources can be optionally enabled by defining them in the CustomResourceDefinition.</p> <h4 id="status-subresource">Status subresource</h4> <p>When the status subresource is enabled, the <code>/status</code> subresource for the custom resource is exposed.</p> <ul> <li> <p>The status and the spec stanzas are represented by the <code>.status</code> and <code>.spec</code> JSONPaths respectively inside of a custom resource.</p> </li> <li> <p><code>PUT</code> requests to the <code>/status</code> subresource take a custom resource object and ignore changes to anything except the status stanza.</p> </li> <li> <p><code>PUT</code> requests to the <code>/status</code> subresource only validate the status stanza of the custom resource.</p> </li> <li> <p><code>PUT</code>/<code>POST</code>/<code>PATCH</code> requests to the custom resource ignore changes to the status stanza.</p> </li> <li> <p>The <code>.metadata.generation</code> value is incremented for all changes, except for changes to <code>.metadata</code> or <code>.status</code>.</p> </li> <li> <p>Only the following constructs are allowed at the root of the CRD OpenAPI validation schema:</p> <ul> <li><code>description</code></li> <li><code>example</code></li> <li><code>exclusiveMaximum</code></li> <li><code>exclusiveMinimum</code></li> <li><code>externalDocs</code></li> <li><code>format</code></li> <li><code>items</code></li> <li><code>maximum</code></li> <li><code>maxItems</code></li> <li><code>maxLength</code></li> <li><code>minimum</code></li> <li><code>minItems</code></li> <li><code>minLength</code></li> <li><code>multipleOf</code></li> <li><code>pattern</code></li> <li><code>properties</code></li> <li><code>required</code></li> <li><code>title</code></li> <li><code>type</code></li> <li><code>uniqueItems</code></li> </ul> </li> </ul> <h4 id="scale-subresource">Scale subresource</h4> <p>When the scale subresource is enabled, the <code>/scale</code> subresource for the custom resource is exposed. The <code>autoscaling/v1.Scale</code> object is sent as the payload for <code>/scale</code>.</p> <p>To enable the scale subresource, the following fields are defined in the CustomResourceDefinition.</p> <ul> <li> <p><code>specReplicasPath</code> defines the JSONPath inside of a custom resource that corresponds to <code>scale.spec.replicas</code>.</p> <ul> <li>It is a required value.</li> <li>Only JSONPaths under <code>.spec</code> and with the dot notation are allowed.</li> <li>If there is no value under the <code>specReplicasPath</code> in the custom resource, the <code>/scale</code> subresource will return an error on GET.</li> </ul> </li> <li> <p><code>statusReplicasPath</code> defines the JSONPath inside of a custom resource that corresponds to <code>scale.status.replicas</code>.</p> <ul> <li>It is a required value.</li> <li>Only JSONPaths under <code>.status</code> and with the dot notation are allowed.</li> <li>If there is no value under the <code>statusReplicasPath</code> in the custom resource, the status replica value in the <code>/scale</code> subresource will default to 0.</li> </ul> </li> <li> <p><code>labelSelectorPath</code> defines the JSONPath inside of a custom resource that corresponds to <code>Scale.Status.Selector</code>.</p> <ul> <li>It is an optional value.</li> <li>It must be set to work with HPA.</li> <li>Only JSONPaths under <code>.status</code> or <code>.spec</code> and with the dot notation are allowed.</li> <li>If there is no value under the <code>labelSelectorPath</code> in the custom resource, the status selector value in the <code>/scale</code> subresource will default to the empty string.</li> <li>The field pointed by this JSON path must be a string field (not a complex selector struct) which contains a serialized label selector in string form.</li> </ul> </li> </ul> <p>In the following example, both status and scale subresources are enabled.</p> <p>Save the CustomResourceDefinition to <code>resourcedefinition.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+            status:
+              type: object
+              properties:
+                replicas:
+                  type: integer
+                labelSelector:
+                  type: string
+      # subresources describes the subresources for custom resources.
+      subresources:
+        # status enables the status subresource.
+        status: {}
+        # scale enables the scale subresource.
+        scale:
+          # specReplicasPath defines the JSONPath inside of a custom resource that corresponds to Scale.Spec.Replicas.
+          specReplicasPath: .spec.replicas
+          # statusReplicasPath defines the JSONPath inside of a custom resource that corresponds to Scale.Status.Replicas.
+          statusReplicasPath: .status.replicas
+          # labelSelectorPath defines the JSONPath inside of a custom resource that corresponds to Scale.Status.Selector.
+          labelSelectorPath: .status.labelSelector
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+</pre>
+<p>And create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f resourcedefinition.yaml
+</pre>
+<p>After the CustomResourceDefinition object has been created, you can create custom objects.</p> <p>If you save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image
+  replicas: 3
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-crontab.yaml
+</pre>
+<p>Then new namespaced RESTful API endpoints are created at:</p> <pre><code>/apis/stable.example.com/v1/namespaces/*/crontabs/status
+</code></pre>
+<p>and</p> <pre><code>/apis/stable.example.com/v1/namespaces/*/crontabs/scale
+</code></pre>
+<p>A custom resource can be scaled using the <code>kubectl scale</code> command. For example, the following command sets <code>.spec.replicas</code> of the custom resource created above to 5:</p> <pre class="highlight" data-language="shell">kubectl scale --replicas=5 crontabs/my-new-cron-object
+crontabs "my-new-cron-object" scaled
+
+kubectl get crontabs my-new-cron-object -o jsonpath='{.spec.replicas}'
+5
+</pre>
+<p>You can use a <a href="../../run-application/configure-pdb/index">PodDisruptionBudget</a> to protect custom resources that have the scale subresource enabled.</p> <h3 id="categories">Categories</h3> <p>Categories is a list of grouped resources the custom resource belongs to (eg. <code>all</code>). You can use <code>kubectl get &lt;category-name&gt;</code> to list the resources belonging to the category.</p> <p>The following example adds <code>all</code> in the list of categories in the CustomResourceDefinition and illustrates how to output the custom resource using <code>kubectl get all</code>.</p> <p>Save the following CustomResourceDefinition to <code>resourcedefinition.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crontabs.stable.example.com
+spec:
+  group: stable.example.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                cronSpec:
+                  type: string
+                image:
+                  type: string
+                replicas:
+                  type: integer
+  scope: Namespaced
+  names:
+    plural: crontabs
+    singular: crontab
+    kind: CronTab
+    shortNames:
+    - ct
+    # categories is a list of grouped resources the custom resource belongs to.
+    categories:
+    - all
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f resourcedefinition.yaml
+</pre>
+<p>After the CustomResourceDefinition object has been created, you can create custom objects.</p> <p>Save the following YAML to <code>my-crontab.yaml</code>:</p> <pre class="highlight" data-language="yaml">apiVersion: "stable.example.com/v1"
+kind: CronTab
+metadata:
+  name: my-new-cron-object
+spec:
+  cronSpec: "* * * * */5"
+  image: my-awesome-cron-image
+</pre>
+<p>and create it:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-crontab.yaml
+</pre>
+<p>You can specify the category when using <code>kubectl get</code>:</p> <pre><code>kubectl get all
+</code></pre>
+<p>and it will include the custom resources of kind <code>CronTab</code>:</p> <pre><code class="language-console" data-lang="console">NAME                          AGE
+crontabs/my-new-cron-object   3s
+</code></pre>
+<h2 id="what-s-next">What's next</h2> <ul> <li> <p>Read about <a href="../../../concepts/extend-kubernetes/api-extension/custom-resources/index">custom resources</a>.</p> </li> <li> <p>See <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#customresourcedefinition-v1-apiextensions-k8s-io">CustomResourceDefinition</a>.</p> </li> <li> <p>Serve <a href="../../extend-kubernetes/custom-resources/custom-resource-definition-versioning/index">multiple versions</a> of a CustomResourceDefinition.</p> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions" class="_attribution-link">https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

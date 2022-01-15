@@ -1,0 +1,197 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>DNS for Services and Pods - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" Kubernetes creates DNS records for services and pods. You can contact services with consistent DNS names instead of IP addresses. ">
+  <meta name="keywords" content="dns, for, services, and, pods, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/services-networking/dns-pod-service/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>DNS for Services and Pods</h1>  <p>Kubernetes creates DNS records for services and pods. You can contact services with consistent DNS names instead of IP addresses.</p>  <h2 id="introduction">Introduction</h2> <p>Kubernetes DNS schedules a DNS Pod and Service on the cluster, and configures the kubelets to tell individual containers to use the DNS Service's IP to resolve DNS names.</p> <p>Every Service defined in the cluster (including the DNS server itself) is assigned a DNS name. By default, a client Pod's DNS search list includes the Pod's own namespace and the cluster's default domain.</p> <h3 id="namespaces-of-services">Namespaces of Services</h3> <p>A DNS query may return different results based on the namespace of the pod making it. DNS queries that don't specify a namespace are limited to the pod's namespace. Access services in other namespaces by specifying it in the DNS query.</p> <p>For example, consider a pod in a <code>test</code> namespace. A <code>data</code> service is in the <code>prod</code> namespace.</p> <p>A query for <code>data</code> returns no results, because it uses the pod's <code>test</code> namespace.</p> <p>A query for <code>data.prod</code> returns the intended result, because it specifies the namespace.</p> <p>DNS queries may be expanded using the pod's <code>/etc/resolv.conf</code>. Kubelet sets this file for each pod. For example, a query for just <code>data</code> may be expanded to <code>data.test.svc.cluster.local</code>. The values of the <code>search</code> option are used to expand queries. To learn more about DNS queries, see <a href="https://www.man7.org/linux/man-pages/man5/resolv.conf.5.html">the <code>resolv.conf</code> manual page.</a></p> <pre><code>nameserver 10.32.0.10
+search &lt;namespace&gt;.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+</code></pre>
+<p>In summary, a pod in the <em>test</em> namespace can successfully resolve either <code>data.prod</code> or <code>data.prod.svc.cluster.local</code>.</p> <h3 id="dns-records">DNS Records</h3> <p>What objects get DNS records?</p> <ol> <li>Services</li> <li>Pods</li> </ol> <p>The following sections detail the supported DNS record types and layout that is supported. Any other layout or names or queries that happen to work are considered implementation details and are subject to change without warning. For more up-to-date specification, see <a href="https://github.com/kubernetes/dns/blob/master/docs/specification.md">Kubernetes DNS-Based Service Discovery</a>.</p> <h2 id="services">Services</h2> <h3 id="a-aaaa-records">A/AAAA records</h3> <p>"Normal" (not headless) Services are assigned a DNS A or AAAA record, depending on the IP family of the service, for a name of the form <code>my-svc.my-namespace.svc.cluster-domain.example</code>. This resolves to the cluster IP of the Service.</p> <p>"Headless" (without a cluster IP) Services are also assigned a DNS A or AAAA record, depending on the IP family of the service, for a name of the form <code>my-svc.my-namespace.svc.cluster-domain.example</code>. Unlike normal Services, this resolves to the set of IPs of the pods selected by the Service. Clients are expected to consume the set or else use standard round-robin selection from the set.</p> <h3 id="srv-records">SRV records</h3> <p>SRV Records are created for named ports that are part of normal or <a href="../service/index#headless-services">Headless Services</a>. For each named port, the SRV record would have the form <code>_my-port-name._my-port-protocol.my-svc.my-namespace.svc.cluster-domain.example</code>. For a regular service, this resolves to the port number and the domain name: <code>my-svc.my-namespace.svc.cluster-domain.example</code>. For a headless service, this resolves to multiple answers, one for each pod that is backing the service, and contains the port number and the domain name of the pod of the form <code>auto-generated-name.my-svc.my-namespace.svc.cluster-domain.example</code>.</p> <h2 id="pods">Pods</h2> <h3 id="a-aaaa-records-1">A/AAAA records</h3> <p>In general a pod has the following DNS resolution:</p> <p><code>pod-ip-address.my-namespace.pod.cluster-domain.example</code>.</p> <p>For example, if a pod in the <code>default</code> namespace has the IP address 172.17.0.3, and the domain name for your cluster is <code>cluster.local</code>, then the Pod has a DNS name:</p> <p><code>172-17-0-3.default.pod.cluster.local</code>.</p> <p>Any pods created by a Deployment or DaemonSet exposed by a Service have the following DNS resolution available:</p> <p><code>pod-ip-address.deployment-name.my-namespace.svc.cluster-domain.example</code>.</p> <h3 id="pod-s-hostname-and-subdomain-fields">Pod's hostname and subdomain fields</h3> <p>Currently when a pod is created, its hostname is the Pod's <code>metadata.name</code> value.</p> <p>The Pod spec has an optional <code>hostname</code> field, which can be used to specify the Pod's hostname. When specified, it takes precedence over the Pod's name to be the hostname of the pod. For example, given a Pod with <code>hostname</code> set to "<code>my-host</code>", the Pod will have its hostname set to "<code>my-host</code>".</p> <p>The Pod spec also has an optional <code>subdomain</code> field which can be used to specify its subdomain. For example, a Pod with <code>hostname</code> set to "<code>foo</code>", and <code>subdomain</code> set to "<code>bar</code>", in namespace "<code>my-namespace</code>", will have the fully qualified domain name (FQDN) "<code>foo.bar.my-namespace.svc.cluster-domain.example</code>".</p> <p>Example:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: default-subdomain
+spec:
+  selector:
+    name: busybox
+  clusterIP: None
+  ports:
+  - name: foo # Actually, no port is needed.
+    port: 1234
+    targetPort: 1234
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox1
+  labels:
+    name: busybox
+spec:
+  hostname: busybox-1
+  subdomain: default-subdomain
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - "3600"
+    name: busybox
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox2
+  labels:
+    name: busybox
+spec:
+  hostname: busybox-2
+  subdomain: default-subdomain
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - "3600"
+    name: busybox
+</pre>
+<p>If there exists a headless service in the same namespace as the pod and with the same name as the subdomain, the cluster's DNS Server also returns an A or AAAA record for the Pod's fully qualified hostname. For example, given a Pod with the hostname set to "<code>busybox-1</code>" and the subdomain set to "<code>default-subdomain</code>", and a headless Service named "<code>default-subdomain</code>" in the same namespace, the pod will see its own FQDN as "<code>busybox-1.default-subdomain.my-namespace.svc.cluster-domain.example</code>". DNS serves an A or AAAA record at that name, pointing to the Pod's IP. Both pods "<code>busybox1</code>" and "<code>busybox2</code>" can have their distinct A or AAAA records.</p> <p>The Endpoints object can specify the <code>hostname</code> for any endpoint addresses, along with its IP.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Because A or AAAA records are not created for Pod names, <code>hostname</code> is required for the Pod's A or AAAA record to be created. A Pod with no <code>hostname</code> but with <code>subdomain</code> will only create the A or AAAA record for the headless service (<code>default-subdomain.my-namespace.svc.cluster-domain.example</code>), pointing to the Pod's IP address. Also, Pod needs to become ready in order to have a record unless <code>publishNotReadyAddresses=True</code> is set on the Service. </div> <h3 id="pod-sethostnameasfqdn-field">Pod's setHostnameAsFQDN field</h3> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [stable]</code> </div> <p>When a Pod is configured to have fully qualified domain name (FQDN), its hostname is the short hostname. For example, if you have a Pod with the fully qualified domain name <code>busybox-1.default-subdomain.my-namespace.svc.cluster-domain.example</code>, then by default the <code>hostname</code> command inside that Pod returns <code>busybox-1</code> and the <code>hostname --fqdn</code> command returns the FQDN.</p> <p>When you set <code>setHostnameAsFQDN: true</code> in the Pod spec, the kubelet writes the Pod's FQDN into the hostname for that Pod's namespace. In this case, both <code>hostname</code> and <code>hostname --fqdn</code> return the Pod's FQDN.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>In Linux, the hostname field of the kernel (the <code>nodename</code> field of <code>struct utsname</code>) is limited to 64 characters.</p> <p>If a Pod enables this feature and its FQDN is longer than 64 character, it will fail to start. The Pod will remain in <code>Pending</code> status (<code>ContainerCreating</code> as seen by <code>kubectl</code>) generating error events, such as Failed to construct FQDN from pod hostname and cluster domain, FQDN <code>long-FQDN</code> is too long (64 characters is the max, 70 characters requested). One way of improving user experience for this scenario is to create an <a href="../../../reference/access-authn-authz/extensible-admission-controllers/index#admission-webhooks">admission webhook controller</a> to control FQDN size when users create top level objects, for example, Deployment.</p> </div> <h3 id="pod-s-dns-policy">Pod's DNS Policy</h3> <p>DNS policies can be set on a per-pod basis. Currently Kubernetes supports the following pod-specific DNS policies. These policies are specified in the <code>dnsPolicy</code> field of a Pod Spec.</p> <ul> <li>"<code>Default</code>": The Pod inherits the name resolution configuration from the node that the pods run on. See <a href="https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers">related discussion</a> for more details.</li> <li>"<code>ClusterFirst</code>": Any DNS query that does not match the configured cluster domain suffix, such as "<code>www.kubernetes.io</code>", is forwarded to the upstream nameserver inherited from the node. Cluster administrators may have extra stub-domain and upstream DNS servers configured. See <a href="https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers">related discussion</a> for details on how DNS queries are handled in those cases.</li> <li>"<code>ClusterFirstWithHostNet</code>": For Pods running with hostNetwork, you should explicitly set its DNS policy "<code>ClusterFirstWithHostNet</code>".</li> <li>"<code>None</code>": It allows a Pod to ignore DNS settings from the Kubernetes environment. All DNS settings are supposed to be provided using the <code>dnsConfig</code> field in the Pod Spec. See <a href="#pod-dns-config">Pod's DNS config</a> subsection below.</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> "Default" is not the default DNS policy. If <code>dnsPolicy</code> is not explicitly specified, then "ClusterFirst" is used. </div> <p>The example below shows a Pod with its DNS policy set to "<code>ClusterFirstWithHostNet</code>" because it has <code>hostNetwork</code> set to <code>true</code>.</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: IfNotPresent
+    name: busybox
+  restartPolicy: Always
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+</pre>
+<h3 id="pod-dns-config">Pod's DNS Config</h3> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.14 [stable]</code> </div> <p>Pod's DNS Config allows users more control on the DNS settings for a Pod.</p> <p>The <code>dnsConfig</code> field is optional and it can work with any <code>dnsPolicy</code> settings. However, when a Pod's <code>dnsPolicy</code> is set to "<code>None</code>", the <code>dnsConfig</code> field has to be specified.</p> <p>Below are the properties a user can specify in the <code>dnsConfig</code> field:</p> <ul> <li>
+<code>nameservers</code>: a list of IP addresses that will be used as DNS servers for the Pod. There can be at most 3 IP addresses specified. When the Pod's <code>dnsPolicy</code> is set to "<code>None</code>", the list must contain at least one IP address, otherwise this property is optional. The servers listed will be combined to the base nameservers generated from the specified DNS policy with duplicate addresses removed.</li> <li>
+<code>searches</code>: a list of DNS search domains for hostname lookup in the Pod. This property is optional. When specified, the provided list will be merged into the base search domain names generated from the chosen DNS policy. Duplicate domain names are removed. Kubernetes allows for at most 6 search domains.</li> <li>
+<code>options</code>: an optional list of objects where each object may have a <code>name</code> property (required) and a <code>value</code> property (optional). The contents in this property will be merged to the options generated from the specified DNS policy. Duplicate entries are removed.</li> </ul> <p>The following is an example Pod with custom DNS settings:</p> <pre class="highlight" data-language="">service/networking/custom-dns.yaml</pre> <p>When the Pod above is created, the container <code>test</code> gets the following contents in its <code>/etc/resolv.conf</code> file:</p> <pre><code>nameserver 1.2.3.4
+search ns1.svc.cluster-domain.example my.dns.search.suffix
+options ndots:2 edns0
+</code></pre>
+<p>For IPv6 setup, search path and name server should be setup like this:</p> <pre class="highlight" data-language="shell">kubectl exec -it dns-example -- cat /etc/resolv.conf
+</pre>
+<p>The output is similar to this:</p> <pre class="highlight" data-language="shell">nameserver fd00:79:30::a
+search default.svc.cluster-domain.example svc.cluster-domain.example cluster-domain.example
+options ndots:5
+</pre>
+<h4 id="expanded-dns-configuration">Expanded DNS Configuration</h4> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes 1.22 [alpha]</code> </div> <p>By default, for Pod's DNS Config, Kubernetes allows at most 6 search domains and a list of search domains of up to 256 characters.</p> <p>If the feature gate <code>ExpandedDNSConfig</code> is enabled for the kube-apiserver and the kubelet, it is allowed for Kubernetes to have at most 32 search domains and a list of search domains of up to 2048 characters.</p> <h3 id="feature-availability">Feature availability</h3> <p>The availability of Pod DNS Config and DNS Policy "<code>None</code>" is shown as below.</p> <table> <thead> <tr> <th style="text-align:center">k8s version</th> <th style="text-align:center">Feature support</th> </tr> </thead> <tbody> <tr> <td style="text-align:center">1.14</td> <td style="text-align:center">Stable</td> </tr> <tr> <td style="text-align:center">1.10</td> <td style="text-align:center">Beta (on by default)</td> </tr> <tr> <td style="text-align:center">1.9</td> <td style="text-align:center">Alpha</td> </tr> </tbody> </table> <h2 id="what-s-next">What's next</h2> <p>For guidance on administering DNS configurations, check <a href="https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/">Configure DNS Service</a></p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/" class="_attribution-link">https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

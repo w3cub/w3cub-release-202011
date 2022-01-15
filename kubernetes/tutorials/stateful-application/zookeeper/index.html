@@ -1,0 +1,628 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Running ZooKeeper, a Distributed System Coordinator - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" This tutorial demonstrates running Apache Zookeeper on Kubernetes using StatefulSets, PodDisruptionBudgets, and PodAntiAffinity. ">
+  <meta name="keywords" content="running, zookeeper, distributed, system, coordinator, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tutorials/stateful-application/zookeeper/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Running ZooKeeper, A Distributed System Coordinator</h1>  <p>This tutorial demonstrates running <a href="https://zookeeper.apache.org">Apache Zookeeper</a> on Kubernetes using <a href="../../../concepts/workloads/controllers/statefulset/index">StatefulSets</a>, <a href="../../../concepts/workloads/pods/disruptions/index#pod-disruption-budget">PodDisruptionBudgets</a>, and <a href="../../../concepts/scheduling-eviction/assign-pod-node/index#affinity-and-anti-affinity">PodAntiAffinity</a>.</p> <h2 id="before-you-begin">Before you begin</h2> <p>Before starting this tutorial, you should be familiar with the following Kubernetes concepts:</p> <ul> <li><a href="../../../concepts/workloads/pods/index">Pods</a></li> <li><a href="../../../concepts/services-networking/dns-pod-service/index">Cluster DNS</a></li> <li><a href="../../../concepts/services-networking/service/index#headless-services">Headless Services</a></li> <li><a href="../../../concepts/storage/volumes/index">PersistentVolumes</a></li> <li><a href="https://github.com/kubernetes/examples/tree/master/staging/persistent-volume-provisioning/">PersistentVolume Provisioning</a></li> <li><a href="../../../concepts/workloads/controllers/statefulset/index">StatefulSets</a></li> <li><a href="../../../concepts/workloads/pods/disruptions/index#pod-disruption-budget">PodDisruptionBudgets</a></li> <li><a href="../../../concepts/scheduling-eviction/assign-pod-node/index#affinity-and-anti-affinity">PodAntiAffinity</a></li> <li><a href="../../../reference/kubectl/kubectl/index">kubectl CLI</a></li> </ul> <p>You must have a cluster with at least four nodes, and each node requires at least 2 CPUs and 4 GiB of memory. In this tutorial you will cordon and drain the cluster's nodes. <strong>This means that the cluster will terminate and evict all Pods on its nodes, and the nodes will temporarily become unschedulable.</strong> You should use a dedicated cluster for this tutorial, or you should ensure that the disruption you cause will not interfere with other tenants.</p> <p>This tutorial assumes that you have configured your cluster to dynamically provision PersistentVolumes. If your cluster is not configured to do so, you will have to manually provision three 20 GiB volumes before starting this tutorial.</p> <h2 id="objectives">Objectives</h2> <p>After this tutorial, you will know the following.</p> <ul> <li>How to deploy a ZooKeeper ensemble using StatefulSet.</li> <li>How to consistently configure the ensemble.</li> <li>How to spread the deployment of ZooKeeper servers in the ensemble.</li> <li>How to use PodDisruptionBudgets to ensure service availability during planned maintenance.</li> </ul>  <h3 id="zookeeper">ZooKeeper</h3> <p><a href="https://zookeeper.apache.org/doc/current/">Apache ZooKeeper</a> is a distributed, open-source coordination service for distributed applications. ZooKeeper allows you to read, write, and observe updates to data. Data are organized in a file system like hierarchy and replicated to all ZooKeeper servers in the ensemble (a set of ZooKeeper servers). All operations on data are atomic and sequentially consistent. ZooKeeper ensures this by using the <a href="https://pdfs.semanticscholar.org/b02c/6b00bd5dbdbd951fddb00b906c82fa80f0b3.pdf">Zab</a> consensus protocol to replicate a state machine across all servers in the ensemble.</p> <p>The ensemble uses the Zab protocol to elect a leader, and the ensemble cannot write data until that election is complete. Once complete, the ensemble uses Zab to ensure that it replicates all writes to a quorum before it acknowledges and makes them visible to clients. Without respect to weighted quorums, a quorum is a majority component of the ensemble containing the current leader. For instance, if the ensemble has three servers, a component that contains the leader and one other server constitutes a quorum. If the ensemble can not achieve a quorum, the ensemble cannot write data.</p> <p>ZooKeeper servers keep their entire state machine in memory, and write every mutation to a durable WAL (Write Ahead Log) on storage media. When a server crashes, it can recover its previous state by replaying the WAL. To prevent the WAL from growing without bound, ZooKeeper servers will periodically snapshot them in memory state to storage media. These snapshots can be loaded directly into memory, and all WAL entries that preceded the snapshot may be discarded.</p> <h2 id="creating-a-zookeeper-ensemble">Creating a ZooKeeper ensemble</h2> <p>The manifest below contains a <a href="../../../concepts/services-networking/service/index#headless-services">Headless Service</a>, a <a href="../../../concepts/services-networking/service/index">Service</a>, a <a href="../../../concepts/workloads/pods/disruptions/index#pod-disruption-budgets">PodDisruptionBudget</a>, and a <a href="../../../concepts/workloads/controllers/statefulset/index">StatefulSet</a>.</p> <pre class="highlight" data-language="">application/zookeeper/zookeeper.yaml</pre> <p>Open a terminal, and use the <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#apply"><code>kubectl apply</code></a> command to create the manifest.</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/zookeeper/zookeeper.yaml
+</pre>
+<p>This creates the <code>zk-hs</code> Headless Service, the <code>zk-cs</code> Service, the <code>zk-pdb</code> PodDisruptionBudget, and the <code>zk</code> StatefulSet.</p> <pre><code>service/zk-hs created
+service/zk-cs created
+poddisruptionbudget.policy/zk-pdb created
+statefulset.apps/zk created
+</code></pre>
+<p>Use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#get"><code>kubectl get</code></a> to watch the StatefulSet controller create the StatefulSet's Pods.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<p>Once the <code>zk-2</code> Pod is Running and Ready, use <code>CTRL-C</code> to terminate kubectl.</p> <pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      0/1       Pending   0          0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         19s
+zk-0      1/1       Running   0         40s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       ContainerCreating   0         0s
+zk-1      0/1       Running   0         18s
+zk-1      1/1       Running   0         40s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       ContainerCreating   0         0s
+zk-2      0/1       Running   0         19s
+zk-2      1/1       Running   0         40s
+</code></pre>
+<p>The StatefulSet controller creates three Pods, and each Pod has a container with a <a href="https://www-us.apache.org/dist/zookeeper/stable/">ZooKeeper</a> server.</p> <h3 id="facilitating-leader-election">Facilitating leader election</h3> <p>Because there is no terminating algorithm for electing a leader in an anonymous network, Zab requires explicit membership configuration to perform leader election. Each server in the ensemble needs to have a unique identifier, all servers need to know the global set of identifiers, and each identifier needs to be associated with a network address.</p> <p>Use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#exec"><code>kubectl exec</code></a> to get the hostnames of the Pods in the <code>zk</code> StatefulSet.</p> <pre class="highlight" data-language="shell">for i in 0 1 2; do kubectl exec zk-$i -- hostname; done
+</pre>
+<p>The StatefulSet controller provides each Pod with a unique hostname based on its ordinal index. The hostnames take the form of <code>&lt;statefulset name&gt;-&lt;ordinal index&gt;</code>. Because the <code>replicas</code> field of the <code>zk</code> StatefulSet is set to <code>3</code>, the Set's controller creates three Pods with their hostnames set to <code>zk-0</code>, <code>zk-1</code>, and <code>zk-2</code>.</p> <pre><code>zk-0
+zk-1
+zk-2
+</code></pre>
+<p>The servers in a ZooKeeper ensemble use natural numbers as unique identifiers, and store each server's identifier in a file called <code>myid</code> in the server's data directory.</p> <p>To examine the contents of the <code>myid</code> file for each server use the following command.</p> <pre class="highlight" data-language="shell">for i in 0 1 2; do echo "myid zk-$i";kubectl exec zk-$i -- cat /var/lib/zookeeper/data/myid; done
+</pre>
+<p>Because the identifiers are natural numbers and the ordinal indices are non-negative integers, you can generate an identifier by adding 1 to the ordinal.</p> <pre><code>myid zk-0
+1
+myid zk-1
+2
+myid zk-2
+3
+</code></pre>
+<p>To get the Fully Qualified Domain Name (FQDN) of each Pod in the <code>zk</code> StatefulSet use the following command.</p> <pre class="highlight" data-language="shell">for i in 0 1 2; do kubectl exec zk-$i -- hostname -f; done
+</pre>
+<p>The <code>zk-hs</code> Service creates a domain for all of the Pods, <code>zk-hs.default.svc.cluster.local</code>.</p> <pre><code>zk-0.zk-hs.default.svc.cluster.local
+zk-1.zk-hs.default.svc.cluster.local
+zk-2.zk-hs.default.svc.cluster.local
+</code></pre>
+<p>The A records in <a href="../../../concepts/services-networking/dns-pod-service/index">Kubernetes DNS</a> resolve the FQDNs to the Pods' IP addresses. If Kubernetes reschedules the Pods, it will update the A records with the Pods' new IP addresses, but the A records names will not change.</p> <p>ZooKeeper stores its application configuration in a file named <code>zoo.cfg</code>. Use <code>kubectl exec</code> to view the contents of the <code>zoo.cfg</code> file in the <code>zk-0</code> Pod.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- cat /opt/zookeeper/conf/zoo.cfg
+</pre>
+<p>In the <code>server.1</code>, <code>server.2</code>, and <code>server.3</code> properties at the bottom of the file, the <code>1</code>, <code>2</code>, and <code>3</code> correspond to the identifiers in the ZooKeeper servers' <code>myid</code> files. They are set to the FQDNs for the Pods in the <code>zk</code> StatefulSet.</p> <pre><code>clientPort=2181
+dataDir=/var/lib/zookeeper/data
+dataLogDir=/var/lib/zookeeper/log
+tickTime=2000
+initLimit=10
+syncLimit=2000
+maxClientCnxns=60
+minSessionTimeout= 4000
+maxSessionTimeout= 40000
+autopurge.snapRetainCount=3
+autopurge.purgeInterval=0
+server.1=zk-0.zk-hs.default.svc.cluster.local:2888:3888
+server.2=zk-1.zk-hs.default.svc.cluster.local:2888:3888
+server.3=zk-2.zk-hs.default.svc.cluster.local:2888:3888
+</code></pre>
+<h3 id="achieving-consensus">Achieving consensus</h3> <p>Consensus protocols require that the identifiers of each participant be unique. No two participants in the Zab protocol should claim the same unique identifier. This is necessary to allow the processes in the system to agree on which processes have committed which data. If two Pods are launched with the same ordinal, two ZooKeeper servers would both identify themselves as the same server.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      0/1       Pending   0          0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         19s
+zk-0      1/1       Running   0         40s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       ContainerCreating   0         0s
+zk-1      0/1       Running   0         18s
+zk-1      1/1       Running   0         40s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       ContainerCreating   0         0s
+zk-2      0/1       Running   0         19s
+zk-2      1/1       Running   0         40s
+</code></pre>
+<p>The A records for each Pod are entered when the Pod becomes Ready. Therefore, the FQDNs of the ZooKeeper servers will resolve to a single endpoint, and that endpoint will be the unique ZooKeeper server claiming the identity configured in its <code>myid</code> file.</p> <pre><code>zk-0.zk-hs.default.svc.cluster.local
+zk-1.zk-hs.default.svc.cluster.local
+zk-2.zk-hs.default.svc.cluster.local
+</code></pre>
+<p>This ensures that the <code>servers</code> properties in the ZooKeepers' <code>zoo.cfg</code> files represents a correctly configured ensemble.</p> <pre><code>server.1=zk-0.zk-hs.default.svc.cluster.local:2888:3888
+server.2=zk-1.zk-hs.default.svc.cluster.local:2888:3888
+server.3=zk-2.zk-hs.default.svc.cluster.local:2888:3888
+</code></pre>
+<p>When the servers use the Zab protocol to attempt to commit a value, they will either achieve consensus and commit the value (if leader election has succeeded and at least two of the Pods are Running and Ready), or they will fail to do so (if either of the conditions are not met). No state will arise where one server acknowledges a write on behalf of another.</p> <h3 id="sanity-testing-the-ensemble">Sanity testing the ensemble</h3> <p>The most basic sanity test is to write data to one ZooKeeper server and to read the data from another.</p> <p>The command below executes the <code>zkCli.sh</code> script to write <code>world</code> to the path <code>/hello</code> on the <code>zk-0</code> Pod in the ensemble.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- zkCli.sh create /hello world
+</pre>
+<pre><code>WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+Created /hello
+</code></pre>
+<p>To get the data from the <code>zk-1</code> Pod use the following command.</p> <pre class="highlight" data-language="shell">kubectl exec zk-1 -- zkCli.sh get /hello
+</pre>
+<p>The data that you created on <code>zk-0</code> is available on all the servers in the ensemble.</p> <pre><code>WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+world
+cZxid = 0x100000002
+ctime = Thu Dec 08 15:13:30 UTC 2016
+mZxid = 0x100000002
+mtime = Thu Dec 08 15:13:30 UTC 2016
+pZxid = 0x100000002
+cversion = 0
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 5
+numChildren = 0
+</code></pre>
+<h3 id="providing-durable-storage">Providing durable storage</h3> <p>As mentioned in the <a href="#zookeeper-basics">ZooKeeper Basics</a> section, ZooKeeper commits all entries to a durable WAL, and periodically writes snapshots in memory state, to storage media. Using WALs to provide durability is a common technique for applications that use consensus protocols to achieve a replicated state machine.</p> <p>Use the <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#delete"><code>kubectl delete</code></a> command to delete the <code>zk</code> StatefulSet.</p> <pre class="highlight" data-language="shell">kubectl delete statefulset zk
+</pre>
+<pre><code>statefulset.apps "zk" deleted
+</code></pre>
+<p>Watch the termination of the Pods in the StatefulSet.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<p>When <code>zk-0</code> if fully terminated, use <code>CTRL-C</code> to terminate kubectl.</p> <pre><code>zk-2      1/1       Terminating   0         9m
+zk-0      1/1       Terminating   0         11m
+zk-1      1/1       Terminating   0         10m
+zk-2      0/1       Terminating   0         9m
+zk-2      0/1       Terminating   0         9m
+zk-2      0/1       Terminating   0         9m
+zk-1      0/1       Terminating   0         10m
+zk-1      0/1       Terminating   0         10m
+zk-1      0/1       Terminating   0         10m
+zk-0      0/1       Terminating   0         11m
+zk-0      0/1       Terminating   0         11m
+zk-0      0/1       Terminating   0         11m
+</code></pre>
+<p>Reapply the manifest in <code>zookeeper.yaml</code>.</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/zookeeper/zookeeper.yaml
+</pre>
+<p>This creates the <code>zk</code> StatefulSet object, but the other API objects in the manifest are not modified because they already exist.</p> <p>Watch the StatefulSet controller recreate the StatefulSet's Pods.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<p>Once the <code>zk-2</code> Pod is Running and Ready, use <code>CTRL-C</code> to terminate kubectl.</p> <pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      0/1       Pending   0          0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         19s
+zk-0      1/1       Running   0         40s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       ContainerCreating   0         0s
+zk-1      0/1       Running   0         18s
+zk-1      1/1       Running   0         40s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       Pending   0         0s
+zk-2      0/1       ContainerCreating   0         0s
+zk-2      0/1       Running   0         19s
+zk-2      1/1       Running   0         40s
+</code></pre>
+<p>Use the command below to get the value you entered during the <a href="#sanity-testing-the-ensemble">sanity test</a>, from the <code>zk-2</code> Pod.</p> <pre class="highlight" data-language="shell">kubectl exec zk-2 zkCli.sh get /hello
+</pre>
+<p>Even though you terminated and recreated all of the Pods in the <code>zk</code> StatefulSet, the ensemble still serves the original value.</p> <pre><code>WATCHER::
+
+WatchedEvent state:SyncConnected type:None path:null
+world
+cZxid = 0x100000002
+ctime = Thu Dec 08 15:13:30 UTC 2016
+mZxid = 0x100000002
+mtime = Thu Dec 08 15:13:30 UTC 2016
+pZxid = 0x100000002
+cversion = 0
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 5
+numChildren = 0
+</code></pre>
+<p>The <code>volumeClaimTemplates</code> field of the <code>zk</code> StatefulSet's <code>spec</code> specifies a PersistentVolume provisioned for each Pod.</p> <pre class="highlight" data-language="yaml">volumeClaimTemplates:
+  - metadata:
+      name: datadir
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi
+</pre>
+<p>The <code>StatefulSet</code> controller generates a <code>PersistentVolumeClaim</code> for each Pod in the <code>StatefulSet</code>.</p> <p>Use the following command to get the <code>StatefulSet</code>'s <code>PersistentVolumeClaims</code>.</p> <pre class="highlight" data-language="shell">kubectl get pvc -l app=zk
+</pre>
+<p>When the <code>StatefulSet</code> recreated its Pods, it remounts the Pods' PersistentVolumes.</p> <pre><code>NAME           STATUS    VOLUME                                     CAPACITY   ACCESSMODES   AGE
+datadir-zk-0   Bound     pvc-bed742cd-bcb1-11e6-994f-42010a800002   20Gi       RWO           1h
+datadir-zk-1   Bound     pvc-bedd27d2-bcb1-11e6-994f-42010a800002   20Gi       RWO           1h
+datadir-zk-2   Bound     pvc-bee0817e-bcb1-11e6-994f-42010a800002   20Gi       RWO           1h
+</code></pre>
+<p>The <code>volumeMounts</code> section of the <code>StatefulSet</code>'s container <code>template</code> mounts the PersistentVolumes in the ZooKeeper servers' data directories.</p> <pre class="highlight" data-language="shell">volumeMounts:
+- name: datadir
+  mountPath: /var/lib/zookeeper
+</pre>
+<p>When a Pod in the <code>zk</code> <code>StatefulSet</code> is (re)scheduled, it will always have the same <code>PersistentVolume</code> mounted to the ZooKeeper server's data directory. Even when the Pods are rescheduled, all the writes made to the ZooKeeper servers' WALs, and all their snapshots, remain durable.</p> <h2 id="ensuring-consistent-configuration">Ensuring consistent configuration</h2> <p>As noted in the <a href="#facilitating-leader-election">Facilitating Leader Election</a> and <a href="#achieving-consensus">Achieving Consensus</a> sections, the servers in a ZooKeeper ensemble require consistent configuration to elect a leader and form a quorum. They also require consistent configuration of the Zab protocol in order for the protocol to work correctly over a network. In our example we achieve consistent configuration by embedding the configuration directly into the manifest.</p> <p>Get the <code>zk</code> StatefulSet.</p> <pre class="highlight" data-language="shell">kubectl get sts zk -o yaml
+</pre>
+<pre><code>…
+command:
+      - sh
+      - -c
+      - "start-zookeeper \
+        --servers=3 \
+        --data_dir=/var/lib/zookeeper/data \
+        --data_log_dir=/var/lib/zookeeper/data/log \
+        --conf_dir=/opt/zookeeper/conf \
+        --client_port=2181 \
+        --election_port=3888 \
+        --server_port=2888 \
+        --tick_time=2000 \
+        --init_limit=10 \
+        --sync_limit=5 \
+        --heap=512M \
+        --max_client_cnxns=60 \
+        --snap_retain_count=3 \
+        --purge_interval=12 \
+        --max_session_timeout=40000 \
+        --min_session_timeout=4000 \
+        --log_level=INFO"
+…
+</code></pre>
+<p>The command used to start the ZooKeeper servers passed the configuration as command line parameter. You can also use environment variables to pass configuration to the ensemble.</p> <h3 id="configuring-logging">Configuring logging</h3> <p>One of the files generated by the <code>zkGenConfig.sh</code> script controls ZooKeeper's logging. ZooKeeper uses <a href="https://logging.apache.org/log4j/2.x/">Log4j</a>, and, by default, it uses a time and size based rolling file appender for its logging configuration.</p> <p>Use the command below to get the logging configuration from one of Pods in the <code>zk</code> <code>StatefulSet</code>.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 cat /usr/etc/zookeeper/log4j.properties
+</pre>
+<p>The logging configuration below will cause the ZooKeeper process to write all of its logs to the standard output file stream.</p> <pre><code>zookeeper.root.logger=CONSOLE
+zookeeper.console.threshold=INFO
+log4j.rootLogger=${zookeeper.root.logger}
+log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+log4j.appender.CONSOLE.Threshold=${zookeeper.console.threshold}
+log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+log4j.appender.CONSOLE.layout.ConversionPattern=%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n
+</code></pre>
+<p>This is the simplest possible way to safely log inside the container. Because the applications write logs to standard out, Kubernetes will handle log rotation for you. Kubernetes also implements a sane retention policy that ensures application logs written to standard out and standard error do not exhaust local storage media.</p> <p>Use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#logs"><code>kubectl logs</code></a> to retrieve the last 20 log lines from one of the Pods.</p> <pre class="highlight" data-language="shell">kubectl logs zk-0 --tail 20
+</pre>
+<p>You can view application logs written to standard out or standard error using <code>kubectl logs</code> and from the Kubernetes Dashboard.</p> <pre><code>2016-12-06 19:34:16,236 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52740
+2016-12-06 19:34:16,237 [myid:1] - INFO  [Thread-1136:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52740 (no session established for client)
+2016-12-06 19:34:26,155 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52749
+2016-12-06 19:34:26,155 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52749
+2016-12-06 19:34:26,156 [myid:1] - INFO  [Thread-1137:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52749 (no session established for client)
+2016-12-06 19:34:26,222 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52750
+2016-12-06 19:34:26,222 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52750
+2016-12-06 19:34:26,226 [myid:1] - INFO  [Thread-1138:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52750 (no session established for client)
+2016-12-06 19:34:36,151 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52760
+2016-12-06 19:34:36,152 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52760
+2016-12-06 19:34:36,152 [myid:1] - INFO  [Thread-1139:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52760 (no session established for client)
+2016-12-06 19:34:36,230 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52761
+2016-12-06 19:34:36,231 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52761
+2016-12-06 19:34:36,231 [myid:1] - INFO  [Thread-1140:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52761 (no session established for client)
+2016-12-06 19:34:46,149 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52767
+2016-12-06 19:34:46,149 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52767
+2016-12-06 19:34:46,149 [myid:1] - INFO  [Thread-1141:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52767 (no session established for client)
+2016-12-06 19:34:46,230 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxnFactory@192] - Accepted socket connection from /127.0.0.1:52768
+2016-12-06 19:34:46,230 [myid:1] - INFO  [NIOServerCxn.Factory:0.0.0.0/0.0.0.0:2181:NIOServerCnxn@827] - Processing ruok command from /127.0.0.1:52768
+2016-12-06 19:34:46,230 [myid:1] - INFO  [Thread-1142:NIOServerCnxn@1008] - Closed socket connection for client /127.0.0.1:52768 (no session established for client)
+</code></pre>
+<p>Kubernetes integrates with many logging solutions. You can choose a logging solution that best fits your cluster and applications. For cluster-level logging and aggregation, consider deploying a <a href="https://kubernetes.io/docs/concepts/cluster-administration/logging#sidecar-container-with-logging-agent">sidecar container</a> to rotate and ship your logs.</p> <h3 id="configuring-a-non-privileged-user">Configuring a non-privileged user</h3> <p>The best practices to allow an application to run as a privileged user inside of a container are a matter of debate. If your organization requires that applications run as a non-privileged user you can use a <a href="../../../tasks/configure-pod-container/security-context/index">SecurityContext</a> to control the user that the entry point runs as.</p> <p>The <code>zk</code> <code>StatefulSet</code>'s Pod <code>template</code> contains a <code>SecurityContext</code>.</p> <pre class="highlight" data-language="yaml">securityContext:
+  runAsUser: 1000
+  fsGroup: 1000
+</pre>
+<p>In the Pods' containers, UID 1000 corresponds to the zookeeper user and GID 1000 corresponds to the zookeeper group.</p> <p>Get the ZooKeeper process information from the <code>zk-0</code> Pod.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- ps -elf
+</pre>
+<p>As the <code>runAsUser</code> field of the <code>securityContext</code> object is set to 1000, instead of running as root, the ZooKeeper process runs as the zookeeper user.</p> <pre><code>F S UID        PID  PPID  C PRI  NI ADDR SZ WCHAN  STIME TTY          TIME CMD
+4 S zookeep+     1     0  0  80   0 -  1127 -      20:46 ?        00:00:00 sh -c zkGenConfig.sh &amp;&amp; zkServer.sh start-foreground
+0 S zookeep+    27     1  0  80   0 - 1155556 -    20:46 ?        00:00:19 /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Dzookeeper.log.dir=/var/log/zookeeper -Dzookeeper.root.logger=INFO,CONSOLE -cp /usr/bin/../build/classes:/usr/bin/../build/lib/*.jar:/usr/bin/../share/zookeeper/zookeeper-3.4.9.jar:/usr/bin/../share/zookeeper/slf4j-log4j12-1.6.1.jar:/usr/bin/../share/zookeeper/slf4j-api-1.6.1.jar:/usr/bin/../share/zookeeper/netty-3.10.5.Final.jar:/usr/bin/../share/zookeeper/log4j-1.2.16.jar:/usr/bin/../share/zookeeper/jline-0.9.94.jar:/usr/bin/../src/java/lib/*.jar:/usr/bin/../etc/zookeeper: -Xmx2G -Xms2G -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false org.apache.zookeeper.server.quorum.QuorumPeerMain /usr/bin/../etc/zookeeper/zoo.cfg
+</code></pre>
+<p>By default, when the Pod's PersistentVolumes is mounted to the ZooKeeper server's data directory, it is only accessible by the root user. This configuration prevents the ZooKeeper process from writing to its WAL and storing its snapshots.</p> <p>Use the command below to get the file permissions of the ZooKeeper data directory on the <code>zk-0</code> Pod.</p> <pre class="highlight" data-language="shell">kubectl exec -ti zk-0 -- ls -ld /var/lib/zookeeper/data
+</pre>
+<p>Because the <code>fsGroup</code> field of the <code>securityContext</code> object is set to 1000, the ownership of the Pods' PersistentVolumes is set to the zookeeper group, and the ZooKeeper process is able to read and write its data.</p> <pre><code>drwxr-sr-x 3 zookeeper zookeeper 4096 Dec  5 20:45 /var/lib/zookeeper/data
+</code></pre>
+<h2 id="managing-the-zookeeper-process">Managing the ZooKeeper process</h2> <p>The <a href="https://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_supervision">ZooKeeper documentation</a> mentions that "You will want to have a supervisory process that manages each of your ZooKeeper server processes (JVM)." Utilizing a watchdog (supervisory process) to restart failed processes in a distributed system is a common pattern. When deploying an application in Kubernetes, rather than using an external utility as a supervisory process, you should use Kubernetes as the watchdog for your application.</p> <h3 id="updating-the-ensemble">Updating the ensemble</h3> <p>The <code>zk</code> <code>StatefulSet</code> is configured to use the <code>RollingUpdate</code> update strategy.</p> <p>You can use <code>kubectl patch</code> to update the number of <code>cpus</code> allocated to the servers.</p> <pre class="highlight" data-language="shell">kubectl patch sts zk --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/cpu", "value":"0.3"}]'
+</pre>
+<pre><code>statefulset.apps/zk patched
+</code></pre>
+<p>Use <code>kubectl rollout status</code> to watch the status of the update.</p> <pre class="highlight" data-language="shell">kubectl rollout status sts/zk
+</pre>
+<pre><code>waiting for statefulset rolling update to complete 0 pods at revision zk-5db4499664...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+waiting for statefulset rolling update to complete 1 pods at revision zk-5db4499664...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+waiting for statefulset rolling update to complete 2 pods at revision zk-5db4499664...
+Waiting for 1 pods to be ready...
+Waiting for 1 pods to be ready...
+statefulset rolling update complete 3 pods at revision zk-5db4499664...
+</code></pre>
+<p>This terminates the Pods, one at a time, in reverse ordinal order, and recreates them with the new configuration. This ensures that quorum is maintained during a rolling update.</p> <p>Use the <code>kubectl rollout history</code> command to view a history or previous configurations.</p> <pre class="highlight" data-language="shell">kubectl rollout history sts/zk
+</pre>
+<pre><code>statefulsets "zk"
+REVISION
+1
+2
+</code></pre>
+<p>Use the <code>kubectl rollout undo</code> command to roll back the modification.</p> <pre class="highlight" data-language="shell">kubectl rollout undo sts/zk
+</pre>
+<pre><code>statefulset.apps/zk rolled back
+</code></pre>
+<h3 id="handling-process-failure">Handling process failure</h3> <p><a href="../../../concepts/workloads/pods/pod-lifecycle/index#restart-policy">Restart Policies</a> control how Kubernetes handles process failures for the entry point of the container in a Pod. For Pods in a <code>StatefulSet</code>, the only appropriate <code>RestartPolicy</code> is Always, and this is the default value. For stateful applications you should <strong>never</strong> override the default policy.</p> <p>Use the following command to examine the process tree for the ZooKeeper server running in the <code>zk-0</code> Pod.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- ps -ef
+</pre>
+<p>The command used as the container's entry point has PID 1, and the ZooKeeper process, a child of the entry point, has PID 27.</p> <pre><code>UID        PID  PPID  C STIME TTY          TIME CMD
+zookeep+     1     0  0 15:03 ?        00:00:00 sh -c zkGenConfig.sh &amp;&amp; zkServer.sh start-foreground
+zookeep+    27     1  0 15:03 ?        00:00:03 /usr/lib/jvm/java-8-openjdk-amd64/bin/java -Dzookeeper.log.dir=/var/log/zookeeper -Dzookeeper.root.logger=INFO,CONSOLE -cp /usr/bin/../build/classes:/usr/bin/../build/lib/*.jar:/usr/bin/../share/zookeeper/zookeeper-3.4.9.jar:/usr/bin/../share/zookeeper/slf4j-log4j12-1.6.1.jar:/usr/bin/../share/zookeeper/slf4j-api-1.6.1.jar:/usr/bin/../share/zookeeper/netty-3.10.5.Final.jar:/usr/bin/../share/zookeeper/log4j-1.2.16.jar:/usr/bin/../share/zookeeper/jline-0.9.94.jar:/usr/bin/../src/java/lib/*.jar:/usr/bin/../etc/zookeeper: -Xmx2G -Xms2G -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false org.apache.zookeeper.server.quorum.QuorumPeerMain /usr/bin/../etc/zookeeper/zoo.cfg
+</code></pre>
+<p>In another terminal watch the Pods in the <code>zk</code> <code>StatefulSet</code> with the following command.</p> <pre class="highlight" data-language="shell">kubectl get pod -w -l app=zk
+</pre>
+<p>In another terminal, terminate the ZooKeeper process in Pod <code>zk-0</code> with the following command.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- pkill java
+</pre>
+<p>The termination of the ZooKeeper process caused its parent process to terminate. Because the <code>RestartPolicy</code> of the container is Always, it restarted the parent process.</p> <pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      1/1       Running   0          21m
+zk-1      1/1       Running   0          20m
+zk-2      1/1       Running   0          19m
+NAME      READY     STATUS    RESTARTS   AGE
+zk-0      0/1       Error     0          29m
+zk-0      0/1       Running   1         29m
+zk-0      1/1       Running   1         29m
+</code></pre>
+<p>If your application uses a script (such as <code>zkServer.sh</code>) to launch the process that implements the application's business logic, the script must terminate with the child process. This ensures that Kubernetes will restart the application's container when the process implementing the application's business logic fails.</p> <h3 id="testing-for-liveness">Testing for liveness</h3> <p>Configuring your application to restart failed processes is not enough to keep a distributed system healthy. There are scenarios where a system's processes can be both alive and unresponsive, or otherwise unhealthy. You should use liveness probes to notify Kubernetes that your application's processes are unhealthy and it should restart them.</p> <p>The Pod <code>template</code> for the <code>zk</code> <code>StatefulSet</code> specifies a liveness probe.</p> <pre class="highlight" data-language="yaml"> livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "zookeeper-ready 2181"
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+</pre>
+<p>The probe calls a bash script that uses the ZooKeeper <code>ruok</code> four letter word to test the server's health.</p> <pre><code>OK=$(echo ruok | nc 127.0.0.1 $1)
+if [ "$OK" == "imok" ]; then
+    exit 0
+else
+    exit 1
+fi
+</code></pre>
+<p>In one terminal window, use the following command to watch the Pods in the <code>zk</code> StatefulSet.</p> <pre class="highlight" data-language="shell">kubectl get pod -w -l app=zk
+</pre>
+<p>In another window, using the following command to delete the <code>zookeeper-ready</code> script from the file system of Pod <code>zk-0</code>.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 -- rm /usr/bin/zookeeper-ready
+</pre>
+<p>When the liveness probe for the ZooKeeper process fails, Kubernetes will automatically restart the process for you, ensuring that unhealthy processes in the ensemble are restarted.</p> <pre class="highlight" data-language="shell">kubectl get pod -w -l app=zk
+</pre>
+<pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      1/1       Running   0          1h
+zk-1      1/1       Running   0          1h
+zk-2      1/1       Running   0          1h
+NAME      READY     STATUS    RESTARTS   AGE
+zk-0      0/1       Running   0          1h
+zk-0      0/1       Running   1         1h
+zk-0      1/1       Running   1         1h
+</code></pre>
+<h3 id="testing-for-readiness">Testing for readiness</h3> <p>Readiness is not the same as liveness. If a process is alive, it is scheduled and healthy. If a process is ready, it is able to process input. Liveness is a necessary, but not sufficient, condition for readiness. There are cases, particularly during initialization and termination, when a process can be alive but not ready.</p> <p>If you specify a readiness probe, Kubernetes will ensure that your application's processes will not receive network traffic until their readiness checks pass.</p> <p>For a ZooKeeper server, liveness implies readiness. Therefore, the readiness probe from the <code>zookeeper.yaml</code> manifest is identical to the liveness probe.</p> <pre class="highlight" data-language="yaml">  readinessProbe:
+    exec:
+      command:
+      - sh
+      - -c
+      - "zookeeper-ready 2181"
+    initialDelaySeconds: 15
+    timeoutSeconds: 5
+</pre>
+<p>Even though the liveness and readiness probes are identical, it is important to specify both. This ensures that only healthy servers in the ZooKeeper ensemble receive network traffic.</p> <h2 id="tolerating-node-failure">Tolerating Node failure</h2> <p>ZooKeeper needs a quorum of servers to successfully commit mutations to data. For a three server ensemble, two servers must be healthy for writes to succeed. In quorum based systems, members are deployed across failure domains to ensure availability. To avoid an outage, due to the loss of an individual machine, best practices preclude co-locating multiple instances of the application on the same machine.</p> <p>By default, Kubernetes may co-locate Pods in a <code>StatefulSet</code> on the same node. For the three server ensemble you created, if two servers are on the same node, and that node fails, the clients of your ZooKeeper service will experience an outage until at least one of the Pods can be rescheduled.</p> <p>You should always provision additional capacity to allow the processes of critical systems to be rescheduled in the event of node failures. If you do so, then the outage will only last until the Kubernetes scheduler reschedules one of the ZooKeeper servers. However, if you want your service to tolerate node failures with no downtime, you should set <code>podAntiAffinity</code>.</p> <p>Use the command below to get the nodes for Pods in the <code>zk</code> <code>StatefulSet</code>.</p> <pre class="highlight" data-language="shell">for i in 0 1 2; do kubectl get pod zk-$i --template {{.spec.nodeName}}; echo ""; done
+</pre>
+<p>All of the Pods in the <code>zk</code> <code>StatefulSet</code> are deployed on different nodes.</p> <pre><code>kubernetes-node-cxpk
+kubernetes-node-a5aq
+kubernetes-node-2g2d
+</code></pre>
+<p>This is because the Pods in the <code>zk</code> <code>StatefulSet</code> have a <code>PodAntiAffinity</code> specified.</p> <pre class="highlight" data-language="yaml">      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - zk
+              topologyKey: "kubernetes.io/hostname"
+</pre>
+<p>The <code>requiredDuringSchedulingIgnoredDuringExecution</code> field tells the Kubernetes Scheduler that it should never co-locate two Pods which have <code>app</code> label as <code>zk</code> in the domain defined by the <code>topologyKey</code>. The <code>topologyKey</code> <code>kubernetes.io/hostname</code> indicates that the domain is an individual node. Using different rules, labels, and selectors, you can extend this technique to spread your ensemble across physical, network, and power failure domains.</p> <h2 id="surviving-maintenance">Surviving maintenance</h2> <p>In this section you will cordon and drain nodes. If you are using this tutorial on a shared cluster, be sure that this will not adversely affect other tenants.</p> <p>The previous section showed you how to spread your Pods across nodes to survive unplanned node failures, but you also need to plan for temporary node failures that occur due to planned maintenance.</p> <p>Use this command to get the nodes in your cluster.</p> <pre class="highlight" data-language="shell">kubectl get nodes
+</pre>
+<p>This tutorial assumes a cluster with at least four nodes. If the cluster has more than four, use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#cordon"><code>kubectl cordon</code></a> to cordon all but four nodes. Constraining to four nodes will ensure Kubernetes encounters affinity and PodDisruptionBudget constraints when scheduling zookeeper Pods in the following maintenance simulation.</p> <pre class="highlight" data-language="shell">kubectl cordon &lt;node-name&gt;
+</pre>
+<p>Use this command to get the <code>zk-pdb</code> <code>PodDisruptionBudget</code>.</p> <pre class="highlight" data-language="shell">kubectl get pdb zk-pdb
+</pre>
+<p>The <code>max-unavailable</code> field indicates to Kubernetes that at most one Pod from <code>zk</code> <code>StatefulSet</code> can be unavailable at any time.</p> <pre><code>NAME      MIN-AVAILABLE   MAX-UNAVAILABLE   ALLOWED-DISRUPTIONS   AGE
+zk-pdb    N/A             1                 1
+</code></pre>
+<p>In one terminal, use this command to watch the Pods in the <code>zk</code> <code>StatefulSet</code>.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<p>In another terminal, use this command to get the nodes that the Pods are currently scheduled on.</p> <pre class="highlight" data-language="shell">for i in 0 1 2; do kubectl get pod zk-$i --template {{.spec.nodeName}}; echo ""; done
+</pre>
+<pre><code>kubernetes-node-pb41
+kubernetes-node-ixsl
+kubernetes-node-i4c4
+</code></pre>
+<p>Use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#drain"><code>kubectl drain</code></a> to cordon and drain the node on which the <code>zk-0</code> Pod is scheduled.</p> <pre class="highlight" data-language="shell">kubectl drain $(kubectl get pod zk-0 --template {{.spec.nodeName}}) --ignore-daemonsets --force --delete-emptydir-data
+</pre>
+<pre><code>node "kubernetes-node-pb41" cordoned
+
+WARNING: Deleting pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: fluentd-cloud-logging-kubernetes-node-pb41, kube-proxy-kubernetes-node-pb41; Ignoring DaemonSet-managed pods: node-problem-detector-v0.1-o5elz
+pod "zk-0" deleted
+node "kubernetes-node-pb41" drained
+</code></pre>
+<p>As there are four nodes in your cluster, <code>kubectl drain</code>, succeeds and the <code>zk-0</code> is rescheduled to another node.</p> <pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      1/1       Running   2          1h
+zk-1      1/1       Running   0          1h
+zk-2      1/1       Running   0          1h
+NAME      READY     STATUS        RESTARTS   AGE
+zk-0      1/1       Terminating   2          2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         51s
+zk-0      1/1       Running   0         1m
+</code></pre>
+<p>Keep watching the <code>StatefulSet</code>'s Pods in the first terminal and drain the node on which <code>zk-1</code> is scheduled.</p> <pre class="highlight" data-language="shell">kubectl drain $(kubectl get pod zk-1 --template {{.spec.nodeName}}) --ignore-daemonsets --force --delete-emptydir-data "kubernetes-node-ixsl" cordoned
+</pre>
+<pre><code>WARNING: Deleting pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: fluentd-cloud-logging-kubernetes-node-ixsl, kube-proxy-kubernetes-node-ixsl; Ignoring DaemonSet-managed pods: node-problem-detector-v0.1-voc74
+pod "zk-1" deleted
+node "kubernetes-node-ixsl" drained
+</code></pre>
+<p>The <code>zk-1</code> Pod cannot be scheduled because the <code>zk</code> <code>StatefulSet</code> contains a <code>PodAntiAffinity</code> rule preventing co-location of the Pods, and as only two nodes are schedulable, the Pod will remain in a Pending state.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      1/1       Running   2          1h
+zk-1      1/1       Running   0          1h
+zk-2      1/1       Running   0          1h
+NAME      READY     STATUS        RESTARTS   AGE
+zk-0      1/1       Terminating   2          2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         51s
+zk-0      1/1       Running   0         1m
+zk-1      1/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         0s
+</code></pre>
+<p>Continue to watch the Pods of the stateful set, and drain the node on which <code>zk-2</code> is scheduled.</p> <pre class="highlight" data-language="shell">kubectl drain $(kubectl get pod zk-2 --template {{.spec.nodeName}}) --ignore-daemonsets --force --delete-emptydir-data
+</pre>
+<pre><code>node "kubernetes-node-i4c4" cordoned
+
+WARNING: Deleting pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: fluentd-cloud-logging-kubernetes-node-i4c4, kube-proxy-kubernetes-node-i4c4; Ignoring DaemonSet-managed pods: node-problem-detector-v0.1-dyrog
+WARNING: Ignoring DaemonSet-managed pods: node-problem-detector-v0.1-dyrog; Deleting pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: fluentd-cloud-logging-kubernetes-node-i4c4, kube-proxy-kubernetes-node-i4c4
+There are pending pods when an error occurred: Cannot evict pod as it would violate the pod's disruption budget.
+pod/zk-2
+</code></pre>
+<p>Use <code>CTRL-C</code> to terminate to kubectl.</p> <p>You cannot drain the third node because evicting <code>zk-2</code> would violate <code>zk-budget</code>. However, the node will remain cordoned.</p> <p>Use <code>zkCli.sh</code> to retrieve the value you entered during the sanity test from <code>zk-0</code>.</p> <pre class="highlight" data-language="shell">kubectl exec zk-0 zkCli.sh get /hello
+</pre>
+<p>The service is still available because its <code>PodDisruptionBudget</code> is respected.</p> <pre><code>WatchedEvent state:SyncConnected type:None path:null
+world
+cZxid = 0x200000002
+ctime = Wed Dec 07 00:08:59 UTC 2016
+mZxid = 0x200000002
+mtime = Wed Dec 07 00:08:59 UTC 2016
+pZxid = 0x200000002
+cversion = 0
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x0
+dataLength = 5
+numChildren = 0
+</code></pre>
+<p>Use <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#uncordon"><code>kubectl uncordon</code></a> to uncordon the first node.</p> <pre class="highlight" data-language="shell">kubectl uncordon kubernetes-node-pb41
+</pre>
+<pre><code>node "kubernetes-node-pb41" uncordoned
+</code></pre>
+<p><code>zk-1</code> is rescheduled on this node. Wait until <code>zk-1</code> is Running and Ready.</p> <pre class="highlight" data-language="shell">kubectl get pods -w -l app=zk
+</pre>
+<pre><code>NAME      READY     STATUS    RESTARTS   AGE
+zk-0      1/1       Running   2          1h
+zk-1      1/1       Running   0          1h
+zk-2      1/1       Running   0          1h
+NAME      READY     STATUS        RESTARTS   AGE
+zk-0      1/1       Terminating   2          2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Terminating   2         2h
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       Pending   0         0s
+zk-0      0/1       ContainerCreating   0         0s
+zk-0      0/1       Running   0         51s
+zk-0      1/1       Running   0         1m
+zk-1      1/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Terminating   0         2h
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         0s
+zk-1      0/1       Pending   0         12m
+zk-1      0/1       ContainerCreating   0         12m
+zk-1      0/1       Running   0         13m
+zk-1      1/1       Running   0         13m
+</code></pre>
+<p>Attempt to drain the node on which <code>zk-2</code> is scheduled.</p> <pre class="highlight" data-language="shell">kubectl drain $(kubectl get pod zk-2 --template {{.spec.nodeName}}) --ignore-daemonsets --force --delete-emptydir-data
+</pre>
+<p>The output:</p> <pre><code>node "kubernetes-node-i4c4" already cordoned
+WARNING: Deleting pods not managed by ReplicationController, ReplicaSet, Job, or DaemonSet: fluentd-cloud-logging-kubernetes-node-i4c4, kube-proxy-kubernetes-node-i4c4; Ignoring DaemonSet-managed pods: node-problem-detector-v0.1-dyrog
+pod "heapster-v1.2.0-2604621511-wht1r" deleted
+pod "zk-2" deleted
+node "kubernetes-node-i4c4" drained
+</code></pre>
+<p>This time <code>kubectl drain</code> succeeds.</p> <p>Uncordon the second node to allow <code>zk-2</code> to be rescheduled.</p> <pre class="highlight" data-language="shell">kubectl uncordon kubernetes-node-ixsl
+</pre>
+<pre><code>node "kubernetes-node-ixsl" uncordoned
+</code></pre>
+<p>You can use <code>kubectl drain</code> in conjunction with <code>PodDisruptionBudgets</code> to ensure that your services remain available during maintenance. If drain is used to cordon nodes and evict pods prior to taking the node offline for maintenance, services that express a disruption budget will have that budget respected. You should always allocate additional capacity for critical services so that their Pods can be immediately rescheduled.</p> <h2 id="cleaning-up">Cleaning up</h2> <ul> <li>Use <code>kubectl uncordon</code> to uncordon all the nodes in your cluster.</li> <li>You must delete the persistent storage media for the PersistentVolumes used in this tutorial. Follow the necessary steps, based on your environment, storage configuration, and provisioning method, to ensure that all storage is reclaimed.</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tutorials/stateful-application/zookeeper/" class="_attribution-link">https://kubernetes.io/docs/tutorials/stateful-application/zookeeper/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

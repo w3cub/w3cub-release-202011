@@ -1,0 +1,172 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Taints and Tolerations - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Node affinity is a property of Pods that attracts them to a set of nodes (either as a preference or a hard requirement). Taints are the opposite -- &hellip;">
+  <meta name="keywords" content="taints, and, tolerations, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/scheduling-eviction/taint-and-toleration/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Taints and Tolerations</h1>  <p><a href="../assign-pod-node/index#affinity-and-anti-affinity"><em>Node affinity</em></a> is a property of <a class="glossary-tooltip" title="A Pod represents a set of running containers in your cluster." data-toggle="tooltip" data-placement="top" href="../../workloads/pods/index" target="_blank" aria-label="Pods">Pods</a> that <em>attracts</em> them to a set of <a class="glossary-tooltip" title="A node is a worker machine in Kubernetes." data-toggle="tooltip" data-placement="top" href="../../architecture/nodes/index" target="_blank" aria-label="nodes">nodes</a> (either as a preference or a hard requirement). <em>Taints</em> are the opposite -- they allow a node to repel a set of pods.</p> <p><em>Tolerations</em> are applied to pods, and allow (but do not require) the pods to schedule onto nodes with matching taints.</p> <p>Taints and tolerations work together to ensure that pods are not scheduled onto inappropriate nodes. One or more taints are applied to a node; this marks that the node should not accept any pods that do not tolerate the taints.</p>  <h2 id="concepts">Concepts</h2> <p>You add a taint to a node using <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#taint">kubectl taint</a>. For example,</p> <pre class="highlight" data-language="shell">kubectl taint nodes node1 key1=value1:NoSchedule
+</pre>
+<p>places a taint on node <code>node1</code>. The taint has key <code>key1</code>, value <code>value1</code>, and taint effect <code>NoSchedule</code>. This means that no pod will be able to schedule onto <code>node1</code> unless it has a matching toleration.</p> <p>To remove the taint added by the command above, you can run:</p> <pre class="highlight" data-language="shell">kubectl taint nodes node1 key1=value1:NoSchedule-
+</pre>
+<p>You specify a toleration for a pod in the PodSpec. Both of the following tolerations "match" the taint created by the <code>kubectl taint</code> line above, and thus a pod with either toleration would be able to schedule onto <code>node1</code>:</p> <pre class="highlight" data-language="yaml">tolerations:
+- key: "key1"
+  operator: "Equal"
+  value: "value1"
+  effect: "NoSchedule"
+</pre>
+<pre class="highlight" data-language="yaml">tolerations:
+- key: "key1"
+  operator: "Exists"
+  effect: "NoSchedule"
+</pre>
+<p>Here's an example of a pod that uses tolerations:</p> <pre class="highlight" data-language="">pods/pod-with-toleration.yaml</pre> <p>The default value for <code>operator</code> is <code>Equal</code>.</p> <p>A toleration "matches" a taint if the keys are the same and the effects are the same, and:</p> <ul> <li>the <code>operator</code> is <code>Exists</code> (in which case no <code>value</code> should be specified), or</li> <li>the <code>operator</code> is <code>Equal</code> and the <code>value</code>s are equal.</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>There are two special cases:</p> <p>An empty <code>key</code> with operator <code>Exists</code> matches all keys, values and effects which means this will tolerate everything.</p> <p>An empty <code>effect</code> matches all effects with key <code>key1</code>.</p> </div> <p>The above example used <code>effect</code> of <code>NoSchedule</code>. Alternatively, you can use <code>effect</code> of <code>PreferNoSchedule</code>. This is a "preference" or "soft" version of <code>NoSchedule</code> -- the system will <em>try</em> to avoid placing a pod that does not tolerate the taint on the node, but it is not required. The third kind of <code>effect</code> is <code>NoExecute</code>, described later.</p> <p>You can put multiple taints on the same node and multiple tolerations on the same pod. The way Kubernetes processes multiple taints and tolerations is like a filter: start with all of a node's taints, then ignore the ones for which the pod has a matching toleration; the remaining un-ignored taints have the indicated effects on the pod. In particular,</p> <ul> <li>if there is at least one un-ignored taint with effect <code>NoSchedule</code> then Kubernetes will not schedule the pod onto that node</li> <li>if there is no un-ignored taint with effect <code>NoSchedule</code> but there is at least one un-ignored taint with effect <code>PreferNoSchedule</code> then Kubernetes will <em>try</em> to not schedule the pod onto the node</li> <li>if there is at least one un-ignored taint with effect <code>NoExecute</code> then the pod will be evicted from the node (if it is already running on the node), and will not be scheduled onto the node (if it is not yet running on the node).</li> </ul> <p>For example, imagine you taint a node like this</p> <pre class="highlight" data-language="shell">kubectl taint nodes node1 key1=value1:NoSchedule
+kubectl taint nodes node1 key1=value1:NoExecute
+kubectl taint nodes node1 key2=value2:NoSchedule
+</pre>
+<p>And a pod has two tolerations:</p> <pre class="highlight" data-language="yaml">tolerations:
+- key: "key1"
+  operator: "Equal"
+  value: "value1"
+  effect: "NoSchedule"
+- key: "key1"
+  operator: "Equal"
+  value: "value1"
+  effect: "NoExecute"
+</pre>
+<p>In this case, the pod will not be able to schedule onto the node, because there is no toleration matching the third taint. But it will be able to continue running if it is already running on the node when the taint is added, because the third taint is the only one of the three that is not tolerated by the pod.</p> <p>Normally, if a taint with effect <code>NoExecute</code> is added to a node, then any pods that do not tolerate the taint will be evicted immediately, and pods that do tolerate the taint will never be evicted. However, a toleration with <code>NoExecute</code> effect can specify an optional <code>tolerationSeconds</code> field that dictates how long the pod will stay bound to the node after the taint is added. For example,</p> <pre class="highlight" data-language="yaml">tolerations:
+- key: "key1"
+  operator: "Equal"
+  value: "value1"
+  effect: "NoExecute"
+  tolerationSeconds: 3600
+</pre>
+<p>means that if this pod is running and a matching taint is added to the node, then the pod will stay bound to the node for 3600 seconds, and then be evicted. If the taint is removed before that time, the pod will not be evicted.</p> <h2 id="example-use-cases">Example Use Cases</h2> <p>Taints and tolerations are a flexible way to steer pods <em>away</em> from nodes or evict pods that shouldn't be running. A few of the use cases are</p> <ul> <li> <p><strong>Dedicated Nodes</strong>: If you want to dedicate a set of nodes for exclusive use by a particular set of users, you can add a taint to those nodes (say, <code>kubectl taint nodes nodename dedicated=groupName:NoSchedule</code>) and then add a corresponding toleration to their pods (this would be done most easily by writing a custom <a href="../../../reference/access-authn-authz/admission-controllers/index">admission controller</a>). The pods with the tolerations will then be allowed to use the tainted (dedicated) nodes as well as any other nodes in the cluster. If you want to dedicate the nodes to them <em>and</em> ensure they <em>only</em> use the dedicated nodes, then you should additionally add a label similar to the taint to the same set of nodes (e.g. <code>dedicated=groupName</code>), and the admission controller should additionally add a node affinity to require that the pods can only schedule onto nodes labeled with <code>dedicated=groupName</code>.</p> </li> <li> <p><strong>Nodes with Special Hardware</strong>: In a cluster where a small subset of nodes have specialized hardware (for example GPUs), it is desirable to keep pods that don't need the specialized hardware off of those nodes, thus leaving room for later-arriving pods that do need the specialized hardware. This can be done by tainting the nodes that have the specialized hardware (e.g. <code>kubectl taint nodes nodename special=true:NoSchedule</code> or <code>kubectl taint nodes nodename special=true:PreferNoSchedule</code>) and adding a corresponding toleration to pods that use the special hardware. As in the dedicated nodes use case, it is probably easiest to apply the tolerations using a custom <a href="../../../reference/access-authn-authz/admission-controllers/index">admission controller</a>. For example, it is recommended to use <a href="../../configuration/manage-resources-containers/index#extended-resources">Extended Resources</a> to represent the special hardware, taint your special hardware nodes with the extended resource name and run the <a href="../../../reference/access-authn-authz/admission-controllers/index#extendedresourcetoleration">ExtendedResourceToleration</a> admission controller. Now, because the nodes are tainted, no pods without the toleration will schedule on them. But when you submit a pod that requests the extended resource, the <code>ExtendedResourceToleration</code> admission controller will automatically add the correct toleration to the pod and that pod will schedule on the special hardware nodes. This will make sure that these special hardware nodes are dedicated for pods requesting such hardware and you don't have to manually add tolerations to your pods.</p> </li> <li> <p><strong>Taint based Evictions</strong>: A per-pod-configurable eviction behavior when there are node problems, which is described in the next section.</p> </li> </ul> <h2 id="taint-based-evictions">Taint based Evictions</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.18 [stable]</code> </div> <p>The <code>NoExecute</code> taint effect, mentioned above, affects pods that are already running on the node as follows</p> <ul> <li>pods that do not tolerate the taint are evicted immediately</li> <li>pods that tolerate the taint without specifying <code>tolerationSeconds</code> in their toleration specification remain bound forever</li> <li>pods that tolerate the taint with a specified <code>tolerationSeconds</code> remain bound for the specified amount of time</li> </ul> <p>The node controller automatically taints a Node when certain conditions are true. The following taints are built in:</p> <ul> <li>
+<code>node.kubernetes.io/not-ready</code>: Node is not ready. This corresponds to the NodeCondition <code>Ready</code> being "<code>False</code>".</li> <li>
+<code>node.kubernetes.io/unreachable</code>: Node is unreachable from the node controller. This corresponds to the NodeCondition <code>Ready</code> being "<code>Unknown</code>".</li> <li>
+<code>node.kubernetes.io/memory-pressure</code>: Node has memory pressure.</li> <li>
+<code>node.kubernetes.io/disk-pressure</code>: Node has disk pressure.</li> <li>
+<code>node.kubernetes.io/pid-pressure</code>: Node has PID pressure.</li> <li>
+<code>node.kubernetes.io/network-unavailable</code>: Node's network is unavailable.</li> <li>
+<code>node.kubernetes.io/unschedulable</code>: Node is unschedulable.</li> <li>
+<code>node.cloudprovider.kubernetes.io/uninitialized</code>: When the kubelet is started with "external" cloud provider, this taint is set on a node to mark it as unusable. After a controller from the cloud-controller-manager initializes this node, the kubelet removes this taint.</li> </ul> <p>In case a node is to be evicted, the node controller or the kubelet adds relevant taints with <code>NoExecute</code> effect. If the fault condition returns to normal the kubelet or node controller can remove the relevant taint(s).</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The control plane limits the rate of adding node new taints to nodes. This rate limiting manages the number of evictions that are triggered when many nodes become unreachable at once (for example: if there is a network disruption). </div> <p>You can specify <code>tolerationSeconds</code> for a Pod to define how long that Pod stays bound to a failing or unresponsive Node.</p> <p>For example, you might want to keep an application with a lot of local state bound to node for a long time in the event of network partition, hoping that the partition will recover and thus the pod eviction can be avoided. The toleration you set for that Pod might look like:</p> <pre class="highlight" data-language="yaml">tolerations:
+- key: "node.kubernetes.io/unreachable"
+  operator: "Exists"
+  effect: "NoExecute"
+  tolerationSeconds: 6000
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>Kubernetes automatically adds a toleration for <code>node.kubernetes.io/not-ready</code> and <code>node.kubernetes.io/unreachable</code> with <code>tolerationSeconds=300</code>, unless you, or a controller, set those tolerations explicitly.</p> <p>These automatically-added tolerations mean that Pods remain bound to Nodes for 5 minutes after one of these problems is detected.</p> </div> <p><a href="../../workloads/controllers/daemonset/index">DaemonSet</a> pods are created with <code>NoExecute</code> tolerations for the following taints with no <code>tolerationSeconds</code>:</p> <ul> <li><code>node.kubernetes.io/unreachable</code></li> <li><code>node.kubernetes.io/not-ready</code></li> </ul> <p>This ensures that DaemonSet pods are never evicted due to these problems.</p> <h2 id="taint-nodes-by-condition">Taint Nodes by Condition</h2> <p>The control plane, using the node <a class="glossary-tooltip" title="A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state." data-toggle="tooltip" data-placement="top" href="../../architecture/controller/index" target="_blank" aria-label="controller">controller</a>, automatically creates taints with a <code>NoSchedule</code> effect for <a href="../node-pressure-eviction/index#node-conditions">node conditions</a>.</p> <p>The scheduler checks taints, not node conditions, when it makes scheduling decisions. This ensures that node conditions don't directly affect scheduling. For example, if the <code>DiskPressure</code> node condition is active, the control plane adds the <code>node.kubernetes.io/disk-pressure</code> taint and does not schedule new pods onto the affected node. If the <code>MemoryPressure</code> node condition is active, the control plane adds the <code>node.kubernetes.io/memory-pressure</code> taint.</p> <p>You can ignore node conditions for newly created pods by adding the corresponding Pod tolerations. The control plane also adds the <code>node.kubernetes.io/memory-pressure</code> toleration on pods that have a <a class="glossary-tooltip" title="QoS Class (Quality of Service Class) provides a way for Kubernetes to classify pods within the cluster into several classes and make decisions about scheduling and eviction." data-toggle="tooltip" data-placement="top" href="https://kubernetes.io/docs/reference/glossary/?all=true#term-qos-class" target="_blank" aria-label="QoS class">QoS class</a> other than <code>BestEffort</code>. This is because Kubernetes treats pods in the <code>Guaranteed</code> or <code>Burstable</code> QoS classes (even pods with no memory request set) as if they are able to cope with memory pressure, while new <code>BestEffort</code> pods are not scheduled onto the affected node.</p> <p>The DaemonSet controller automatically adds the following <code>NoSchedule</code> tolerations to all daemons, to prevent DaemonSets from breaking.</p> <ul> <li><code>node.kubernetes.io/memory-pressure</code></li> <li><code>node.kubernetes.io/disk-pressure</code></li> <li>
+<code>node.kubernetes.io/pid-pressure</code> (1.14 or later)</li> <li>
+<code>node.kubernetes.io/unschedulable</code> (1.10 or later)</li> <li>
+<code>node.kubernetes.io/network-unavailable</code> (<em>host network only</em>)</li> </ul> <p>Adding these tolerations ensures backward compatibility. You can also add arbitrary tolerations to DaemonSets.</p> <h2 id="what-s-next">What's next</h2> <ul> <li>Read about <a href="../node-pressure-eviction/index">Node-pressure Eviction</a> and how you can configure it</li> <li>Read about <a href="../pod-priority-preemption/index">Pod Priority</a>
+</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/" class="_attribution-link">https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

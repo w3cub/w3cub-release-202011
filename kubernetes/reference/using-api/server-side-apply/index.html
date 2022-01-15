@@ -1,0 +1,212 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Server-Side Apply - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Server Side Apply helps users and controllers manage their resources through declarative configurations. Clients can create and modify their objects &hellip;">
+  <meta name="keywords" content="server-side, apply, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/reference/using-api/server-side-apply/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Server-Side Apply</h1>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [stable]</code> </div> <h2 id="introduction">Introduction</h2> <p>Server Side Apply helps users and controllers manage their resources through declarative configurations. Clients can create and modify their <a href="../../../concepts/overview/working-with-objects/kubernetes-objects/index">objects</a> declaratively by sending their fully specified intent.</p> <p>A fully specified intent is a partial object that only includes the fields and values for which the user has an opinion. That intent either creates a new object or is <a href="#merge-strategy">combined</a>, by the server, with the existing object.</p> <p>The system supports multiple appliers collaborating on a single object.</p> <p>Changes to an object's fields are tracked through a "<a href="#field-management">field management</a>" mechanism. When a field's value changes, ownership moves from its current manager to the manager making the change. When trying to apply an object, fields that have a different value and are owned by another manager will result in a <a href="#conflicts">conflict</a>. This is done in order to signal that the operation might undo another collaborator's changes. Conflicts can be forced, in which case the value will be overridden, and the ownership will be transferred.</p> <p>If you remove a field from a configuration and apply the configuration, server side apply checks if there are any other field managers that also own the field. If the field is not owned by any other field managers, it is either deleted from the live object or reset to its default value, if it has one. The same rule applies to associative list or map items.</p> <p>Server side apply is meant both as a replacement for the original <code>kubectl apply</code> and as a simpler mechanism for controllers to enact their changes.</p> <p>If you have Server Side Apply enabled, the control plane tracks managed fields for all newly created objects.</p> <h2 id="field-management">Field Management</h2> <p>Compared to the <code>last-applied</code> annotation managed by <code>kubectl</code>, Server Side Apply uses a more declarative approach, which tracks a user's field management, rather than a user's last applied state. This means that as a side effect of using Server Side Apply, information about which field manager manages each field in an object also becomes available.</p> <p>For a user to manage a field, in the Server Side Apply sense, means that the user relies on and expects the value of the field not to change. The user who last made an assertion about the value of a field will be recorded as the current field manager. This can be done either by changing the value with <code>POST</code>, <code>PUT</code>, or non-apply <code>PATCH</code>, or by including the field in a config sent to the Server Side Apply endpoint. When using Server-Side Apply, trying to change a field which is managed by someone else will result in a rejected request (if not forced, see <a href="#conflicts">Conflicts</a>).</p> <p>When two or more appliers set a field to the same value, they share ownership of that field. Any subsequent attempt to change the value of the shared field, by any of the appliers, results in a conflict. Shared field owners may give up ownership of a field by removing it from their configuration.</p> <p>Field management is stored in a<code>managedFields</code> field that is part of an object's <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta"><code>metadata</code></a>.</p> <p>A simple example of an object created by Server Side Apply could look like this:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+  namespace: default
+  labels:
+    test-label: test
+  managedFields:
+  - manager: kubectl
+    operation: Apply
+    apiVersion: v1
+    time: "2010-10-10T0:00:00Z"
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:metadata:
+        f:labels:
+          f:test-label: {}
+      f:data:
+        f:key: {}
+data:
+  key: some value
+</pre>
+<p>The above object contains a single manager in <code>metadata.managedFields</code>. The manager consists of basic information about the managing entity itself, like operation type, API version, and the fields managed by it.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This field is managed by the API server and should not be changed by the user. </div> <p>Nevertheless it is possible to change <code>metadata.managedFields</code> through an <code>Update</code> operation. Doing so is highly discouraged, but might be a reasonable option to try if, for example, the <code>managedFields</code> get into an inconsistent state (which clearly should not happen).</p> <p>The format of the <code>managedFields</code> is described in the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#fieldsv1-v1-meta">API</a>.</p> <h2 id="conflicts">Conflicts</h2> <p>A conflict is a special status error that occurs when an <code>Apply</code> operation tries to change a field, which another user also claims to manage. This prevents an applier from unintentionally overwriting the value set by another user. When this occurs, the applier has 3 options to resolve the conflicts:</p> <ul> <li> <p><strong>Overwrite value, become sole manager:</strong> If overwriting the value was intentional (or if the applier is an automated process like a controller) the applier should set the <code>force</code> query parameter to true and make the request again. This forces the operation to succeed, changes the value of the field, and removes the field from all other managers' entries in managedFields.</p> </li> <li> <p><strong>Don't overwrite value, give up management claim:</strong> If the applier doesn't care about the value of the field anymore, they can remove it from their config and make the request again. This leaves the value unchanged, and causes the field to be removed from the applier's entry in managedFields.</p> </li> <li> <p><strong>Don't overwrite value, become shared manager:</strong> If the applier still cares about the value of the field, but doesn't want to overwrite it, they can change the value of the field in their config to match the value of the object on the server, and make the request again. This leaves the value unchanged, and causes the field's management to be shared by the applier and all other field managers that already claimed to manage it.</p> </li> </ul> <h2 id="managers">Managers</h2> <p>Managers identify distinct workflows that are modifying the object (especially useful on conflicts!), and can be specified through the <code>fieldManager</code> query parameter as part of a modifying request. It is required for the apply endpoint, though kubectl will default it to <code>kubectl</code>. For other updates, its default is computed from the user-agent.</p> <h2 id="apply-and-update">Apply and Update</h2> <p>The two operation types considered by this feature are <code>Apply</code> (<code>PATCH</code> with content type <code>application/apply-patch+yaml</code>) and <code>Update</code> (all other operations which modify the object). Both operations update the <code>managedFields</code>, but behave a little differently.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>Whether you are submitting JSON data or YAML data, use <code>application/apply-patch+yaml</code> as the <code>Content-Type</code> header value.</p> <p>All JSON documents are valid YAML.</p> </div> <p>For instance, only the apply operation fails on conflicts while update does not. Also, apply operations are required to identify themselves by providing a <code>fieldManager</code> query parameter, while the query parameter is optional for update operations. Finally, when using the apply operation you cannot have <code>managedFields</code> in the object that is being applied.</p> <p>An example object with multiple managers could look like this:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm
+  namespace: default
+  labels:
+    test-label: test
+  managedFields:
+  - manager: kubectl
+    operation: Apply
+    apiVersion: v1
+    fields:
+      f:metadata:
+        f:labels:
+          f:test-label: {}
+  - manager: kube-controller-manager
+    operation: Update
+    apiVersion: v1
+    time: '2019-03-30T16:00:00.000Z'
+    fields:
+      f:data:
+        f:key: {}
+data:
+  key: new value
+</pre>
+<p>In this example, a second operation was run as an <code>Update</code> by the manager called <code>kube-controller-manager</code>. The update changed a value in the data field which caused the field's management to change to the <code>kube-controller-manager</code>.</p> <p>If this update would have been an <code>Apply</code> operation, the operation would have failed due to conflicting ownership.</p> <h2 id="merge-strategy">Merge strategy</h2> <p>The merging strategy, implemented with Server Side Apply, provides a generally more stable object lifecycle. Server Side Apply tries to merge fields based on the actor who manages them instead of overruling based on values. This way multiple actors can update the same object without causing unexpected interference.</p> <p>When a user sends a "fully-specified intent" object to the Server Side Apply endpoint, the server merges it with the live object favoring the value in the applied config if it is specified in both places. If the set of items present in the applied config is not a superset of the items applied by the same user last time, each missing item not managed by any other appliers is removed. For more information about how an object's schema is used to make decisions when merging, see <a href="https://sigs.k8s.io/structured-merge-diff">sigs.k8s.io/structured-merge-diff</a>.</p> <p>A number of markers were added in Kubernetes 1.16 and 1.17, to allow API developers to describe the merge strategy supported by lists, maps, and structs. These markers can be applied to objects of the respective type, in Go files or in the OpenAPI schema definition of the <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23#jsonschemaprops-v1-apiextensions-k8s-io">CRD</a>:</p> <table> <thead> <tr> <th>Golang marker</th> <th>OpenAPI extension</th> <th>Accepted values</th> <th>Description</th> <th>Introduced in</th> </tr> </thead> <tbody> <tr> <td><code>//+listType</code></td> <td><code>x-kubernetes-list-type</code></td> <td>
+<code>atomic</code>/<code>set</code>/<code>map</code>
+</td> <td>Applicable to lists. <code>set</code> applies to lists that include only scalar elements. These elements must be unique. <code>map</code> applies to lists of nested types only. The key values (see <code>listMapKey</code>) must be unique in the list. <code>atomic</code> can apply to any list. If configured as <code>atomic</code>, the entire list is replaced during merge. At any point in time, a single manager owns the list. If <code>set</code> or <code>map</code>, different managers can manage entries separately.</td> <td>1.16</td> </tr> <tr> <td><code>//+listMapKey</code></td> <td><code>x-kubernetes-list-map-keys</code></td> <td>List of field names, e.g. <code>["port", "protocol"]</code>
+</td> <td>Only applicable when <code>+listType=map</code>. A list of field names whose values uniquely identify entries in the list. While there can be multiple keys, <code>listMapKey</code> is singular because keys need to be specified individually in the Go type. The key fields must be scalars.</td> <td>1.16</td> </tr> <tr> <td><code>//+mapType</code></td> <td><code>x-kubernetes-map-type</code></td> <td>
+<code>atomic</code>/<code>granular</code>
+</td> <td>Applicable to maps. <code>atomic</code> means that the map can only be entirely replaced by a single manager. <code>granular</code> means that the map supports separate managers updating individual fields.</td> <td>1.17</td> </tr> <tr> <td><code>//+structType</code></td> <td><code>x-kubernetes-map-type</code></td> <td>
+<code>atomic</code>/<code>granular</code>
+</td> <td>Applicable to structs; otherwise same usage and OpenAPI annotation as <code>//+mapType</code>.</td> <td>1.17</td> </tr> </tbody> </table> <p>If <code>listType</code> is missing, the API server interprets a <code>patchMergeStrategy=merge</code> marker as a <code>listType=map</code> and the corresponding <code>patchMergeKey</code> marker as a <code>listMapKey</code>.</p> <p>The <code>atomic</code> list type is recursive.</p> <p>These markers are specified as comments and don't have to be repeated as field tags.</p> <h3 id="compatibility-across-topology-changes">Compatibility across topology changes</h3> <p>On rare occurrences, a CRD or built-in type author may want to change the specific topology of a field in their resource without incrementing its version. Changing the topology of types, by upgrading the cluster or updating the CRD, has different consequences when updating existing objects. There are two categories of changes: when a field goes from <code>map</code>/<code>set</code>/<code>granular</code> to <code>atomic</code> and the other way around.</p> <p>When the <code>listType</code>, <code>mapType</code>, or <code>structType</code> changes from <code>map</code>/<code>set</code>/<code>granular</code> to <code>atomic</code>, the whole list, map, or struct of existing objects will end-up being owned by actors who owned an element of these types. This means that any further change to these objects would cause a conflict.</p> <p>When a list, map, or struct changes from <code>atomic</code> to <code>map</code>/<code>set</code>/<code>granular</code>, the API server won't be able to infer the new ownership of these fields. Because of that, no conflict will be produced when objects have these fields updated. For that reason, it is not recommended to change a type from <code>atomic</code> to <code>map</code>/<code>set</code>/<code>granular</code>.</p> <p>Take for example, the custom resource:</p> <pre class="highlight" data-language="yaml">apiVersion: example.com/v1
+kind: Foo
+metadata:
+  name: foo-sample
+  managedFields:
+  - manager: manager-one
+    operation: Apply
+    apiVersion: example.com/v1
+    fields:
+      f:spec:
+        f:data: {}
+spec:
+  data:
+    key1: val1
+    key2: val2
+</pre>
+<p>Before <code>spec.data</code> gets changed from <code>atomic</code> to <code>granular</code>, <code>manager-one</code> owns the field <code>spec.data</code>, and all the fields within it (<code>key1</code> and <code>key2</code>). When the CRD gets changed to make <code>spec.data</code> <code>granular</code>, <code>manager-one</code> continues to own the top-level field <code>spec.data</code> (meaning no other managers can delete the map called <code>data</code> without a conflict), but it no longer owns <code>key1</code> and <code>key2</code>, so another manager can then modify or delete those fields without conflict.</p> <h2 id="custom-resources">Custom Resources</h2> <p>By default, Server Side Apply treats custom resources as unstructured data. All keys are treated the same as struct fields, and all lists are considered atomic.</p> <p>If the Custom Resource Definition defines a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23#jsonschemaprops-v1-apiextensions-k8s-io">schema</a> that contains annotations as defined in the previous "Merge Strategy" section, these annotations will be used when merging objects of this type.</p> <h2 id="using-server-side-apply-in-a-controller">Using Server-Side Apply in a controller</h2> <p>As a developer of a controller, you can use server-side apply as a way to simplify the update logic of your controller. The main differences with a read-modify-write and/or patch are the following:</p> <ul> <li>the applied object must contain all the fields that the controller cares about.</li> <li>there is no way to remove fields that haven't been applied by the controller before (controller can still send a PATCH/UPDATE for these use-cases).</li> <li>the object doesn't have to be read beforehand, <code>resourceVersion</code> doesn't have to be specified.</li> </ul> <p>It is strongly recommended for controllers to always "force" conflicts, since they might not be able to resolve or act on these conflicts.</p> <h2 id="transferring-ownership">Transferring Ownership</h2> <p>In addition to the concurrency controls provided by <a href="#conflicts">conflict resolution</a>, Server Side Apply provides ways to perform coordinated field ownership transfers from users to controllers.</p> <p>This is best explained by example. Let's look at how to safely transfer ownership of the <code>replicas</code> field from a user to a controller while enabling automatic horizontal scaling for a Deployment, using the HorizontalPodAutoscaler resource and its accompanying controller.</p> <p>Say a user has defined deployment with <code>replicas</code> set to the desired value:</p> <pre class="highlight" data-language="">application/ssa/nginx-deployment.yaml</pre> <p>And the user has created the deployment using server side apply like so:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/ssa/nginx-deployment.yaml --server-side
+</pre>
+<p>Then later, HPA is enabled for the deployment, e.g.:</p> <pre class="highlight" data-language="shell">kubectl autoscale deployment nginx-deployment --cpu-percent=50 --min=1 --max=10
+</pre>
+<p>Now, the user would like to remove <code>replicas</code> from their configuration, so they don't accidentally fight with the HPA controller. However, there is a race: it might take some time before HPA feels the need to adjust <code>replicas</code>, and if the user removes <code>replicas</code> before the HPA writes to the field and becomes its owner, then apiserver will set <code>replicas</code> to 1, its default value. This is not what the user wants to happen, even temporarily.</p> <p>There are two solutions:</p> <ul> <li> <p>(basic) Leave <code>replicas</code> in the configuration; when HPA eventually writes to that field, the system gives the user a conflict over it. At that point, it is safe to remove from the configuration.</p> </li> <li> <p>(more advanced) If, however, the user doesn't want to wait, for example because they want to keep the cluster legible to coworkers, then they can take the following steps to make it safe to remove <code>replicas</code> from their configuration:</p> </li> </ul> <p>First, the user defines a new configuration containing only the <code>replicas</code> field:</p> <pre class="highlight" data-language="">application/ssa/nginx-deployment-replicas-only.yaml</pre> <p>The user applies that configuration using the field manager name <code>handover-to-hpa</code>:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/ssa/nginx-deployment-replicas-only.yaml \
+  --server-side --field-manager=handover-to-hpa \
+  --validate=false
+</pre>
+<p>If the apply results in a conflict with the HPA controller, then do nothing. The conflict indicates the controller has claimed the field earlier in the process than it sometimes does.</p> <p>At this point the user may remove the <code>replicas</code> field from their configuration.</p> <pre class="highlight" data-language="">application/ssa/nginx-deployment-no-replicas.yaml</pre> <p>Note that whenever the HPA controller sets the <code>replicas</code> field to a new value, the temporary field manager will no longer own any fields and will be automatically deleted. No clean up is required.</p> <h3 id="transferring-ownership-between-users">Transferring Ownership Between Users</h3> <p>Users can transfer ownership of a field between each other by setting the field to the same value in both of their applied configs, causing them to share ownership of the field. Once the users share ownership of the field, one of them can remove the field from their applied configuration to give up ownership and complete the transfer to the other user.</p> <h2 id="comparison-with-client-side-apply">Comparison with Client Side Apply</h2> <p>A consequence of the conflict detection and resolution implemented by Server Side Apply is that an applier always has up to date field values in their local state. If they don't, they get a conflict the next time they apply. Any of the three options to resolve conflicts results in the applied configuration being an up to date subset of the object on the server's fields.</p> <p>This is different from Client Side Apply, where outdated values which have been overwritten by other users are left in an applier's local config. These values only become accurate when the user updates that specific field, if ever, and an applier has no way of knowing whether their next apply will overwrite other users' changes.</p> <p>Another difference is that an applier using Client Side Apply is unable to change the API version they are using, but Server Side Apply supports this use case.</p> <h2 id="upgrading-from-client-side-apply-to-server-side-apply">Upgrading from client-side apply to server-side apply</h2> <p>Client-side apply users who manage a resource with <code>kubectl apply</code> can start using server-side apply with the following flag.</p> <pre class="highlight" data-language="shell">kubectl apply --server-side [--dry-run=server]
+</pre>
+<p>By default, field management of the object transfers from client-side apply to kubectl server-side apply without encountering conflicts.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> <p>Keep the <code>last-applied-configuration</code> annotation up to date. The annotation infers client-side apply's managed fields. Any fields not managed by client-side apply raise conflicts.</p> <p>For example, if you used <code>kubectl scale</code> to update the replicas field after client-side apply, then this field is not owned by client-side apply and creates conflicts on <code>kubectl apply --server-side</code>.</p> </div> <p>This behavior applies to server-side apply with the <code>kubectl</code> field manager. As an exception, you can opt-out of this behavior by specifying a different, non-default field manager, as seen in the following example. The default field manager for kubectl server-side apply is <code>kubectl</code>.</p> <pre class="highlight" data-language="shell">kubectl apply --server-side --field-manager=my-manager [--dry-run=server]
+</pre>
+<h2 id="downgrading-from-server-side-apply-to-client-side-apply">Downgrading from server-side apply to client-side apply</h2> <p>If you manage a resource with <code>kubectl apply --server-side</code>, you can downgrade to client-side apply directly with <code>kubectl apply</code>.</p> <p>Downgrading works because kubectl server-side apply keeps the <code>last-applied-configuration</code> annotation up-to-date if you use <code>kubectl apply</code>.</p> <p>This behavior applies to server-side apply with the <code>kubectl</code> field manager. As an exception, you can opt-out of this behavior by specifying a different, non-default field manager, as seen in the following example. The default field manager for kubectl server-side apply is <code>kubectl</code>.</p> <pre class="highlight" data-language="shell">kubectl apply --server-side --field-manager=my-manager [--dry-run=server]
+</pre>
+<h2 id="api-endpoint">API Endpoint</h2> <p>With the Server Side Apply feature enabled, the <code>PATCH</code> endpoint accepts the additional <code>application/apply-patch+yaml</code> content type. Users of Server Side Apply can send partially specified objects as YAML to this endpoint. When applying a configuration, one should always include all the fields that they have an opinion about.</p> <h2 id="clearing-managedfields">Clearing ManagedFields</h2> <p>It is possible to strip all managedFields from an object by overwriting them using <code>MergePatch</code>, <code>StrategicMergePatch</code>, <code>JSONPatch</code>, or <code>Update</code>, so every non-apply operation. This can be done by overwriting the managedFields field with an empty entry. Two examples are:</p> <pre><code class="language-console" data-lang="console">PATCH /api/v1/namespaces/default/configmaps/example-cm
+Content-Type: application/merge-patch+json
+Accept: application/json
+Data: {"metadata":{"managedFields": [{}]}}
+</code></pre>
+<pre><code class="language-console" data-lang="console">PATCH /api/v1/namespaces/default/configmaps/example-cm
+Content-Type: application/json-patch+json
+Accept: application/json
+Data: [{"op": "replace", "path": "/metadata/managedFields", "value": [{}]}]
+</code></pre>
+<p>This will overwrite the managedFields with a list containing a single empty entry that then results in the managedFields being stripped entirely from the object. Note that setting the managedFields to an empty list will not reset the field. This is on purpose, so managedFields never get stripped by clients not aware of the field.</p> <p>In cases where the reset operation is combined with changes to other fields than the managedFields, this will result in the managedFields being reset first and the other changes being processed afterwards. As a result the applier takes ownership of any fields updated in the same request.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> Server Side Apply does not correctly track ownership on sub-resources that don't receive the resource object type. If you are using Server Side Apply with such a sub-resource, the changed fields won't be tracked. </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/reference/using-api/server-side-apply/" class="_attribution-link">https://kubernetes.io/docs/reference/using-api/server-side-apply/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

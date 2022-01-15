@@ -1,0 +1,739 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Authenticating - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" This page provides an overview of authenticating. ">
+  <meta name="keywords" content="authenticating, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/reference/access-authn-authz/authentication.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Authenticating</h1>  <p>This page provides an overview of authenticating.</p>  <h2 id="users-in-kubernetes">Users in Kubernetes</h2> <p>All Kubernetes clusters have two categories of users: service accounts managed by Kubernetes, and normal users.</p> <p>It is assumed that a cluster-independent service manages normal users in the following ways:</p> <ul> <li>an administrator distributing private keys</li> <li>a user store like Keystone or Google Accounts</li> <li>a file with a list of usernames and passwords</li> </ul> <p>In this regard, <em>Kubernetes does not have objects which represent normal user accounts.</em> Normal users cannot be added to a cluster through an API call.</p> <p>Even though a normal user cannot be added via an API call, any user that presents a valid certificate signed by the cluster's certificate authority (CA) is considered authenticated. In this configuration, Kubernetes determines the username from the common name field in the 'subject' of the cert (e.g., "/CN=bob"). From there, the role based access control (RBAC) sub-system would determine whether the user is authorized to perform a specific operation on a resource. For more details, refer to the normal users topic in <a href="certificate-signing-requests/index#normal-user">certificate request</a> for more details about this.</p> <p>In contrast, service accounts are users managed by the Kubernetes API. They are bound to specific namespaces, and created automatically by the API server or manually through API calls. Service accounts are tied to a set of credentials stored as <code>Secrets</code>, which are mounted into pods allowing in-cluster processes to talk to the Kubernetes API.</p> <p>API requests are tied to either a normal user or a service account, or are treated as <a href="#anonymous-requests">anonymous requests</a>. This means every process inside or outside the cluster, from a human user typing <code>kubectl</code> on a workstation, to <code>kubelets</code> on nodes, to members of the control plane, must authenticate when making requests to the API server, or be treated as an anonymous user.</p> <h2 id="authentication-strategies">Authentication strategies</h2> <p>Kubernetes uses client certificates, bearer tokens, or an authenticating proxy to authenticate API requests through authentication plugins. As HTTP requests are made to the API server, plugins attempt to associate the following attributes with the request:</p> <ul> <li>Username: a string which identifies the end user. Common values might be <code>kube-admin</code> or <code>jane@example.com</code>.</li> <li>UID: a string which identifies the end user and attempts to be more consistent and unique than username.</li> <li>Groups: a set of strings, each of which indicates the user's membership in a named logical collection of users. Common values might be <code>system:masters</code> or <code>devops-team</code>.</li> <li>Extra fields: a map of strings to list of strings which holds additional information authorizers may find useful.</li> </ul> <p>All values are opaque to the authentication system and only hold significance when interpreted by an <a href="authorization/index">authorizer</a>.</p> <p>You can enable multiple authentication methods at once. You should usually use at least two methods:</p> <ul> <li>service account tokens for service accounts</li> <li>at least one other method for user authentication.</li> </ul> <p>When multiple authenticator modules are enabled, the first module to successfully authenticate the request short-circuits evaluation. The API server does not guarantee the order authenticators run in.</p> <p>The <code>system:authenticated</code> group is included in the list of groups for all authenticated users.</p> <p>Integrations with other authentication protocols (LDAP, SAML, Kerberos, alternate x509 schemes, etc) can be accomplished using an <a href="#authenticating-proxy">authenticating proxy</a> or the <a href="#webhook-token-authentication">authentication webhook</a>.</p> <h3 id="x509-client-certs">X509 Client Certs</h3> <p>Client certificate authentication is enabled by passing the <code>--client-ca-file=SOMEFILE</code> option to API server. The referenced file must contain one or more certificate authorities to use to validate client certificates presented to the API server. If a client certificate is presented and verified, the common name of the subject is used as the user name for the request. As of Kubernetes 1.4, client certificates can also indicate a user's group memberships using the certificate's organization fields. To include multiple group memberships for a user, include multiple organization fields in the certificate.</p> <p>For example, using the <code>openssl</code> command line tool to generate a certificate signing request:</p> <pre class="highlight" data-language="bash">openssl req -new -key jbeda.pem -out jbeda-csr.pem -subj "/CN=jbeda/O=app1/O=app2"
+</pre>
+<p>This would create a CSR for the username "jbeda", belonging to two groups, "app1" and "app2".</p> <p>See <a href="https://kubernetes.io/docs/tasks/administer-cluster/certificates/">Managing Certificates</a> for how to generate a client cert.</p> <h3 id="static-token-file">Static Token File</h3> <p>The API server reads bearer tokens from a file when given the <code>--token-auth-file=SOMEFILE</code> option on the command line. Currently, tokens last indefinitely, and the token list cannot be changed without restarting the API server.</p> <p>The token file is a csv file with a minimum of 3 columns: token, user name, user uid, followed by optional group names.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>If you have more than one group the column must be double quoted e.g.</p> <pre><code class="language-conf" data-lang="conf">token,user,uid,"group1,group2,group3"
+</code></pre> </div> <h4 id="putting-a-bearer-token-in-a-request">Putting a Bearer Token in a Request</h4> <p>When using bearer token authentication from an http client, the API server expects an <code>Authorization</code> header with a value of <code>Bearer THETOKEN</code>. The bearer token must be a character sequence that can be put in an HTTP header value using no more than the encoding and quoting facilities of HTTP. For example: if the bearer token is <code>31ada4fd-adec-460c-809a-9e56ceb75269</code> then it would appear in an HTTP header as shown below.</p> <pre class="highlight" data-language="http">Authorization: Bearer 31ada4fd-adec-460c-809a-9e56ceb75269
+</pre>
+<h3 id="bootstrap-tokens">Bootstrap Tokens</h3> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.18 [stable]</code> </div> <p>To allow for streamlined bootstrapping for new clusters, Kubernetes includes a dynamically-managed Bearer token type called a <em>Bootstrap Token</em>. These tokens are stored as Secrets in the <code>kube-system</code> namespace, where they can be dynamically managed and created. Controller Manager contains a TokenCleaner controller that deletes bootstrap tokens as they expire.</p> <p>The tokens are of the form <code>[a-z0-9]{6}.[a-z0-9]{16}</code>. The first component is a Token ID and the second component is the Token Secret. You specify the token in an HTTP header as follows:</p> <pre class="highlight" data-language="http">Authorization: Bearer 781292.db7bc3a58fc5f07e
+</pre>
+<p>You must enable the Bootstrap Token Authenticator with the <code>--enable-bootstrap-token-auth</code> flag on the API Server. You must enable the TokenCleaner controller via the <code>--controllers</code> flag on the Controller Manager. This is done with something like <code>--controllers=*,tokencleaner</code>. <code>kubeadm</code> will do this for you if you are using it to bootstrap a cluster.</p> <p>The authenticator authenticates as <code>system:bootstrap:&lt;Token ID&gt;</code>. It is included in the <code>system:bootstrappers</code> group. The naming and groups are intentionally limited to discourage users from using these tokens past bootstrapping. The user names and group can be used (and are used by <code>kubeadm</code>) to craft the appropriate authorization policies to support bootstrapping a cluster.</p> <p>Please see <a href="bootstrap-tokens/index">Bootstrap Tokens</a> for in depth documentation on the Bootstrap Token authenticator and controllers along with how to manage these tokens with <code>kubeadm</code>.</p> <h3 id="service-account-tokens">Service Account Tokens</h3> <p>A service account is an automatically enabled authenticator that uses signed bearer tokens to verify requests. The plugin takes two optional flags:</p> <ul> <li>
+<code>--service-account-key-file</code> A file containing a PEM encoded key for signing bearer tokens. If unspecified, the API server's TLS private key will be used.</li> <li>
+<code>--service-account-lookup</code> If enabled, tokens which are deleted from the API will be revoked.</li> </ul> <p>Service accounts are usually created automatically by the API server and associated with pods running in the cluster through the <code>ServiceAccount</code> <a href="admission-controllers/index">Admission Controller</a>. Bearer tokens are mounted into pods at well-known locations, and allow in-cluster processes to talk to the API server. Accounts may be explicitly associated with pods using the <code>serviceAccountName</code> field of a <code>PodSpec</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <code>serviceAccountName</code> is usually omitted because this is done automatically. </div> <pre class="highlight" data-language="yaml">apiVersion: apps/v1 # this apiVersion is relevant as of Kubernetes 1.9
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: default
+spec:
+  replicas: 3
+  template:
+    metadata:
+    # ...
+    spec:
+      serviceAccountName: bob-the-bot
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+</pre>
+<p>Service account bearer tokens are perfectly valid to use outside the cluster and can be used to create identities for long standing jobs that wish to talk to the Kubernetes API. To manually create a service account, use the <code>kubectl create serviceaccount (NAME)</code> command. This creates a service account in the current namespace and an associated secret.</p> <pre class="highlight" data-language="bash">kubectl create serviceaccount jenkins
+</pre>
+<pre><code class="language-none" data-lang="none">serviceaccount "jenkins" created
+</code></pre>
+<p>Check an associated secret:</p> <pre class="highlight" data-language="bash">kubectl get serviceaccounts jenkins -o yaml
+</pre>
+<pre class="highlight" data-language="yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  # ...
+secrets:
+- name: jenkins-token-1yvwg
+</pre>
+<p>The created secret holds the public CA of the API server and a signed JSON Web Token (JWT).</p> <pre class="highlight" data-language="bash">kubectl get secret jenkins-token-1yvwg -o yaml
+</pre>
+<pre class="highlight" data-language="yaml">apiVersion: v1
+data:
+  ca.crt: (APISERVER'S CA BASE64 ENCODED)
+  namespace: ZGVmYXVsdA==
+  token: (BEARER TOKEN BASE64 ENCODED)
+kind: Secret
+metadata:
+  # ...
+type: kubernetes.io/service-account-token
+</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Values are base64 encoded because secrets are always base64 encoded. </div> <p>The signed JWT can be used as a bearer token to authenticate as the given service account. See <a href="#putting-a-bearer-token-in-a-request">above</a> for how the token is included in a request. Normally these secrets are mounted into pods for in-cluster access to the API server, but can be used from outside the cluster as well.</p> <p>Service accounts authenticate with the username <code>system:serviceaccount:(NAMESPACE):(SERVICEACCOUNT)</code>, and are assigned to the groups <code>system:serviceaccounts</code> and <code>system:serviceaccounts:(NAMESPACE)</code>.</p> <p>WARNING: Because service account tokens are stored in secrets, any user with read access to those secrets can authenticate as the service account. Be cautious when granting permissions to service accounts and read capabilities for secrets.</p> <h3 id="openid-connect-tokens">OpenID Connect Tokens</h3> <p><a href="https://openid.net/connect/">OpenID Connect</a> is a flavor of OAuth2 supported by some OAuth2 providers, notably Azure Active Directory, Salesforce, and Google. The protocol's main extension of OAuth2 is an additional field returned with the access token called an <a href="https://openid.net/specs/openid-connect-core-1_0.html#IDToken">ID Token</a>. This token is a JSON Web Token (JWT) with well known fields, such as a user's email, signed by the server.</p> <p>To identify the user, the authenticator uses the <code>id_token</code> (not the <code>access_token</code>) from the OAuth2 <a href="https://openid.net/specs/openid-connect-core-1_0.html#TokenResponse">token response</a> as a bearer token. See <a href="#putting-a-bearer-token-in-a-request">above</a> for how the token is included in a request.</p> <div class="mermaid"> sequenceDiagram participant user as User participant idp as Identity Provider participant kube as Kubectl participant api as API Server user -&gt;&gt; idp: 1. Login to IdP activate idp idp --&gt;&gt; user: 2. Provide access_token,<br>id_token, and refresh_token deactivate idp activate user user -&gt;&gt; kube: 3. Call Kubectl<br>with --token being the id_token<br>OR add tokens to .kube/config deactivate user activate kube kube -&gt;&gt; api: 4. Authorization: Bearer... deactivate kube activate api api -&gt;&gt; api: 5. Is JWT signature valid? api -&gt;&gt; api: 6. Has the JWT expired? (iat+exp) api -&gt;&gt; api: 7. User authorized? api --&gt;&gt; kube: 8. Authorized: Perform<br>action and return result deactivate api activate kube kube --x user: 9. Return result deactivate kube </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <ol> <li>Login to your identity provider</li> <li>Your identity provider will provide you with an <code>access_token</code>, <code>id_token</code> and a <code>refresh_token</code>
+</li> <li>When using <code>kubectl</code>, use your <code>id_token</code> with the <code>--token</code> flag or add it directly to your <code>kubeconfig</code>
+</li> <li>
+<code>kubectl</code> sends your <code>id_token</code> in a header called Authorization to the API server</li> <li>The API server will make sure the JWT signature is valid by checking against the certificate named in the configuration</li> <li>Check to make sure the <code>id_token</code> hasn't expired</li> <li>Make sure the user is authorized</li> <li>Once authorized the API server returns a response to <code>kubectl</code>
+</li> <li>
+<code>kubectl</code> provides feedback to the user</li> </ol> <p>Since all of the data needed to validate who you are is in the <code>id_token</code>, Kubernetes doesn't need to "phone home" to the identity provider. In a model where every request is stateless this provides a very scalable solution for authentication. It does offer a few challenges:</p> <ol> <li>Kubernetes has no "web interface" to trigger the authentication process. There is no browser or interface to collect credentials which is why you need to authenticate to your identity provider first.</li> <li>The <code>id_token</code> can't be revoked, it's like a certificate so it should be short-lived (only a few minutes) so it can be very annoying to have to get a new token every few minutes.</li> <li>To authenticate to the Kubernetes dashboard, you must use the <code>kubectl proxy</code> command or a reverse proxy that injects the <code>id_token</code>.</li> </ol> <h4 id="configuring-the-api-server">Configuring the API Server</h4> <p>To enable the plugin, configure the following flags on the API server:</p> <table> <thead> <tr> <th>Parameter</th> <th>Description</th> <th>Example</th> <th>Required</th> </tr> </thead> <tbody> <tr> <td><code>--oidc-issuer-url</code></td> <td>URL of the provider which allows the API server to discover public signing keys. Only URLs which use the <code>https://</code> scheme are accepted. This is typically the provider's discovery URL without a path, for example "https://accounts.google.com" or "https://login.salesforce.com". This URL should point to the level below .well-known/openid-configuration</td> <td>If the discovery URL is <code>https://accounts.google.com/.well-known/openid-configuration</code>, the value should be <code>https://accounts.google.com</code>
+</td> <td>Yes</td> </tr> <tr> <td><code>--oidc-client-id</code></td> <td>A client id that all tokens must be issued for.</td> <td>kubernetes</td> <td>Yes</td> </tr> <tr> <td><code>--oidc-username-claim</code></td> <td>JWT claim to use as the user name. By default <code>sub</code>, which is expected to be a unique identifier of the end user. Admins can choose other claims, such as <code>email</code> or <code>name</code>, depending on their provider. However, claims other than <code>email</code> will be prefixed with the issuer URL to prevent naming clashes with other plugins.</td> <td>sub</td> <td>No</td> </tr> <tr> <td><code>--oidc-username-prefix</code></td> <td>Prefix prepended to username claims to prevent clashes with existing names (such as <code>system:</code> users). For example, the value <code>oidc:</code> will create usernames like <code>oidc:jane.doe</code>. If this flag isn't provided and <code>--oidc-username-claim</code> is a value other than <code>email</code> the prefix defaults to <code>( Issuer URL )#</code> where <code>( Issuer URL )</code> is the value of <code>--oidc-issuer-url</code>. The value <code>-</code> can be used to disable all prefixing.</td> <td><code>oidc:</code></td> <td>No</td> </tr> <tr> <td><code>--oidc-groups-claim</code></td> <td>JWT claim to use as the user's group. If the claim is present it must be an array of strings.</td> <td>groups</td> <td>No</td> </tr> <tr> <td><code>--oidc-groups-prefix</code></td> <td>Prefix prepended to group claims to prevent clashes with existing names (such as <code>system:</code> groups). For example, the value <code>oidc:</code> will create group names like <code>oidc:engineering</code> and <code>oidc:infra</code>.</td> <td><code>oidc:</code></td> <td>No</td> </tr> <tr> <td><code>--oidc-required-claim</code></td> <td>A key=value pair that describes a required claim in the ID Token. If set, the claim is verified to be present in the ID Token with a matching value. Repeat this flag to specify multiple claims.</td> <td><code>claim=value</code></td> <td>No</td> </tr> <tr> <td><code>--oidc-ca-file</code></td> <td>The path to the certificate for the CA that signed your identity provider's web certificate. Defaults to the host's root CAs.</td> <td><code>/etc/kubernetes/ssl/kc-ca.pem</code></td> <td>No</td> </tr> </tbody> </table> <p>Importantly, the API server is not an OAuth2 client, rather it can only be configured to trust a single issuer. This allows the use of public providers, such as Google, without trusting credentials issued to third parties. Admins who wish to utilize multiple OAuth clients should explore providers which support the <code>azp</code> (authorized party) claim, a mechanism for allowing one client to issue tokens on behalf of another.</p> <p>Kubernetes does not provide an OpenID Connect Identity Provider. You can use an existing public OpenID Connect Identity Provider (such as Google, or <a href="https://connect2id.com/products/nimbus-oauth-openid-connect-sdk/openid-connect-providers">others</a>). Or, you can run your own Identity Provider, such as <a href="https://dexidp.io/">dex</a>, <a href="https://github.com/keycloak/keycloak">Keycloak</a>, CloudFoundry <a href="https://github.com/cloudfoundry/uaa">UAA</a>, or Tremolo Security's <a href="https://openunison.github.io/">OpenUnison</a>.</p> <p>For an identity provider to work with Kubernetes it must:</p> <ol> <li>Support <a href="https://openid.net/specs/openid-connect-discovery-1_0.html">OpenID connect discovery</a>; not all do.</li> <li>Run in TLS with non-obsolete ciphers</li> <li>Have a CA signed certificate (even if the CA is not a commercial CA or is self signed)</li> </ol> <p>A note about requirement #3 above, requiring a CA signed certificate. If you deploy your own identity provider (as opposed to one of the cloud providers like Google or Microsoft) you MUST have your identity provider's web server certificate signed by a certificate with the <code>CA</code> flag set to <code>TRUE</code>, even if it is self signed. This is due to GoLang's TLS client implementation being very strict to the standards around certificate validation. If you don't have a CA handy, you can use <a href="https://github.com/dexidp/dex/blob/master/examples/k8s/gencert.sh">this script</a> from the Dex team to create a simple CA and a signed certificate and key pair. Or you can use <a href="https://raw.githubusercontent.com/TremoloSecurity/openunison-qs-kubernetes/master/src/main/bash/makessl.sh">this similar script</a> that generates SHA256 certs with a longer life and larger key size.</p> <p>Setup instructions for specific systems:</p> <ul> <li><a href="https://docs.cloudfoundry.org/concepts/architecture/uaa.html">UAA</a></li> <li><a href="https://dexidp.io/docs/kubernetes/">Dex</a></li> <li><a href="https://www.tremolosecurity.com/orchestra-k8s/">OpenUnison</a></li> </ul> <h4 id="using-kubectl">Using kubectl</h4> <h5 id="option-1-oidc-authenticator">Option 1 - OIDC Authenticator</h5> <p>The first option is to use the kubectl <code>oidc</code> authenticator, which sets the <code>id_token</code> as a bearer token for all requests and refreshes the token once it expires. After you've logged into your provider, use kubectl to add your <code>id_token</code>, <code>refresh_token</code>, <code>client_id</code>, and <code>client_secret</code> to configure the plugin.</p> <p>Providers that don't return an <code>id_token</code> as part of their refresh token response aren't supported by this plugin and should use "Option 2" below.</p> <pre class="highlight" data-language="bash">kubectl config set-credentials USER_NAME \
+   --auth-provider=oidc \
+   --auth-provider-arg=idp-issuer-url=( issuer url ) \
+   --auth-provider-arg=client-id=( your client id ) \
+   --auth-provider-arg=client-secret=( your client secret ) \
+   --auth-provider-arg=refresh-token=( your refresh token ) \
+   --auth-provider-arg=idp-certificate-authority=( path to your ca certificate ) \
+   --auth-provider-arg=id-token=( your id_token )
+</pre>
+<p>As an example, running the below command after authenticating to your identity provider:</p> <pre class="highlight" data-language="bash">kubectl config set-credentials mmosley  \
+        --auth-provider=oidc  \
+        --auth-provider-arg=idp-issuer-url=https://oidcidp.tremolo.lan:8443/auth/idp/OidcIdP  \
+        --auth-provider-arg=client-id=kubernetes  \
+        --auth-provider-arg=client-secret=1db158f6-177d-4d9c-8a8b-d36869918ec5  \
+        --auth-provider-arg=refresh-token=q1bKLFOyUiosTfawzA93TzZIDzH2TNa2SMm0zEiPKTUwME6BkEo6Sql5yUWVBSWpKUGphaWpxSVAfekBOZbBhaEW+VlFUeVRGcluyVF5JT4+haZmPsluFoFu5XkpXk5BXqHega4GAXlF+ma+vmYpFcHe5eZR+slBFpZKtQA= \
+        --auth-provider-arg=idp-certificate-authority=/root/ca.pem \
+        --auth-provider-arg=id-token=eyJraWQiOiJDTj1vaWRjaWRwLnRyZW1vbG8ubGFuLCBPVT1EZW1vLCBPPVRybWVvbG8gU2VjdXJpdHksIEw9QXJsaW5ndG9uLCBTVD1WaXJnaW5pYSwgQz1VUy1DTj1rdWJlLWNhLTEyMDIxNDc5MjEwMzYwNzMyMTUyIiwiYWxnIjoiUlMyNTYifQ.eyJpc3MiOiJodHRwczovL29pZGNpZHAudHJlbW9sby5sYW46ODQ0My9hdXRoL2lkcC9PaWRjSWRQIiwiYXVkIjoia3ViZXJuZXRlcyIsImV4cCI6MTQ4MzU0OTUxMSwianRpIjoiMm96US15TXdFcHV4WDlHZUhQdy1hZyIsImlhdCI6MTQ4MzU0OTQ1MSwibmJmIjoxNDgzNTQ5MzMxLCJzdWIiOiI0YWViMzdiYS1iNjQ1LTQ4ZmQtYWIzMC0xYTAxZWU0MWUyMTgifQ.w6p4J_6qQ1HzTG9nrEOrubxIMb9K5hzcMPxc9IxPx2K4xO9l-oFiUw93daH3m5pluP6K7eOE6txBuRVfEcpJSwlelsOsW8gb8VJcnzMS9EnZpeA0tW_p-mnkFc3VcfyXuhe5R3G7aa5d8uHv70yJ9Y3-UhjiN9EhpMdfPAoEB9fYKKkJRzF7utTTIPGrSaSU6d2pcpfYKaxIwePzEkT4DfcQthoZdy9ucNvvLoi1DIC-UocFD8HLs8LYKEqSxQvOcvnThbObJ9af71EwmuE21fO5KzMW20KtAeget1gnldOosPtz1G5EwvaQ401-RPQzPGMVBld0_zMCAwZttJ4knw
+</pre>
+<p>Which would produce the below configuration:</p> <pre class="highlight" data-language="yaml">users:
+- name: mmosley
+  user:
+    auth-provider:
+      config:
+        client-id: kubernetes
+        client-secret: 1db158f6-177d-4d9c-8a8b-d36869918ec5
+        id-token: eyJraWQiOiJDTj1vaWRjaWRwLnRyZW1vbG8ubGFuLCBPVT1EZW1vLCBPPVRybWVvbG8gU2VjdXJpdHksIEw9QXJsaW5ndG9uLCBTVD1WaXJnaW5pYSwgQz1VUy1DTj1rdWJlLWNhLTEyMDIxNDc5MjEwMzYwNzMyMTUyIiwiYWxnIjoiUlMyNTYifQ.eyJpc3MiOiJodHRwczovL29pZGNpZHAudHJlbW9sby5sYW46ODQ0My9hdXRoL2lkcC9PaWRjSWRQIiwiYXVkIjoia3ViZXJuZXRlcyIsImV4cCI6MTQ4MzU0OTUxMSwianRpIjoiMm96US15TXdFcHV4WDlHZUhQdy1hZyIsImlhdCI6MTQ4MzU0OTQ1MSwibmJmIjoxNDgzNTQ5MzMxLCJzdWIiOiI0YWViMzdiYS1iNjQ1LTQ4ZmQtYWIzMC0xYTAxZWU0MWUyMTgifQ.w6p4J_6qQ1HzTG9nrEOrubxIMb9K5hzcMPxc9IxPx2K4xO9l-oFiUw93daH3m5pluP6K7eOE6txBuRVfEcpJSwlelsOsW8gb8VJcnzMS9EnZpeA0tW_p-mnkFc3VcfyXuhe5R3G7aa5d8uHv70yJ9Y3-UhjiN9EhpMdfPAoEB9fYKKkJRzF7utTTIPGrSaSU6d2pcpfYKaxIwePzEkT4DfcQthoZdy9ucNvvLoi1DIC-UocFD8HLs8LYKEqSxQvOcvnThbObJ9af71EwmuE21fO5KzMW20KtAeget1gnldOosPtz1G5EwvaQ401-RPQzPGMVBld0_zMCAwZttJ4knw
+        idp-certificate-authority: /root/ca.pem
+        idp-issuer-url: https://oidcidp.tremolo.lan:8443/auth/idp/OidcIdP
+        refresh-token: q1bKLFOyUiosTfawzA93TzZIDzH2TNa2SMm0zEiPKTUwME6BkEo6Sql5yUWVBSWpKUGphaWpxSVAfekBOZbBhaEW+VlFUeVRGcluyVF5JT4+haZmPsluFoFu5XkpXk5BXq
+      name: oidc
+</pre>
+<p>Once your <code>id_token</code> expires, <code>kubectl</code> will attempt to refresh your <code>id_token</code> using your <code>refresh_token</code> and <code>client_secret</code> storing the new values for the <code>refresh_token</code> and <code>id_token</code> in your <code>.kube/config</code>.</p> <h5 id="option-2-use-the-token-option">Option 2 - Use the <code>--token</code> Option</h5> <p>The <code>kubectl</code> command lets you pass in a token using the <code>--token</code> option. Copy and paste the <code>id_token</code> into this option:</p> <pre class="highlight" data-language="bash">kubectl --token=eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL21sYi50cmVtb2xvLmxhbjo4MDQzL2F1dGgvaWRwL29pZGMiLCJhdWQiOiJrdWJlcm5ldGVzIiwiZXhwIjoxNDc0NTk2NjY5LCJqdGkiOiI2RDUzNXoxUEpFNjJOR3QxaWVyYm9RIiwiaWF0IjoxNDc0NTk2MzY5LCJuYmYiOjE0NzQ1OTYyNDksInN1YiI6Im13aW5kdSIsInVzZXJfcm9sZSI6WyJ1c2VycyIsIm5ldy1uYW1lc3BhY2Utdmlld2VyIl0sImVtYWlsIjoibXdpbmR1QG5vbW9yZWplZGkuY29tIn0.f2As579n9VNoaKzoF-dOQGmXkFKf1FMyNV0-va_B63jn-_n9LGSCca_6IVMP8pO-Zb4KvRqGyTP0r3HkHxYy5c81AnIh8ijarruczl-TK_yF5akjSTHFZD-0gRzlevBDiH8Q79NAr-ky0P4iIXS8lY9Vnjch5MF74Zx0c3alKJHJUnnpjIACByfF2SCaYzbWFMUNat-K1PaUk5-ujMBG7yYnr95xD-63n8CO8teGUAAEMx6zRjzfhnhbzX-ajwZLGwGUBT4WqjMs70-6a7_8gZmLZb2az1cZynkFRj2BaCkVT3A2RrjeEwZEtGXlMqKJ1_I2ulrOVsYx01_yD35-rw get nodes
+</pre>
+<h3 id="webhook-token-authentication">Webhook Token Authentication</h3> <p>Webhook authentication is a hook for verifying bearer tokens.</p> <ul> <li>
+<code>--authentication-token-webhook-config-file</code> a configuration file describing how to access the remote webhook service.</li> <li>
+<code>--authentication-token-webhook-cache-ttl</code> how long to cache authentication decisions. Defaults to two minutes.</li> <li>
+<code>--authentication-token-webhook-version</code> determines whether to use <code>authentication.k8s.io/v1beta1</code> or <code>authentication.k8s.io/v1</code> <code>TokenReview</code> objects to send/receive information from the webhook. Defaults to <code>v1beta1</code>.</li> </ul> <p>The configuration file uses the <a href="../../concepts/configuration/organize-cluster-access-kubeconfig/index">kubeconfig</a> file format. Within the file, <code>clusters</code> refers to the remote service and <code>users</code> refers to the API server webhook. An example would be:</p> <pre class="highlight" data-language="yaml"># Kubernetes API version
+apiVersion: v1
+# kind of the API object
+kind: Config
+# clusters refers to the remote service.
+clusters:
+  - name: name-of-remote-authn-service
+    cluster:
+      certificate-authority: /path/to/ca.pem         # CA for verifying the remote service.
+      server: https://authn.example.com/authenticate # URL of remote service to query. 'https' recommended for production.
+
+# users refers to the API server's webhook configuration.
+users:
+  - name: name-of-api-server
+    user:
+      client-certificate: /path/to/cert.pem # cert for the webhook plugin to use
+      client-key: /path/to/key.pem          # key matching the cert
+
+# kubeconfig files require a context. Provide one for the API server.
+current-context: webhook
+contexts:
+- context:
+    cluster: name-of-remote-authn-service
+    user: name-of-api-server
+  name: webhook
+</pre>
+<p>When a client attempts to authenticate with the API server using a bearer token as discussed <a href="#putting-a-bearer-token-in-a-request">above</a>, the authentication webhook POSTs a JSON-serialized <code>TokenReview</code> object containing the token to the remote service.</p> <p>Note that webhook API objects are subject to the same <a href="../../concepts/overview/kubernetes-api/index">versioning compatibility rules</a> as other Kubernetes API objects. Implementers should check the <code>apiVersion</code> field of the request to ensure correct deserialization, and <strong>must</strong> respond with a <code>TokenReview</code> object of the same version as the request.</p> <ul class="nav nav-tabs" id="tokenreview-request" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#tokenreview-request-0" role="tab" aria-controls="tokenreview-request-0" aria-selected="true">authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#tokenreview-request-1" role="tab" aria-controls="tokenreview-request-1">authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="tokenreview-request">
+<div id="tokenreview-request-0" class="tab-pane show active" role="tabpanel" aria-labelledby="tokenreview-request-0"> 
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The Kubernetes API server defaults to sending <code>authentication.k8s.io/v1beta1</code> token reviews for backwards compatibility. To opt into receiving <code>authentication.k8s.io/v1</code> token reviews, the API server must be started with <code>--authentication-token-webhook-version=v1</code>. </div> <pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1",
+  "kind": "TokenReview",
+  "spec": {
+    # Opaque bearer token sent to the API server
+    "token": "014fbff9a07c...",
+   
+    # Optional list of the audience identifiers for the server the token was presented to.
+    # Audience-aware token authenticators (for example, OIDC token authenticators) 
+    # should verify the token was intended for at least one of the audiences in this list,
+    # and return the intersection of this list and the valid audiences for the token in the response status.
+    # This ensures the token is valid to authenticate to the server it was presented to.
+    # If no audiences are provided, the token should be validated to authenticate to the Kubernetes API server.
+    "audiences": ["https://myserver.example.com", "https://myserver.internal.example.com"]
+  }
+}
+</pre>
+</div> <div id="tokenreview-request-1" class="tab-pane" role="tabpanel" aria-labelledby="tokenreview-request-1"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1beta1",
+  "kind": "TokenReview",
+  "spec": {
+    # Opaque bearer token sent to the API server
+    "token": "014fbff9a07c...",
+   
+    # Optional list of the audience identifiers for the server the token was presented to.
+    # Audience-aware token authenticators (for example, OIDC token authenticators) 
+    # should verify the token was intended for at least one of the audiences in this list,
+    # and return the intersection of this list and the valid audiences for the token in the response status.
+    # This ensures the token is valid to authenticate to the server it was presented to.
+    # If no audiences are provided, the token should be validated to authenticate to the Kubernetes API server.
+    "audiences": ["https://myserver.example.com", "https://myserver.internal.example.com"]
+  }
+}
+</pre>
+</div>
+</div> <p>The remote service is expected to fill the <code>status</code> field of the request to indicate the success of the login. The response body's <code>spec</code> field is ignored and may be omitted. The remote service must return a response using the same <code>TokenReview</code> API version that it received. A successful validation of the bearer token would return:</p> <ul class="nav nav-tabs" id="tokenreview-response-success" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#tokenreview-response-success-0" role="tab" aria-controls="tokenreview-response-success-0" aria-selected="true">authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#tokenreview-response-success-1" role="tab" aria-controls="tokenreview-response-success-1">authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="tokenreview-response-success">
+<div id="tokenreview-response-success-0" class="tab-pane show active" role="tabpanel" aria-labelledby="tokenreview-response-success-0"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1",
+  "kind": "TokenReview",
+  "status": {
+    "authenticated": true,
+    "user": {
+      # Required
+      "username": "janedoe@example.com",
+      # Optional
+      "uid": "42",
+      # Optional group memberships
+      "groups": ["developers", "qa"],
+      # Optional additional information provided by the authenticator.
+      # This should not contain confidential data, as it can be recorded in logs
+      # or API objects, and is made available to admission webhooks.
+      "extra": {
+        "extrafield1": [
+          "extravalue1",
+          "extravalue2"
+        ]
+      }
+    },
+    # Optional list audience-aware token authenticators can return,
+    # containing the audiences from the `spec.audiences` list for which the provided token was valid.
+    # If this is omitted, the token is considered to be valid to authenticate to the Kubernetes API server.
+    "audiences": ["https://myserver.example.com"]
+  }
+}
+</pre>
+</div> <div id="tokenreview-response-success-1" class="tab-pane" role="tabpanel" aria-labelledby="tokenreview-response-success-1"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1beta1",
+  "kind": "TokenReview",
+  "status": {
+    "authenticated": true,
+    "user": {
+      # Required
+      "username": "janedoe@example.com",
+      # Optional
+      "uid": "42",
+      # Optional group memberships
+      "groups": ["developers", "qa"],
+      # Optional additional information provided by the authenticator.
+      # This should not contain confidential data, as it can be recorded in logs
+      # or API objects, and is made available to admission webhooks.
+      "extra": {
+        "extrafield1": [
+          "extravalue1",
+          "extravalue2"
+        ]
+      }
+    },
+    # Optional list audience-aware token authenticators can return,
+    # containing the audiences from the `spec.audiences` list for which the provided token was valid.
+    # If this is omitted, the token is considered to be valid to authenticate to the Kubernetes API server.
+    "audiences": ["https://myserver.example.com"]
+  }
+}
+</pre>
+</div>
+</div> <p>An unsuccessful request would return:</p> <ul class="nav nav-tabs" id="tokenreview-response-error" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#tokenreview-response-error-0" role="tab" aria-controls="tokenreview-response-error-0" aria-selected="true">authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#tokenreview-response-error-1" role="tab" aria-controls="tokenreview-response-error-1">authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="tokenreview-response-error">
+<div id="tokenreview-response-error-0" class="tab-pane show active" role="tabpanel" aria-labelledby="tokenreview-response-error-0"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1",
+  "kind": "TokenReview",
+  "status": {
+    "authenticated": false,
+    # Optionally include details about why authentication failed.
+    # If no error is provided, the API will return a generic Unauthorized message.
+    # The error field is ignored when authenticated=true.
+    "error": "Credentials are expired"
+  }
+}
+</pre>
+</div> <div id="tokenreview-response-error-1" class="tab-pane" role="tabpanel" aria-labelledby="tokenreview-response-error-1"> 
+<pre class="highlight" data-language="yaml">{
+  "apiVersion": "authentication.k8s.io/v1beta1",
+  "kind": "TokenReview",
+  "status": {
+    "authenticated": false,
+    # Optionally include details about why authentication failed.
+    # If no error is provided, the API will return a generic Unauthorized message.
+    # The error field is ignored when authenticated=true.
+    "error": "Credentials are expired"
+  }
+}
+</pre>
+</div>
+</div> <h3 id="authenticating-proxy">Authenticating Proxy</h3> <p>The API server can be configured to identify users from request header values, such as <code>X-Remote-User</code>. It is designed for use in combination with an authenticating proxy, which sets the request header value.</p> <ul> <li>
+<code>--requestheader-username-headers</code> Required, case-insensitive. Header names to check, in order, for the user identity. The first header containing a value is used as the username.</li> <li>
+<code>--requestheader-group-headers</code> 1.6+. Optional, case-insensitive. "X-Remote-Group" is suggested. Header names to check, in order, for the user's groups. All values in all specified headers are used as group names.</li> <li>
+<code>--requestheader-extra-headers-prefix</code> 1.6+. Optional, case-insensitive. "X-Remote-Extra-" is suggested. Header prefixes to look for to determine extra information about the user (typically used by the configured authorization plugin). Any headers beginning with any of the specified prefixes have the prefix removed. The remainder of the header name is lowercased and <a href="https://tools.ietf.org/html/rfc3986#section-2.1">percent-decoded</a> and becomes the extra key, and the header value is the extra value.</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Prior to 1.11.3 (and 1.10.7, 1.9.11), the extra key could only contain characters which were <a href="https://tools.ietf.org/html/rfc7230#section-3.2.6">legal in HTTP header labels</a>. </div> <p>For example, with this configuration:</p> <pre><code>--requestheader-username-headers=X-Remote-User
+--requestheader-group-headers=X-Remote-Group
+--requestheader-extra-headers-prefix=X-Remote-Extra-
+</code></pre>
+<p>this request:</p> <pre class="highlight" data-language="http">GET / HTTP/1.1
+X-Remote-User: fido
+X-Remote-Group: dogs
+X-Remote-Group: dachshunds
+X-Remote-Extra-Acme.com%2Fproject: some-project
+X-Remote-Extra-Scopes: openid
+X-Remote-Extra-Scopes: profile
+</pre>
+<p>would result in this user info:</p> <pre class="highlight" data-language="yaml">name: fido
+groups:
+- dogs
+- dachshunds
+extra:
+  acme.com/project:
+  - some-project
+  scopes:
+  - openid
+  - profile
+</pre>
+<p>In order to prevent header spoofing, the authenticating proxy is required to present a valid client certificate to the API server for validation against the specified CA before the request headers are checked. WARNING: do <strong>not</strong> reuse a CA that is used in a different context unless you understand the risks and the mechanisms to protect the CA's usage.</p> <ul> <li>
+<code>--requestheader-client-ca-file</code> Required. PEM-encoded certificate bundle. A valid client certificate must be presented and validated against the certificate authorities in the specified file before the request headers are checked for user names.</li> <li>
+<code>--requestheader-allowed-names</code> Optional. List of Common Name values (CNs). If set, a valid client certificate with a CN in the specified list must be presented before the request headers are checked for user names. If empty, any CN is allowed.</li> </ul> <h2 id="anonymous-requests">Anonymous requests</h2> <p>When enabled, requests that are not rejected by other configured authentication methods are treated as anonymous requests, and given a username of <code>system:anonymous</code> and a group of <code>system:unauthenticated</code>.</p> <p>For example, on a server with token authentication configured, and anonymous access enabled, a request providing an invalid bearer token would receive a <code>401 Unauthorized</code> error. A request providing no bearer token would be treated as an anonymous request.</p> <p>In 1.5.1-1.5.x, anonymous access is disabled by default, and can be enabled by passing the <code>--anonymous-auth=true</code> option to the API server.</p> <p>In 1.6+, anonymous access is enabled by default if an authorization mode other than <code>AlwaysAllow</code> is used, and can be disabled by passing the <code>--anonymous-auth=false</code> option to the API server. Starting in 1.6, the ABAC and RBAC authorizers require explicit authorization of the <code>system:anonymous</code> user or the <code>system:unauthenticated</code> group, so legacy policy rules that grant access to the <code>*</code> user or <code>*</code> group do not include anonymous users.</p> <h2 id="user-impersonation">User impersonation</h2> <p>A user can act as another user through impersonation headers. These let requests manually override the user info a request authenticates as. For example, an admin could use this feature to debug an authorization policy by temporarily impersonating another user and seeing if a request was denied.</p> <p>Impersonation requests first authenticate as the requesting user, then switch to the impersonated user info.</p> <ul> <li>A user makes an API call with their credentials <em>and</em> impersonation headers.</li> <li>API server authenticates the user.</li> <li>API server ensures the authenticated users have impersonation privileges.</li> <li>Request user info is replaced with impersonation values.</li> <li>Request is evaluated, authorization acts on impersonated user info.</li> </ul> <p>The following HTTP headers can be used to performing an impersonation request:</p> <ul> <li>
+<code>Impersonate-User</code>: The username to act as.</li> <li>
+<code>Impersonate-Group</code>: A group name to act as. Can be provided multiple times to set multiple groups. Optional. Requires "Impersonate-User".</li> <li>
+<code>Impersonate-Extra-( extra name )</code>: A dynamic header used to associate extra fields with the user. Optional. Requires "Impersonate-User". In order to be preserved consistently, <code>( extra name )</code> should be lower-case, and any characters which aren't <a href="https://tools.ietf.org/html/rfc7230#section-3.2.6">legal in HTTP header labels</a> MUST be utf8 and <a href="https://tools.ietf.org/html/rfc3986#section-2.1">percent-encoded</a>.</li> <li>
+<code>Impersonate-Uid</code>: A unique identifier that represents the user being impersonated. Optional. Requires "Impersonate-User". Kubernetes does not impose any format requirements on this string.</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Prior to 1.11.3 (and 1.10.7, 1.9.11), <code>( extra name )</code> could only contain characters which were <a href="https://tools.ietf.org/html/rfc7230#section-3.2.6">legal in HTTP header labels</a>. </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <code>Impersonate-Uid</code> is only available in versions 1.22.0 and higher. </div> <p>An example of the impersonation headers used when impersonating a user with groups:</p> <pre class="highlight" data-language="http">Impersonate-User: jane.doe@example.com
+Impersonate-Group: developers
+Impersonate-Group: admins
+</pre>
+<p>An example of the impersonation headers used when impersonating a user with a UID and extra fields:</p> <pre class="highlight" data-language="http">Impersonate-User: jane.doe@example.com
+Impersonate-Extra-dn: cn=jane,ou=engineers,dc=example,dc=com
+Impersonate-Extra-acme.com%2Fproject: some-project
+Impersonate-Extra-scopes: view
+Impersonate-Extra-scopes: development
+Impersonate-Uid: 06f6ce97-e2c5-4ab8-7ba5-7654dd08d52b
+</pre>
+<p>When using <code>kubectl</code> set the <code>--as</code> flag to configure the <code>Impersonate-User</code> header, set the <code>--as-group</code> flag to configure the <code>Impersonate-Group</code> header.</p> <pre class="highlight" data-language="bash">kubectl drain mynode
+</pre>
+<pre><code class="language-none" data-lang="none">Error from server (Forbidden): User "clark" cannot get nodes at the cluster scope. (get nodes mynode)
+</code></pre>
+<p>Set the <code>--as</code> and <code>--as-group</code> flag:</p> <pre class="highlight" data-language="bash">kubectl drain mynode --as=superman --as-group=system:masters
+</pre>
+<pre><code class="language-none" data-lang="none">node/mynode cordoned
+node/mynode drained
+</code></pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <code>kubectl</code> cannot impersonate extra fields or UIDs. </div> <p>To impersonate a user, group, user identifier (UID) or extra fields, the impersonating user must have the ability to perform the "impersonate" verb on the kind of attribute being impersonated ("user", "group", "uid", etc.). For clusters that enable the RBAC authorization plugin, the following ClusterRole encompasses the rules needed to set user and group impersonation headers:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: impersonator
+rules:
+- apiGroups: [""]
+  resources: ["users", "groups", "serviceaccounts"]
+  verbs: ["impersonate"]
+</pre>
+<p>For impersonation, extra fields and impersonated UIDs are both under the "authentication.k8s.io" <code>apiGroup</code>. Extra fields are evaluated as sub-resources of the resource "userextras". To allow a user to use impersonation headers for the extra field "scopes" and for UIDs, a user should be granted the following role:</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: scopes-and-uid-impersonator
+rules:
+# Can set "Impersonate-Extra-scopes" header and the "Impersonate-Uid" header.
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["userextras/scopes", "uids"]
+  verbs: ["impersonate"]
+</pre>
+<p>The values of impersonation headers can also be restricted by limiting the set of <code>resourceNames</code> a resource can take.</p> <pre class="highlight" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: limited-impersonator
+rules:
+# Can impersonate the user "jane.doe@example.com"
+- apiGroups: [""]
+  resources: ["users"]
+  verbs: ["impersonate"]
+  resourceNames: ["jane.doe@example.com"]
+
+# Can impersonate the groups "developers" and "admins"
+- apiGroups: [""]
+  resources: ["groups"]
+  verbs: ["impersonate"]
+  resourceNames: ["developers","admins"]
+
+# Can impersonate the extras field "scopes" with the values "view" and "development"
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["userextras/scopes"]
+  verbs: ["impersonate"]
+  resourceNames: ["view", "development"]
+
+# Can impersonate the uid "06f6ce97-e2c5-4ab8-7ba5-7654dd08d52b"
+- apiGroups: ["authentication.k8s.io"]
+  resources: ["uids"]
+  verbs: ["impersonate"]
+  resourceNames: ["06f6ce97-e2c5-4ab8-7ba5-7654dd08d52b"]
+</pre>
+<h2 id="client-go-credential-plugins">client-go credential plugins</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [stable]</code> </div> <p><code>k8s.io/client-go</code> and tools using it such as <code>kubectl</code> and <code>kubelet</code> are able to execute an external command to receive user credentials.</p> <p>This feature is intended for client side integrations with authentication protocols not natively supported by <code>k8s.io/client-go</code> (LDAP, Kerberos, OAuth2, SAML, etc.). The plugin implements the protocol specific logic, then returns opaque credentials to use. Almost all credential plugin use cases require a server side component with support for the <a href="#webhook-token-authentication">webhook token authenticator</a> to interpret the credential format produced by the client plugin.</p> <h3 id="example-use-case">Example use case</h3> <p>In a hypothetical use case, an organization would run an external service that exchanges LDAP credentials for user specific, signed tokens. The service would also be capable of responding to <a href="#webhook-token-authentication">webhook token authenticator</a> requests to validate the tokens. Users would be required to install a credential plugin on their workstation.</p> <p>To authenticate against the API:</p> <ul> <li>The user issues a <code>kubectl</code> command.</li> <li>Credential plugin prompts the user for LDAP credentials, exchanges credentials with external service for a token.</li> <li>Credential plugin returns token to client-go, which uses it as a bearer token against the API server.</li> <li>API server uses the <a href="#webhook-token-authentication">webhook token authenticator</a> to submit a <code>TokenReview</code> to the external service.</li> <li>External service verifies the signature on the token and returns the user's username and groups.</li> </ul> <h3 id="configuration">Configuration</h3> <p>Credential plugins are configured through <a href="../../tasks/access-application-cluster/configure-access-multiple-clusters/index">kubectl config files</a> as part of the user fields.</p> <ul class="nav nav-tabs" id="exec-plugin-kubeconfig-example-1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#exec-plugin-kubeconfig-example-1-0" role="tab" aria-controls="exec-plugin-kubeconfig-example-1-0" aria-selected="true">client.authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#exec-plugin-kubeconfig-example-1-1" role="tab" aria-controls="exec-plugin-kubeconfig-example-1-1">client.authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="exec-plugin-kubeconfig-example-1">
+<div id="exec-plugin-kubeconfig-example-1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="exec-plugin-kubeconfig-example-1-0"> 
+<pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Config
+users:
+- name: my-user
+  user:
+    exec:
+      # Command to execute. Required.
+      command: "example-client-go-exec-plugin"
+
+      # API version to use when decoding the ExecCredentials resource. Required.
+      #
+      # The API version returned by the plugin MUST match the version listed here.
+      #
+      # To integrate with tools that support multiple versions (such as client.authentication.k8s.io/v1alpha1),
+      # set an environment variable, pass an argument to the tool that indicates which version the exec plugin expects,
+      # or read the version from the ExecCredential object in the KUBERNETES_EXEC_INFO environment variable.
+      apiVersion: "client.authentication.k8s.io/v1"
+
+      # Environment variables to set when executing the plugin. Optional.
+      env:
+      - name: "FOO"
+        value: "bar"
+
+      # Arguments to pass when executing the plugin. Optional.
+      args:
+      - "arg1"
+      - "arg2"
+
+      # Text shown to the user when the executable doesn't seem to be present. Optional.
+      installHint: |
+        example-client-go-exec-plugin is required to authenticate
+        to the current cluster.  It can be installed:
+
+        On macOS: brew install example-client-go-exec-plugin
+
+        On Ubuntu: apt-get install example-client-go-exec-plugin
+
+        On Fedora: dnf install example-client-go-exec-plugin
+
+        ...        
+
+      # Whether or not to provide cluster information, which could potentially contain
+      # very large CA data, to this exec plugin as a part of the KUBERNETES_EXEC_INFO
+      # environment variable.
+      provideClusterInfo: true
+
+      # The contract between the exec plugin and the standard input I/O stream. If the
+      # contract cannot be satisfied, this plugin will not be run and an error will be
+      # returned. Valid values are "Never" (this exec plugin never uses standard input),
+      # "IfAvailable" (this exec plugin wants to use standard input if it is available),
+      # or "Always" (this exec plugin requires standard input to function). Required.
+      interactiveMode: Never
+clusters:
+- name: my-cluster
+  cluster:
+    server: "https://172.17.4.100:6443"
+    certificate-authority: "/etc/kubernetes/ca.pem"
+    extensions:
+    - name: client.authentication.k8s.io/exec # reserved extension name for per cluster exec config
+      extension:
+        arbitrary: config
+        this: can be provided via the KUBERNETES_EXEC_INFO environment variable upon setting provideClusterInfo
+        you: ["can", "put", "anything", "here"]
+contexts:
+- name: my-cluster
+  context:
+    cluster: my-cluster
+    user: my-user
+current-context: my-cluster
+</pre>
+</div> <div id="exec-plugin-kubeconfig-example-1-1" class="tab-pane" role="tabpanel" aria-labelledby="exec-plugin-kubeconfig-example-1-1"> 
+<pre class="highlight" data-language="yaml">apiVersion: v1
+kind: Config
+users:
+- name: my-user
+  user:
+    exec:
+      # Command to execute. Required.
+      command: "example-client-go-exec-plugin"
+
+      # API version to use when decoding the ExecCredentials resource. Required.
+      #
+      # The API version returned by the plugin MUST match the version listed here.
+      #
+      # To integrate with tools that support multiple versions (such as client.authentication.k8s.io/v1alpha1),
+      # set an environment variable, pass an argument to the tool that indicates which version the exec plugin expects,
+      # or read the version from the ExecCredential object in the KUBERNETES_EXEC_INFO environment variable.
+      apiVersion: "client.authentication.k8s.io/v1beta1"
+
+      # Environment variables to set when executing the plugin. Optional.
+      env:
+      - name: "FOO"
+        value: "bar"
+
+      # Arguments to pass when executing the plugin. Optional.
+      args:
+      - "arg1"
+      - "arg2"
+
+      # Text shown to the user when the executable doesn't seem to be present. Optional.
+      installHint: |
+        example-client-go-exec-plugin is required to authenticate
+        to the current cluster.  It can be installed:
+
+        On macOS: brew install example-client-go-exec-plugin
+
+        On Ubuntu: apt-get install example-client-go-exec-plugin
+
+        On Fedora: dnf install example-client-go-exec-plugin
+
+        ...        
+
+      # Whether or not to provide cluster information, which could potentially contain
+      # very large CA data, to this exec plugin as a part of the KUBERNETES_EXEC_INFO
+      # environment variable.
+      provideClusterInfo: true
+
+      # The contract between the exec plugin and the standard input I/O stream. If the
+      # contract cannot be satisfied, this plugin will not be run and an error will be
+      # returned. Valid values are "Never" (this exec plugin never uses standard input),
+      # "IfAvailable" (this exec plugin wants to use standard input if it is available),
+      # or "Always" (this exec plugin requires standard input to function). Optional.
+      # Defaults to "IfAvailable".
+      interactiveMode: Never
+clusters:
+- name: my-cluster
+  cluster:
+    server: "https://172.17.4.100:6443"
+    certificate-authority: "/etc/kubernetes/ca.pem"
+    extensions:
+    - name: client.authentication.k8s.io/exec # reserved extension name for per cluster exec config
+      extension:
+        arbitrary: config
+        this: can be provided via the KUBERNETES_EXEC_INFO environment variable upon setting provideClusterInfo
+        you: ["can", "put", "anything", "here"]
+contexts:
+- name: my-cluster
+  context:
+    cluster: my-cluster
+    user: my-user
+current-context: my-cluster
+</pre>
+</div>
+</div> <p>Relative command paths are interpreted as relative to the directory of the config file. If KUBECONFIG is set to <code>/home/jane/kubeconfig</code> and the exec command is <code>./bin/example-client-go-exec-plugin</code>, the binary <code>/home/jane/bin/example-client-go-exec-plugin</code> is executed.</p> <pre class="highlight" data-language="yaml">- name: my-user
+  user:
+    exec:
+      # Path relative to the directory of the kubeconfig
+      command: "./bin/example-client-go-exec-plugin"
+      apiVersion: "client.authentication.k8s.io/v1"
+      interactiveMode: Never
+</pre>
+<h3 id="input-and-output-formats">Input and output formats</h3> <p>The executed command prints an <code>ExecCredential</code> object to <code>stdout</code>. <code>k8s.io/client-go</code> authenticates against the Kubernetes API using the returned credentials in the <code>status</code>. The executed command is passed an <code>ExecCredential</code> object as input via the <code>KUBERNETES_EXEC_INFO</code> environment variable. This input contains helpful information like the expected API version of the returned <code>ExecCredential</code> object and whether or not the plugin can use <code>stdin</code> to interact with the user.</p> <p>When run from an interactive session (i.e., a terminal), <code>stdin</code> can be exposed directly to the plugin. Plugins should use the <code>spec.interactive</code> field of the input <code>ExecCredential</code> object from the <code>KUBERNETES_EXEC_INFO</code> environment variable in order to determine if <code>stdin</code> has been provided. A plugin's <code>stdin</code> requirements (i.e., whether <code>stdin</code> is optional, strictly required, or never used in order for the plugin to run successfully) is declared via the <code>user.exec.interactiveMode</code> field in the <a href="../../concepts/configuration/organize-cluster-access-kubeconfig/index">kubeconfig</a> (see table below for valid values). The <code>user.exec.interactiveMode</code> field is optional in <code>client.authentication.k8s.io/v1beta1</code> and required in <code>client.authentication.k8s.io/v1</code>.</p> <table>
+<caption style="display: none;">interactiveMode values</caption> <thead> <tr> <th>
+<code>interactiveMode</code> Value</th> <th>Meaning</th> </tr> </thead> <tbody> <tr> <td><code>Never</code></td> <td>This exec plugin never needs to use standard input, and therefore the exec plugin will be run regardless of whether standard input is available for user input.</td> </tr> <tr> <td><code>IfAvailable</code></td> <td>This exec plugin would like to use standard input if it is available, but can still operate if standard input is not available. Therefore, the exec plugin will be run regardless of whether stdin is available for user input. If standard input is available for user input, then it will be provided to this exec plugin.</td> </tr> <tr> <td><code>Always</code></td> <td>This exec plugin requires standard input in order to run, and therefore the exec plugin will only be run if standard input is available for user input. If standard input is not available for user input, then the exec plugin will not be run and an error will be returned by the exec plugin runner.</td> </tr> </tbody> </table> <p>To use bearer token credentials, the plugin returns a token in the status of the <a href="../config-api/client-authentication.v1beta1/index#client-authentication-k8s-io-v1beta1-ExecCredential"><code>ExecCredential</code></a></p> <ul class="nav nav-tabs" id="exec-plugin-execcredential-example-1" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#exec-plugin-execcredential-example-1-0" role="tab" aria-controls="exec-plugin-execcredential-example-1-0" aria-selected="true">client.authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#exec-plugin-execcredential-example-1-1" role="tab" aria-controls="exec-plugin-execcredential-example-1-1">client.authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="exec-plugin-execcredential-example-1">
+<div id="exec-plugin-execcredential-example-1-0" class="tab-pane show active" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-1-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1",
+  "kind": "ExecCredential",
+  "status": {
+    "token": "my-bearer-token"
+  }
+}
+</pre>
+</div> <div id="exec-plugin-execcredential-example-1-1" class="tab-pane" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-1-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecCredential",
+  "status": {
+    "token": "my-bearer-token"
+  }
+}
+</pre>
+</div>
+</div> <p>Alternatively, a PEM-encoded client certificate and key can be returned to use TLS client auth. If the plugin returns a different certificate and key on a subsequent call, <code>k8s.io/client-go</code> will close existing connections with the server to force a new TLS handshake.</p> <p>If specified, <code>clientKeyData</code> and <code>clientCertificateData</code> must both must be present.</p> <p><code>clientCertificateData</code> may contain additional intermediate certificates to send to the server.</p> <ul class="nav nav-tabs" id="exec-plugin-execcredential-example-2" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#exec-plugin-execcredential-example-2-0" role="tab" aria-controls="exec-plugin-execcredential-example-2-0" aria-selected="true">client.authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#exec-plugin-execcredential-example-2-1" role="tab" aria-controls="exec-plugin-execcredential-example-2-1">client.authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="exec-plugin-execcredential-example-2">
+<div id="exec-plugin-execcredential-example-2-0" class="tab-pane show active" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-2-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1",
+  "kind": "ExecCredential",
+  "status": {
+    "clientCertificateData": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+    "clientKeyData": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+  }
+}
+</pre>
+</div> <div id="exec-plugin-execcredential-example-2-1" class="tab-pane" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-2-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecCredential",
+  "status": {
+    "clientCertificateData": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+    "clientKeyData": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+  }
+}
+</pre>
+</div>
+</div> <p>Optionally, the response can include the expiry of the credential formatted as a RFC3339 timestamp. Presence or absence of an expiry has the following impact:</p> <ul> <li>If an expiry is included, the bearer token and TLS credentials are cached until the expiry time is reached, or if the server responds with a 401 HTTP status code, or when the process exits.</li> <li>If an expiry is omitted, the bearer token and TLS credentials are cached until the server responds with a 401 HTTP status code or until the process exits.</li> </ul> <ul class="nav nav-tabs" id="exec-plugin-execcredential-example-3" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#exec-plugin-execcredential-example-3-0" role="tab" aria-controls="exec-plugin-execcredential-example-3-0" aria-selected="true">client.authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#exec-plugin-execcredential-example-3-1" role="tab" aria-controls="exec-plugin-execcredential-example-3-1">client.authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="exec-plugin-execcredential-example-3">
+<div id="exec-plugin-execcredential-example-3-0" class="tab-pane show active" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-3-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1",
+  "kind": "ExecCredential",
+  "status": {
+    "token": "my-bearer-token",
+    "expirationTimestamp": "2018-03-05T17:30:20-08:00"
+  }
+}
+</pre>
+</div> <div id="exec-plugin-execcredential-example-3-1" class="tab-pane" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-3-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecCredential",
+  "status": {
+    "token": "my-bearer-token",
+    "expirationTimestamp": "2018-03-05T17:30:20-08:00"
+  }
+}
+</pre>
+</div>
+</div> <p>To enable the exec plugin to obtain cluster-specific information, set <code>provideClusterInfo</code> on the <code>user.exec</code> field in the <a href="../../concepts/configuration/organize-cluster-access-kubeconfig/index">kubeconfig</a>. The plugin will then be supplied this cluster-specific information in the <code>KUBERNETES_EXEC_INFO</code> environment variable. Information from this environment variable can be used to perform cluster-specific credential acquisition logic. The following <code>ExecCredential</code> manifest describes a cluster information sample.</p> <ul class="nav nav-tabs" id="exec-plugin-execcredential-example-4" role="tablist">
+<li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#exec-plugin-execcredential-example-4-0" role="tab" aria-controls="exec-plugin-execcredential-example-4-0" aria-selected="true">client.authentication.k8s.io/v1</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#exec-plugin-execcredential-example-4-1" role="tab" aria-controls="exec-plugin-execcredential-example-4-1">client.authentication.k8s.io/v1beta1</a></li>
+</ul> <div class="tab-content" id="exec-plugin-execcredential-example-4">
+<div id="exec-plugin-execcredential-example-4-0" class="tab-pane show active" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-4-0"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1",
+  "kind": "ExecCredential",
+  "spec": {
+    "cluster": {
+      "server": "https://172.17.4.100:6443",
+      "certificate-authority-data": "LS0t...",
+      "config": {
+        "arbitrary": "config",
+        "this": "can be provided via the KUBERNETES_EXEC_INFO environment variable upon setting provideClusterInfo",
+        "you": ["can", "put", "anything", "here"]
+      }
+    },
+    "interactive": true
+  }
+}
+</pre>
+</div> <div id="exec-plugin-execcredential-example-4-1" class="tab-pane" role="tabpanel" aria-labelledby="exec-plugin-execcredential-example-4-1"> 
+<pre class="highlight" data-language="json">{
+  "apiVersion": "client.authentication.k8s.io/v1beta1",
+  "kind": "ExecCredential",
+  "spec": {
+    "cluster": {
+      "server": "https://172.17.4.100:6443",
+      "certificate-authority-data": "LS0t...",
+      "config": {
+        "arbitrary": "config",
+        "this": "can be provided via the KUBERNETES_EXEC_INFO environment variable upon setting provideClusterInfo",
+        "you": ["can", "put", "anything", "here"]
+      }
+    },
+    "interactive": true
+  }
+}
+</pre>
+</div>
+</div> <h2 id="what-s-next">What's next</h2> <ul> <li>Read the <a href="../config-api/client-authentication.v1beta1/index">client authentication reference (v1beta1)</a>
+</li> <li>Read the <a href="../config-api/client-authentication.v1/index">client authentication reference (v1)</a>
+</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/reference/access-authn-authz/authentication" class="_attribution-link">https://kubernetes.io/docs/reference/access-authn-authz/authentication</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

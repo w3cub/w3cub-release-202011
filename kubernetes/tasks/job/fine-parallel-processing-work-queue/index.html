@@ -1,0 +1,199 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Fine Parallel Processing Using a Work Queue - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" In this example, we will run a Kubernetes Job with multiple parallel worker processes in a given pod. ">
+  <meta name="keywords" content="fine, parallel, processing, using, work, queue, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/job/fine-parallel-processing-work-queue/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Fine Parallel Processing Using a Work Queue</h1>  <p>In this example, we will run a Kubernetes Job with multiple parallel worker processes in a given pod.</p> <p>In this example, as each pod is created, it picks up one unit of work from a task queue, processes it, and repeats until the end of the queue is reached.</p> <p>Here is an overview of the steps in this example:</p> <ol> <li>
+<strong>Start a storage service to hold the work queue.</strong> In this example, we use Redis to store our work items. In the previous example, we used RabbitMQ. In this example, we use Redis and a custom work-queue client library because AMQP does not provide a good way for clients to detect when a finite-length work queue is empty. In practice you would set up a store such as Redis once and reuse it for the work queues of many jobs, and other things.</li> <li>
+<strong>Create a queue, and fill it with messages.</strong> Each message represents one task to be done. In this example, a message is an integer that we will do a lengthy computation on.</li> <li>
+<strong>Start a Job that works on tasks from the queue</strong>. The Job starts several pods. Each pod takes one task from the message queue, processes it, and repeats until the end of the queue is reached.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <p>Be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p>  <h2 id="starting-redis">Starting Redis</h2> <p>For this example, for simplicity, we will start a single instance of Redis. See the <a href="https://github.com/kubernetes/examples/tree/master/guestbook">Redis Example</a> for an example of deploying Redis scalably and redundantly.</p> <p>You could also download the following files directly:</p> <ul> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-pod.yaml"><code>redis-pod.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-service.yaml"><code>redis-service.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/job.yaml"><code>job.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a></li> </ul> <h2 id="filling-the-queue-with-tasks">Filling the Queue with tasks</h2> <p>Now let's fill the queue with some "tasks". In our example, our tasks are strings to be printed.</p> <p>Start a temporary interactive pod for running the Redis CLI.</p> <pre class="highlight" data-language="shell">kubectl run -i --tty temp --image redis --command "/bin/sh"
+Waiting for pod default/redis2-c7h78 to be running, status is Pending, pod ready: false
+Hit enter for command prompt
+</pre>
+<p>Now hit enter, start the redis CLI, and create a list with some work items in it.</p> <pre><code># redis-cli -h redis
+redis:6379&gt; rpush job2 "apple"
+(integer) 1
+redis:6379&gt; rpush job2 "banana"
+(integer) 2
+redis:6379&gt; rpush job2 "cherry"
+(integer) 3
+redis:6379&gt; rpush job2 "date"
+(integer) 4
+redis:6379&gt; rpush job2 "fig"
+(integer) 5
+redis:6379&gt; rpush job2 "grape"
+(integer) 6
+redis:6379&gt; rpush job2 "lemon"
+(integer) 7
+redis:6379&gt; rpush job2 "melon"
+(integer) 8
+redis:6379&gt; rpush job2 "orange"
+(integer) 9
+redis:6379&gt; lrange job2 0 -1
+1) "apple"
+2) "banana"
+3) "cherry"
+4) "date"
+5) "fig"
+6) "grape"
+7) "lemon"
+8) "melon"
+9) "orange"
+</code></pre>
+<p>So, the list with key <code>job2</code> will be our work queue.</p> <p>Note: if you do not have Kube DNS setup correctly, you may need to change the first step of the above block to <code>redis-cli -h $REDIS_SERVICE_HOST</code>.</p> <h2 id="create-an-image">Create an Image</h2> <p>Now we are ready to create an image that we will run.</p> <p>We will use a python worker program with a redis client to read the messages from the message queue.</p> <p>A simple Redis work queue client library is provided, called rediswq.py (<a href="https://kubernetes.io/examples/application/job/redis/rediswq.py">Download</a>).</p> <p>The "worker" program in each Pod of the Job uses the work queue client library to get work. Here it is:</p> <pre class="highlight" data-language="">application/job/redis/worker.py</pre> <p>You could also download <a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a>, <a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a>, and <a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a> files, then build the image:</p> <pre class="highlight" data-language="shell">docker build -t job-wq-2 .
+</pre>
+<h3 id="push-the-image">Push the image</h3> <p>For the <a href="https://hub.docker.com/">Docker Hub</a>, tag your app image with your username and push to the Hub with the below commands. Replace <code>&lt;username&gt;</code> with your Hub username.</p> <pre class="highlight" data-language="shell">docker tag job-wq-2 &lt;username&gt;/job-wq-2
+docker push &lt;username&gt;/job-wq-2
+</pre>
+<p>You need to push to a public repository or <a href="../../../concepts/containers/images/index">configure your cluster to be able to access your private repository</a>.</p> <p>If you are using <a href="https://cloud.google.com/tools/container-registry/">Google Container Registry</a>, tag your app image with your project ID, and push to GCR. Replace <code>&lt;project&gt;</code> with your project ID.</p> <pre class="highlight" data-language="shell">docker tag job-wq-2 gcr.io/&lt;project&gt;/job-wq-2
+gcloud docker -- push gcr.io/&lt;project&gt;/job-wq-2
+</pre>
+<h2 id="defining-a-job">Defining a Job</h2> <p>Here is the job definition:</p> <pre class="highlight" data-language="">application/job/redis/job.yaml</pre> <p>Be sure to edit the job template to change <code>gcr.io/myproject</code> to your own path.</p> <p>In this example, each pod works on several items from the queue and then exits when there are no more items. Since the workers themselves detect when the workqueue is empty, and the Job controller does not know about the workqueue, it relies on the workers to signal when they are done working. The workers signal that the queue is empty by exiting with success. So, as soon as any worker exits with success, the controller knows the work is done, and the Pods will exit soon. So, we set the completion count of the Job to 1. The job controller will wait for the other pods to complete too.</p> <h2 id="running-the-job">Running the Job</h2> <p>So, now run the Job:</p> <pre class="highlight" data-language="shell">kubectl apply -f ./job.yaml
+</pre>
+<p>Now wait a bit, then check on the job.</p> <pre class="highlight" data-language="shell">kubectl describe jobs/job-wq-2
+Name:             job-wq-2
+Namespace:        default
+Selector:         controller-uid=b1c7e4e3-92e1-11e7-b85e-fa163ee3c11f
+Labels:           controller-uid=b1c7e4e3-92e1-11e7-b85e-fa163ee3c11f
+                  job-name=job-wq-2
+Annotations:      &lt;none&gt;
+Parallelism:      2
+Completions:      &lt;unset&gt;
+Start Time:       Mon, 11 Jan 2016 17:07:59 -0800
+Pods Statuses:    1 Running / 0 Succeeded / 0 Failed
+Pod Template:
+  Labels:       controller-uid=b1c7e4e3-92e1-11e7-b85e-fa163ee3c11f
+                job-name=job-wq-2
+  Containers:
+   c:
+    Image:              gcr.io/exampleproject/job-wq-2
+    Port:
+    Environment:        &lt;none&gt;
+    Mounts:             &lt;none&gt;
+  Volumes:              &lt;none&gt;
+Events:
+  FirstSeen    LastSeen    Count    From            SubobjectPath    Type        Reason            Message
+  ---------    --------    -----    ----            -------------    --------    ------            -------
+  33s          33s         1        {job-controller }                Normal      SuccessfulCreate  Created pod: job-wq-2-lglf8
+
+
+kubectl logs pods/job-wq-2-7r7b2
+Worker with sessionID: bbd72d0a-9e5c-4dd6-abf6-416cc267991f
+Initial queue state: empty=False
+Working on banana
+Working on date
+Working on lemon
+</pre>
+<p>As you can see, one of our pods worked on several work units.</p>  <h2 id="alternatives">Alternatives</h2> <p>If running a queue service or modifying your containers to use a work queue is inconvenient, you may want to consider one of the other <a href="../../../concepts/workloads/controllers/job/index#job-patterns">job patterns</a>.</p> <p>If you have a continuous stream of background processing work to run, then consider running your background workers with a <code>ReplicaSet</code> instead, and consider running a background processing library such as <a href="https://github.com/resque/resque">https://github.com/resque/resque</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/job/fine-parallel-processing-work-queue/" class="_attribution-link">https://kubernetes.io/docs/tasks/job/fine-parallel-processing-work-queue/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,118 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Services, Load Balancing, and Networking - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Every Pod gets its own IP address. This means you do not need to explicitly create links between Pods and you almost never need to deal with mapping &hellip;">
+  <meta name="keywords" content="services, load, balancing, and, networking, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/services-networking/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Services, Load Balancing, and Networking</h1> <div class="lead">Concepts and resources behind networking in Kubernetes.</div> <h2 id="the-kubernetes-network-model">The Kubernetes network model</h2> <p>Every <a href="../workloads/pods/index"><code>Pod</code></a> gets its own IP address. This means you do not need to explicitly create links between <code>Pods</code> and you almost never need to deal with mapping container ports to host ports.<br> This creates a clean, backwards-compatible model where <code>Pods</code> can be treated much like VMs or physical hosts from the perspectives of port allocation, naming, service discovery, <a href="ingress/index#load-balancing">load balancing</a>, application configuration, and migration.</p> <p>Kubernetes imposes the following fundamental requirements on any networking implementation (barring any intentional network segmentation policies):</p> <ul> <li>pods on a <a href="../architecture/nodes/index">node</a> can communicate with all pods on all nodes without NAT</li> <li>agents on a node (e.g. system daemons, kubelet) can communicate with all pods on that node</li> </ul> <p>Note: For those platforms that support <code>Pods</code> running in the host network (e.g. Linux):</p> <ul> <li>pods in the host network of a node can communicate with all pods on all nodes without NAT</li> </ul> <p>This model is not only less complex overall, but it is principally compatible with the desire for Kubernetes to enable low-friction porting of apps from VMs to containers. If your job previously ran in a VM, your VM had an IP and could talk to other VMs in your project. This is the same basic model.</p> <p>Kubernetes IP addresses exist at the <code>Pod</code> scope - containers within a <code>Pod</code> share their network namespaces - including their IP address and MAC address. This means that containers within a <code>Pod</code> can all reach each other's ports on <code>localhost</code>. This also means that containers within a <code>Pod</code> must coordinate port usage, but this is no different from processes in a VM. This is called the "IP-per-pod" model.</p> <p>How this is implemented is a detail of the particular container runtime in use.</p> <p>It is possible to request ports on the <code>Node</code> itself which forward to your <code>Pod</code> (called host ports), but this is a very niche operation. How that forwarding is implemented is also a detail of the container runtime. The <code>Pod</code> itself is blind to the existence or non-existence of host ports.</p> <p>Kubernetes networking addresses four concerns:</p> <ul> <li>Containers within a Pod <a href="dns-pod-service/index">use networking to communicate</a> via loopback.</li> <li>Cluster networking provides communication between different Pods.</li> <li>The <a href="service/index">Service resource</a> lets you <a href="connect-applications-service/index">expose an application running in Pods</a> to be reachable from outside your cluster.</li> <li>You can also use Services to <a href="service-traffic-policy/index">publish services only for consumption inside your cluster</a>.</li> </ul> <div class="section-index"> <hr class="panel-line"> <div class="entry"> <h5> <a href="service/index">Service</a> </h5>  </div> <div class="entry"> <h5> <a href="service-topology/index">Topology-aware traffic routing with topology keys</a> </h5>  </div> <div class="entry"> <h5> <a href="dns-pod-service/index">DNS for Services and Pods</a> </h5>  </div> <div class="entry"> <h5> <a href="connect-applications-service/index">Connecting Applications with Services</a> </h5>  </div> <div class="entry"> <h5> <a href="ingress/index">Ingress</a> </h5>  </div> <div class="entry"> <h5> <a href="ingress-controllers/index">Ingress Controllers</a> </h5>  </div> <div class="entry"> <h5> <a href="endpoint-slices/index">EndpointSlices</a> </h5>  </div> <div class="entry"> <h5> <a href="service-traffic-policy/index">Service Internal Traffic Policy</a> </h5>  </div> <div class="entry"> <h5> <a href="topology-aware-hints/index">Topology Aware Hints</a> </h5>  </div> <div class="entry"> <h5> <a href="network-policies/index">Network Policies</a> </h5>  </div> <div class="entry"> <h5> <a href="dual-stack/index">IPv4/IPv6 dual-stack</a> </h5>  </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/services-networking/" class="_attribution-link">https://kubernetes.io/docs/concepts/services-networking/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

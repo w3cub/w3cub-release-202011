@@ -1,0 +1,248 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Device Plugins - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content=" Kubernetes provides a device plugin framework that you can use to advertise system hardware resources to the Kubelet. ">
+  <meta name="keywords" content="device, plugins, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/extend-kubernetes/compute-storage-net/device-plugins/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Device Plugins</h1> <div class="lead">Device plugins let you configure your cluster with support for devices or resources that require vendor-specific setup, such as GPUs, NICs, FPGAs, or non-volatile main memory.</div>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.10 [beta]</code> </div> <p>Kubernetes provides a <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resource-management/device-plugin.md">device plugin framework</a> that you can use to advertise system hardware resources to the <a class="glossary-tooltip" title="An agent that runs on each node in the cluster. It makes sure that containers are running in a pod." data-toggle="tooltip" data-placement="top" href="../../../../reference/generated/kubelet" target="_blank" aria-label="Kubelet">Kubelet</a>.</p> <p>Instead of customizing the code for Kubernetes itself, vendors can implement a device plugin that you deploy either manually or as a <a class="glossary-tooltip" title="Ensures a copy of a Pod is running across a set of nodes in a cluster." data-toggle="tooltip" data-placement="top" href="../../../workloads/controllers/daemonset" target="_blank" aria-label="DaemonSet">DaemonSet</a>. The targeted devices include GPUs, high-performance NICs, FPGAs, InfiniBand adapters, and other similar computing resources that may require vendor specific initialization and setup.</p>  <h2 id="device-plugin-registration">Device plugin registration</h2> <p>The kubelet exports a <code>Registration</code> gRPC service:</p> <pre><code class="language-gRPC" data-lang="gRPC">service Registration {
+	rpc Register(RegisterRequest) returns (Empty) {}
+}
+</code></pre>
+<p>A device plugin can register itself with the kubelet through this gRPC service. During the registration, the device plugin needs to send:</p> <ul> <li>The name of its Unix socket.</li> <li>The Device Plugin API version against which it was built.</li> <li>The <code>ResourceName</code> it wants to advertise. Here <code>ResourceName</code> needs to follow the <a href="../../../configuration/manage-resources-containers/index#extended-resources">extended resource naming scheme</a> as <code>vendor-domain/resourcetype</code>. (For example, an NVIDIA GPU is advertised as <code>nvidia.com/gpu</code>.)</li> </ul> <p>Following a successful registration, the device plugin sends the kubelet the list of devices it manages, and the kubelet is then in charge of advertising those resources to the API server as part of the kubelet node status update. For example, after a device plugin registers <code>hardware-vendor.example/foo</code> with the kubelet and reports two healthy devices on a node, the node status is updated to advertise that the node has 2 "Foo" devices installed and available.</p> <p>Then, users can request devices as part of a Pod specification (see <a href="../../../../reference/kubernetes-api/workload-resources/pod-v1/index#Container"><code>container</code></a>). Requesting extended resources is similar to how you manage requests and limits for other resources, with the following differences:</p> <ul> <li>Extended resources are only supported as integer resources and cannot be overcommitted.</li> <li>Devices cannot be shared between containers.</li> </ul> <h3 id="example-pod">Example</h3> <p>Suppose a Kubernetes cluster is running a device plugin that advertises resource <code>hardware-vendor.example/foo</code> on certain nodes. Here is an example of a pod requesting this resource to run a demo workload:</p> <pre class="highlight" data-language="yaml">---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+spec:
+  containers:
+    - name: demo-container-1
+      image: k8s.gcr.io/pause:2.0
+      resources:
+        limits:
+          hardware-vendor.example/foo: 2
+#
+# This Pod needs 2 of the hardware-vendor.example/foo devices
+# and can only schedule onto a Node that's able to satisfy
+# that need.
+#
+# If the Node has more than 2 of those devices available, the
+# remainder would be available for other Pods to use.
+</pre>
+<h2 id="device-plugin-implementation">Device plugin implementation</h2> <p>The general workflow of a device plugin includes the following steps:</p> <ul> <li> <p>Initialization. During this phase, the device plugin performs vendor specific initialization and setup to make sure the devices are in a ready state.</p> </li> <li> <p>The plugin starts a gRPC service, with a Unix socket under host path <code>/var/lib/kubelet/device-plugins/</code>, that implements the following interfaces:</p> <pre><code class="language-gRPC" data-lang="gRPC">service DevicePlugin {
+      // GetDevicePluginOptions returns options to be communicated with Device Manager.
+      rpc GetDevicePluginOptions(Empty) returns (DevicePluginOptions) {}
+
+      // ListAndWatch returns a stream of List of Devices
+      // Whenever a Device state change or a Device disappears, ListAndWatch
+      // returns the new list
+      rpc ListAndWatch(Empty) returns (stream ListAndWatchResponse) {}
+
+      // Allocate is called during container creation so that the Device
+      // Plugin can run device specific operations and instruct Kubelet
+      // of the steps to make the Device available in the container
+      rpc Allocate(AllocateRequest) returns (AllocateResponse) {}
+
+      // GetPreferredAllocation returns a preferred set of devices to allocate
+      // from a list of available ones. The resulting preferred allocation is not
+      // guaranteed to be the allocation ultimately performed by the
+      // devicemanager. It is only designed to help the devicemanager make a more
+      // informed allocation decision when possible.
+      rpc GetPreferredAllocation(PreferredAllocationRequest) returns (PreferredAllocationResponse) {}
+
+      // PreStartContainer is called, if indicated by Device Plugin during registeration phase,
+      // before each container start. Device plugin can run device specific operations
+      // such as resetting the device before making devices available to the container.
+      rpc PreStartContainer(PreStartContainerRequest) returns (PreStartContainerResponse) {}
+}
+</code></pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Plugins are not required to provide useful implementations for <code>GetPreferredAllocation()</code> or <code>PreStartContainer()</code>. Flags indicating which (if any) of these calls are available should be set in the <code>DevicePluginOptions</code> message sent back by a call to <code>GetDevicePluginOptions()</code>. The <code>kubelet</code> will always call <code>GetDevicePluginOptions()</code> to see which optional functions are available, before calling any of them directly. </div> </li> <li> <p>The plugin registers itself with the kubelet through the Unix socket at host path <code>/var/lib/kubelet/device-plugins/kubelet.sock</code>.</p> </li> <li> <p>After successfully registering itself, the device plugin runs in serving mode, during which it keeps monitoring device health and reports back to the kubelet upon any device state changes. It is also responsible for serving <code>Allocate</code> gRPC requests. During <code>Allocate</code>, the device plugin may do device-specific preparation; for example, GPU cleanup or QRNG initialization. If the operations succeed, the device plugin returns an <code>AllocateResponse</code> that contains container runtime configurations for accessing the allocated devices. The kubelet passes this information to the container runtime.</p> </li> </ul> <h3 id="handling-kubelet-restarts">Handling kubelet restarts</h3> <p>A device plugin is expected to detect kubelet restarts and re-register itself with the new kubelet instance. In the current implementation, a new kubelet instance deletes all the existing Unix sockets under <code>/var/lib/kubelet/device-plugins</code> when it starts. A device plugin can monitor the deletion of its Unix socket and re-register itself upon such an event.</p> <h2 id="device-plugin-deployment">Device plugin deployment</h2> <p>You can deploy a device plugin as a DaemonSet, as a package for your node's operating system, or manually.</p> <p>The canonical directory <code>/var/lib/kubelet/device-plugins</code> requires privileged access, so a device plugin must run in a privileged security context. If you're deploying a device plugin as a DaemonSet, <code>/var/lib/kubelet/device-plugins</code> must be mounted as a <a class="glossary-tooltip" title="A directory containing data, accessible to the containers in a pod." data-toggle="tooltip" data-placement="top" href="../../../storage/volumes/index" target="_blank" aria-label="Volume">Volume</a> in the plugin's <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#podspec-v1-core">PodSpec</a>.</p> <p>If you choose the DaemonSet approach you can rely on Kubernetes to: place the device plugin's Pod onto Nodes, to restart the daemon Pod after failure, and to help automate upgrades.</p> <h2 id="api-compatibility">API compatibility</h2> <p>Kubernetes device plugin support is in beta. The API may change before stabilization, in incompatible ways. As a project, Kubernetes recommends that device plugin developers:</p> <ul> <li>Watch for changes in future releases.</li> <li>Support multiple versions of the device plugin API for backward/forward compatibility.</li> </ul> <p>If you enable the DevicePlugins feature and run device plugins on nodes that need to be upgraded to a Kubernetes release with a newer device plugin API version, upgrade your device plugins to support both versions before upgrading these nodes. Taking that approach will ensure the continuous functioning of the device allocations during the upgrade.</p> <h2 id="monitoring-device-plugin-resources">Monitoring device plugin resources</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.15 [beta]</code> </div> <p>In order to monitor resources provided by device plugins, monitoring agents need to be able to discover the set of devices that are in-use on the node and obtain metadata to describe which container the metric should be associated with. <a href="https://prometheus.io/">Prometheus</a> metrics exposed by device monitoring agents should follow the <a href="https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/instrumentation.md">Kubernetes Instrumentation Guidelines</a>, identifying containers using <code>pod</code>, <code>namespace</code>, and <code>container</code> prometheus labels.</p> <p>The kubelet provides a gRPC service to enable discovery of in-use devices, and to provide metadata for these devices:</p> <pre><code class="language-gRPC" data-lang="gRPC">// PodResourcesLister is a service provided by the kubelet that provides information about the
+// node resources consumed by pods and containers on the node
+service PodResourcesLister {
+    rpc List(ListPodResourcesRequest) returns (ListPodResourcesResponse) {}
+    rpc GetAllocatableResources(AllocatableResourcesRequest) returns (AllocatableResourcesResponse) {}
+}
+</code></pre>
+<h3 id="grpc-endpoint-list">
+<code>List</code> gRPC endpoint</h3> <p>The <code>List</code> endpoint provides information on resources of running pods, with details such as the id of exclusively allocated CPUs, device id as it was reported by device plugins and id of the NUMA node where these devices are allocated. Also, for NUMA-based machines, it contains the information about memory and hugepages reserved for a container.</p> <pre><code class="language-gRPC" data-lang="gRPC">// ListPodResourcesResponse is the response returned by List function
+message ListPodResourcesResponse {
+    repeated PodResources pod_resources = 1;
+}
+
+// PodResources contains information about the node resources assigned to a pod
+message PodResources {
+    string name = 1;
+    string namespace = 2;
+    repeated ContainerResources containers = 3;
+}
+
+// ContainerResources contains information about the resources assigned to a container
+message ContainerResources {
+    string name = 1;
+    repeated ContainerDevices devices = 2;
+    repeated int64 cpu_ids = 3;
+    repeated ContainerMemory memory = 4;
+}
+
+// ContainerMemory contains information about memory and hugepages assigned to a container
+message ContainerMemory {
+    string memory_type = 1;
+    uint64 size = 2;
+    TopologyInfo topology = 3;
+}
+
+// Topology describes hardware topology of the resource
+message TopologyInfo {
+        repeated NUMANode nodes = 1;
+}
+
+// NUMA representation of NUMA node
+message NUMANode {
+        int64 ID = 1;
+}
+
+// ContainerDevices contains information about the devices assigned to a container
+message ContainerDevices {
+    string resource_name = 1;
+    repeated string device_ids = 2;
+    TopologyInfo topology = 3;
+}
+</code></pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>cpu_ids in the <code>ContainerResources</code> in the <code>List</code> endpoint correspond to exclusive CPUs allocated to a partilar container. If the goal is to evaluate CPUs that belong to the shared pool, the <code>List</code> endpoint needs to be used in conjunction with the <code>GetAllocatableResources</code> endpoint as explained below:</p> <ol> <li>Call <code>GetAllocatableResources</code> to get a list of all the allocatable CPUs</li> <li>Call <code>GetCpuIds</code> on all <code>ContainerResources</code> in the system</li> <li>Subtract out all of the CPUs from the <code>GetCpuIds</code> calls from the <code>GetAllocatableResources</code> call</li> </ol> </div> <h3 id="grpc-endpoint-getallocatableresources">
+<code>GetAllocatableResources</code> gRPC endpoint</h3> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.23 [beta]</code> </div> <p>GetAllocatableResources provides information on resources initially available on the worker node. It provides more information than kubelet exports to APIServer.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <code>GetAllocatableResources</code> should only be used to evaluate <a href="https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/#node-allocatable">allocatable</a> resources on a node. If the goal is to evaluate free/unallocated resources it should be used in conjunction with the List() endpoint. The result obtained by <code>GetAllocatableResources</code> would remain the same unless the underlying resources exposed to kubelet change. This happens rarely but when it does (for example: hotplug/hotunplug, device health changes), client is expected to call <code>GetAlloctableResources</code> endpoint. However, calling <code>GetAllocatableResources</code> endpoint is not sufficient in case of cpu and/or memory update and Kubelet needs to be restarted to reflect the correct resource capacity and allocatable. </div> <pre><code class="language-gRPC" data-lang="gRPC">// AllocatableResourcesResponses contains informations about all the devices known by the kubelet
+message AllocatableResourcesResponse {
+    repeated ContainerDevices devices = 1;
+    repeated int64 cpu_ids = 2;
+    repeated ContainerMemory memory = 3;
+}
+
+</code></pre>
+<p>Starting from Kubernetes v1.23, the <code>GetAllocatableResources</code> is enabled by default. You can disable it by turning off the <code>KubeletPodResourcesGetAllocatable</code> <a href="../../../../reference/command-line-tools-reference/feature-gates/index">feature gate</a>.</p> <p>Preceding Kubernetes v1.23, to enable this feature <code>kubelet</code> must be started with the following flag:</p> <p><code>--feature-gates=KubeletPodResourcesGetAllocatable=true</code></p> <p><code>ContainerDevices</code> do expose the topology information declaring to which NUMA cells the device is affine. The NUMA cells are identified using a opaque integer ID, which value is consistent to what device plugins report <a href="index#device-plugin-integration-with-the-topology-manager">when they register themselves to the kubelet</a>.</p> <p>The gRPC service is served over a unix socket at <code>/var/lib/kubelet/pod-resources/kubelet.sock</code>. Monitoring agents for device plugin resources can be deployed as a daemon, or as a DaemonSet. The canonical directory <code>/var/lib/kubelet/pod-resources</code> requires privileged access, so monitoring agents must run in a privileged security context. If a device monitoring agent is running as a DaemonSet, <code>/var/lib/kubelet/pod-resources</code> must be mounted as a <a class="glossary-tooltip" title="A directory containing data, accessible to the containers in a pod." data-toggle="tooltip" data-placement="top" href="../../../storage/volumes/index" target="_blank" aria-label="Volume">Volume</a> in the device monitoring agent's <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#podspec-v1-core">PodSpec</a>.</p> <p>Support for the <code>PodResourcesLister service</code> requires <code>KubeletPodResources</code> <a href="../../../../reference/command-line-tools-reference/feature-gates/index">feature gate</a> to be enabled. It is enabled by default starting with Kubernetes 1.15 and is v1 since Kubernetes 1.20.</p> <h2 id="device-plugin-integration-with-the-topology-manager">Device plugin integration with the Topology Manager</h2> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.18 [beta]</code> </div> <p>The Topology Manager is a Kubelet component that allows resources to be co-ordinated in a Topology aligned manner. In order to do this, the Device Plugin API was extended to include a <code>TopologyInfo</code> struct.</p> <pre><code class="language-gRPC" data-lang="gRPC">message TopologyInfo {
+    repeated NUMANode nodes = 1;
+}
+
+message NUMANode {
+    int64 ID = 1;
+}
+</code></pre>
+<p>Device Plugins that wish to leverage the Topology Manager can send back a populated TopologyInfo struct as part of the device registration, along with the device IDs and the health of the device. The device manager will then use this information to consult with the Topology Manager and make resource assignment decisions.</p> <p><code>TopologyInfo</code> supports a <code>nodes</code> field that is either <code>nil</code> (the default) or a list of NUMA nodes. This lets the Device Plugin publish that can span NUMA nodes.</p> <p>An example <code>TopologyInfo</code> struct populated for a device by a Device Plugin:</p> <pre><code>pluginapi.Device{ID: "25102017", Health: pluginapi.Healthy, Topology:&amp;pluginapi.TopologyInfo{Nodes: []*pluginapi.NUMANode{&amp;pluginapi.NUMANode{ID: 0,},}}}
+</code></pre>
+<h2 id="examples">Device plugin examples</h2> <div class="alert alert-secondary callout third-party-content" role="alert">
+<strong>Note:</strong> This section links to third party projects that provide functionality required by Kubernetes. The Kubernetes project authors aren't responsible for these projects, which are listed alphabetically. To add a project to this list, read the <a href="https://kubernetes.io/docs/contribute/style/content-guide/#third-party-content">content guide</a> before submitting a change. <a href="#third-party-content-disclaimer">More information.</a>
+</div> <p>Here are some examples of device plugin implementations:</p> <ul> <li>The <a href="https://github.com/RadeonOpenCompute/k8s-device-plugin">AMD GPU device plugin</a>
+</li> <li>The <a href="https://github.com/intel/intel-device-plugins-for-kubernetes">Intel device plugins</a> for Intel GPU, FPGA and QuickAssist devices</li> <li>The <a href="https://github.com/kubevirt/kubernetes-device-plugins">KubeVirt device plugins</a> for hardware-assisted virtualization</li> <li>The <a href="https://github.com/NVIDIA/k8s-device-plugin">NVIDIA GPU device plugin</a> <ul> <li>Requires <a href="https://github.com/NVIDIA/nvidia-docker">nvidia-docker</a> 2.0, which allows you to run GPU-enabled Docker containers.</li> </ul> </li> <li>The <a href="https://github.com/GoogleCloudPlatform/container-engine-accelerators/tree/master/cmd/nvidia_gpu">NVIDIA GPU device plugin for Container-Optimized OS</a>
+</li> <li>The <a href="https://github.com/hustcat/k8s-rdma-device-plugin">RDMA device plugin</a>
+</li> <li>The <a href="https://github.com/vikaschoudhary16/sfc-device-plugin">Solarflare device plugin</a>
+</li> <li>The <a href="https://github.com/intel/sriov-network-device-plugin">SR-IOV Network device plugin</a>
+</li> <li>The <a href="https://github.com/Xilinx/FPGA_as_a_Service/tree/master/k8s-fpga-device-plugin">Xilinx FPGA device plugins</a> for Xilinx FPGA devices</li> </ul> <h2 id="what-s-next">What's next</h2> <ul> <li>Learn about <a href="../../../../tasks/manage-gpus/scheduling-gpus/index">scheduling GPU resources</a> using device plugins</li> <li>Learn about <a href="https://kubernetes.io/docs/tasks/administer-cluster/extended-resource-node/">advertising extended resources</a> on a node</li> <li>Learn about the <a href="https://kubernetes.io/docs/tasks/administer-cluster/topology-manager/">Topology Manager</a>
+</li> <li>Read about using <a href="https://kubernetes.io/blog/2019/04/24/hardware-accelerated-ssl/tls-termination-in-ingress-controllers-using-kubernetes-device-plugins-and-runtimeclass/">hardware acceleration for TLS ingress</a> with Kubernetes</li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/" class="_attribution-link">https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

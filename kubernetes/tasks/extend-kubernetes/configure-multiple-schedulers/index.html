@@ -1,0 +1,156 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Configure Multiple Schedulers - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="Kubernetes ships with a default scheduler that is described here. If the default scheduler does not suit your needs you can implement your own &hellip;">
+  <meta name="keywords" content="configure, multiple, schedulers, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/extend-kubernetes/configure-multiple-schedulers/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Configure Multiple Schedulers</h1>  <p>Kubernetes ships with a default scheduler that is described <a href="../../../reference/command-line-tools-reference/kube-scheduler/index">here</a>. If the default scheduler does not suit your needs you can implement your own scheduler. Moreover, you can even run multiple schedulers simultaneously alongside the default scheduler and instruct Kubernetes what scheduler to use for each of your pods. Let's learn how to run multiple schedulers in Kubernetes with an example.</p> <p>A detailed description of how to implement a scheduler is outside the scope of this document. Please refer to the kube-scheduler implementation in <a href="https://github.com/kubernetes/kubernetes/tree/master/pkg/scheduler">pkg/scheduler</a> in the Kubernetes source directory for a canonical example.</p> <h2 id="before-you-begin">Before you begin</h2> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>.  <h2 id="package-the-scheduler">Package the scheduler</h2> <p>Package your scheduler binary into a container image. For the purposes of this example, you can use the default scheduler (kube-scheduler) as your second scheduler. Clone the <a href="https://github.com/kubernetes/kubernetes">Kubernetes source code from GitHub</a> and build the source.</p> <pre class="highlight" data-language="shell">git clone https://github.com/kubernetes/kubernetes.git
+cd kubernetes
+make
+</pre>
+<p>Create a container image containing the kube-scheduler binary. Here is the <code>Dockerfile</code> to build the image:</p> <pre class="highlight" data-language="docker">FROM busybox
+ADD ./_output/local/bin/linux/amd64/kube-scheduler /usr/local/bin/kube-scheduler
+</pre>
+<p>Save the file as <code>Dockerfile</code>, build the image and push it to a registry. This example pushes the image to <a href="https://cloud.google.com/container-registry/">Google Container Registry (GCR)</a>. For more details, please read the GCR <a href="https://cloud.google.com/container-registry/docs/">documentation</a>.</p> <pre class="highlight" data-language="shell">docker build -t gcr.io/my-gcp-project/my-kube-scheduler:1.0 .
+gcloud docker -- push gcr.io/my-gcp-project/my-kube-scheduler:1.0
+</pre>
+<h2 id="define-a-kubernetes-deployment-for-the-scheduler">Define a Kubernetes Deployment for the scheduler</h2> <p>Now that you have your scheduler in a container image, create a pod configuration for it and run it in your Kubernetes cluster. But instead of creating a pod directly in the cluster, you can use a <a href="../../../concepts/workloads/controllers/deployment/index">Deployment</a> for this example. A <a href="../../../concepts/workloads/controllers/deployment/index">Deployment</a> manages a <a href="../../../concepts/workloads/controllers/replicaset/index">Replica Set</a> which in turn manages the pods, thereby making the scheduler resilient to failures. Here is the deployment config. Save it as <code>my-scheduler.yaml</code>:</p> <pre class="highlight" data-language="">admin/sched/my-scheduler.yaml</pre> <p>In the above manifest, you use a <a href="../../../reference/scheduling/config/index">KubeSchedulerConfiguration</a> to customize the behavior of your scheduler implementation. This configuration has been passed to the <code>kube-scheduler</code> during initialization with the <code>--config</code> option. The <code>my-scheduler-config</code> ConfigMap stores the configuration file. The Pod of the<code>my-scheduler</code> Deployment mounts the <code>my-scheduler-config</code> ConfigMap as a volume.</p> <p>In the aforementioned Scheduler Configuration, your scheduler implementation is represented via a <a href="../../../reference/config-api/kube-scheduler-config.v1beta3/index#kubescheduler-config-k8s-io-v1beta3-KubeSchedulerProfile">KubeSchedulerProfile</a>. </p>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> To determine if a scheduler is responsible for scheduling a specific Pod, the <code>spec.schedulerName</code> field in a PodTemplate or Pod manifest must match the <code>schedulerName</code> field of the <code>KubeSchedulerProfile</code>. All schedulers running in the cluster must have unique names. </div> <p>Also, note that you create a dedicated service account <code>my-scheduler</code> and bind the ClusterRole <code>system:kube-scheduler</code> to it so that it can acquire the same privileges as <code>kube-scheduler</code>.</p> <p>Please see the <a href="../../../reference/command-line-tools-reference/kube-scheduler/index">kube-scheduler documentation</a> for detailed description of other command line arguments and <a href="../../../reference/config-api/kube-scheduler-config.v1beta3/index">Scheduler Configuration reference</a> for detailed description of other customizable <code>kube-scheduler</code> configurations.</p> <h2 id="run-the-second-scheduler-in-the-cluster">Run the second scheduler in the cluster</h2> <p>In order to run your scheduler in a Kubernetes cluster, create the deployment specified in the config above in a Kubernetes cluster:</p> <pre class="highlight" data-language="shell">kubectl create -f my-scheduler.yaml
+</pre>
+<p>Verify that the scheduler pod is running:</p> <pre class="highlight" data-language="shell">kubectl get pods --namespace=kube-system
+</pre>
+<pre><code>NAME                                           READY     STATUS    RESTARTS   AGE
+....
+my-scheduler-lnf4s-4744f                       1/1       Running   0          2m
+...
+</code></pre>
+<p>You should see a "Running" my-scheduler pod, in addition to the default kube-scheduler pod in this list.</p> <h3 id="enable-leader-election">Enable leader election</h3> <p>To run multiple-scheduler with leader election enabled, you must do the following:</p> <p>Update the following fields for the KubeSchedulerConfiguration in the <code>my-scheduler-config</code> ConfigMap in your YAML file:</p> <ul> <li>
+<code>leaderElection.leaderElect</code> to <code>true</code>
+</li> <li>
+<code>leaderElection.resourceNamespace</code> to <code>&lt;lock-object-namespace&gt;</code>
+</li> <li>
+<code>leaderElection.resourceName</code> to <code>&lt;lock-object-name&gt;</code>
+</li> </ul> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The control plane creates the lock objects for you, but the namespace must already exist. You can use the <code>kube-system</code> namespace. </div> <p>If RBAC is enabled on your cluster, you must update the <code>system:kube-scheduler</code> cluster role. Add your scheduler name to the resourceNames of the rule applied for <code>endpoints</code> and <code>leases</code> resources, as in the following example:</p> <pre class="highlight" data-language="shell">kubectl edit clusterrole system:kube-scheduler
+</pre> <pre class="highlight" data-language="">admin/sched/clusterrole.yaml</pre> <h2 id="specify-schedulers-for-pods">Specify schedulers for pods</h2> <p>Now that your second scheduler is running, create some pods, and direct them to be scheduled by either the default scheduler or the one you deployed. In order to schedule a given pod using a specific scheduler, specify the name of the scheduler in that pod spec. Let's look at three examples.</p> <ul> <li> <p>Pod spec without any scheduler name</p> <pre class="highlight" data-language="">admin/sched/pod1.yaml</pre> <p>When no scheduler name is supplied, the pod is automatically scheduled using the default-scheduler.</p> <p>Save this file as <code>pod1.yaml</code> and submit it to the Kubernetes cluster.</p> <pre class="highlight" data-language="shell">kubectl create -f pod1.yaml
+</pre>
+</li> <li> <p>Pod spec with <code>default-scheduler</code></p> <pre class="highlight" data-language="">admin/sched/pod2.yaml</pre> <p>A scheduler is specified by supplying the scheduler name as a value to <code>spec.schedulerName</code>. In this case, we supply the name of the default scheduler which is <code>default-scheduler</code>.</p> <p>Save this file as <code>pod2.yaml</code> and submit it to the Kubernetes cluster.</p> <pre class="highlight" data-language="shell">kubectl create -f pod2.yaml
+</pre>
+</li> <li> <p>Pod spec with <code>my-scheduler</code></p> <pre class="highlight" data-language="">admin/sched/pod3.yaml</pre> <p>In this case, we specify that this pod should be scheduled using the scheduler that we deployed - <code>my-scheduler</code>. Note that the value of <code>spec.schedulerName</code> should match the name supplied for the scheduler in the <code>schedulerName</code> field of the mapping <code>KubeSchedulerProfile</code>.</p> <p>Save this file as <code>pod3.yaml</code> and submit it to the Kubernetes cluster.</p> <pre class="highlight" data-language="shell">kubectl create -f pod3.yaml
+</pre>
+<p>Verify that all three pods are running.</p> <pre class="highlight" data-language="shell">kubectl get pods
+</pre>
+</li> </ul>  <h3 id="verifying-that-the-pods-were-scheduled-using-the-desired-schedulers">Verifying that the pods were scheduled using the desired schedulers</h3> <p>In order to make it easier to work through these examples, we did not verify that the pods were actually scheduled using the desired schedulers. We can verify that by changing the order of pod and deployment config submissions above. If we submit all the pod configs to a Kubernetes cluster before submitting the scheduler deployment config, we see that the pod <code>annotation-second-scheduler</code> remains in "Pending" state forever while the other two pods get scheduled. Once we submit the scheduler deployment config and our new scheduler starts running, the <code>annotation-second-scheduler</code> pod gets scheduled as well.</p> <p>Alternatively, you can look at the "Scheduled" entries in the event logs to verify that the pods were scheduled by the desired schedulers.</p> <pre class="highlight" data-language="shell">kubectl get events
+</pre>
+<p>You can also use a <a href="../../../reference/scheduling/config/index#multiple-profiles">custom scheduler configuration</a> or a custom container image for the cluster's main scheduler by modifying its static pod manifest on the relevant control plane nodes.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/extend-kubernetes/configure-multiple-schedulers/" class="_attribution-link">https://kubernetes.io/docs/tasks/extend-kubernetes/configure-multiple-schedulers/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

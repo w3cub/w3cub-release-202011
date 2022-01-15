@@ -1,0 +1,208 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Assign Memory Resources to Containers and Pods - Kubernetes - W3cubDocs</title>
+  
+  <meta name="description" content="This page shows how to assign a memory request and a memory limit to a Container. A Container is guaranteed to have as much memory as it requests, &hellip;">
+  <meta name="keywords" content="assign, memory, resources, containers, and, pods, kubernetes">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/configure-pod-container/assign-memory-resource.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/kubernetes.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/kubernetes/" class="_nav-link" title="" style="margin-left:0;">Kubernetes</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _kubernetes">
+				
+				
+<h1>Assign Memory Resources to Containers and Pods</h1>  <p>This page shows how to assign a memory <em>request</em> and a memory <em>limit</em> to a Container. A Container is guaranteed to have as much memory as it requests, but is not allowed to use more memory than its limit.</p> <h2 id="before-you-begin">Before you begin</h2> 
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>. <p>Each node in your cluster must have at least 300 MiB of memory.</p> <p>A few of the steps on this page require you to run the <a href="https://github.com/kubernetes-sigs/metrics-server">metrics-server</a> service in your cluster. If you have the metrics-server running, you can skip those steps.</p> <p>If you are running Minikube, run the following command to enable the metrics-server:</p> <pre class="highlight" data-language="shell">minikube addons enable metrics-server
+</pre>
+<p>To see whether the metrics-server is running, or another provider of the resource metrics API (<code>metrics.k8s.io</code>), run the following command:</p> <pre class="highlight" data-language="shell">kubectl get apiservices
+</pre>
+<p>If the resource metrics API is available, the output includes a reference to <code>metrics.k8s.io</code>.</p> <pre class="highlight" data-language="shell">NAME
+v1beta1.metrics.k8s.io
+</pre> <h2 id="create-a-namespace">Create a namespace</h2> <p>Create a namespace so that the resources you create in this exercise are isolated from the rest of your cluster.</p> <pre class="highlight" data-language="shell">kubectl create namespace mem-example
+</pre>
+<h2 id="specify-a-memory-request-and-a-memory-limit">Specify a memory request and a memory limit</h2> <p>To specify a memory request for a Container, include the <code>resources:requests</code> field in the Container's resource manifest. To specify a memory limit, include <code>resources:limits</code>.</p> <p>In this exercise, you create a Pod that has one Container. The Container has a memory request of 100 MiB and a memory limit of 200 MiB. Here's the configuration file for the Pod:</p> <pre class="highlight" data-language="">pods/resource/memory-request-limit.yaml</pre> <p>The <code>args</code> section in the configuration file provides arguments for the Container when it starts. The <code>"--vm-bytes", "150M"</code> arguments tell the Container to attempt to allocate 150 MiB of memory.</p> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/resource/memory-request-limit.yaml --namespace=mem-example
+</pre>
+<p>Verify that the Pod Container is running:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo --namespace=mem-example
+</pre>
+<p>View detailed information about the Pod:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo --output=yaml --namespace=mem-example
+</pre>
+<p>The output shows that the one Container in the Pod has a memory request of 100 MiB and a memory limit of 200 MiB.</p> <pre class="highlight" data-language="yaml">...
+resources:
+  limits:
+    memory: 200Mi
+  requests:
+    memory: 100Mi
+...
+</pre>
+<p>Run <code>kubectl top</code> to fetch the metrics for the pod:</p> <pre class="highlight" data-language="shell">kubectl top pod memory-demo --namespace=mem-example
+</pre>
+<p>The output shows that the Pod is using about 162,900,000 bytes of memory, which is about 150 MiB. This is greater than the Pod's 100 MiB request, but within the Pod's 200 MiB limit.</p> <pre><code>NAME                        CPU(cores)   MEMORY(bytes)
+memory-demo                 &lt;something&gt;  162856960
+</code></pre>
+<p>Delete your Pod:</p> <pre class="highlight" data-language="shell">kubectl delete pod memory-demo --namespace=mem-example
+</pre>
+<h2 id="exceed-a-container-s-memory-limit">Exceed a Container's memory limit</h2> <p>A Container can exceed its memory request if the Node has memory available. But a Container is not allowed to use more than its memory limit. If a Container allocates more memory than its limit, the Container becomes a candidate for termination. If the Container continues to consume memory beyond its limit, the Container is terminated. If a terminated Container can be restarted, the kubelet restarts it, as with any other type of runtime failure.</p> <p>In this exercise, you create a Pod that attempts to allocate more memory than its limit. Here is the configuration file for a Pod that has one Container with a memory request of 50 MiB and a memory limit of 100 MiB:</p> <pre class="highlight" data-language="">pods/resource/memory-request-limit-2.yaml</pre> <p>In the <code>args</code> section of the configuration file, you can see that the Container will attempt to allocate 250 MiB of memory, which is well above the 100 MiB limit.</p> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/resource/memory-request-limit-2.yaml --namespace=mem-example
+</pre>
+<p>View detailed information about the Pod:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo-2 --namespace=mem-example
+</pre>
+<p>At this point, the Container might be running or killed. Repeat the preceding command until the Container is killed:</p> <pre class="highlight" data-language="shell">NAME            READY     STATUS      RESTARTS   AGE
+memory-demo-2   0/1       OOMKilled   1          24s
+</pre>
+<p>Get a more detailed view of the Container status:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo-2 --output=yaml --namespace=mem-example
+</pre>
+<p>The output shows that the Container was killed because it is out of memory (OOM):</p> <pre class="highlight" data-language="shell">lastState:
+   terminated:
+     containerID: docker://65183c1877aaec2e8427bc95609cc52677a454b56fcb24340dbd22917c23b10f
+     exitCode: 137
+     finishedAt: 2017-06-20T20:52:19Z
+     reason: OOMKilled
+     startedAt: null
+</pre>
+<p>The Container in this exercise can be restarted, so the kubelet restarts it. Repeat this command several times to see that the Container is repeatedly killed and restarted:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo-2 --namespace=mem-example
+</pre>
+<p>The output shows that the Container is killed, restarted, killed again, restarted again, and so on:</p> <pre><code>kubectl get pod memory-demo-2 --namespace=mem-example
+NAME            READY     STATUS      RESTARTS   AGE
+memory-demo-2   0/1       OOMKilled   1          37s
+</code></pre>
+<pre><code>
+kubectl get pod memory-demo-2 --namespace=mem-example
+NAME            READY     STATUS    RESTARTS   AGE
+memory-demo-2   1/1       Running   2          40s
+</code></pre>
+<p>View detailed information about the Pod history:</p> <pre><code>kubectl describe pod memory-demo-2 --namespace=mem-example
+</code></pre>
+<p>The output shows that the Container starts and fails repeatedly:</p> <pre><code>... Normal  Created   Created container with id 66a3a20aa7980e61be4922780bf9d24d1a1d8b7395c09861225b0eba1b1f8511
+... Warning BackOff   Back-off restarting failed container
+</code></pre>
+<p>View detailed information about your cluster's Nodes:</p> <pre><code>kubectl describe nodes
+</code></pre>
+<p>The output includes a record of the Container being killed because of an out-of-memory condition:</p> <pre><code>Warning OOMKilling Memory cgroup out of memory: Kill process 4481 (stress) score 1994 or sacrifice child
+</code></pre>
+<p>Delete your Pod:</p> <pre class="highlight" data-language="shell">kubectl delete pod memory-demo-2 --namespace=mem-example
+</pre>
+<h2 id="specify-a-memory-request-that-is-too-big-for-your-nodes">Specify a memory request that is too big for your Nodes</h2> <p>Memory requests and limits are associated with Containers, but it is useful to think of a Pod as having a memory request and limit. The memory request for the Pod is the sum of the memory requests for all the Containers in the Pod. Likewise, the memory limit for the Pod is the sum of the limits of all the Containers in the Pod.</p> <p>Pod scheduling is based on requests. A Pod is scheduled to run on a Node only if the Node has enough available memory to satisfy the Pod's memory request.</p> <p>In this exercise, you create a Pod that has a memory request so big that it exceeds the capacity of any Node in your cluster. Here is the configuration file for a Pod that has one Container with a request for 1000 GiB of memory, which likely exceeds the capacity of any Node in your cluster.</p> <pre class="highlight" data-language="">pods/resource/memory-request-limit-3.yaml</pre> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/resource/memory-request-limit-3.yaml --namespace=mem-example
+</pre>
+<p>View the Pod status:</p> <pre class="highlight" data-language="shell">kubectl get pod memory-demo-3 --namespace=mem-example
+</pre>
+<p>The output shows that the Pod status is PENDING. That is, the Pod is not scheduled to run on any Node, and it will remain in the PENDING state indefinitely:</p> <pre><code>kubectl get pod memory-demo-3 --namespace=mem-example
+NAME            READY     STATUS    RESTARTS   AGE
+memory-demo-3   0/1       Pending   0          25s
+</code></pre>
+<p>View detailed information about the Pod, including events:</p> <pre class="highlight" data-language="shell">kubectl describe pod memory-demo-3 --namespace=mem-example
+</pre>
+<p>The output shows that the Container cannot be scheduled because of insufficient memory on the Nodes:</p> <pre class="highlight" data-language="shell">Events:
+  ...  Reason            Message
+       ------            -------
+  ...  FailedScheduling  No nodes are available that match all of the following predicates:: Insufficient memory (3).
+</pre>
+<h2 id="memory-units">Memory units</h2> <p>The memory resource is measured in bytes. You can express memory as a plain integer or a fixed-point integer with one of these suffixes: E, P, T, G, M, K, Ei, Pi, Ti, Gi, Mi, Ki. For example, the following represent approximately the same value:</p> <pre class="highlight" data-language="shell">128974848, 129e6, 129M , 123Mi
+</pre>
+<p>Delete your Pod:</p> <pre class="highlight" data-language="shell">kubectl delete pod memory-demo-3 --namespace=mem-example
+</pre>
+<h2 id="if-you-do-not-specify-a-memory-limit">If you do not specify a memory limit</h2> <p>If you do not specify a memory limit for a Container, one of the following situations applies:</p> <ul> <li> <p>The Container has no upper bound on the amount of memory it uses. The Container could use all of the memory available on the Node where it is running which in turn could invoke the OOM Killer. Further, in case of an OOM Kill, a container with no resource limits will have a greater chance of being killed.</p> </li> <li> <p>The Container is running in a namespace that has a default memory limit, and the Container is automatically assigned the default limit. Cluster administrators can use a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#limitrange-v1-core">LimitRange</a> to specify a default value for the memory limit.</p> </li> </ul> <h2 id="motivation-for-memory-requests-and-limits">Motivation for memory requests and limits</h2> <p>By configuring memory requests and limits for the Containers that run in your cluster, you can make efficient use of the memory resources available on your cluster's Nodes. By keeping a Pod's memory request low, you give the Pod a good chance of being scheduled. By having a memory limit that is greater than the memory request, you accomplish two things:</p> <ul> <li>The Pod can have bursts of activity where it makes use of memory that happens to be available.</li> <li>The amount of memory a Pod can use during a burst is limited to some reasonable amount.</li> </ul> <h2 id="clean-up">Clean up</h2> <p>Delete your namespace. This deletes all the Pods that you created for this task:</p> <pre class="highlight" data-language="shell">kubectl delete namespace mem-example
+</pre>
+<h2 id="what-s-next">What's next</h2> <h3 id="for-app-developers">For app developers</h3> <ul> <li> <p><a href="assign-cpu-resource/index">Assign CPU Resources to Containers and Pods</a></p> </li> <li> <p><a href="quality-service-pod/index">Configure Quality of Service for Pods</a></p> </li> </ul> <h3 id="for-cluster-administrators">For cluster administrators</h3> <ul> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/">Configure Default Memory Requests and Limits for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-default-namespace/">Configure Default CPU Requests and Limits for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/">Configure Minimum and Maximum Memory Constraints for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/cpu-constraint-namespace/">Configure Minimum and Maximum CPU Constraints for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-memory-cpu-namespace/">Configure Memory and CPU Quotas for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/quota-pod-namespace/">Configure a Pod Quota for a Namespace</a></p> </li> <li> <p><a href="https://kubernetes.io/docs/tasks/administer-cluster/quota-api-object/">Configure Quotas for API Objects</a></p> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>
+    <a href="https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource" class="_attribution-link">https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
