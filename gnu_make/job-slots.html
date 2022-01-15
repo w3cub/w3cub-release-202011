@@ -1,0 +1,128 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Sharing Job Slots With GNU Make - GNU Make - W3cubDocs</title>
+  
+  <meta name="description" content="GNU make has the ability to run multiple recipes in parallel (see Parallel Execution) and to cap the total number of parallel jobs even across &hellip;">
+  <meta name="keywords" content="sharing, job, slots, with, gnu, make, gnu_make">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/gnu_make/job-slots.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
+  <script src="/json/gnu_make.js"></script>
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-71174418-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+  <script data-ad-client="ca-pub-2572770204602497" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/gnu_make/" class="_nav-link" title="" style="margin-left:0;">GNU Make</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="link"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _gnu_make">
+				
+				
+<h1 class="section">Sharing Job Slots with GNU make</h1>   <p>GNU <code>make</code> has the ability to run multiple recipes in parallel (see <a href="parallel#Parallel">Parallel Execution</a>) and to cap the total number of parallel jobs even across recursive invocations of <code>make</code> (see <a href="options_002frecursion#Options_002fRecursion">Communicating Options to a Sub-<code>make</code></a>). Tools that <code>make</code> invokes which are also able to run multiple operations in parallel, either using multiple threads or multiple processes, can be enhanced to participate in GNU <code>make</code>’s job management facility to ensure that the total number of active threads/processes running on the system does not exceed the maximum number of slots provided to GNU <code>make</code>. </p>  <p>GNU <code>make</code> uses a method called the “jobserver” to control the number of active jobs across recursive invocations. The actual implementation of the jobserver varies across different operating systems, but some fundamental aspects are always true. </p> <p>First, only command lines that <code>make</code> understands to be recursive invocations of <code>make</code> (see <a href="make-variable#MAKE-Variable">How the <code>MAKE</code> Variable Works</a>) will have access to the jobserver. When writing makefiles you must be sure to mark the command as recursive (most commonly by prefixing the command line with the <code>+</code> indicator (see <a href="recursion#Recursion">Recursive Use of <code>make</code></a>). </p> <p>Second, <code>make</code> will provide information necessary for accessing the jobserver through the environment to its children, in the <code>MAKEFLAGS</code> environment variable. Tools which want to participate in the jobserver protocol will need to parse this environment variable, as described in subsequent sections. </p> <p>Third, every command <code>make</code> starts has one implicit job slot reserved for it before it starts. Any tool which wants to participate in the jobserver protocol should assume it can always run one job without having to contact the jobserver at all. </p> <p>Finally, it’s critical that tools that participate in the jobserver protocol return the exact number of slots they obtained from the jobserver back to the jobserver before they exit, even under error conditions. Remember that the implicit job slot should <strong>not</strong> be returned to the jobserver! Returning too few slots means that those slots will be lost for the rest of the build process; returning too many slots means that extra slots will be available. The top-level <code>make</code> command will print an error message at the end of the build if it detects an incorrect number of slots available in the jobserver. </p> <p>As an example, suppose you are implementing a linker which provides for multithreaded operation. You would like to enhance the linker so that if it is invoked by GNU <code>make</code> it can participate in the jobserver protocol to control how many threads are used during link. First you will need to modify the linker to determine if the <code>MAKEFLAGS</code> environment variable is set. Next you will need to parse the value of that variable to determine if the jobserver is available, and how to access it. If it is available then you can access it to obtain job slots controlling how much parallelism your tool can use. Once done your tool must return those job slots back to the jobserver. </p> <table class="menu" border="0" cellspacing="0"> <tr>
+<td align="left" valign="top">• <a href="posix-jobserver#POSIX-Jobserver" accesskey="1">POSIX Jobserver</a>
+</td>
+<td> </td>
+<td align="left" valign="top">Using the jobserver on POSIX systems. </td>
+</tr> <tr>
+<td align="left" valign="top">• <a href="windows-jobserver#Windows-Jobserver" accesskey="2">Windows Jobserver</a>
+</td>
+<td> </td>
+<td align="left" valign="top">Using the jobserver on Windows systems. </td>
+</tr> </table>
+<div class="_attribution">
+  <p class="_attribution-p">
+    Copyright © 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 Free Software Foundation, Inc. <br>Licensed under the GNU Free Documentation License.<br>
+    <a href="https://www.gnu.org/software/make/manual/html_node/Job-Slots.html" class="_attribution-link">https://www.gnu.org/software/make/manual/html_node/Job-Slots.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
