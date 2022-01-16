@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/inject-data-application/define-interdependent-environment-variables/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -88,17 +88,43 @@
 			<div class="_page _kubernetes">
 				
 				
-<h1>Define Dependent Environment Variables</h1>  <p>This page shows how to define dependent environment variables for a container in a Kubernetes Pod.</p> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <h2 id="define-an-environment-dependent-variable-for-a-container">Define an environment dependent variable for a container</h2> <p>When you create a Pod, you can set dependent environment variables for the containers that run in the Pod. To set dependent environment variables, you can use $(VAR_NAME) in the <code>value</code> of <code>env</code> in the configuration file.</p> <p>In this exercise, you create a Pod that runs one container. The configuration file for the Pod defines an dependent environment variable with common usage defined. Here is the configuration manifest for the Pod:</p> <pre class="highlight" data-language="">pods/inject/dependent-envars.yaml</pre> <ol> <li> <p>Create a Pod based on that manifest:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dependent-envars.yaml
-</pre>
+<h1>Define Dependent Environment Variables</h1>  <p>This page shows how to define dependent environment variables for a container in a Kubernetes Pod.</p> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <h2 id="define-an-environment-dependent-variable-for-a-container">Define an environment dependent variable for a container</h2> <p>When you create a Pod, you can set dependent environment variables for the containers that run in the Pod. To set dependent environment variables, you can use $(VAR_NAME) in the <code>value</code> of <code>env</code> in the configuration file.</p> <p>In this exercise, you create a Pod that runs one container. The configuration file for the Pod defines an dependent environment variable with common usage defined. Here is the configuration manifest for the Pod:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/pods/inject/dependent-envars.yaml" download="pods/inject/dependent-envars.yaml"><code>pods/inject/dependent-envars.yaml</code> </a>   <div class="includecode" id="pods-inject-dependent-envars-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: dependent-envars-demo
+spec:
+  containers:
+    - name: dependent-envars-demo
+      args:
+        - while true; do echo -en '\n'; printf UNCHANGED_REFERENCE=$UNCHANGED_REFERENCE'\n'; printf SERVICE_ADDRESS=$SERVICE_ADDRESS'\n';printf ESCAPED_REFERENCE=$ESCAPED_REFERENCE'\n'; sleep 30; done;
+      command:
+        - sh
+        - -c
+      image: busybox
+      env:
+        - name: SERVICE_PORT
+          value: "80"
+        - name: SERVICE_IP
+          value: "172.17.0.1"
+        - name: UNCHANGED_REFERENCE
+          value: "$(PROTOCOL)://$(SERVICE_IP):$(SERVICE_PORT)"
+        - name: PROTOCOL
+          value: "https"
+        - name: SERVICE_ADDRESS
+          value: "$(PROTOCOL)://$(SERVICE_IP):$(SERVICE_PORT)"
+        - name: ESCAPED_REFERENCE
+          value: "$$(PROTOCOL)://$(SERVICE_IP):$(SERVICE_PORT)"
+</pre></div> </div> </div> <ol> <li> <p>Create a Pod based on that manifest:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dependent-envars.yaml
+</pre></div>
 <pre><code>pod/dependent-envars-demo created
 </code></pre>
-</li> <li> <p>List the running Pods:</p> <pre class="highlight" data-language="shell">kubectl get pods dependent-envars-demo
-</pre>
+</li> <li> <p>List the running Pods:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods dependent-envars-demo
+</pre></div>
 <pre><code>NAME                      READY     STATUS    RESTARTS   AGE
 dependent-envars-demo     1/1       Running   0          9s
 </code></pre>
-</li> <li> <p>Check the logs for the container running in your Pod:</p> <pre class="highlight" data-language="shell">kubectl logs pod/dependent-envars-demo
-</pre>
+</li> <li> <p>Check the logs for the container running in your Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl logs pod/dependent-envars-demo
+</pre></div>
 <pre><code>
 UNCHANGED_REFERENCE=$(PROTOCOL)://172.17.0.1:80
 SERVICE_ADDRESS=https://172.17.0.1:80

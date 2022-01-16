@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/manage-daemon/update-daemon-set/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -90,30 +90,120 @@
 				
 <h1>Perform a Rolling Update on a DaemonSet</h1>  <p>This page shows how to perform a rolling update on a DaemonSet.</p> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <h2 id="daemonset-update-strategy">DaemonSet Update Strategy</h2> <p>DaemonSet has two update strategy types:</p> <ul> <li>
 <code>OnDelete</code>: With <code>OnDelete</code> update strategy, after you update a DaemonSet template, new DaemonSet pods will <em>only</em> be created when you manually delete old DaemonSet pods. This is the same behavior of DaemonSet in Kubernetes version 1.5 or before.</li> <li>
-<code>RollingUpdate</code>: This is the default update strategy.<br> With <code>RollingUpdate</code> update strategy, after you update a DaemonSet template, old DaemonSet pods will be killed, and new DaemonSet pods will be created automatically, in a controlled fashion. At most one pod of the DaemonSet will be running on each node during the whole update process.</li> </ul> <h2 id="performing-a-rolling-update">Performing a Rolling Update</h2> <p>To enable the rolling update feature of a DaemonSet, you must set its <code>.spec.updateStrategy.type</code> to <code>RollingUpdate</code>.</p> <p>You may want to set <a href="../../../concepts/workloads/controllers/deployment/index#max-unavailable"><code>.spec.updateStrategy.rollingUpdate.maxUnavailable</code></a> (default to 1), <a href="../../../concepts/workloads/controllers/deployment/index#min-ready-seconds"><code>.spec.minReadySeconds</code></a> (default to 0) and <a href="../../../concepts/workloads/controllers/deployment/index#max-surge"><code>.spec.maxSurge</code></a> (a beta feature and defaults to 25%) as well.</p> <h3 id="creating-a-daemonset-with-rollingupdate-update-strategy">Creating a DaemonSet with <code>RollingUpdate</code> update strategy</h3> <p>This YAML file specifies a DaemonSet with an update strategy as 'RollingUpdate'</p> <pre class="highlight" data-language="">controllers/fluentd-daemonset.yaml</pre> <p>After verifying the update strategy of the DaemonSet manifest, create the DaemonSet:</p> <pre class="highlight" data-language="shell">kubectl create -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml
-</pre>
-<p>Alternatively, use <code>kubectl apply</code> to create the same DaemonSet if you plan to update the DaemonSet with <code>kubectl apply</code>.</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml
-</pre>
-<h3 id="checking-daemonset-rollingupdate-update-strategy">Checking DaemonSet <code>RollingUpdate</code> update strategy</h3> <p>Check the update strategy of your DaemonSet, and make sure it's set to <code>RollingUpdate</code>:</p> <pre class="highlight" data-language="shell">kubectl get ds/fluentd-elasticsearch -o go-template='{{.spec.updateStrategy.type}}{{"\n"}}' -n kube-system
-</pre>
-<p>If you haven't created the DaemonSet in the system, check your DaemonSet manifest with the following command instead:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml --dry-run=client -o go-template='{{.spec.updateStrategy.type}}{{"\n"}}'
-</pre>
-<p>The output from both commands should be:</p> <pre class="highlight" data-language="shell">RollingUpdate
-</pre>
-<p>If the output isn't <code>RollingUpdate</code>, go back and modify the DaemonSet object or manifest accordingly.</p> <h3 id="updating-a-daemonset-template">Updating a DaemonSet template</h3> <p>Any updates to a <code>RollingUpdate</code> DaemonSet <code>.spec.template</code> will trigger a rolling update. Let's update the DaemonSet by applying a new YAML file. This can be done with several different <code>kubectl</code> commands.</p> <pre class="highlight" data-language="">controllers/fluentd-daemonset-update.yaml</pre> <h4 id="declarative-commands">Declarative commands</h4> <p>If you update DaemonSets using <a href="../../manage-kubernetes-objects/declarative-config/index">configuration files</a>, use <code>kubectl apply</code>:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset-update.yaml
-</pre>
-<h4 id="imperative-commands">Imperative commands</h4> <p>If you update DaemonSets using <a href="../../manage-kubernetes-objects/imperative-command/index">imperative commands</a>, use <code>kubectl edit</code> :</p> <pre class="highlight" data-language="shell">kubectl edit ds/fluentd-elasticsearch -n kube-system
-</pre>
-<h5 id="updating-only-the-container-image">Updating only the container image</h5> <p>If you only need to update the container image in the DaemonSet template, i.e. <code>.spec.template.spec.containers[*].image</code>, use <code>kubectl set image</code>:</p> <pre class="highlight" data-language="shell">kubectl set image ds/fluentd-elasticsearch fluentd-elasticsearch=quay.io/fluentd_elasticsearch/fluentd:v2.6.0 -n kube-system
-</pre>
-<h3 id="watching-the-rolling-update-status">Watching the rolling update status</h3> <p>Finally, watch the rollout status of the latest DaemonSet rolling update:</p> <pre class="highlight" data-language="shell">kubectl rollout status ds/fluentd-elasticsearch -n kube-system
-</pre>
-<p>When the rollout is complete, the output is similar to this:</p> <pre class="highlight" data-language="shell">daemonset "fluentd-elasticsearch" successfully rolled out
-</pre>
-<h2 id="troubleshooting">Troubleshooting</h2> <h3 id="daemonset-rolling-update-is-stuck">DaemonSet rolling update is stuck</h3> <p>Sometimes, a DaemonSet rolling update may be stuck. Here are some possible causes:</p> <h4 id="some-nodes-run-out-of-resources">Some nodes run out of resources</h4> <p>The rollout is stuck because new DaemonSet pods can't be scheduled on at least one node. This is possible when the node is <a href="../../../concepts/scheduling-eviction/node-pressure-eviction/index">running out of resources</a>.</p> <p>When this happens, find the nodes that don't have the DaemonSet pods scheduled on by comparing the output of <code>kubectl get nodes</code> and the output of:</p> <pre class="highlight" data-language="shell">kubectl get pods -l name=fluentd-elasticsearch -o wide -n kube-system
-</pre>
-<p>Once you've found those nodes, delete some non-DaemonSet pods from the node to make room for new DaemonSet pods.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This will cause service disruption when deleted pods are not controlled by any controllers or pods are not replicated. This does not respect <a href="../../run-application/configure-pdb/index">PodDisruptionBudget</a> either. </div> <h4 id="broken-rollout">Broken rollout</h4> <p>If the recent DaemonSet template update is broken, for example, the container is crash looping, or the container image doesn't exist (often due to a typo), DaemonSet rollout won't progress.</p> <p>To fix this, update the DaemonSet template again. New rollout won't be blocked by previous unhealthy rollouts.</p> <h4 id="clock-skew">Clock skew</h4> <p>If <code>.spec.minReadySeconds</code> is specified in the DaemonSet, clock skew between master and nodes will make DaemonSet unable to detect the right rollout progress.</p> <h2 id="clean-up">Clean up</h2> <p>Delete DaemonSet from a namespace :</p> <pre class="highlight" data-language="shell">kubectl delete ds fluentd-elasticsearch -n kube-system
-</pre>
+<code>RollingUpdate</code>: This is the default update strategy.<br> With <code>RollingUpdate</code> update strategy, after you update a DaemonSet template, old DaemonSet pods will be killed, and new DaemonSet pods will be created automatically, in a controlled fashion. At most one pod of the DaemonSet will be running on each node during the whole update process.</li> </ul> <h2 id="performing-a-rolling-update">Performing a Rolling Update</h2> <p>To enable the rolling update feature of a DaemonSet, you must set its <code>.spec.updateStrategy.type</code> to <code>RollingUpdate</code>.</p> <p>You may want to set <a href="../../../concepts/workloads/controllers/deployment/index#max-unavailable"><code>.spec.updateStrategy.rollingUpdate.maxUnavailable</code></a> (default to 1), <a href="../../../concepts/workloads/controllers/deployment/index#min-ready-seconds"><code>.spec.minReadySeconds</code></a> (default to 0) and <a href="../../../concepts/workloads/controllers/deployment/index#max-surge"><code>.spec.maxSurge</code></a> (a beta feature and defaults to 25%) as well.</p> <h3 id="creating-a-daemonset-with-rollingupdate-update-strategy">Creating a DaemonSet with <code>RollingUpdate</code> update strategy</h3> <p>This YAML file specifies a DaemonSet with an update strategy as 'RollingUpdate'</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/controllers/fluentd-daemonset.yaml" download="controllers/fluentd-daemonset.yaml"><code>controllers/fluentd-daemonset.yaml</code> </a>   <div class="includecode" id="controllers-fluentd-daemonset-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+</pre></div> </div> </div> <p>After verifying the update strategy of the DaemonSet manifest, create the DaemonSet:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl create -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml
+</pre></div>
+<p>Alternatively, use <code>kubectl apply</code> to create the same DaemonSet if you plan to update the DaemonSet with <code>kubectl apply</code>.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml
+</pre></div>
+<h3 id="checking-daemonset-rollingupdate-update-strategy">Checking DaemonSet <code>RollingUpdate</code> update strategy</h3> <p>Check the update strategy of your DaemonSet, and make sure it's set to <code>RollingUpdate</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get ds/fluentd-elasticsearch -o go-template='{{.spec.updateStrategy.type}}{{"\n"}}' -n kube-system
+</pre></div>
+<p>If you haven't created the DaemonSet in the system, check your DaemonSet manifest with the following command instead:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset.yaml --dry-run=client -o go-template='{{.spec.updateStrategy.type}}{{"\n"}}'
+</pre></div>
+<p>The output from both commands should be:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">RollingUpdate
+</pre></div>
+<p>If the output isn't <code>RollingUpdate</code>, go back and modify the DaemonSet object or manifest accordingly.</p> <h3 id="updating-a-daemonset-template">Updating a DaemonSet template</h3> <p>Any updates to a <code>RollingUpdate</code> DaemonSet <code>.spec.template</code> will trigger a rolling update. Let's update the DaemonSet by applying a new YAML file. This can be done with several different <code>kubectl</code> commands.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/controllers/fluentd-daemonset-update.yaml" download="controllers/fluentd-daemonset-update.yaml"><code>controllers/fluentd-daemonset-update.yaml</code> </a>   <div class="includecode" id="controllers-fluentd-daemonset-update-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-elasticsearch
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+</pre></div> </div> </div> <h4 id="declarative-commands">Declarative commands</h4> <p>If you update DaemonSets using <a href="../../manage-kubernetes-objects/declarative-config/index">configuration files</a>, use <code>kubectl apply</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/controllers/fluentd-daemonset-update.yaml
+</pre></div>
+<h4 id="imperative-commands">Imperative commands</h4> <p>If you update DaemonSets using <a href="../../manage-kubernetes-objects/imperative-command/index">imperative commands</a>, use <code>kubectl edit</code> :</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl edit ds/fluentd-elasticsearch -n kube-system
+</pre></div>
+<h5 id="updating-only-the-container-image">Updating only the container image</h5> <p>If you only need to update the container image in the DaemonSet template, i.e. <code>.spec.template.spec.containers[*].image</code>, use <code>kubectl set image</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl set image ds/fluentd-elasticsearch fluentd-elasticsearch=quay.io/fluentd_elasticsearch/fluentd:v2.6.0 -n kube-system
+</pre></div>
+<h3 id="watching-the-rolling-update-status">Watching the rolling update status</h3> <p>Finally, watch the rollout status of the latest DaemonSet rolling update:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl rollout status ds/fluentd-elasticsearch -n kube-system
+</pre></div>
+<p>When the rollout is complete, the output is similar to this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">daemonset "fluentd-elasticsearch" successfully rolled out
+</pre></div>
+<h2 id="troubleshooting">Troubleshooting</h2> <h3 id="daemonset-rolling-update-is-stuck">DaemonSet rolling update is stuck</h3> <p>Sometimes, a DaemonSet rolling update may be stuck. Here are some possible causes:</p> <h4 id="some-nodes-run-out-of-resources">Some nodes run out of resources</h4> <p>The rollout is stuck because new DaemonSet pods can't be scheduled on at least one node. This is possible when the node is <a href="../../../concepts/scheduling-eviction/node-pressure-eviction/index">running out of resources</a>.</p> <p>When this happens, find the nodes that don't have the DaemonSet pods scheduled on by comparing the output of <code>kubectl get nodes</code> and the output of:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods -l name=fluentd-elasticsearch -o wide -n kube-system
+</pre></div>
+<p>Once you've found those nodes, delete some non-DaemonSet pods from the node to make room for new DaemonSet pods.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This will cause service disruption when deleted pods are not controlled by any controllers or pods are not replicated. This does not respect <a href="../../run-application/configure-pdb/index">PodDisruptionBudget</a> either. </div> <h4 id="broken-rollout">Broken rollout</h4> <p>If the recent DaemonSet template update is broken, for example, the container is crash looping, or the container image doesn't exist (often due to a typo), DaemonSet rollout won't progress.</p> <p>To fix this, update the DaemonSet template again. New rollout won't be blocked by previous unhealthy rollouts.</p> <h4 id="clock-skew">Clock skew</h4> <p>If <code>.spec.minReadySeconds</code> is specified in the DaemonSet, clock skew between master and nodes will make DaemonSet unable to detect the right rollout progress.</p> <h2 id="clean-up">Clean up</h2> <p>Delete DaemonSet from a namespace :</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl delete ds fluentd-elasticsearch -n kube-system
+</pre></div>
 <h2 id="what-s-next">What's next</h2> <ul> <li>See <a href="../rollback-daemon-set/index">Performing a rollback on a DaemonSet</a>
 </li> <li>See <a href="../../../concepts/workloads/controllers/daemonset/index">Creating a DaemonSet to adopt existing DaemonSet pods</a>
 </li> </ul>

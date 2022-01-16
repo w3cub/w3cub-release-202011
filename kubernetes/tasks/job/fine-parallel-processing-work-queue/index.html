@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/job/fine-parallel-processing-work-queue/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -91,10 +91,10 @@
 <h1>Fine Parallel Processing Using a Work Queue</h1>  <p>In this example, we will run a Kubernetes Job with multiple parallel worker processes in a given pod.</p> <p>In this example, as each pod is created, it picks up one unit of work from a task queue, processes it, and repeats until the end of the queue is reached.</p> <p>Here is an overview of the steps in this example:</p> <ol> <li>
 <strong>Start a storage service to hold the work queue.</strong> In this example, we use Redis to store our work items. In the previous example, we used RabbitMQ. In this example, we use Redis and a custom work-queue client library because AMQP does not provide a good way for clients to detect when a finite-length work queue is empty. In practice you would set up a store such as Redis once and reuse it for the work queues of many jobs, and other things.</li> <li>
 <strong>Create a queue, and fill it with messages.</strong> Each message represents one task to be done. In this example, a message is an integer that we will do a lengthy computation on.</li> <li>
-<strong>Start a Job that works on tasks from the queue</strong>. The Job starts several pods. Each pod takes one task from the message queue, processes it, and repeats until the end of the queue is reached.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <p>Be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p>  <h2 id="starting-redis">Starting Redis</h2> <p>For this example, for simplicity, we will start a single instance of Redis. See the <a href="https://github.com/kubernetes/examples/tree/master/guestbook">Redis Example</a> for an example of deploying Redis scalably and redundantly.</p> <p>You could also download the following files directly:</p> <ul> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-pod.yaml"><code>redis-pod.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-service.yaml"><code>redis-service.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/job.yaml"><code>job.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a></li> </ul> <h2 id="filling-the-queue-with-tasks">Filling the Queue with tasks</h2> <p>Now let's fill the queue with some "tasks". In our example, our tasks are strings to be printed.</p> <p>Start a temporary interactive pod for running the Redis CLI.</p> <pre class="highlight" data-language="shell">kubectl run -i --tty temp --image redis --command "/bin/sh"
+<strong>Start a Job that works on tasks from the queue</strong>. The Job starts several pods. Each pod takes one task from the message queue, processes it, and repeats until the end of the queue is reached.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <p>Be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p>  <h2 id="starting-redis">Starting Redis</h2> <p>For this example, for simplicity, we will start a single instance of Redis. See the <a href="https://github.com/kubernetes/examples/tree/master/guestbook">Redis Example</a> for an example of deploying Redis scalably and redundantly.</p> <p>You could also download the following files directly:</p> <ul> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-pod.yaml"><code>redis-pod.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/redis-service.yaml"><code>redis-service.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/job.yaml"><code>job.yaml</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a></li> <li><a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a></li> </ul> <h2 id="filling-the-queue-with-tasks">Filling the Queue with tasks</h2> <p>Now let's fill the queue with some "tasks". In our example, our tasks are strings to be printed.</p> <p>Start a temporary interactive pod for running the Redis CLI.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl run -i --tty temp --image redis --command "/bin/sh"
 Waiting for pod default/redis2-c7h78 to be running, status is Pending, pod ready: false
 Hit enter for command prompt
-</pre>
+</pre></div>
 <p>Now hit enter, start the redis CLI, and create a list with some work items in it.</p> <pre><code># redis-cli -h redis
 redis:6379&gt; rpush job2 "apple"
 (integer) 1
@@ -125,17 +125,54 @@ redis:6379&gt; lrange job2 0 -1
 8) "melon"
 9) "orange"
 </code></pre>
-<p>So, the list with key <code>job2</code> will be our work queue.</p> <p>Note: if you do not have Kube DNS setup correctly, you may need to change the first step of the above block to <code>redis-cli -h $REDIS_SERVICE_HOST</code>.</p> <h2 id="create-an-image">Create an Image</h2> <p>Now we are ready to create an image that we will run.</p> <p>We will use a python worker program with a redis client to read the messages from the message queue.</p> <p>A simple Redis work queue client library is provided, called rediswq.py (<a href="https://kubernetes.io/examples/application/job/redis/rediswq.py">Download</a>).</p> <p>The "worker" program in each Pod of the Job uses the work queue client library to get work. Here it is:</p> <pre class="highlight" data-language="">application/job/redis/worker.py</pre> <p>You could also download <a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a>, <a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a>, and <a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a> files, then build the image:</p> <pre class="highlight" data-language="shell">docker build -t job-wq-2 .
-</pre>
-<h3 id="push-the-image">Push the image</h3> <p>For the <a href="https://hub.docker.com/">Docker Hub</a>, tag your app image with your username and push to the Hub with the below commands. Replace <code>&lt;username&gt;</code> with your Hub username.</p> <pre class="highlight" data-language="shell">docker tag job-wq-2 &lt;username&gt;/job-wq-2
+<p>So, the list with key <code>job2</code> will be our work queue.</p> <p>Note: if you do not have Kube DNS setup correctly, you may need to change the first step of the above block to <code>redis-cli -h $REDIS_SERVICE_HOST</code>.</p> <h2 id="create-an-image">Create an Image</h2> <p>Now we are ready to create an image that we will run.</p> <p>We will use a python worker program with a redis client to read the messages from the message queue.</p> <p>A simple Redis work queue client library is provided, called rediswq.py (<a href="https://kubernetes.io/examples/application/job/redis/rediswq.py">Download</a>).</p> <p>The "worker" program in each Pod of the Job uses the work queue client library to get work. Here it is:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/redis/worker.py" download="application/job/redis/worker.py"><code>application/job/redis/worker.py</code> </a>   <div class="includecode" id="application-job-redis-worker-py"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="python">#!/usr/bin/env python
+
+import time
+import rediswq
+
+host="redis"
+# Uncomment next two lines if you do not have Kube-DNS working.
+# import os
+# host = os.getenv("REDIS_SERVICE_HOST")
+
+q = rediswq.RedisWQ(name="job2", host=host)
+print("Worker with sessionID: " +  q.sessionID())
+print("Initial queue state: empty=" + str(q.empty()))
+while not q.empty():
+  item = q.lease(lease_secs=10, block=True, timeout=2) 
+  if item is not None:
+    itemstr = item.decode("utf-8")
+    print("Working on " + itemstr)
+    time.sleep(10) # Put your actual work here instead of sleep.
+    q.complete(item)
+  else:
+    print("Waiting for work")
+print("Queue empty, exiting")
+</pre></div> </div> </div> <p>You could also download <a href="https://kubernetes.io/examples/application/job/redis/worker.py"><code>worker.py</code></a>, <a href="https://kubernetes.io/examples/application/job/redis/rediswq.py"><code>rediswq.py</code></a>, and <a href="https://kubernetes.io/examples/application/job/redis/Dockerfile"><code>Dockerfile</code></a> files, then build the image:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker build -t job-wq-2 .
+</pre></div>
+<h3 id="push-the-image">Push the image</h3> <p>For the <a href="https://hub.docker.com/">Docker Hub</a>, tag your app image with your username and push to the Hub with the below commands. Replace <code>&lt;username&gt;</code> with your Hub username.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker tag job-wq-2 &lt;username&gt;/job-wq-2
 docker push &lt;username&gt;/job-wq-2
-</pre>
-<p>You need to push to a public repository or <a href="../../../concepts/containers/images/index">configure your cluster to be able to access your private repository</a>.</p> <p>If you are using <a href="https://cloud.google.com/tools/container-registry/">Google Container Registry</a>, tag your app image with your project ID, and push to GCR. Replace <code>&lt;project&gt;</code> with your project ID.</p> <pre class="highlight" data-language="shell">docker tag job-wq-2 gcr.io/&lt;project&gt;/job-wq-2
+</pre></div>
+<p>You need to push to a public repository or <a href="../../../concepts/containers/images/index">configure your cluster to be able to access your private repository</a>.</p> <p>If you are using <a href="https://cloud.google.com/tools/container-registry/">Google Container Registry</a>, tag your app image with your project ID, and push to GCR. Replace <code>&lt;project&gt;</code> with your project ID.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker tag job-wq-2 gcr.io/&lt;project&gt;/job-wq-2
 gcloud docker -- push gcr.io/&lt;project&gt;/job-wq-2
-</pre>
-<h2 id="defining-a-job">Defining a Job</h2> <p>Here is the job definition:</p> <pre class="highlight" data-language="">application/job/redis/job.yaml</pre> <p>Be sure to edit the job template to change <code>gcr.io/myproject</code> to your own path.</p> <p>In this example, each pod works on several items from the queue and then exits when there are no more items. Since the workers themselves detect when the workqueue is empty, and the Job controller does not know about the workqueue, it relies on the workers to signal when they are done working. The workers signal that the queue is empty by exiting with success. So, as soon as any worker exits with success, the controller knows the work is done, and the Pods will exit soon. So, we set the completion count of the Job to 1. The job controller will wait for the other pods to complete too.</p> <h2 id="running-the-job">Running the Job</h2> <p>So, now run the Job:</p> <pre class="highlight" data-language="shell">kubectl apply -f ./job.yaml
-</pre>
-<p>Now wait a bit, then check on the job.</p> <pre class="highlight" data-language="shell">kubectl describe jobs/job-wq-2
+</pre></div>
+<h2 id="defining-a-job">Defining a Job</h2> <p>Here is the job definition:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/redis/job.yaml" download="application/job/redis/job.yaml"><code>application/job/redis/job.yaml</code> </a>   <div class="includecode" id="application-job-redis-job-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-wq-2
+spec:
+  parallelism: 2
+  template:
+    metadata:
+      name: job-wq-2
+    spec:
+      containers:
+      - name: c
+        image: gcr.io/myproject/job-wq-2
+      restartPolicy: OnFailure
+</pre></div> </div> </div> <p>Be sure to edit the job template to change <code>gcr.io/myproject</code> to your own path.</p> <p>In this example, each pod works on several items from the queue and then exits when there are no more items. Since the workers themselves detect when the workqueue is empty, and the Job controller does not know about the workqueue, it relies on the workers to signal when they are done working. The workers signal that the queue is empty by exiting with success. So, as soon as any worker exits with success, the controller knows the work is done, and the Pods will exit soon. So, we set the completion count of the Job to 1. The job controller will wait for the other pods to complete too.</p> <h2 id="running-the-job">Running the Job</h2> <p>So, now run the Job:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f ./job.yaml
+</pre></div>
+<p>Now wait a bit, then check on the job.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe jobs/job-wq-2
 Name:             job-wq-2
 Namespace:        default
 Selector:         controller-uid=b1c7e4e3-92e1-11e7-b85e-fa163ee3c11f
@@ -168,7 +205,7 @@ Initial queue state: empty=False
 Working on banana
 Working on date
 Working on lemon
-</pre>
+</pre></div>
 <p>As you can see, one of our pods worked on several work units.</p>  <h2 id="alternatives">Alternatives</h2> <p>If running a queue service or modifying your containers to use a work queue is inconvenient, you may want to consider one of the other <a href="../../../concepts/workloads/controllers/job/index#job-patterns">job patterns</a>.</p> <p>If you have a continuous stream of background processing work to run, then consider running your background workers with a <code>ReplicaSet</code> instead, and consider running a background processing library such as <a href="https://github.com/resque/resque">https://github.com/resque/resque</a>.</p>
 <div class="_attribution">
   <p class="_attribution-p">

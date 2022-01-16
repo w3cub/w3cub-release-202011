@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/access-application-cluster/connecting-frontend-backend/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -89,10 +89,35 @@
 				
 				
 <h1>Connect a Frontend to a Backend Using Services</h1>  <p>This task shows how to create a <em>frontend</em> and a <em>backend</em> microservice. The backend microservice is a hello greeter. The frontend exposes the backend using nginx and a Kubernetes <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../../../concepts/services-networking/service/index" target="_blank" aria-label="Service">Service</a> object.</p> <h2 id="objectives">Objectives</h2> <ul> <li>Create and run a sample <code>hello</code> backend microservice using a <a class="glossary-tooltip" title="Manages a replicated application on your cluster." data-toggle="tooltip" data-placement="top" href="../../../concepts/workloads/controllers/deployment/index" target="_blank" aria-label="Deployment">Deployment</a> object.</li> <li>Use a Service object to send traffic to the backend microservice's multiple replicas.</li> <li>Create and run a <code>nginx</code> frontend microservice, also using a Deployment object.</li> <li>Configure the frontend microservice to send traffic to the backend microservice.</li> <li>Use a Service object of <code>type=LoadBalancer</code> to expose the frontend microservice outside the cluster.</li> </ul> <h2 id="before-you-begin">Before you begin</h2> 
-<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>. <p>This task uses <a href="../create-external-load-balancer/index">Services with external load balancers</a>, which require a supported environment. If your environment does not support this, you can use a Service of type <a href="../../../concepts/services-networking/service/index#type-nodeport">NodePort</a> instead.</p>  <h2 id="creating-the-backend-using-a-deployment">Creating the backend using a Deployment</h2> <p>The backend is a simple hello greeter microservice. Here is the configuration file for the backend Deployment:</p> <pre class="highlight" data-language="">service/access/backend-deployment.yaml</pre> <p>Create the backend Deployment:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/backend-deployment.yaml
-</pre>
-<p>View information about the backend Deployment:</p> <pre class="highlight" data-language="shell">kubectl describe deployment backend
-</pre>
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>. <p>This task uses <a href="../create-external-load-balancer/index">Services with external load balancers</a>, which require a supported environment. If your environment does not support this, you can use a Service of type <a href="../../../concepts/services-networking/service/index#type-nodeport">NodePort</a> instead.</p>  <h2 id="creating-the-backend-using-a-deployment">Creating the backend using a Deployment</h2> <p>The backend is a simple hello greeter microservice. Here is the configuration file for the backend Deployment:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/access/backend-deployment.yaml" download="service/access/backend-deployment.yaml"><code>service/access/backend-deployment.yaml</code> </a>   <div class="includecode" id="service-access-backend-deployment-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: hello
+      tier: backend
+      track: stable
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: hello
+        tier: backend
+        track: stable
+    spec:
+      containers:
+        - name: hello
+          image: "gcr.io/google-samples/hello-go-gke:1.0"
+          ports:
+            - name: http
+              containerPort: 80
+...</pre></div> </div> </div> <p>Create the backend Deployment:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/backend-deployment.yaml
+</pre></div>
+<p>View information about the backend Deployment:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe deployment backend
+</pre></div>
 <p>The output is similar to this:</p> <pre><code>Name:                           backend
 Namespace:                      default
 CreationTimestamp:              Mon, 24 Oct 2016 14:21:02 -0700
@@ -126,30 +151,97 @@ NewReplicaSet:                  hello-3621623197 (3/3 replicas created)
 Events:
 ...
 </code></pre>
-<h2 id="creating-the-hello-service-object">Creating the <code>hello</code> Service object</h2> <p>The key to sending requests from a frontend to a backend is the backend Service. A Service creates a persistent IP address and DNS name entry so that the backend microservice can always be reached. A Service uses <a class="glossary-tooltip" title="Allows users to filter a list of resources based on labels." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/labels/index" target="_blank" aria-label="selectors">selectors</a> to find the Pods that it routes traffic to.</p> <p>First, explore the Service configuration file:</p> <pre class="highlight" data-language="">service/access/backend-service.yaml</pre> <p>In the configuration file, you can see that the Service, named <code>hello</code> routes traffic to Pods that have the labels <code>app: hello</code> and <code>tier: backend</code>.</p> <p>Create the backend Service:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/backend-service.yaml
-</pre>
-<p>At this point, you have a <code>backend</code> Deployment running three replicas of your <code>hello</code> application, and you have a Service that can route traffic to them. However, this service is neither available nor resolvable outside the cluster.</p> <h2 id="creating-the-frontend">Creating the frontend</h2> <p>Now that you have your backend running, you can create a frontend that is accessible outside the cluster, and connects to the backend by proxying requests to it.</p> <p>The frontend sends requests to the backend worker Pods by using the DNS name given to the backend Service. The DNS name is <code>hello</code>, which is the value of the <code>name</code> field in the <code>examples/service/access/backend-service.yaml</code> configuration file.</p> <p>The Pods in the frontend Deployment run a nginx image that is configured to proxy requests to the <code>hello</code> backend Service. Here is the nginx configuration file:</p> <pre class="highlight" data-language="">service/access/frontend-nginx.conf</pre> <p>Similar to the backend, the frontend has a Deployment and a Service. An important difference to notice between the backend and frontend services, is that the configuration for the frontend Service has <code>type: LoadBalancer</code>, which means that the Service uses a load balancer provisioned by your cloud provider and will be accessible from outside the cluster.</p> <pre class="highlight" data-language="">service/access/frontend-service.yaml</pre> <pre class="highlight" data-language="">service/access/frontend-deployment.yaml</pre> <p>Create the frontend Deployment and Service:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/frontend-deployment.yaml
+<h2 id="creating-the-hello-service-object">Creating the <code>hello</code> Service object</h2> <p>The key to sending requests from a frontend to a backend is the backend Service. A Service creates a persistent IP address and DNS name entry so that the backend microservice can always be reached. A Service uses <a class="glossary-tooltip" title="Allows users to filter a list of resources based on labels." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/labels/index" target="_blank" aria-label="selectors">selectors</a> to find the Pods that it routes traffic to.</p> <p>First, explore the Service configuration file:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/access/backend-service.yaml" download="service/access/backend-service.yaml"><code>service/access/backend-service.yaml</code> </a>   <div class="includecode" id="service-access-backend-service-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello
+spec:
+  selector:
+    app: hello
+    tier: backend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: http
+...</pre></div> </div> </div> <p>In the configuration file, you can see that the Service, named <code>hello</code> routes traffic to Pods that have the labels <code>app: hello</code> and <code>tier: backend</code>.</p> <p>Create the backend Service:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/backend-service.yaml
+</pre></div>
+<p>At this point, you have a <code>backend</code> Deployment running three replicas of your <code>hello</code> application, and you have a Service that can route traffic to them. However, this service is neither available nor resolvable outside the cluster.</p> <h2 id="creating-the-frontend">Creating the frontend</h2> <p>Now that you have your backend running, you can create a frontend that is accessible outside the cluster, and connects to the backend by proxying requests to it.</p> <p>The frontend sends requests to the backend worker Pods by using the DNS name given to the backend Service. The DNS name is <code>hello</code>, which is the value of the <code>name</code> field in the <code>examples/service/access/backend-service.yaml</code> configuration file.</p> <p>The Pods in the frontend Deployment run a nginx image that is configured to proxy requests to the <code>hello</code> backend Service. Here is the nginx configuration file:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/access/frontend-nginx.conf" download="service/access/frontend-nginx.conf"><code>service/access/frontend-nginx.conf</code> </a>   <div class="includecode" id="service-access-frontend-nginx-conf"> <pre tabindex="0"><code class="language-conf" data-lang="conf"># The identifier Backend is internal to nginx, and used to name this specific upstream
+upstream Backend {
+    # hello is the internal DNS name used by the backend Service inside Kubernetes
+    server hello;
+}
+
+server {
+    listen 80;
+
+    location / {
+        # The following statement will proxy traffic to the upstream named Backend
+        proxy_pass http://Backend;
+    }
+}
+</code></pre> </div> </div> <p>Similar to the backend, the frontend has a Deployment and a Service. An important difference to notice between the backend and frontend services, is that the configuration for the frontend Service has <code>type: LoadBalancer</code>, which means that the Service uses a load balancer provisioned by your cloud provider and will be accessible from outside the cluster.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/access/frontend-service.yaml" download="service/access/frontend-service.yaml"><code>service/access/frontend-service.yaml</code> </a>   <div class="includecode" id="service-access-frontend-service-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: hello
+    tier: frontend
+  ports:
+  - protocol: "TCP"
+    port: 80
+    targetPort: 80
+  type: LoadBalancer
+...</pre></div> </div> </div> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/access/frontend-deployment.yaml" download="service/access/frontend-deployment.yaml"><code>service/access/frontend-deployment.yaml</code> </a>   <div class="includecode" id="service-access-frontend-deployment-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  selector:
+    matchLabels:
+      app: hello
+      tier: frontend
+      track: stable
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello
+        tier: frontend
+        track: stable
+    spec:
+      containers:
+        - name: nginx
+          image: "gcr.io/google-samples/hello-frontend:1.0"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/usr/sbin/nginx","-s","quit"]
+...</pre></div> </div> </div> <p>Create the frontend Deployment and Service:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/service/access/frontend-deployment.yaml
 kubectl apply -f https://k8s.io/examples/service/access/frontend-service.yaml
-</pre>
+</pre></div>
 <p>The output verifies that both resources were created:</p> <pre><code>deployment.apps/frontend created
 service/frontend created
 </code></pre>
-<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The nginx configuration is baked into the <a href="https://kubernetes.io/examples/service/access/Dockerfile">container image</a>. A better way to do this would be to use a <a href="../../configure-pod-container/configure-pod-configmap/index">ConfigMap</a>, so that you can change the configuration more easily. </div> <h2 id="interact-with-the-frontend-service">Interact with the frontend Service</h2> <p>Once you've created a Service of type LoadBalancer, you can use this command to find the external IP:</p> <pre class="highlight" data-language="shell">kubectl get service frontend --watch
-</pre>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The nginx configuration is baked into the <a href="https://kubernetes.io/examples/service/access/Dockerfile">container image</a>. A better way to do this would be to use a <a href="../../configure-pod-container/configure-pod-configmap/index">ConfigMap</a>, so that you can change the configuration more easily. </div> <h2 id="interact-with-the-frontend-service">Interact with the frontend Service</h2> <p>Once you've created a Service of type LoadBalancer, you can use this command to find the external IP:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get service frontend --watch
+</pre></div>
 <p>This displays the configuration for the <code>frontend</code> Service and watches for changes. Initially, the external IP is listed as <code>&lt;pending&gt;</code>:</p> <pre><code>NAME       TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)  AGE
 frontend   LoadBalancer   10.51.252.116   &lt;pending&gt;     80/TCP   10s
 </code></pre>
 <p>As soon as an external IP is provisioned, however, the configuration updates to include the new IP under the <code>EXTERNAL-IP</code> heading:</p> <pre><code>NAME       TYPE           CLUSTER-IP      EXTERNAL-IP        PORT(S)  AGE
 frontend   LoadBalancer   10.51.252.116   XXX.XXX.XXX.XXX    80/TCP   1m
 </code></pre>
-<p>That IP can now be used to interact with the <code>frontend</code> service from outside the cluster.</p> <h2 id="send-traffic-through-the-frontend">Send traffic through the frontend</h2> <p>The frontend and backend are now connected. You can hit the endpoint by using the curl command on the external IP of your frontend Service.</p> <pre class="highlight" data-language="shell">curl http://${EXTERNAL_IP} # replace this with the EXTERNAL-IP you saw earlier
-</pre>
-<p>The output shows the message generated by the backend:</p> <pre class="highlight" data-language="json">{"message":"Hello"}
-</pre>
-<h2 id="cleaning-up">Cleaning up</h2> <p>To delete the Services, enter this command:</p> <pre class="highlight" data-language="shell">kubectl delete services frontend backend
-</pre>
-<p>To delete the Deployments, the ReplicaSets and the Pods that are running the backend and frontend applications, enter this command:</p> <pre class="highlight" data-language="shell">kubectl delete deployment frontend backend
-</pre>
+<p>That IP can now be used to interact with the <code>frontend</code> service from outside the cluster.</p> <h2 id="send-traffic-through-the-frontend">Send traffic through the frontend</h2> <p>The frontend and backend are now connected. You can hit the endpoint by using the curl command on the external IP of your frontend Service.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">curl http://${EXTERNAL_IP} # replace this with the EXTERNAL-IP you saw earlier
+</pre></div>
+<p>The output shows the message generated by the backend:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="json">{"message":"Hello"}
+</pre></div>
+<h2 id="cleaning-up">Cleaning up</h2> <p>To delete the Services, enter this command:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl delete services frontend backend
+</pre></div>
+<p>To delete the Deployments, the ReplicaSets and the Pods that are running the backend and frontend applications, enter this command:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl delete deployment frontend backend
+</pre></div>
 <h2 id="what-s-next">What's next</h2> <ul> <li>Learn more about <a href="../../../concepts/services-networking/service/index">Services</a>
 </li> <li>Learn more about <a href="../../configure-pod-container/configure-pod-configmap/index">ConfigMaps</a>
 </li> <li>Learn more about <a href="../../../concepts/services-networking/dns-pod-service/index">DNS for Service and Pods</a>

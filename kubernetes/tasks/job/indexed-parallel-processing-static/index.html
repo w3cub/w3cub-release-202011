@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/job/indexed-parallel-processing-static/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -88,16 +88,77 @@
 			<div class="_page _kubernetes">
 				
 				
-<h1>Indexed Job for Parallel Processing with Static Work Assignment</h1> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [beta]</code> </div>  <p>In this example, you will run a Kubernetes Job that uses multiple parallel worker processes. Each worker is a different container running in its own Pod. The Pods have an <em>index number</em> that the control plane sets automatically, which allows each Pod to identify which part of the overall task to work on.</p> <p>The pod index is available in the <a class="glossary-tooltip" title="A key-value pair that is used to attach arbitrary non-identifying metadata to objects." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/annotations" target="_blank" aria-label="annotation">annotation</a> <code>batch.kubernetes.io/job-completion-index</code> as a string representing its decimal value. In order for the containerized task process to obtain this index, you can publish the value of the annotation using the <a href="../../inject-data-application/downward-api-volume-expose-pod-information/index#the-downward-api">downward API</a> mechanism. For convenience, the control plane automatically sets the downward API to expose the index in the <code>JOB_COMPLETION_INDEX</code> environment variable.</p> <p>Here is an overview of the steps in this example:</p> <ol> <li>
+<h1>Indexed Job for Parallel Processing with Static Work Assignment</h1> <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.22 [beta]</code> </div>  <p>In this example, you will run a Kubernetes Job that uses multiple parallel worker processes. Each worker is a different container running in its own Pod. The Pods have an <em>index number</em> that the control plane sets automatically, which allows each Pod to identify which part of the overall task to work on.</p> <p>The pod index is available in the <a class="glossary-tooltip" title="A key-value pair that is used to attach arbitrary non-identifying metadata to objects." data-toggle="tooltip" data-placement="top" href="../../../concepts/overview/working-with-objects/annotations/index" target="_blank" aria-label="annotation">annotation</a> <code>batch.kubernetes.io/job-completion-index</code> as a string representing its decimal value. In order for the containerized task process to obtain this index, you can publish the value of the annotation using the <a href="../../inject-data-application/downward-api-volume-expose-pod-information/index#the-downward-api">downward API</a> mechanism. For convenience, the control plane automatically sets the downward API to expose the index in the <code>JOB_COMPLETION_INDEX</code> environment variable.</p> <p>Here is an overview of the steps in this example:</p> <ol> <li>
 <strong>Define a Job manifest using indexed completion</strong>. The downward API allows you to pass the pod index annotation as an environment variable or file to the container.</li> <li>
 <strong>Start an <code>Indexed</code> Job based on that manifest</strong>.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>You should already be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p> 
-<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> Your Kubernetes server must be at or later than version v1.21. To check the version, enter <code>kubectl version</code>.  <h2 id="choose-an-approach">Choose an approach</h2> <p>To access the work item from the worker program, you have a few options:</p> <ol> <li>Read the <code>JOB_COMPLETION_INDEX</code> environment variable. The Job <a class="glossary-tooltip" title="A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state." data-toggle="tooltip" data-placement="top" href="../../../concepts/architecture/controller/index" target="_blank" aria-label="controller">controller</a> automatically links this variable to the annotation containing the completion index.</li> <li>Read a file that contains the completion index.</li> <li>Assuming that you can't modify the program, you can wrap it with a script that reads the index using any of the methods above and converts it into something that the program can use as input.</li> </ol> <p>For this example, imagine that you chose option 3 and you want to run the <a href="https://man7.org/linux/man-pages/man1/rev.1.html">rev</a> utility. This program accepts a file as an argument and prints its content reversed.</p> <pre class="highlight" data-language="shell">rev data.txt
-</pre>
-<p>You'll use the <code>rev</code> tool from the <a href="https://hub.docker.com/_/busybox"><code>busybox</code></a> container image.</p> <p>As this is only an example, each Pod only does a tiny piece of work (reversing a short string). In a real workload you might, for example, create a Job that represents the task of producing 60 seconds of video based on scene data. Each work item in the video rendering Job would be to render a particular frame of that video clip. Indexed completion would mean that each Pod in the Job knows which frame to render and publish, by counting frames from the start of the clip.</p> <h2 id="define-an-indexed-job">Define an Indexed Job</h2> <p>Here is a sample Job manifest that uses <code>Indexed</code> completion mode:</p> <pre class="highlight" data-language="">application/job/indexed-job.yaml</pre> <p>In the example above, you use the builtin <code>JOB_COMPLETION_INDEX</code> environment variable set by the Job controller for all containers. An <a href="../../../concepts/workloads/pods/init-containers/index">init container</a> maps the index to a static value and writes it to a file that is shared with the container running the worker through an <a href="../../../concepts/storage/volumes/index#emptydir">emptyDir volume</a>. Optionally, you can <a href="../../inject-data-application/environment-variable-expose-pod-information/index">define your own environment variable through the downward API</a> to publish the index to containers. You can also choose to load a list of values from a <a href="../../configure-pod-container/configure-pod-configmap/index">ConfigMap as an environment variable or file</a>.</p> <p>Alternatively, you can directly <a href="../../inject-data-application/downward-api-volume-expose-pod-information/index#store-pod-fields">use the downward API to pass the annotation value as a volume file</a>, like shown in the following example:</p> <pre class="highlight" data-language="">application/job/indexed-job-vol.yaml</pre> <h2 id="running-the-job">Running the Job</h2> <p>Now run the Job:</p> <pre class="highlight" data-language="shell"># This uses the first approach (relying on $JOB_COMPLETION_INDEX)
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> Your Kubernetes server must be at or later than version v1.21. To check the version, enter <code>kubectl version</code>.  <h2 id="choose-an-approach">Choose an approach</h2> <p>To access the work item from the worker program, you have a few options:</p> <ol> <li>Read the <code>JOB_COMPLETION_INDEX</code> environment variable. The Job <a class="glossary-tooltip" title="A control loop that watches the shared state of the cluster through the apiserver and makes changes attempting to move the current state towards the desired state." data-toggle="tooltip" data-placement="top" href="../../../concepts/architecture/controller/index" target="_blank" aria-label="controller">controller</a> automatically links this variable to the annotation containing the completion index.</li> <li>Read a file that contains the completion index.</li> <li>Assuming that you can't modify the program, you can wrap it with a script that reads the index using any of the methods above and converts it into something that the program can use as input.</li> </ol> <p>For this example, imagine that you chose option 3 and you want to run the <a href="https://man7.org/linux/man-pages/man1/rev.1.html">rev</a> utility. This program accepts a file as an argument and prints its content reversed.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">rev data.txt
+</pre></div>
+<p>You'll use the <code>rev</code> tool from the <a href="https://hub.docker.com/_/busybox"><code>busybox</code></a> container image.</p> <p>As this is only an example, each Pod only does a tiny piece of work (reversing a short string). In a real workload you might, for example, create a Job that represents the task of producing 60 seconds of video based on scene data. Each work item in the video rendering Job would be to render a particular frame of that video clip. Indexed completion would mean that each Pod in the Job knows which frame to render and publish, by counting frames from the start of the clip.</p> <h2 id="define-an-indexed-job">Define an Indexed Job</h2> <p>Here is a sample Job manifest that uses <code>Indexed</code> completion mode:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/indexed-job.yaml" download="application/job/indexed-job.yaml"><code>application/job/indexed-job.yaml</code> </a>   <div class="includecode" id="application-job-indexed-job-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 'indexed-job'
+spec:
+  completions: 5
+  parallelism: 3
+  completionMode: Indexed
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+      - name: 'input'
+        image: 'docker.io/library/bash'
+        command:
+        - "bash"
+        - "-c"
+        - |
+          items=(foo bar baz qux xyz)
+          echo ${items[$JOB_COMPLETION_INDEX]} &gt; /input/data.txt          
+        volumeMounts:
+        - mountPath: /input
+          name: input
+      containers:
+      - name: 'worker'
+        image: 'docker.io/library/busybox'
+        command:
+        - "rev"
+        - "/input/data.txt"
+        volumeMounts:
+        - mountPath: /input
+          name: input
+      volumes:
+      - name: input
+        emptyDir: {}
+</pre></div> </div> </div> <p>In the example above, you use the builtin <code>JOB_COMPLETION_INDEX</code> environment variable set by the Job controller for all containers. An <a href="../../../concepts/workloads/pods/init-containers/index">init container</a> maps the index to a static value and writes it to a file that is shared with the container running the worker through an <a href="../../../concepts/storage/volumes/index#emptydir">emptyDir volume</a>. Optionally, you can <a href="../../inject-data-application/environment-variable-expose-pod-information/index">define your own environment variable through the downward API</a> to publish the index to containers. You can also choose to load a list of values from a <a href="../../configure-pod-container/configure-pod-configmap/index">ConfigMap as an environment variable or file</a>.</p> <p>Alternatively, you can directly <a href="../../inject-data-application/downward-api-volume-expose-pod-information/index#store-pod-fields">use the downward API to pass the annotation value as a volume file</a>, like shown in the following example:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/indexed-job-vol.yaml" download="application/job/indexed-job-vol.yaml"><code>application/job/indexed-job-vol.yaml</code> </a>   <div class="includecode" id="application-job-indexed-job-vol-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 'indexed-job'
+spec:
+  completions: 5
+  parallelism: 3
+  completionMode: Indexed
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: 'worker'
+        image: 'docker.io/library/busybox'
+        command:
+        - "rev"
+        - "/input/data.txt"
+        volumeMounts:
+        - mountPath: /input
+          name: input
+      volumes:
+      - name: input
+        downwardAPI:
+          items:
+          - path: "data.txt"
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']</pre></div> </div> </div> <h2 id="running-the-job">Running the Job</h2> <p>Now run the Job:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell"># This uses the first approach (relying on $JOB_COMPLETION_INDEX)
 kubectl apply -f https://kubernetes.io/examples/application/job/indexed-job.yaml
-</pre>
-<p>When you create this Job, the control plane creates a series of Pods, one for each index you specified. The value of <code>.spec.parallelism</code> determines how many can run at once whereas <code>.spec.completions</code> determines how many Pods the Job creates in total.</p> <p>Because <code>.spec.parallelism</code> is less than <code>.spec.completions</code>, the control plane waits for some of the first Pods to complete before starting more of them.</p> <p>Once you have created the Job, wait a moment then check on progress:</p> <pre class="highlight" data-language="shell">kubectl describe jobs/indexed-job
-</pre>
+</pre></div>
+<p>When you create this Job, the control plane creates a series of Pods, one for each index you specified. The value of <code>.spec.parallelism</code> determines how many can run at once whereas <code>.spec.completions</code> determines how many Pods the Job creates in total.</p> <p>Because <code>.spec.parallelism</code> is less than <code>.spec.completions</code>, the control plane waits for some of the first Pods to complete before starting more of them.</p> <p>Once you have created the Job, wait a moment then check on progress:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe jobs/indexed-job
+</pre></div>
 <p>The output is similar to:</p> <pre><code>Name:              indexed-job
 Namespace:         default
 Selector:          controller-uid=bf865e04-0b67-483b-9a90-74cfc4c3e756
@@ -151,8 +212,8 @@ Events:
   Normal  SuccessfulCreate  1s    job-controller  Created pod: indexed-job-fdhq5
   Normal  SuccessfulCreate  1s    job-controller  Created pod: indexed-job-ncslj
 </code></pre>
-<p>In this example, you run the Job with custom values for each index. You can inspect the output of one of the pods:</p> <pre class="highlight" data-language="shell">kubectl logs indexed-job-fdhq5 # Change this to match the name of a Pod from that Job
-</pre>
+<p>In this example, you run the Job with custom values for each index. You can inspect the output of one of the pods:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl logs indexed-job-fdhq5 # Change this to match the name of a Pod from that Job
+</pre></div>
 <p>The output is similar to:</p> <pre><code>xuq
 </code></pre>
 <div class="_attribution">

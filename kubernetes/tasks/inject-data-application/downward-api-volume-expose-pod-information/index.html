@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/inject-data-application/downward-api-volume-expose-pod-information/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -89,31 +89,69 @@
 				
 				
 <h1>Expose Pod Information to Containers Through Files</h1>  <p>This page shows how a Pod can use a DownwardAPIVolumeFile to expose information about itself to Containers running in the Pod. A DownwardAPIVolumeFile can expose Pod fields and Container fields.</p> <h2 id="before-you-begin">Before you begin</h2> 
-<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>.  <h2 id="the-downward-api">The Downward API</h2> <p>There are two ways to expose Pod and Container fields to a running Container:</p> <ul> <li><a href="../environment-variable-expose-pod-information/index#the-downward-api">Environment variables</a></li> <li>Volume Files</li> </ul> <p>Together, these two ways of exposing Pod and Container fields are called the <em>Downward API</em>.</p> <h2 id="store-pod-fields">Store Pod fields</h2> <p>In this exercise, you create a Pod that has one Container. Here is the configuration file for the Pod:</p> <pre class="highlight" data-language="">pods/inject/dapi-volume.yaml</pre> <p>In the configuration file, you can see that the Pod has a <code>downwardAPI</code> Volume, and the Container mounts the Volume at <code>/etc/podinfo</code>.</p> <p>Look at the <code>items</code> array under <code>downwardAPI</code>. Each element of the array is a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#downwardapivolumefile-v1-core">DownwardAPIVolumeFile</a>. The first element specifies that the value of the Pod's <code>metadata.labels</code> field should be stored in a file named <code>labels</code>. The second element specifies that the value of the Pod's <code>annotations</code> field should be stored in a file named <code>annotations</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The fields in this example are Pod fields. They are not fields of the Container in the Pod. </div> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dapi-volume.yaml
-</pre>
-<p>Verify that the Container in the Pod is running:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
-<p>View the Container's logs:</p> <pre class="highlight" data-language="shell">kubectl logs kubernetes-downwardapi-volume-example
-</pre>
-<p>The output shows the contents of the <code>labels</code> file and the <code>annotations</code> file:</p> <pre class="highlight" data-language="shell">cluster="test-cluster1"
+<p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> To check the version, enter <code>kubectl version</code>.  <h2 id="the-downward-api">The Downward API</h2> <p>There are two ways to expose Pod and Container fields to a running Container:</p> <ul> <li><a href="../environment-variable-expose-pod-information/index#the-downward-api">Environment variables</a></li> <li>Volume Files</li> </ul> <p>Together, these two ways of exposing Pod and Container fields are called the <em>Downward API</em>.</p> <h2 id="store-pod-fields">Store Pod fields</h2> <p>In this exercise, you create a Pod that has one Container. Here is the configuration file for the Pod:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/pods/inject/dapi-volume.yaml" download="pods/inject/dapi-volume.yaml"><code>pods/inject/dapi-volume.yaml</code> </a>   <div class="includecode" id="pods-inject-dapi-volume-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-downwardapi-volume-example
+  labels:
+    zone: us-est-coast
+    cluster: test-cluster1
+    rack: rack-22
+  annotations:
+    build: two
+    builder: john-doe
+spec:
+  containers:
+    - name: client-container
+      image: k8s.gcr.io/busybox
+      command: ["sh", "-c"]
+      args:
+      - while true; do
+          if [[ -e /etc/podinfo/labels ]]; then
+            echo -en '\n\n'; cat /etc/podinfo/labels; fi;
+          if [[ -e /etc/podinfo/annotations ]]; then
+            echo -en '\n\n'; cat /etc/podinfo/annotations; fi;
+          sleep 5;
+        done;
+      volumeMounts:
+        - name: podinfo
+          mountPath: /etc/podinfo
+  volumes:
+    - name: podinfo
+      downwardAPI:
+        items:
+          - path: "labels"
+            fieldRef:
+              fieldPath: metadata.labels
+          - path: "annotations"
+            fieldRef:
+              fieldPath: metadata.annotations
+
+</pre></div> </div> </div> <p>In the configuration file, you can see that the Pod has a <code>downwardAPI</code> Volume, and the Container mounts the Volume at <code>/etc/podinfo</code>.</p> <p>Look at the <code>items</code> array under <code>downwardAPI</code>. Each element of the array is a <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#downwardapivolumefile-v1-core">DownwardAPIVolumeFile</a>. The first element specifies that the value of the Pod's <code>metadata.labels</code> field should be stored in a file named <code>labels</code>. The second element specifies that the value of the Pod's <code>annotations</code> field should be stored in a file named <code>annotations</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> The fields in this example are Pod fields. They are not fields of the Container in the Pod. </div> <p>Create the Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dapi-volume.yaml
+</pre></div>
+<p>Verify that the Container in the Pod is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
+<p>View the Container's logs:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl logs kubernetes-downwardapi-volume-example
+</pre></div>
+<p>The output shows the contents of the <code>labels</code> file and the <code>annotations</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">cluster="test-cluster1"
 rack="rack-22"
 zone="us-est-coast"
 
 build="two"
 builder="john-doe"
-</pre>
-<p>Get a shell into the Container that is running in your Pod:</p> <pre class="highlight" data-language="shell">kubectl exec -it kubernetes-downwardapi-volume-example -- sh
-</pre>
-<p>In your shell, view the <code>labels</code> file:</p> <pre class="highlight" data-language="shell">/# cat /etc/podinfo/labels
-</pre>
-<p>The output shows that all of the Pod's labels have been written to the <code>labels</code> file:</p> <pre class="highlight" data-language="shell">cluster="test-cluster1"
+</pre></div>
+<p>Get a shell into the Container that is running in your Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl exec -it kubernetes-downwardapi-volume-example -- sh
+</pre></div>
+<p>In your shell, view the <code>labels</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/# cat /etc/podinfo/labels
+</pre></div>
+<p>The output shows that all of the Pod's labels have been written to the <code>labels</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">cluster="test-cluster1"
 rack="rack-22"
 zone="us-est-coast"
-</pre>
-<p>Similarly, view the <code>annotations</code> file:</p> <pre class="highlight" data-language="shell">/# cat /etc/podinfo/annotations
-</pre>
-<p>View the files in the <code>/etc/podinfo</code> directory:</p> <pre class="highlight" data-language="shell">/# ls -laR /etc/podinfo
-</pre>
+</pre></div>
+<p>Similarly, view the <code>annotations</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/# cat /etc/podinfo/annotations
+</pre></div>
+<p>View the files in the <code>/etc/podinfo</code> directory:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/# ls -laR /etc/podinfo
+</pre></div>
 <p>In the output, you can see that the <code>labels</code> and <code>annotations</code> files are in a temporary subdirectory: in this example, <code>..2982_06_02_21_47_53.299460680</code>. In the <code>/etc/podinfo</code> directory, <code>..data</code> is a symbolic link to the temporary subdirectory. Also in the <code>/etc/podinfo</code> directory, <code>labels</code> and <code>annotations</code> are symbolic links.</p> <pre><code>drwxr-xr-x  ... Feb 6 21:47 ..2982_06_02_21_47_53.299460680
 lrwxrwxrwx  ... Feb 6 21:47 ..data -&gt; ..2982_06_02_21_47_53.299460680
 lrwxrwxrwx  ... Feb 6 21:47 annotations -&gt; ..data/annotations
@@ -124,14 +162,71 @@ total 8
 -rw-r--r--  ... Feb  6 21:47 annotations
 -rw-r--r--  ... Feb  6 21:47 labels
 </code></pre>
-<p>Using symbolic links enables dynamic atomic refresh of the metadata; updates are written to a new temporary directory, and the <code>..data</code> symlink is updated atomically using <a href="http://man7.org/linux/man-pages/man2/rename.2.html">rename(2)</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> A container using Downward API as a <a href="../../../concepts/storage/volumes/index#using-subpath">subPath</a> volume mount will not receive Downward API updates. </div> <p>Exit the shell:</p> <pre class="highlight" data-language="shell">/# exit
-</pre>
-<h2 id="store-container-fields">Store Container fields</h2> <p>The preceding exercise, you stored Pod fields in a DownwardAPIVolumeFile. In this next exercise, you store Container fields. Here is the configuration file for a Pod that has one Container:</p> <pre class="highlight" data-language="">pods/inject/dapi-volume-resources.yaml</pre> <p>In the configuration file, you can see that the Pod has a <code>downwardAPI</code> Volume, and the Container mounts the Volume at <code>/etc/podinfo</code>.</p> <p>Look at the <code>items</code> array under <code>downwardAPI</code>. Each element of the array is a DownwardAPIVolumeFile.</p> <p>The first element specifies that in the Container named <code>client-container</code>, the value of the <code>limits.cpu</code> field in the format specified by <code>1m</code> should be stored in a file named <code>cpu_limit</code>. The <code>divisor</code> field is optional and has the default value of <code>1</code> which means cores for cpu and bytes for memory.</p> <p>Create the Pod:</p> <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dapi-volume-resources.yaml
-</pre>
-<p>Get a shell into the Container that is running in your Pod:</p> <pre class="highlight" data-language="shell">kubectl exec -it kubernetes-downwardapi-volume-example-2 -- sh
-</pre>
-<p>In your shell, view the <code>cpu_limit</code> file:</p> <pre class="highlight" data-language="shell">/# cat /etc/podinfo/cpu_limit
-</pre>
+<p>Using symbolic links enables dynamic atomic refresh of the metadata; updates are written to a new temporary directory, and the <code>..data</code> symlink is updated atomically using <a href="http://man7.org/linux/man-pages/man2/rename.2.html">rename(2)</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> A container using Downward API as a <a href="../../../concepts/storage/volumes/index#using-subpath">subPath</a> volume mount will not receive Downward API updates. </div> <p>Exit the shell:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/# exit
+</pre></div>
+<h2 id="store-container-fields">Store Container fields</h2> <p>The preceding exercise, you stored Pod fields in a DownwardAPIVolumeFile. In this next exercise, you store Container fields. Here is the configuration file for a Pod that has one Container:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/pods/inject/dapi-volume-resources.yaml" download="pods/inject/dapi-volume-resources.yaml"><code>pods/inject/dapi-volume-resources.yaml</code> </a>   <div class="includecode" id="pods-inject-dapi-volume-resources-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: kubernetes-downwardapi-volume-example-2
+spec:
+  containers:
+    - name: client-container
+      image: k8s.gcr.io/busybox:1.24
+      command: ["sh", "-c"]
+      args:
+      - while true; do
+          echo -en '\n';
+          if [[ -e /etc/podinfo/cpu_limit ]]; then
+            echo -en '\n'; cat /etc/podinfo/cpu_limit; fi;
+          if [[ -e /etc/podinfo/cpu_request ]]; then
+            echo -en '\n'; cat /etc/podinfo/cpu_request; fi;
+          if [[ -e /etc/podinfo/mem_limit ]]; then
+            echo -en '\n'; cat /etc/podinfo/mem_limit; fi;
+          if [[ -e /etc/podinfo/mem_request ]]; then
+            echo -en '\n'; cat /etc/podinfo/mem_request; fi;
+          sleep 5;
+        done;
+      resources:
+        requests:
+          memory: "32Mi"
+          cpu: "125m"
+        limits:
+          memory: "64Mi"
+          cpu: "250m"
+      volumeMounts:
+        - name: podinfo
+          mountPath: /etc/podinfo
+  volumes:
+    - name: podinfo
+      downwardAPI:
+        items:
+          - path: "cpu_limit"
+            resourceFieldRef:
+              containerName: client-container
+              resource: limits.cpu
+              divisor: 1m
+          - path: "cpu_request"
+            resourceFieldRef:
+              containerName: client-container
+              resource: requests.cpu
+              divisor: 1m
+          - path: "mem_limit"
+            resourceFieldRef:
+              containerName: client-container
+              resource: limits.memory
+              divisor: 1Mi
+          - path: "mem_request"
+            resourceFieldRef:
+              containerName: client-container
+              resource: requests.memory
+              divisor: 1Mi
+
+</pre></div> </div> </div> <p>In the configuration file, you can see that the Pod has a <code>downwardAPI</code> Volume, and the Container mounts the Volume at <code>/etc/podinfo</code>.</p> <p>Look at the <code>items</code> array under <code>downwardAPI</code>. Each element of the array is a DownwardAPIVolumeFile.</p> <p>The first element specifies that in the Container named <code>client-container</code>, the value of the <code>limits.cpu</code> field in the format specified by <code>1m</code> should be stored in a file named <code>cpu_limit</code>. The <code>divisor</code> field is optional and has the default value of <code>1</code> which means cores for cpu and bytes for memory.</p> <p>Create the Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/pods/inject/dapi-volume-resources.yaml
+</pre></div>
+<p>Get a shell into the Container that is running in your Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl exec -it kubernetes-downwardapi-volume-example-2 -- sh
+</pre></div>
+<p>In your shell, view the <code>cpu_limit</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/# cat /etc/podinfo/cpu_limit
+</pre></div>
 <p>You can use similar commands to view the <code>cpu_request</code>, <code>mem_limit</code> and <code>mem_request</code> files.</p>  <h2 id="capabilities-of-the-downward-api">Capabilities of the Downward API</h2> <p>The following information is available to containers through environment variables and <code>downwardAPI</code> volumes:</p> <ul> <li>Information available via <code>fieldRef</code>: <ul> <li>
 <code>metadata.name</code> - the pod's name</li> <li>
 <code>metadata.namespace</code> - the pod's namespace</li> <li>

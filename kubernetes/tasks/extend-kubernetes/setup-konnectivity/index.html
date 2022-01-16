@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/extend-kubernetes/setup-konnectivity/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -88,7 +88,28 @@
 			<div class="_page _kubernetes">
 				
 				
-<h1>Set up Konnectivity service</h1>  <p>The Konnectivity service provides a TCP level proxy for the control plane to cluster communication.</p> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a>.</p>  <h2 id="configure-the-konnectivity-service">Configure the Konnectivity service</h2> <p>The following steps require an egress configuration, for example:</p> <pre class="highlight" data-language="">admin/konnectivity/egress-selector-configuration.yaml</pre> <p>You need to configure the API Server to use the Konnectivity service and direct the network traffic to the cluster nodes:</p> <ol> <li>Make sure that <a href="../../configure-pod-container/configure-service-account/index#service-account-token-volume-projection">Service Account Token Volume Projection</a> feature enabled in your cluster. It is enabled by default since Kubernetes v1.20.</li> <li>Create an egress configuration file such as <code>admin/konnectivity/egress-selector-configuration.yaml</code>.</li> <li>Set the <code>--egress-selector-config-file</code> flag of the API Server to the path of your API Server egress configuration file.</li> <li>If you use UDS connection, add volumes config to the kube-apiserver: <pre class="highlight" data-language="yaml">spec:
+<h1>Set up Konnectivity service</h1>  <p>The Konnectivity service provides a TCP level proxy for the control plane to cluster communication.</p> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a>.</p>  <h2 id="configure-the-konnectivity-service">Configure the Konnectivity service</h2> <p>The following steps require an egress configuration, for example:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/admin/konnectivity/egress-selector-configuration.yaml" download="admin/konnectivity/egress-selector-configuration.yaml"><code>admin/konnectivity/egress-selector-configuration.yaml</code> </a>   <div class="includecode" id="admin-konnectivity-egress-selector-configuration-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: apiserver.k8s.io/v1beta1
+kind: EgressSelectorConfiguration
+egressSelections:
+# Since we want to control the egress traffic to the cluster, we use the
+# "cluster" as the name. Other supported values are "etcd", and "master".
+- name: cluster
+  connection:
+    # This controls the protocol between the API Server and the Konnectivity
+    # server. Supported values are "GRPC" and "HTTPConnect". There is no
+    # end user visible difference between the two modes. You need to set the
+    # Konnectivity server to work in the same mode.
+    proxyProtocol: GRPC
+    transport:
+      # This controls what transport the API Server uses to communicate with the
+      # Konnectivity server. UDS is recommended if the Konnectivity server
+      # locates on the same machine as the API Server. You need to configure the
+      # Konnectivity server to listen on the same UDS socket.
+      # The other supported transport is "tcp". You will need to set up TLS 
+      # config to secure the TCP transport.
+      uds:
+        udsName: /etc/kubernetes/konnectivity-server/konnectivity-server.socket
+</pre></div> </div> </div> <p>You need to configure the API Server to use the Konnectivity service and direct the network traffic to the cluster nodes:</p> <ol> <li>Make sure that <a href="../../configure-pod-container/configure-service-account/index#service-account-token-volume-projection">Service Account Token Volume Projection</a> feature enabled in your cluster. It is enabled by default since Kubernetes v1.20.</li> <li>Create an egress configuration file such as <code>admin/konnectivity/egress-selector-configuration.yaml</code>.</li> <li>Set the <code>--egress-selector-config-file</code> flag of the API Server to the path of your API Server egress configuration file.</li> <li>If you use UDS connection, add volumes config to the kube-apiserver: <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">spec:
   containers:
     volumeMounts:
     - name: konnectivity-uds
@@ -99,8 +120,8 @@
     hostPath:
       path: /etc/kubernetes/konnectivity-server
       type: DirectoryOrCreate
-</pre>
-</li> </ol> <p>Generate or obtain a certificate and kubeconfig for konnectivity-server. For example, you can use the OpenSSL command line tool to issue a X.509 certificate, using the cluster CA certificate <code>/etc/kubernetes/pki/ca.crt</code> from a control-plane host.</p> <pre class="highlight" data-language="bash">openssl req -subj "/CN=system:konnectivity-server" -new -newkey rsa:2048 -nodes -out konnectivity.csr -keyout konnectivity.key -out konnectivity.csr
+</pre></div>
+</li> </ol> <p>Generate or obtain a certificate and kubeconfig for konnectivity-server. For example, you can use the OpenSSL command line tool to issue a X.509 certificate, using the cluster CA certificate <code>/etc/kubernetes/pki/ca.crt</code> from a control-plane host.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="bash">openssl req -subj "/CN=system:konnectivity-server" -new -newkey rsa:2048 -nodes -out konnectivity.csr -keyout konnectivity.key -out konnectivity.csr
 openssl x509 -req -in konnectivity.csr -CA /etc/kubernetes/pki/ca.crt -CAkey /etc/kubernetes/pki/ca.key -CAcreateserial -out konnectivity.crt -days 375 -sha256
 SERVER=$(kubectl config view -o jsonpath='{.clusters..server}')
 kubectl --kubeconfig /etc/kubernetes/konnectivity-server.conf config set-credentials system:konnectivity-server --client-certificate konnectivity.crt --client-key konnectivity.key --embed-certs=true
@@ -108,8 +129,159 @@ kubectl --kubeconfig /etc/kubernetes/konnectivity-server.conf config set-cluster
 kubectl --kubeconfig /etc/kubernetes/konnectivity-server.conf config set-context system:konnectivity-server@kubernetes --cluster kubernetes --user system:konnectivity-server
 kubectl --kubeconfig /etc/kubernetes/konnectivity-server.conf config use-context system:konnectivity-server@kubernetes
 rm -f konnectivity.crt konnectivity.key konnectivity.csr
-</pre>
-<p>Next, you need to deploy the Konnectivity server and agents. <a href="https://github.com/kubernetes-sigs/apiserver-network-proxy">kubernetes-sigs/apiserver-network-proxy</a> is a reference implementation.</p> <p>Deploy the Konnectivity server on your control plane node. The provided <code>konnectivity-server.yaml</code> manifest assumes that the Kubernetes components are deployed as a <a class="glossary-tooltip" title="A pod managed directly by the kubelet daemon on a specific node." data-toggle="tooltip" data-placement="top" href="../../configure-pod-container/static-pod/index" target="_blank" aria-label="static Pod">static Pod</a> in your cluster. If not, you can deploy the Konnectivity server as a DaemonSet.</p> <pre class="highlight" data-language="">admin/konnectivity/konnectivity-server.yaml</pre> <p>Then deploy the Konnectivity agents in your cluster:</p> <pre class="highlight" data-language="">admin/konnectivity/konnectivity-agent.yaml</pre> <p>Last, if RBAC is enabled in your cluster, create the relevant RBAC rules:</p> <pre class="highlight" data-language="">admin/konnectivity/konnectivity-rbac.yaml</pre>
+</pre></div>
+<p>Next, you need to deploy the Konnectivity server and agents. <a href="https://github.com/kubernetes-sigs/apiserver-network-proxy">kubernetes-sigs/apiserver-network-proxy</a> is a reference implementation.</p> <p>Deploy the Konnectivity server on your control plane node. The provided <code>konnectivity-server.yaml</code> manifest assumes that the Kubernetes components are deployed as a <a class="glossary-tooltip" title="A pod managed directly by the kubelet daemon on a specific node." data-toggle="tooltip" data-placement="top" href="../../configure-pod-container/static-pod/index" target="_blank" aria-label="static Pod">static Pod</a> in your cluster. If not, you can deploy the Konnectivity server as a DaemonSet.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/admin/konnectivity/konnectivity-server.yaml" download="admin/konnectivity/konnectivity-server.yaml"><code>admin/konnectivity/konnectivity-server.yaml</code> </a>   <div class="includecode" id="admin-konnectivity-konnectivity-server-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: konnectivity-server
+  namespace: kube-system
+spec:
+  priorityClassName: system-cluster-critical
+  hostNetwork: true
+  containers:
+  - name: konnectivity-server-container
+    image: us.gcr.io/k8s-artifacts-prod/kas-network-proxy/proxy-server:v0.0.16
+    command: ["/proxy-server"]
+    args: [
+            "--logtostderr=true",
+            # This needs to be consistent with the value set in egressSelectorConfiguration.
+            "--uds-name=/etc/kubernetes/konnectivity-server/konnectivity-server.socket",
+            # The following two lines assume the Konnectivity server is
+            # deployed on the same machine as the apiserver, and the certs and
+            # key of the API Server are at the specified location.
+            "--cluster-cert=/etc/kubernetes/pki/apiserver.crt",
+            "--cluster-key=/etc/kubernetes/pki/apiserver.key",
+            # This needs to be consistent with the value set in egressSelectorConfiguration.
+            "--mode=grpc",
+            "--server-port=0",
+            "--agent-port=8132",
+            "--admin-port=8133",
+            "--health-port=8134",
+            "--agent-namespace=kube-system",
+            "--agent-service-account=konnectivity-agent",
+            "--kubeconfig=/etc/kubernetes/konnectivity-server.conf",
+            "--authentication-audience=system:konnectivity-server"
+            ]
+    livenessProbe:
+      httpGet:
+        scheme: HTTP
+        host: 127.0.0.1
+        port: 8134
+        path: /healthz
+      initialDelaySeconds: 30
+      timeoutSeconds: 60
+    ports:
+    - name: agentport
+      containerPort: 8132
+      hostPort: 8132
+    - name: adminport
+      containerPort: 8133
+      hostPort: 8133
+    - name: healthport
+      containerPort: 8134
+      hostPort: 8134
+    volumeMounts:
+    - name: k8s-certs
+      mountPath: /etc/kubernetes/pki
+      readOnly: true
+    - name: kubeconfig
+      mountPath: /etc/kubernetes/konnectivity-server.conf
+      readOnly: true
+    - name: konnectivity-uds
+      mountPath: /etc/kubernetes/konnectivity-server
+      readOnly: false
+  volumes:
+  - name: k8s-certs
+    hostPath:
+      path: /etc/kubernetes/pki
+  - name: kubeconfig
+    hostPath:
+      path: /etc/kubernetes/konnectivity-server.conf
+      type: FileOrCreate
+  - name: konnectivity-uds
+    hostPath:
+      path: /etc/kubernetes/konnectivity-server
+      type: DirectoryOrCreate
+</pre></div> </div> </div> <p>Then deploy the Konnectivity agents in your cluster:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/admin/konnectivity/konnectivity-agent.yaml" download="admin/konnectivity/konnectivity-agent.yaml"><code>admin/konnectivity/konnectivity-agent.yaml</code> </a>   <div class="includecode" id="admin-konnectivity-konnectivity-agent-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: apps/v1
+# Alternatively, you can deploy the agents as Deployments. It is not necessary
+# to have an agent on each node.
+kind: DaemonSet
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+    k8s-app: konnectivity-agent
+  namespace: kube-system
+  name: konnectivity-agent
+spec:
+  selector:
+    matchLabels:
+      k8s-app: konnectivity-agent
+  template:
+    metadata:
+      labels:
+        k8s-app: konnectivity-agent
+    spec:
+      priorityClassName: system-cluster-critical
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
+      containers:
+        - image: us.gcr.io/k8s-artifacts-prod/kas-network-proxy/proxy-agent:v0.0.16
+          name: konnectivity-agent
+          command: ["/proxy-agent"]
+          args: [
+                  "--logtostderr=true",
+                  "--ca-cert=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+                  # Since the konnectivity server runs with hostNetwork=true,
+                  # this is the IP address of the master machine.
+                  "--proxy-server-host=35.225.206.7",
+                  "--proxy-server-port=8132",
+                  "--admin-server-port=8133",
+                  "--health-server-port=8134",
+                  "--service-account-token-path=/var/run/secrets/tokens/konnectivity-agent-token"
+                  ]
+          volumeMounts:
+            - mountPath: /var/run/secrets/tokens
+              name: konnectivity-agent-token
+          livenessProbe:
+            httpGet:
+              port: 8134
+              path: /healthz
+            initialDelaySeconds: 15
+            timeoutSeconds: 15
+      serviceAccountName: konnectivity-agent
+      volumes:
+        - name: konnectivity-agent-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: konnectivity-agent-token
+                  audience: system:konnectivity-server
+</pre></div> </div> </div> <p>Last, if RBAC is enabled in your cluster, create the relevant RBAC rules:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/admin/konnectivity/konnectivity-rbac.yaml" download="admin/konnectivity/konnectivity-rbac.yaml"><code>admin/konnectivity/konnectivity-rbac.yaml</code> </a>   <div class="includecode" id="admin-konnectivity-konnectivity-rbac-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:konnectivity-server
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: system:konnectivity-server
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: konnectivity-agent
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+</pre></div> </div> </div>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>

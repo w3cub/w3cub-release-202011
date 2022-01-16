@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/job/coarse-parallel-processing-work-queue/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -91,26 +91,26 @@
 <h1>Coarse Parallel Processing Using a Work Queue</h1>  <p>In this example, we will run a Kubernetes Job with multiple parallel worker processes.</p> <p>In this example, as each pod is created, it picks up one unit of work from a task queue, completes it, deletes it from the queue, and exits.</p> <p>Here is an overview of the steps in this example:</p> <ol> <li>
 <strong>Start a message queue service.</strong> In this example, we use RabbitMQ, but you could use another one. In practice you would set up a message queue service once and reuse it for many jobs.</li> <li>
 <strong>Create a queue, and fill it with messages.</strong> Each message represents one task to be done. In this example, a message is an integer that we will do a lengthy computation on.</li> <li>
-<strong>Start a Job that works on tasks from the queue</strong>. The Job starts several pods. Each pod takes one task from the message queue, processes it, and repeats until the end of the queue is reached.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>Be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <h2 id="starting-a-message-queue-service">Starting a message queue service</h2> <p>This example uses RabbitMQ, however, you can adapt the example to use another AMQP-type message service.</p> <p>In practice you could set up a message queue service once in a cluster and reuse it for many jobs, as well as for long-running services.</p> <p>Start RabbitMQ as follows:</p> <pre class="highlight" data-language="shell">kubectl create -f https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.3/examples/celery-rabbitmq/rabbitmq-service.yaml
-</pre>
+<strong>Start a Job that works on tasks from the queue</strong>. The Job starts several pods. Each pod takes one task from the message queue, processes it, and repeats until the end of the queue is reached.</li> </ol> <h2 id="before-you-begin">Before you begin</h2> <p>Be familiar with the basic, non-parallel, use of <a href="../../../concepts/workloads/controllers/job/index">Job</a>.</p> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul>  <h2 id="starting-a-message-queue-service">Starting a message queue service</h2> <p>This example uses RabbitMQ, however, you can adapt the example to use another AMQP-type message service.</p> <p>In practice you could set up a message queue service once in a cluster and reuse it for many jobs, as well as for long-running services.</p> <p>Start RabbitMQ as follows:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl create -f https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.3/examples/celery-rabbitmq/rabbitmq-service.yaml
+</pre></div>
 <pre><code>service "rabbitmq-service" created
 </code></pre>
-<pre class="highlight" data-language="shell">kubectl create -f https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.3/examples/celery-rabbitmq/rabbitmq-controller.yaml
-</pre>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl create -f https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.3/examples/celery-rabbitmq/rabbitmq-controller.yaml
+</pre></div>
 <pre><code>replicationcontroller "rabbitmq-controller" created
 </code></pre>
-<p>We will only use the rabbitmq part from the <a href="https://github.com/kubernetes/kubernetes/tree/release-1.3/examples/celery-rabbitmq">celery-rabbitmq example</a>.</p> <h2 id="testing-the-message-queue-service">Testing the message queue service</h2> <p>Now, we can experiment with accessing the message queue. We will create a temporary interactive pod, install some tools on it, and experiment with queues.</p> <p>First create a temporary interactive Pod.</p> <pre class="highlight" data-language="shell"># Create a temporary interactive container
+<p>We will only use the rabbitmq part from the <a href="https://github.com/kubernetes/kubernetes/tree/release-1.3/examples/celery-rabbitmq">celery-rabbitmq example</a>.</p> <h2 id="testing-the-message-queue-service">Testing the message queue service</h2> <p>Now, we can experiment with accessing the message queue. We will create a temporary interactive pod, install some tools on it, and experiment with queues.</p> <p>First create a temporary interactive Pod.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell"># Create a temporary interactive container
 kubectl run -i --tty temp --image ubuntu:18.04
-</pre>
+</pre></div>
 <pre><code>Waiting for pod default/temp-loe07 to be running, status is Pending, pod ready: false
 ... [ previous line repeats several times .. hit return when it stops ] ...
 </code></pre>
-<p>Note that your pod name and command prompt will be different.</p> <p>Next install the <code>amqp-tools</code> so we can work with message queues.</p> <pre class="highlight" data-language="shell"># Install some tools
+<p>Note that your pod name and command prompt will be different.</p> <p>Next install the <code>amqp-tools</code> so we can work with message queues.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell"># Install some tools
 root@temp-loe07:/# apt-get update
 .... [ lots of output ] ....
 root@temp-loe07:/# apt-get install -y curl ca-certificates amqp-tools python dnsutils
 .... [ lots of output ] ....
-</pre>
+</pre></div>
 <p>Later, we will make a docker image that includes these packages.</p> <p>Next, we will check that we can discover the rabbitmq service:</p> <pre><code># Note the rabbitmq-service has a DNS name, provided by Kubernetes:
 
 root@temp-loe07:/# nslookup rabbitmq-service
@@ -126,7 +126,7 @@ Address: 10.0.147.152
 RABBITMQ_SERVICE_SERVICE_HOST=10.0.147.152
 # Your address will vary.
 </code></pre>
-<p>Next we will verify we can create a queue, and publish and consume messages.</p> <pre class="highlight" data-language="shell"># In the next line, rabbitmq-service is the hostname where the rabbitmq-service
+<p>Next we will verify we can create a queue, and publish and consume messages.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell"># In the next line, rabbitmq-service is the hostname where the rabbitmq-service
 # can be reached.  5672 is the standard port for rabbitmq.
 
 root@temp-loe07:/# export BROKER_URL=amqp://guest:guest@rabbitmq-service:5672
@@ -148,29 +148,56 @@ root@temp-loe07:/# /usr/bin/amqp-publish --url=$BROKER_URL -r foo -p -b Hello
 root@temp-loe07:/# /usr/bin/amqp-consume --url=$BROKER_URL -q foo -c 1 cat &amp;&amp; echo
 Hello
 root@temp-loe07:/#
-</pre>
-<p>In the last command, the <code>amqp-consume</code> tool takes one message (<code>-c 1</code>) from the queue, and passes that message to the standard input of an arbitrary command. In this case, the program <code>cat</code> prints out the characters read from standard input, and the echo adds a carriage return so the example is readable.</p> <h2 id="filling-the-queue-with-tasks">Filling the Queue with tasks</h2> <p>Now let's fill the queue with some "tasks". In our example, our tasks are strings to be printed.</p> <p>In a practice, the content of the messages might be:</p> <ul> <li>names of files to that need to be processed</li> <li>extra flags to the program</li> <li>ranges of keys in a database table</li> <li>configuration parameters to a simulation</li> <li>frame numbers of a scene to be rendered</li> </ul> <p>In practice, if there is large data that is needed in a read-only mode by all pods of the Job, you will typically put that in a shared file system like NFS and mount that readonly on all the pods, or the program in the pod will natively read data from a cluster file system like HDFS.</p> <p>For our example, we will create the queue and fill it using the amqp command line tools. In practice, you might write a program to fill the queue using an amqp client library.</p> <pre class="highlight" data-language="shell">/usr/bin/amqp-declare-queue --url=$BROKER_URL -q job1  -d
+</pre></div>
+<p>In the last command, the <code>amqp-consume</code> tool takes one message (<code>-c 1</code>) from the queue, and passes that message to the standard input of an arbitrary command. In this case, the program <code>cat</code> prints out the characters read from standard input, and the echo adds a carriage return so the example is readable.</p> <h2 id="filling-the-queue-with-tasks">Filling the Queue with tasks</h2> <p>Now let's fill the queue with some "tasks". In our example, our tasks are strings to be printed.</p> <p>In a practice, the content of the messages might be:</p> <ul> <li>names of files to that need to be processed</li> <li>extra flags to the program</li> <li>ranges of keys in a database table</li> <li>configuration parameters to a simulation</li> <li>frame numbers of a scene to be rendered</li> </ul> <p>In practice, if there is large data that is needed in a read-only mode by all pods of the Job, you will typically put that in a shared file system like NFS and mount that readonly on all the pods, or the program in the pod will natively read data from a cluster file system like HDFS.</p> <p>For our example, we will create the queue and fill it using the amqp command line tools. In practice, you might write a program to fill the queue using an amqp client library.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">/usr/bin/amqp-declare-queue --url=$BROKER_URL -q job1  -d
 job1
-</pre>
-<pre class="highlight" data-language="shell">for f in apple banana cherry date fig grape lemon melon
+</pre></div>
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">for f in apple banana cherry date fig grape lemon melon
 do
   /usr/bin/amqp-publish --url=$BROKER_URL -r job1 -p -b $f
 done
-</pre>
-<p>So, we filled the queue with 8 messages.</p> <h2 id="create-an-image">Create an Image</h2> <p>Now we are ready to create an image that we will run as a job.</p> <p>We will use the <code>amqp-consume</code> utility to read the message from the queue and run our actual program. Here is a very simple example program:</p> <pre class="highlight" data-language="">application/job/rabbitmq/worker.py</pre> <p>Give the script execution permission:</p> <pre class="highlight" data-language="shell">chmod +x worker.py
-</pre>
-<p>Now, build an image. If you are working in the source tree, then change directory to <code>examples/job/work-queue-1</code>. Otherwise, make a temporary directory, change to it, download the <a href="https://kubernetes.io/examples/application/job/rabbitmq/Dockerfile">Dockerfile</a>, and <a href="https://kubernetes.io/examples/application/job/rabbitmq/worker.py">worker.py</a>. In either case, build the image with this command:</p> <pre class="highlight" data-language="shell">docker build -t job-wq-1 .
-</pre>
-<p>For the <a href="https://hub.docker.com/">Docker Hub</a>, tag your app image with your username and push to the Hub with the below commands. Replace <code>&lt;username&gt;</code> with your Hub username.</p> <pre class="highlight" data-language="shell">docker tag job-wq-1 &lt;username&gt;/job-wq-1
+</pre></div>
+<p>So, we filled the queue with 8 messages.</p> <h2 id="create-an-image">Create an Image</h2> <p>Now we are ready to create an image that we will run as a job.</p> <p>We will use the <code>amqp-consume</code> utility to read the message from the queue and run our actual program. Here is a very simple example program:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/rabbitmq/worker.py" download="application/job/rabbitmq/worker.py"><code>application/job/rabbitmq/worker.py</code> </a>   <div class="includecode" id="application-job-rabbitmq-worker-py"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="python">#!/usr/bin/env python
+
+# Just prints standard out and sleeps for 10 seconds.
+import sys
+import time
+print("Processing " + sys.stdin.readlines()[0])
+time.sleep(10)
+</pre></div> </div> </div> <p>Give the script execution permission:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">chmod +x worker.py
+</pre></div>
+<p>Now, build an image. If you are working in the source tree, then change directory to <code>examples/job/work-queue-1</code>. Otherwise, make a temporary directory, change to it, download the <a href="https://kubernetes.io/examples/application/job/rabbitmq/Dockerfile">Dockerfile</a>, and <a href="https://kubernetes.io/examples/application/job/rabbitmq/worker.py">worker.py</a>. In either case, build the image with this command:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker build -t job-wq-1 .
+</pre></div>
+<p>For the <a href="https://hub.docker.com/">Docker Hub</a>, tag your app image with your username and push to the Hub with the below commands. Replace <code>&lt;username&gt;</code> with your Hub username.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker tag job-wq-1 &lt;username&gt;/job-wq-1
 docker push &lt;username&gt;/job-wq-1
-</pre>
-<p>If you are using <a href="https://cloud.google.com/tools/container-registry/">Google Container Registry</a>, tag your app image with your project ID, and push to GCR. Replace <code>&lt;project&gt;</code> with your project ID.</p> <pre class="highlight" data-language="shell">docker tag job-wq-1 gcr.io/&lt;project&gt;/job-wq-1
+</pre></div>
+<p>If you are using <a href="https://cloud.google.com/tools/container-registry/">Google Container Registry</a>, tag your app image with your project ID, and push to GCR. Replace <code>&lt;project&gt;</code> with your project ID.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker tag job-wq-1 gcr.io/&lt;project&gt;/job-wq-1
 gcloud docker -- push gcr.io/&lt;project&gt;/job-wq-1
-</pre>
-<h2 id="defining-a-job">Defining a Job</h2> <p>Here is a job definition. You'll need to make a copy of the Job and edit the image to match the name you used, and call it <code>./job.yaml</code>.</p> <pre class="highlight" data-language="">application/job/rabbitmq/job.yaml</pre> <p>In this example, each pod works on one item from the queue and then exits. So, the completion count of the Job corresponds to the number of work items done. So we set, <code>.spec.completions: 8</code> for the example, since we put 8 items in the queue.</p> <h2 id="running-the-job">Running the Job</h2> <p>So, now run the Job:</p> <pre class="highlight" data-language="shell">kubectl apply -f ./job.yaml
-</pre>
-<p>Now wait a bit, then check on the job.</p> <pre class="highlight" data-language="shell">kubectl describe jobs/job-wq-1
-</pre>
+</pre></div>
+<h2 id="defining-a-job">Defining a Job</h2> <p>Here is a job definition. You'll need to make a copy of the Job and edit the image to match the name you used, and call it <code>./job.yaml</code>.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/job/rabbitmq/job.yaml" download="application/job/rabbitmq/job.yaml"><code>application/job/rabbitmq/job.yaml</code> </a>   <div class="includecode" id="application-job-rabbitmq-job-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-wq-1
+spec:
+  completions: 8
+  parallelism: 2
+  template:
+    metadata:
+      name: job-wq-1
+    spec:
+      containers:
+      - name: c
+        image: gcr.io/&lt;project&gt;/job-wq-1
+        env:
+        - name: BROKER_URL
+          value: amqp://guest:guest@rabbitmq-service:5672
+        - name: QUEUE
+          value: job1
+      restartPolicy: OnFailure
+</pre></div> </div> </div> <p>In this example, each pod works on one item from the queue and then exits. So, the completion count of the Job corresponds to the number of work items done. So we set, <code>.spec.completions: 8</code> for the example, since we put 8 items in the queue.</p> <h2 id="running-the-job">Running the Job</h2> <p>So, now run the Job:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f ./job.yaml
+</pre></div>
+<p>Now wait a bit, then check on the job.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe jobs/job-wq-1
+</pre></div>
 <pre><code>Name:             job-wq-1
 Namespace:        default
 Selector:         controller-uid=41d75705-92df-11e7-b85e-fa163ee3c11f

@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/debug-application-cluster/audit/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -96,13 +96,81 @@
 <code>None</code> - don't log events that match this rule.</li> <li>
 <code>Metadata</code> - log request metadata (requesting user, timestamp, resource, verb, etc.) but not request or response body.</li> <li>
 <code>Request</code> - log event metadata and request body but not response body. This does not apply for non-resource requests.</li> <li>
-<code>RequestResponse</code> - log event metadata, request and response bodies. This does not apply for non-resource requests.</li> </ul> <p>You can pass a file with the policy to <code>kube-apiserver</code> using the <code>--audit-policy-file</code> flag. If the flag is omitted, no events are logged. Note that the <code>rules</code> field <strong>must</strong> be provided in the audit policy file. A policy with no (0) rules is treated as illegal.</p> <p>Below is an example audit policy file:</p> <pre class="highlight" data-language="">audit/audit-policy.yaml</pre> <p>You can use a minimal audit policy file to log all requests at the <code>Metadata</code> level:</p> <pre class="highlight" data-language="yaml"># Log all requests at the Metadata level.
+<code>RequestResponse</code> - log event metadata, request and response bodies. This does not apply for non-resource requests.</li> </ul> <p>You can pass a file with the policy to <code>kube-apiserver</code> using the <code>--audit-policy-file</code> flag. If the flag is omitted, no events are logged. Note that the <code>rules</code> field <strong>must</strong> be provided in the audit policy file. A policy with no (0) rules is treated as illegal.</p> <p>Below is an example audit policy file:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/audit/audit-policy.yaml" download="audit/audit-policy.yaml"><code>audit/audit-policy.yaml</code> </a>   <div class="includecode" id="audit-audit-policy-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: audit.k8s.io/v1 # This is required.
+kind: Policy
+# Don't generate audit events for all requests in RequestReceived stage.
+omitStages:
+  - "RequestReceived"
+rules:
+  # Log pod changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+    - group: ""
+      # Resource "pods" doesn't match requests to any subresource of pods,
+      # which is consistent with the RBAC policy.
+      resources: ["pods"]
+  # Log "pods/log", "pods/status" at Metadata level
+  - level: Metadata
+    resources:
+    - group: ""
+      resources: ["pods/log", "pods/status"]
+
+  # Don't log requests to a configmap called "controller-leader"
+  - level: None
+    resources:
+    - group: ""
+      resources: ["configmaps"]
+      resourceNames: ["controller-leader"]
+
+  # Don't log watch requests by the "system:kube-proxy" on endpoints or services
+  - level: None
+    users: ["system:kube-proxy"]
+    verbs: ["watch"]
+    resources:
+    - group: "" # core API group
+      resources: ["endpoints", "services"]
+
+  # Don't log authenticated requests to certain non-resource URL paths.
+  - level: None
+    userGroups: ["system:authenticated"]
+    nonResourceURLs:
+    - "/api*" # Wildcard matching.
+    - "/version"
+
+  # Log the request body of configmap changes in kube-system.
+  - level: Request
+    resources:
+    - group: "" # core API group
+      resources: ["configmaps"]
+    # This rule only applies to resources in the "kube-system" namespace.
+    # The empty string "" can be used to select non-namespaced resources.
+    namespaces: ["kube-system"]
+
+  # Log configmap and secret changes in all other namespaces at the Metadata level.
+  - level: Metadata
+    resources:
+    - group: "" # core API group
+      resources: ["secrets", "configmaps"]
+
+  # Log all other resources in core and extensions at the Request level.
+  - level: Request
+    resources:
+    - group: "" # core API group
+    - group: "extensions" # Version of group should NOT be included.
+
+  # A catch-all rule to log all other requests at the Metadata level.
+  - level: Metadata
+    # Long-running requests like watches that fall under this rule will not
+    # generate an audit event in RequestReceived.
+    omitStages:
+      - "RequestReceived"
+</pre></div> </div> </div> <p>You can use a minimal audit policy file to log all requests at the <code>Metadata</code> level:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># Log all requests at the Metadata level.
 apiVersion: audit.k8s.io/v1
 kind: Policy
 rules:
 - level: Metadata
-</pre>
-<p>If you're crafting your own audit profile, you can use the audit profile for Google Container-Optimized OS as a starting point. You can check the <a href="https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/gci/configure-helper.sh">configure-helper.sh</a> script, which generates an audit policy file. You can see most of the audit policy file by looking directly at the script.</p> <p>You can also refer to the <a href="../../../reference/config-api/apiserver-audit.v1/index#audit-k8s-io-v1-Policy"><code>Policy</code> configuration reference</a> for details about the fields defined.</p> <h2 id="audit-backends">Audit backends</h2> <p>Audit backends persist audit events to an external storage. Out of the box, the kube-apiserver provides two backends:</p> <ul> <li>Log backend, which writes events into the filesystem</li> <li>Webhook backend, which sends events to an external HTTP API</li> </ul> <p>In all cases, audit events follow a structure defined by the Kubernetes API in the <a href="../../../reference/config-api/apiserver-audit.v1/index#audit-k8s-io-v1-Event"><code>audit.k8s.io</code> API group</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>In case of patches, request body is a JSON array with patch operations, not a JSON object with an appropriate Kubernetes API object. For example, the following request body is a valid patch request to <code>/apis/batch/v1/namespaces/some-namespace/jobs/some-job-name</code>:</p> <pre class="highlight" data-language="json">[
+</pre></div>
+<p>If you're crafting your own audit profile, you can use the audit profile for Google Container-Optimized OS as a starting point. You can check the <a href="https://github.com/kubernetes/kubernetes/blob/master/cluster/gce/gci/configure-helper.sh">configure-helper.sh</a> script, which generates an audit policy file. You can see most of the audit policy file by looking directly at the script.</p> <p>You can also refer to the <a href="../../../reference/config-api/apiserver-audit.v1/index#audit-k8s-io-v1-Policy"><code>Policy</code> configuration reference</a> for details about the fields defined.</p> <h2 id="audit-backends">Audit backends</h2> <p>Audit backends persist audit events to an external storage. Out of the box, the kube-apiserver provides two backends:</p> <ul> <li>Log backend, which writes events into the filesystem</li> <li>Webhook backend, which sends events to an external HTTP API</li> </ul> <p>In all cases, audit events follow a structure defined by the Kubernetes API in the <a href="../../../reference/config-api/apiserver-audit.v1/index#audit-k8s-io-v1-Event"><code>audit.k8s.io</code> API group</a>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> <p>In case of patches, request body is a JSON array with patch operations, not a JSON object with an appropriate Kubernetes API object. For example, the following request body is a valid patch request to <code>/apis/batch/v1/namespaces/some-namespace/jobs/some-job-name</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="json">[
   {
     "op": "replace",
     "path": "/spec/parallelism",
@@ -113,14 +181,14 @@ rules:
     "path": "/spec/template/spec/containers/0/terminationMessagePolicy"
   }
 ]
-</pre> </div> <h3 id="log-backend">Log backend</h3> <p>The log backend writes audit events to a file in <a href="https://jsonlines.org/">JSONlines</a> format. You can configure the log audit backend using the following <code>kube-apiserver</code> flags:</p> <ul> <li>
+</pre></div> </div> <h3 id="log-backend">Log backend</h3> <p>The log backend writes audit events to a file in <a href="https://jsonlines.org/">JSONlines</a> format. You can configure the log audit backend using the following <code>kube-apiserver</code> flags:</p> <ul> <li>
 <code>--audit-log-path</code> specifies the log file path that log backend uses to write audit events. Not specifying this flag disables log backend. <code>-</code> means standard out</li> <li>
 <code>--audit-log-maxage</code> defined the maximum number of days to retain old audit log files</li> <li>
 <code>--audit-log-maxbackup</code> defines the maximum number of audit log files to retain</li> <li>
-<code>--audit-log-maxsize</code> defines the maximum size in megabytes of the audit log file before it gets rotated</li> </ul> <p>If your cluster's control plane runs the kube-apiserver as a Pod, remember to mount the <code>hostPath</code> to the location of the policy file and log file, so that audit records are persisted. For example:</p> <pre class="highlight" data-language="shell">    --audit-policy-file=/etc/kubernetes/audit-policy.yaml \
+<code>--audit-log-maxsize</code> defines the maximum size in megabytes of the audit log file before it gets rotated</li> </ul> <p>If your cluster's control plane runs the kube-apiserver as a Pod, remember to mount the <code>hostPath</code> to the location of the policy file and log file, so that audit records are persisted. For example:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">    --audit-policy-file=/etc/kubernetes/audit-policy.yaml \
     --audit-log-path=/var/log/kubernetes/audit/audit.log
-</pre>
-<p>then mount the volumes:</p> <pre class="highlight" data-language="yaml">...
+</pre></div>
+<p>then mount the volumes:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">...
 volumeMounts:
   - mountPath: /etc/kubernetes/audit-policy.yaml
     name: audit
@@ -128,8 +196,8 @@ volumeMounts:
   - mountPath: /var/log/kubernetes/audit/
     name: audit-log
     readOnly: false
-</pre>
-<p>and finally configure the <code>hostPath</code>:</p> <pre class="highlight" data-language="yaml">...
+</pre></div>
+<p>and finally configure the <code>hostPath</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">...
 volumes:
 - name: audit
   hostPath:
@@ -140,9 +208,9 @@ volumes:
   hostPath:
     path: /var/log/kubernetes/audit/
     type: DirectoryOrCreate
-</pre>
+</pre></div>
 <h3 id="webhook-backend">Webhook backend</h3> <p>The webhook audit backend sends audit events to a remote web API, which is assumed to be a form of the Kubernetes API, including means of authentication. You can configure a webhook audit backend using the following kube-apiserver flags:</p> <ul> <li>
-<code>--audit-webhook-config-file</code> specifies the path to a file with a webhook configuration. The webhook configuration is effectively a specialized <a href="../../access-application-cluster/configure-access-multiple-clusters">kubeconfig</a>.</li> <li>
+<code>--audit-webhook-config-file</code> specifies the path to a file with a webhook configuration. The webhook configuration is effectively a specialized <a href="../../access-application-cluster/configure-access-multiple-clusters/index">kubeconfig</a>.</li> <li>
 <code>--audit-webhook-initial-backoff</code> specifies the amount of time to wait after the first failed request before retrying. Subsequent requests are retried with exponential backoff.</li> </ul> <p>The webhook config file uses the kubeconfig format to specify the remote address of the service and credentials used to connect to it.</p> <h2 id="batching">Event batching</h2> <p>Both log and webhook backends support batching. Using webhook as an example, here's the list of available flags. To get the same flag for log backend, replace <code>webhook</code> with <code>log</code> in the flag name. By default, batching is enabled in <code>webhook</code> and disabled in <code>log</code>. Similarly, by default throttling is enabled in <code>webhook</code> and disabled in <code>log</code>.</p> <ul> <li>
 <code>--audit-webhook-mode</code> defines the buffering strategy. One of the following: <ul> <li>
 <code>batch</code> - buffer events and asynchronously process them in batches. This is the default.</li> <li>

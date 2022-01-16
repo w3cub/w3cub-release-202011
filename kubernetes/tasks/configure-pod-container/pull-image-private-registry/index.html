@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tasks/configure-pod-container/pull-image-private-registry/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -89,26 +89,26 @@
 				
 				
 <h1>Pull an Image from a Private Registry</h1>  <p>This page shows how to create a Pod that uses a <a class="glossary-tooltip" title="Stores sensitive information, such as passwords, OAuth tokens, and ssh keys." data-toggle="tooltip" data-placement="top" href="../../../concepts/configuration/secret/index" target="_blank" aria-label="Secret">Secret</a> to pull an image from a private container image registry or repository.</p> <div class="alert alert-secondary callout third-party-content" role="alert">🛇 This item links to a third party project or product that is not part of Kubernetes itself. <a class="alert-more-info" href="#third-party-content-disclaimer">More information</a>
-</div> <h2 id="before-you-begin">Before you begin</h2> <ul> <li> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> </li> <li> <p>To do this exercise, you need the <code>docker</code> command line tool, and a <a href="https://docs.docker.com/docker-id/">Docker ID</a> for which you know the password.</p> </li> </ul>  <h2 id="log-in-to-docker-hub">Log in to Docker Hub</h2> <p>On your laptop, you must authenticate with a registry in order to pull a private image.</p> <p>Use the <code>docker</code> tool to log in to Docker Hub. See the <em>log in</em> section of <a href="https://docs.docker.com/docker-id/#log-in">Docker ID accounts</a> for more information.</p> <pre class="highlight" data-language="shell">docker login
-</pre>
-<p>When prompted, enter your Docker ID, and then the credential you want to use (access token, or the password for your Docker ID).</p> <p>The login process creates or updates a <code>config.json</code> file that holds an authorization token. Review <a href="../../../concepts/containers/images#config-json">how Kubernetes interprets this file</a>.</p> <p>View the <code>config.json</code> file:</p> <pre class="highlight" data-language="shell">cat ~/.docker/config.json
-</pre>
-<p>The output contains a section similar to this:</p> <pre class="highlight" data-language="json">{
+</div> <h2 id="before-you-begin">Before you begin</h2> <ul> <li> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> </li> <li> <p>To do this exercise, you need the <code>docker</code> command line tool, and a <a href="https://docs.docker.com/docker-id/">Docker ID</a> for which you know the password.</p> </li> </ul>  <h2 id="log-in-to-docker-hub">Log in to Docker Hub</h2> <p>On your laptop, you must authenticate with a registry in order to pull a private image.</p> <p>Use the <code>docker</code> tool to log in to Docker Hub. See the <em>log in</em> section of <a href="https://docs.docker.com/docker-id/#log-in">Docker ID accounts</a> for more information.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">docker login
+</pre></div>
+<p>When prompted, enter your Docker ID, and then the credential you want to use (access token, or the password for your Docker ID).</p> <p>The login process creates or updates a <code>config.json</code> file that holds an authorization token. Review <a href="../../../concepts/containers/images/index#config-json">how Kubernetes interprets this file</a>.</p> <p>View the <code>config.json</code> file:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">cat ~/.docker/config.json
+</pre></div>
+<p>The output contains a section similar to this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="json">{
     "auths": {
         "https://index.docker.io/v1/": {
             "auth": "c3R...zE2"
         }
     }
 }
-</pre>
-<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> If you use a Docker credentials store, you won't see that <code>auth</code> entry but a <code>credsStore</code> entry with the name of the store as value. </div> <h2 id="registry-secret-existing-credentials">Create a Secret based on existing Docker credentials</h2> <p>A Kubernetes cluster uses the Secret of <code>kubernetes.io/dockerconfigjson</code> type to authenticate with a container registry to pull a private image.</p> <p>If you already ran <code>docker login</code>, you can copy that credential into Kubernetes:</p> <pre class="highlight" data-language="shell">kubectl create secret generic regcred \
+</pre></div>
+<div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> If you use a Docker credentials store, you won't see that <code>auth</code> entry but a <code>credsStore</code> entry with the name of the store as value. </div> <h2 id="registry-secret-existing-credentials">Create a Secret based on existing Docker credentials</h2> <p>A Kubernetes cluster uses the Secret of <code>kubernetes.io/dockerconfigjson</code> type to authenticate with a container registry to pull a private image.</p> <p>If you already ran <code>docker login</code>, you can copy that credential into Kubernetes:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl create secret generic regcred \
     --from-file=.dockerconfigjson=&lt;path/to/.docker/config.json&gt; \
     --type=kubernetes.io/dockerconfigjson
-</pre>
+</pre></div>
 <p>If you need more control (for example, to set a namespace or a label on the new secret) then you can customise the Secret before storing it. Be sure to:</p> <ul> <li>set the name of the data item to <code>.dockerconfigjson</code>
 </li> <li>base64 encode the docker file and paste that string, unbroken as the value for field <code>data[".dockerconfigjson"]</code>
 </li> <li>set <code>type</code> to <code>kubernetes.io/dockerconfigjson</code>
-</li> </ul> <p>Example:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+</li> </ul> <p>Example:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
 kind: Secret
 metadata:
   name: myregistrykey
@@ -116,17 +116,17 @@ metadata:
 data:
   .dockerconfigjson: UmVhbGx5IHJlYWxseSByZWVlZWVlZWVlZWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGx5eXl5eXl5eXl5eXl5eXl5eXl5eSBsbGxsbGxsbGxsbGxsbG9vb29vb29vb29vb29vb29vb29vb29vb29vb25ubm5ubm5ubm5ubm5ubm5ubm5ubm5ubmdnZ2dnZ2dnZ2dnZ2dnZ2dnZ2cgYXV0aCBrZXlzCg==
 type: kubernetes.io/dockerconfigjson
-</pre>
-<p>If you get the error message <code>error: no objects passed to create</code>, it may mean the base64 encoded string is invalid. If you get an error message like <code>Secret "myregistrykey" is invalid: data[.dockerconfigjson]: invalid value ...</code>, it means the base64 encoded string in the data was successfully decoded, but could not be parsed as a <code>.docker/config.json</code> file.</p> <h2 id="create-a-secret-by-providing-credentials-on-the-command-line">Create a Secret by providing credentials on the command line</h2> <p>Create this Secret, naming it <code>regcred</code>:</p> <pre class="highlight" data-language="shell">kubectl create secret docker-registry regcred --docker-server=&lt;your-registry-server&gt; --docker-username=&lt;your-name&gt; --docker-password=&lt;your-pword&gt; --docker-email=&lt;your-email&gt;
-</pre>
+</pre></div>
+<p>If you get the error message <code>error: no objects passed to create</code>, it may mean the base64 encoded string is invalid. If you get an error message like <code>Secret "myregistrykey" is invalid: data[.dockerconfigjson]: invalid value ...</code>, it means the base64 encoded string in the data was successfully decoded, but could not be parsed as a <code>.docker/config.json</code> file.</p> <h2 id="create-a-secret-by-providing-credentials-on-the-command-line">Create a Secret by providing credentials on the command line</h2> <p>Create this Secret, naming it <code>regcred</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl create secret docker-registry regcred --docker-server=&lt;your-registry-server&gt; --docker-username=&lt;your-name&gt; --docker-password=&lt;your-pword&gt; --docker-email=&lt;your-email&gt;
+</pre></div>
 <p>where:</p> <ul> <li>
 <code>&lt;your-registry-server&gt;</code> is your Private Docker Registry FQDN. Use <code>https://index.docker.io/v1/</code> for DockerHub.</li> <li>
 <code>&lt;your-name&gt;</code> is your Docker username.</li> <li>
 <code>&lt;your-pword&gt;</code> is your Docker password.</li> <li>
 <code>&lt;your-email&gt;</code> is your Docker email.</li> </ul> <p>You have successfully set your Docker credentials in the cluster as a Secret called <code>regcred</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Typing secrets on the command line may store them in your shell history unprotected, and those secrets might also be visible to other users on your PC during the time that <code>kubectl</code> is running. </div> <h2 id="inspecting-the-secret-regcred">Inspecting the Secret <code>regcred</code>
-</h2> <p>To understand the contents of the <code>regcred</code> Secret you created, start by viewing the Secret in YAML format:</p> <pre class="highlight" data-language="shell">kubectl get secret regcred --output=yaml
-</pre>
-<p>The output is similar to this:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+</h2> <p>To understand the contents of the <code>regcred</code> Secret you created, start by viewing the Secret in YAML format:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get secret regcred --output=yaml
+</pre></div>
+<p>The output is similar to this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
 kind: Secret
 metadata:
   ...
@@ -135,24 +135,35 @@ metadata:
 data:
   .dockerconfigjson: eyJodHRwczovL2luZGV4L ... J0QUl6RTIifX0=
 type: kubernetes.io/dockerconfigjson
-</pre>
-<p>The value of the <code>.dockerconfigjson</code> field is a base64 representation of your Docker credentials.</p> <p>To understand what is in the <code>.dockerconfigjson</code> field, convert the secret data to a readable format:</p> <pre class="highlight" data-language="shell">kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
-</pre>
-<p>The output is similar to this:</p> <pre class="highlight" data-language="json">{"auths":{"your.private.registry.example.com":{"username":"janedoe","password":"xxxxxxxxxxx","email":"jdoe@example.com","auth":"c3R...zE2"}}}
-</pre>
-<p>To understand what is in the <code>auth</code> field, convert the base64-encoded data to a readable format:</p> <pre class="highlight" data-language="shell">echo "c3R...zE2" | base64 --decode
-</pre>
+</pre></div>
+<p>The value of the <code>.dockerconfigjson</code> field is a base64 representation of your Docker credentials.</p> <p>To understand what is in the <code>.dockerconfigjson</code> field, convert the secret data to a readable format:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
+</pre></div>
+<p>The output is similar to this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="json">{"auths":{"your.private.registry.example.com":{"username":"janedoe","password":"xxxxxxxxxxx","email":"jdoe@example.com","auth":"c3R...zE2"}}}
+</pre></div>
+<p>To understand what is in the <code>auth</code> field, convert the base64-encoded data to a readable format:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">echo "c3R...zE2" | base64 --decode
+</pre></div>
 <p>The output, username and password concatenated with a <code>:</code>, is similar to this:</p> <pre><code class="language-none" data-lang="none">janedoe:xxxxxxxxxxx
 </code></pre>
-<p>Notice that the Secret data contains the authorization token similar to your local <code>~/.docker/config.json</code> file.</p> <p>You have successfully set your Docker credentials as a Secret called <code>regcred</code> in the cluster.</p> <h2 id="create-a-pod-that-uses-your-secret">Create a Pod that uses your Secret</h2> <p>Here is a manifest for an example Pod that needs access to your Docker credentials in <code>regcred</code>:</p> <pre class="highlight" data-language="">pods/private-reg-pod.yaml</pre> <p>Download the above file onto your computer:</p> <pre class="highlight" data-language="shell">curl -L -O my-private-reg-pod.yaml https://k8s.io/examples/pods/private-reg-pod.yaml
-</pre>
+<p>Notice that the Secret data contains the authorization token similar to your local <code>~/.docker/config.json</code> file.</p> <p>You have successfully set your Docker credentials as a Secret called <code>regcred</code> in the cluster.</p> <h2 id="create-a-pod-that-uses-your-secret">Create a Pod that uses your Secret</h2> <p>Here is a manifest for an example Pod that needs access to your Docker credentials in <code>regcred</code>:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/pods/private-reg-pod.yaml" download="pods/private-reg-pod.yaml"><code>pods/private-reg-pod.yaml</code> </a>   <div class="includecode" id="pods-private-reg-pod-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: private-reg
+spec:
+  containers:
+  - name: private-reg-container
+    image: &lt;your-private-image&gt;
+  imagePullSecrets:
+  - name: regcred
+
+</pre></div> </div> </div> <p>Download the above file onto your computer:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">curl -L -O my-private-reg-pod.yaml https://k8s.io/examples/pods/private-reg-pod.yaml
+</pre></div>
 <p>In file <code>my-private-reg-pod.yaml</code>, replace <code>&lt;your-private-image&gt;</code> with the path to an image in a private registry such as:</p> <pre><code class="language-none" data-lang="none">your.private.registry.example.com/janedoe/jdoe-private:v1
 </code></pre>
-<p>To pull the image from the private registry, Kubernetes needs credentials. The <code>imagePullSecrets</code> field in the configuration file specifies that Kubernetes should get the credentials from a Secret named <code>regcred</code>.</p> <p>Create a Pod that uses your Secret, and verify that the Pod is running:</p> <pre class="highlight" data-language="shell">kubectl apply -f my-private-reg-pod.yaml
+<p>To pull the image from the private registry, Kubernetes needs credentials. The <code>imagePullSecrets</code> field in the configuration file specifies that Kubernetes should get the credentials from a Secret named <code>regcred</code>.</p> <p>Create a Pod that uses your Secret, and verify that the Pod is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f my-private-reg-pod.yaml
 kubectl get pod private-reg
-</pre>
+</pre></div>
 <h2 id="what-s-next">What's next</h2> <ul> <li>Learn more about <a href="../../../concepts/configuration/secret/index">Secrets</a> <ul> <li>or read the API reference for <a href="../../../reference/kubernetes-api/config-and-storage-resources/secret-v1/index">Secret</a>
-</li> </ul> </li> <li>Learn more about <a href="../../../concepts/containers/images/index#using-a-private-registry">using a private registry</a>.</li> <li>Learn more about <a href="../configure-service-account/index#add-imagepullsecrets-to-a-service-account">adding image pull secrets to a service account</a>.</li> <li>See <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands/#-em-secret-docker-registry-em-">kubectl create secret docker-registry</a>.</li> <li>See the <code>imagePullSecrets</code> field within the <a href="../../../reference/kubernetes-api/workload-resources/pod-v1/index#containers">container definitions</a> of a Pod</li> </ul>
+</li> </ul> </li> <li>Learn more about <a href="../../../concepts/containers/images/index#using-a-private-registry">using a private registry</a>.</li> <li>Learn more about <a href="../configure-service-account/index#add-imagepullsecrets-to-a-service-account">adding image pull secrets to a service account</a>.</li> <li>See <a href="../../../reference/generated/kubectl/kubectl-commands/index#-em-secret-docker-registry-em-">kubectl create secret docker-registry</a>.</li> <li>See the <code>imagePullSecrets</code> field within the <a href="../../../reference/kubernetes-api/workload-resources/pod-v1/index#containers">container definitions</a> of a Pod</li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2022 The Kubernetes Authors<br>Documentation Distributed under CC BY 4.0.<br>

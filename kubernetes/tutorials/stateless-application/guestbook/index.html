@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/tutorials/stateless-application/guestbook/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -88,54 +88,190 @@
 			<div class="_page _kubernetes">
 				
 				
-<h1>Example: Deploying PHP Guestbook application with Redis</h1>  <p>This tutorial shows you how to build and deploy a simple <em>(not production ready)</em>, multi-tier web application using Kubernetes and <a href="https://www.docker.com/">Docker</a>. This example consists of the following components:</p> <ul> <li>A single-instance <a href="https://www.redis.io/">Redis</a> to store guestbook entries</li> <li>Multiple web frontend instances</li> </ul> <h2 id="objectives">Objectives</h2> <ul> <li>Start up a Redis leader.</li> <li>Start up two Redis followers.</li> <li>Start up the guestbook frontend.</li> <li>Expose and view the Frontend Service.</li> <li>Clean up.</li> </ul> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> Your Kubernetes server must be at or later than version v1.14. To check the version, enter <code>kubectl version</code>.  <h2 id="start-up-the-redis-database">Start up the Redis Database</h2> <p>The guestbook application uses Redis to store its data.</p> <h3 id="creating-the-redis-deployment">Creating the Redis Deployment</h3> <p>The manifest file, included below, specifies a Deployment controller that runs a single replica Redis Pod.</p> <pre class="highlight" data-language="">application/guestbook/redis-leader-deployment.yaml</pre> <ol> <li> <p>Launch a terminal window in the directory you downloaded the manifest files.</p> </li> <li> <p>Apply the Redis Deployment from the <code>redis-leader-deployment.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-leader-deployment.yaml
-</pre>
-</li> <li> <p>Query the list of Pods to verify that the Redis Pod is running:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
+<h1>Example: Deploying PHP Guestbook application with Redis</h1>  <p>This tutorial shows you how to build and deploy a simple <em>(not production ready)</em>, multi-tier web application using Kubernetes and <a href="https://www.docker.com/">Docker</a>. This example consists of the following components:</p> <ul> <li>A single-instance <a href="https://www.redis.io/">Redis</a> to store guestbook entries</li> <li>Multiple web frontend instances</li> </ul> <h2 id="objectives">Objectives</h2> <ul> <li>Start up a Redis leader.</li> <li>Start up two Redis followers.</li> <li>Start up the guestbook frontend.</li> <li>Expose and view the Frontend Service.</li> <li>Clean up.</li> </ul> <h2 id="before-you-begin">Before you begin</h2> <p>You need to have a Kubernetes cluster, and the kubectl command-line tool must be configured to communicate with your cluster. It is recommended to run this tutorial on a cluster with at least two nodes that are not acting as control plane hosts. If you do not already have a cluster, you can create one by using <a href="https://minikube.sigs.k8s.io/docs/tutorials/multi_node/">minikube</a> or you can use one of these Kubernetes playgrounds:</p> <ul> <li><a href="https://www.katacoda.com/courses/kubernetes/playground">Katacoda</a></li> <li><a href="http://labs.play-with-k8s.com/">Play with Kubernetes</a></li> </ul> Your Kubernetes server must be at or later than version v1.14. To check the version, enter <code>kubectl version</code>.  <h2 id="start-up-the-redis-database">Start up the Redis Database</h2> <p>The guestbook application uses Redis to store its data.</p> <h3 id="creating-the-redis-deployment">Creating the Redis Deployment</h3> <p>The manifest file, included below, specifies a Deployment controller that runs a single replica Redis Pod.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/redis-leader-deployment.yaml" download="application/guestbook/redis-leader-deployment.yaml"><code>application/guestbook/redis-leader-deployment.yaml</code> </a>   <div class="includecode" id="application-guestbook-redis-leader-deployment-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-leader
+  labels:
+    app: redis
+    role: leader
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: leader
+        tier: backend
+    spec:
+      containers:
+      - name: leader
+        image: "docker.io/redis:6.0.5"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 6379</pre></div> </div> </div> <ol> <li> <p>Launch a terminal window in the directory you downloaded the manifest files.</p> </li> <li> <p>Apply the Redis Deployment from the <code>redis-leader-deployment.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-leader-deployment.yaml
+</pre></div>
+</li> <li> <p>Query the list of Pods to verify that the Redis Pod is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME                           READY   STATUS    RESTARTS   AGE
 redis-leader-fb76b4755-xjr2n   1/1     Running   0          13s
 </code></pre>
-</li> <li> <p>Run the following command to view the logs from the Redis leader Pod:</p> <pre class="highlight" data-language="shell">kubectl logs -f deployment/redis-leader
-</pre>
-</li> </ol> <h3 id="creating-the-redis-leader-service">Creating the Redis leader Service</h3> <p>The guestbook application needs to communicate to the Redis to write its data. You need to apply a <a href="../../../concepts/services-networking/service/index">Service</a> to proxy the traffic to the Redis Pod. A Service defines a policy to access the Pods.</p> <pre class="highlight" data-language="">application/guestbook/redis-leader-service.yaml</pre> <ol> <li> <p>Apply the Redis Service from the following <code>redis-leader-service.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-leader-service.yaml
-</pre>
-</li> <li> <p>Query the list of Services to verify that the Redis Service is running:</p> <pre class="highlight" data-language="shell">kubectl get service
-</pre>
+</li> <li> <p>Run the following command to view the logs from the Redis leader Pod:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl logs -f deployment/redis-leader
+</pre></div>
+</li> </ol> <h3 id="creating-the-redis-leader-service">Creating the Redis leader Service</h3> <p>The guestbook application needs to communicate to the Redis to write its data. You need to apply a <a href="../../../concepts/services-networking/service/index">Service</a> to proxy the traffic to the Redis Pod. A Service defines a policy to access the Pods.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/redis-leader-service.yaml" download="application/guestbook/redis-leader-service.yaml"><code>application/guestbook/redis-leader-service.yaml</code> </a>   <div class="includecode" id="application-guestbook-redis-leader-service-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-leader
+  labels:
+    app: redis
+    role: leader
+    tier: backend
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+    role: leader
+    tier: backend</pre></div> </div> </div> <ol> <li> <p>Apply the Redis Service from the following <code>redis-leader-service.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-leader-service.yaml
+</pre></div>
+</li> <li> <p>Query the list of Services to verify that the Redis Service is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get service
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME           TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
 kubernetes     ClusterIP   10.0.0.1     &lt;none&gt;        443/TCP    1m
 redis-leader   ClusterIP   10.103.78.24 &lt;none&gt;        6379/TCP   16s
 </code></pre>
-</li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This manifest file creates a Service named <code>redis-leader</code> with a set of labels that match the labels previously defined, so the Service routes network traffic to the Redis Pod. </div> <h3 id="set-up-redis-followers">Set up Redis followers</h3> <p>Although the Redis leader is a single Pod, you can make it highly available and meet traffic demands by adding a few Redis followers, or replicas.</p> <pre class="highlight" data-language="">application/guestbook/redis-follower-deployment.yaml</pre> <ol> <li> <p>Apply the Redis Deployment from the following <code>redis-follower-deployment.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-follower-deployment.yaml
-</pre>
-</li> <li> <p>Verify that the two Redis follower replicas are running by querying the list of Pods:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
+</li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This manifest file creates a Service named <code>redis-leader</code> with a set of labels that match the labels previously defined, so the Service routes network traffic to the Redis Pod. </div> <h3 id="set-up-redis-followers">Set up Redis followers</h3> <p>Although the Redis leader is a single Pod, you can make it highly available and meet traffic demands by adding a few Redis followers, or replicas.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/redis-follower-deployment.yaml" download="application/guestbook/redis-follower-deployment.yaml"><code>application/guestbook/redis-follower-deployment.yaml</code> </a>   <div class="includecode" id="application-guestbook-redis-follower-deployment-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-follower
+  labels:
+    app: redis
+    role: follower
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: follower
+        tier: backend
+    spec:
+      containers:
+      - name: follower
+        image: gcr.io/google_samples/gb-redis-follower:v2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 6379</pre></div> </div> </div> <ol> <li> <p>Apply the Redis Deployment from the following <code>redis-follower-deployment.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-follower-deployment.yaml
+</pre></div>
+</li> <li> <p>Verify that the two Redis follower replicas are running by querying the list of Pods:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME                             READY   STATUS    RESTARTS   AGE
 redis-follower-dddfbdcc9-82sfr   1/1     Running   0          37s
 redis-follower-dddfbdcc9-qrt5k   1/1     Running   0          38s
 redis-leader-fb76b4755-xjr2n     1/1     Running   0          11m
 </code></pre>
-</li> </ol> <h3 id="creating-the-redis-follower-service">Creating the Redis follower service</h3> <p>The guestbook application needs to communicate with the Redis followers to read data. To make the Redis followers discoverable, you must set up another <a href="../../../concepts/services-networking/service/index">Service</a>.</p> <pre class="highlight" data-language="">application/guestbook/redis-follower-service.yaml</pre> <ol> <li> <p>Apply the Redis Service from the following <code>redis-follower-service.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-follower-service.yaml
-</pre>
-</li> <li> <p>Query the list of Services to verify that the Redis Service is running:</p> <pre class="highlight" data-language="shell">kubectl get service
-</pre>
+</li> </ol> <h3 id="creating-the-redis-follower-service">Creating the Redis follower service</h3> <p>The guestbook application needs to communicate with the Redis followers to read data. To make the Redis followers discoverable, you must set up another <a href="../../../concepts/services-networking/service/index">Service</a>.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/redis-follower-service.yaml" download="application/guestbook/redis-follower-service.yaml"><code>application/guestbook/redis-follower-service.yaml</code> </a>   <div class="includecode" id="application-guestbook-redis-follower-service-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-follower
+  labels:
+    app: redis
+    role: follower
+    tier: backend
+spec:
+  ports:
+    # the port that this service should serve on
+  - port: 6379
+  selector:
+    app: redis
+    role: follower
+    tier: backend</pre></div> </div> </div> <ol> <li> <p>Apply the Redis Service from the following <code>redis-follower-service.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/redis-follower-service.yaml
+</pre></div>
+</li> <li> <p>Query the list of Services to verify that the Redis Service is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get service
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 kubernetes       ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP    3d19h
 redis-follower   ClusterIP   10.110.162.42   &lt;none&gt;        6379/TCP   9s
 redis-leader     ClusterIP   10.103.78.24    &lt;none&gt;        6379/TCP   6m10s
 </code></pre>
-</li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This manifest file creates a Service named <code>redis-follower</code> with a set of labels that match the labels previously defined, so the Service routes network traffic to the Redis Pod. </div> <h2 id="set-up-and-expose-the-guestbook-frontend">Set up and Expose the Guestbook Frontend</h2> <p>Now that you have the Redis storage of your guestbook up and running, start the guestbook web servers. Like the Redis followers, the frontend is deployed using a Kubernetes Deployment.</p> <p>The guestbook app uses a PHP frontend. It is configured to communicate with either the Redis follower or leader Services, depending on whether the request is a read or a write. The frontend exposes a JSON interface, and serves a jQuery-Ajax-based UX.</p> <h3 id="creating-the-guestbook-frontend-deployment">Creating the Guestbook Frontend Deployment</h3> <pre class="highlight" data-language="">application/guestbook/frontend-deployment.yaml</pre> <ol> <li> <p>Apply the frontend Deployment from the <code>frontend-deployment.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-deployment.yaml
-</pre>
-</li> <li> <p>Query the list of Pods to verify that the three frontend replicas are running:</p> <pre class="highlight" data-language="shell">kubectl get pods -l app=guestbook -l tier=frontend
-</pre>
+</li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> This manifest file creates a Service named <code>redis-follower</code> with a set of labels that match the labels previously defined, so the Service routes network traffic to the Redis Pod. </div> <h2 id="set-up-and-expose-the-guestbook-frontend">Set up and Expose the Guestbook Frontend</h2> <p>Now that you have the Redis storage of your guestbook up and running, start the guestbook web servers. Like the Redis followers, the frontend is deployed using a Kubernetes Deployment.</p> <p>The guestbook app uses a PHP frontend. It is configured to communicate with either the Redis follower or leader Services, depending on whether the request is a read or a write. The frontend exposes a JSON interface, and serves a jQuery-Ajax-based UX.</p> <h3 id="creating-the-guestbook-frontend-deployment">Creating the Guestbook Frontend Deployment</h3> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/frontend-deployment.yaml" download="application/guestbook/frontend-deployment.yaml"><code>application/guestbook/frontend-deployment.yaml</code> </a>   <div class="includecode" id="application-guestbook-frontend-deployment-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+        app: guestbook
+        tier: frontend
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v5
+        env:
+        - name: GET_HOSTS_FROM
+          value: "dns"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 80</pre></div> </div> </div> <ol> <li> <p>Apply the frontend Deployment from the <code>frontend-deployment.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-deployment.yaml
+</pre></div>
+</li> <li> <p>Query the list of Pods to verify that the three frontend replicas are running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods -l app=guestbook -l tier=frontend
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME                        READY   STATUS    RESTARTS   AGE
 frontend-85595f5bf9-5tqhb   1/1     Running   0          47s
 frontend-85595f5bf9-qbzwm   1/1     Running   0          47s
 frontend-85595f5bf9-zchwc   1/1     Running   0          47s
 </code></pre>
-</li> </ol> <h3 id="creating-the-frontend-service">Creating the Frontend Service</h3> <p>The <code>Redis</code> Services you applied is only accessible within the Kubernetes cluster because the default type for a Service is <a href="../../../concepts/services-networking/service/index#publishing-services-service-types">ClusterIP</a>. <code>ClusterIP</code> provides a single IP address for the set of Pods the Service is pointing to. This IP address is accessible only within the cluster.</p> <p>If you want guests to be able to access your guestbook, you must configure the frontend Service to be externally visible, so a client can request the Service from outside the Kubernetes cluster. However a Kubernetes user you can use <code>kubectl port-forward</code> to access the service even though it uses a <code>ClusterIP</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Some cloud providers, like Google Compute Engine or Google Kubernetes Engine, support external load balancers. If your cloud provider supports load balancers and you want to use it, uncomment <code>type: LoadBalancer</code>. </div> <pre class="highlight" data-language="">application/guestbook/frontend-service.yaml</pre> <ol> <li> <p>Apply the frontend Service from the <code>frontend-service.yaml</code> file:</p>  <pre class="highlight" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-service.yaml
-</pre>
-</li> <li> <p>Query the list of Services to verify that the frontend Service is running:</p> <pre class="highlight" data-language="shell">kubectl get services
-</pre>
+</li> </ol> <h3 id="creating-the-frontend-service">Creating the Frontend Service</h3> <p>The <code>Redis</code> Services you applied is only accessible within the Kubernetes cluster because the default type for a Service is <a href="../../../concepts/services-networking/service/index#publishing-services-service-types">ClusterIP</a>. <code>ClusterIP</code> provides a single IP address for the set of Pods the Service is pointing to. This IP address is accessible only within the cluster.</p> <p>If you want guests to be able to access your guestbook, you must configure the frontend Service to be externally visible, so a client can request the Service from outside the Kubernetes cluster. However a Kubernetes user you can use <code>kubectl port-forward</code> to access the service even though it uses a <code>ClusterIP</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Some cloud providers, like Google Compute Engine or Google Kubernetes Engine, support external load balancers. If your cloud provider supports load balancers and you want to use it, uncomment <code>type: LoadBalancer</code>. </div> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/guestbook/frontend-service.yaml" download="application/guestbook/frontend-service.yaml"><code>application/guestbook/frontend-service.yaml</code> </a>   <div class="includecode" id="application-guestbook-frontend-service-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml"># SOURCE: https://cloud.google.com/kubernetes-engine/docs/tutorials/guestbook
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  # type: LoadBalancer
+  #type: LoadBalancer
+  ports:
+    # the port that this service should serve on
+  - port: 80
+  selector:
+    app: guestbook
+    tier: frontend</pre></div> </div> </div> <ol> <li> <p>Apply the frontend Service from the <code>frontend-service.yaml</code> file:</p>  <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl apply -f https://k8s.io/examples/application/guestbook/frontend-service.yaml
+</pre></div>
+</li> <li> <p>Query the list of Services to verify that the frontend Service is running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get services
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
 frontend         ClusterIP   10.97.28.230    &lt;none&gt;        80/TCP     19s
 kubernetes       ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP    3d19h
@@ -143,21 +279,21 @@ redis-follower   ClusterIP   10.110.162.42   &lt;none&gt;        6379/TCP   5m48
 redis-leader     ClusterIP   10.103.78.24    &lt;none&gt;        6379/TCP   11m
 </code></pre>
 </li> </ol> <h3 id="viewing-the-frontend-service-via-kubectl-port-forward">Viewing the Frontend Service via <code>kubectl port-forward</code>
-</h3> <ol> <li> <p>Run the following command to forward port <code>8080</code> on your local machine to port <code>80</code> on the service.</p> <pre class="highlight" data-language="shell">kubectl port-forward svc/frontend 8080:80
-</pre>
+</h3> <ol> <li> <p>Run the following command to forward port <code>8080</code> on your local machine to port <code>80</code> on the service.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl port-forward svc/frontend 8080:80
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>Forwarding from 127.0.0.1:8080 -&gt; 80
 Forwarding from [::1]:8080 -&gt; 80
 </code></pre>
 </li> <li> <p>load the page <a href="http://localhost:8080">http://localhost:8080</a> in your browser to view your guestbook.</p> </li> </ol> <h3 id="viewing-the-frontend-service-via-loadbalancer">Viewing the Frontend Service via <code>LoadBalancer</code>
-</h3> <p>If you deployed the <code>frontend-service.yaml</code> manifest with type: <code>LoadBalancer</code> you need to find the IP address to view your Guestbook.</p> <ol> <li> <p>Run the following command to get the IP address for the frontend Service.</p> <pre class="highlight" data-language="shell">kubectl get service frontend
-</pre>
+</h3> <p>If you deployed the <code>frontend-service.yaml</code> manifest with type: <code>LoadBalancer</code> you need to find the IP address to view your Guestbook.</p> <ol> <li> <p>Run the following command to get the IP address for the frontend Service.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get service frontend
+</pre></div>
 <p>The response should be similar to this:</p> <pre><code>NAME       TYPE           CLUSTER-IP      EXTERNAL-IP        PORT(S)        AGE
 frontend   LoadBalancer   10.51.242.136   109.197.92.229     80:32372/TCP   1m
 </code></pre>
-</li> <li> <p>Copy the external IP address, and load the page in your browser to view your guestbook.</p> </li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Try adding some guestbook entries by typing in a message, and clicking Submit. The message you typed appears in the frontend. This message indicates that data is successfully added to Redis through the Services you created earlier. </div> <h2 id="scale-the-web-frontend">Scale the Web Frontend</h2> <p>You can scale up or down as needed because your servers are defined as a Service that uses a Deployment controller.</p> <ol> <li> <p>Run the following command to scale up the number of frontend Pods:</p> <pre class="highlight" data-language="shell">kubectl scale deployment frontend --replicas=5
-</pre>
-</li> <li> <p>Query the list of Pods to verify the number of frontend Pods running:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
+</li> <li> <p>Copy the external IP address, and load the page in your browser to view your guestbook.</p> </li> </ol> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Try adding some guestbook entries by typing in a message, and clicking Submit. The message you typed appears in the frontend. This message indicates that data is successfully added to Redis through the Services you created earlier. </div> <h2 id="scale-the-web-frontend">Scale the Web Frontend</h2> <p>You can scale up or down as needed because your servers are defined as a Service that uses a Deployment controller.</p> <ol> <li> <p>Run the following command to scale up the number of frontend Pods:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl scale deployment frontend --replicas=5
+</pre></div>
+</li> <li> <p>Query the list of Pods to verify the number of frontend Pods running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
 <p>The response should look similar to this:</p> <pre><code>NAME                             READY   STATUS    RESTARTS   AGE
 frontend-85595f5bf9-5df5m        1/1     Running   0          83s
 frontend-85595f5bf9-7zmg5        1/1     Running   0          83s
@@ -168,10 +304,10 @@ redis-follower-dddfbdcc9-82sfr   1/1     Running   0          97m
 redis-follower-dddfbdcc9-qrt5k   1/1     Running   0          97m
 redis-leader-fb76b4755-xjr2n     1/1     Running   0          108m
 </code></pre>
-</li> <li> <p>Run the following command to scale down the number of frontend Pods:</p> <pre class="highlight" data-language="shell">kubectl scale deployment frontend --replicas=2
-</pre>
-</li> <li> <p>Query the list of Pods to verify the number of frontend Pods running:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
+</li> <li> <p>Run the following command to scale down the number of frontend Pods:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl scale deployment frontend --replicas=2
+</pre></div>
+</li> <li> <p>Query the list of Pods to verify the number of frontend Pods running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
 <p>The response should look similar to this:</p> <pre><code>NAME                             READY   STATUS    RESTARTS   AGE
 frontend-85595f5bf9-cpskg        1/1     Running   0          16m
 frontend-85595f5bf9-l9c8z        1/1     Running   0          15m
@@ -179,18 +315,18 @@ redis-follower-dddfbdcc9-82sfr   1/1     Running   0          98m
 redis-follower-dddfbdcc9-qrt5k   1/1     Running   0          98m
 redis-leader-fb76b4755-xjr2n     1/1     Running   0          109m
 </code></pre>
-</li> </ol> <h2 id="cleaning-up">Cleaning up</h2> <p>Deleting the Deployments and Services also deletes any running Pods. Use labels to delete multiple resources with one command.</p> <ol> <li> <p>Run the following commands to delete all Pods, Deployments, and Services.</p> <pre class="highlight" data-language="shell">kubectl delete deployment -l app=redis
+</li> </ol> <h2 id="cleaning-up">Cleaning up</h2> <p>Deleting the Deployments and Services also deletes any running Pods. Use labels to delete multiple resources with one command.</p> <ol> <li> <p>Run the following commands to delete all Pods, Deployments, and Services.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl delete deployment -l app=redis
 kubectl delete service -l app=redis
 kubectl delete deployment frontend
 kubectl delete service frontend
-</pre>
+</pre></div>
 <p>The response should look similar to this:</p> <pre><code>deployment.apps "redis-follower" deleted
 deployment.apps "redis-leader" deleted
 deployment.apps "frontend" deleted
 service "frontend" deleted
 </code></pre>
-</li> <li> <p>Query the list of Pods to verify that no Pods are running:</p> <pre class="highlight" data-language="shell">kubectl get pods
-</pre>
+</li> <li> <p>Query the list of Pods to verify that no Pods are running:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl get pods
+</pre></div>
 <p>The response should look similar to this:</p> <pre><code>No resources found in default namespace.
 </code></pre>
 </li> </ol> <h2 id="what-s-next">What's next</h2> <ul> <li>Complete the <a href="../../kubernetes-basics/index">Kubernetes Basics</a> Interactive Tutorials</li> <li>Use Kubernetes to create a blog using <a href="../../stateful-application/mysql-wordpress-persistent-volume/index#visit-your-new-wordpress-blog">Persistent Volumes for MySQL and Wordpress</a>

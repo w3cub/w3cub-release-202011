@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/reference/access-authn-authz/bootstrap-tokens/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -90,11 +90,11 @@
 				
 <h1>Authenticating with Bootstrap Tokens</h1>  <div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.18 [stable]</code> </div> <p>Bootstrap tokens are a simple bearer token that is meant to be used when creating new clusters or joining new nodes to an existing cluster. It was built to support <a href="../../setup-tools/kubeadm/index">kubeadm</a>, but can be used in other contexts for users that wish to start clusters without <code>kubeadm</code>. It is also built to work, via RBAC policy, with the <a href="../../command-line-tools-reference/kubelet-tls-bootstrapping/index">Kubelet TLS Bootstrapping</a> system.</p>  <h2 id="bootstrap-tokens-overview">Bootstrap Tokens Overview</h2> <p>Bootstrap Tokens are defined with a specific type (<code>bootstrap.kubernetes.io/token</code>) of secrets that lives in the <code>kube-system</code> namespace. These Secrets are then read by the Bootstrap Authenticator in the API Server. Expired tokens are removed with the TokenCleaner controller in the Controller Manager. The tokens are also used to create a signature for a specific ConfigMap used in a "discovery" process through a BootstrapSigner controller.</p> <h2 id="token-format">Token Format</h2> <p>Bootstrap Tokens take the form of <code>abcdef.0123456789abcdef</code>. More formally, they must match the regular expression <code>[a-z0-9]{6}\.[a-z0-9]{16}</code>.</p> <p>The first part of the token is the "Token ID" and is considered public information. It is used when referring to a token without leaking the secret part used for authentication. The second part is the "Token Secret" and should only be shared with trusted parties.</p> <h2 id="enabling-bootstrap-token-authentication">Enabling Bootstrap Token Authentication</h2> <p>The Bootstrap Token authenticator can be enabled using the following flag on the API server:</p> <pre><code>--enable-bootstrap-token-auth
 </code></pre>
-<p>When enabled, bootstrapping tokens can be used as bearer token credentials to authenticate requests against the API server.</p> <pre class="highlight" data-language="http">Authorization: Bearer 07401b.f395accd246ae52d
-</pre>
+<p>When enabled, bootstrapping tokens can be used as bearer token credentials to authenticate requests against the API server.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="http">Authorization: Bearer 07401b.f395accd246ae52d
+</pre></div>
 <p>Tokens authenticate as the username <code>system:bootstrap:&lt;token id&gt;</code> and are members of the group <code>system:bootstrappers</code>. Additional groups may be specified in the token's Secret.</p> <p>Expired tokens can be deleted automatically by enabling the <code>tokencleaner</code> controller on the controller manager.</p> <pre><code>--controllers=*,tokencleaner
 </code></pre>
-<h2 id="bootstrap-token-secret-format">Bootstrap Token Secret Format</h2> <p>Each valid token is backed by a secret in the <code>kube-system</code> namespace. You can find the full design doc <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/cluster-lifecycle/bootstrap-discovery.md">here</a>.</p> <p>Here is what the secret looks like.</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+<h2 id="bootstrap-token-secret-format">Bootstrap Token Secret Format</h2> <p>Each valid token is backed by a secret in the <code>kube-system</code> namespace. You can find the full design doc <a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/cluster-lifecycle/bootstrap-discovery.md">here</a>.</p> <p>Here is what the secret looks like.</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
 kind: Secret
 metadata:
   # Name MUST be of form "bootstrap-token-&lt;token id&gt;"
@@ -120,12 +120,12 @@ stringData:
 
   # Extra groups to authenticate the token as. Must start with "system:bootstrappers:"
   auth-extra-groups: system:bootstrappers:worker,system:bootstrappers:ingress
-</pre>
+</pre></div>
 <p>The type of the secret must be <code>bootstrap.kubernetes.io/token</code> and the name must be <code>bootstrap-token-&lt;token id&gt;</code>. It must also exist in the <code>kube-system</code> namespace.</p> <p>The <code>usage-bootstrap-*</code> members indicate what this secret is intended to be used for. A value must be set to <code>true</code> to be enabled.</p> <ul> <li>
 <code>usage-bootstrap-authentication</code> indicates that the token can be used to authenticate to the API server as a bearer token.</li> <li>
 <code>usage-bootstrap-signing</code> indicates that the token may be used to sign the <code>cluster-info</code> ConfigMap as described below.</li> </ul> <p>The <code>expiration</code> field controls the expiry of the token. Expired tokens are rejected when used for authentication and ignored during ConfigMap signing. The expiry value is encoded as an absolute UTC time using RFC3339. Enable the <code>tokencleaner</code> controller to automatically delete expired tokens.</p> <h2 id="token-management-with-kubeadm">Token Management with kubeadm</h2> <p>You can use the <code>kubeadm</code> tool to manage tokens on a running cluster. See the <a href="../../setup-tools/kubeadm/kubeadm-token/index">kubeadm token docs</a> for details.</p> <h2 id="configmap-signing">ConfigMap Signing</h2> <p>In addition to authentication, the tokens can be used to sign a ConfigMap. This is used early in a cluster bootstrap process before the client trusts the API server. The signed ConfigMap can be authenticated by the shared token.</p> <p>Enable ConfigMap signing by enabling the <code>bootstrapsigner</code> controller on the Controller Manager.</p> <pre><code>--controllers=*,bootstrapsigner
 </code></pre>
-<p>The ConfigMap that is signed is <code>cluster-info</code> in the <code>kube-public</code> namespace. The typical flow is that a client reads this ConfigMap while unauthenticated and ignoring TLS errors. It then validates the payload of the ConfigMap by looking at a signature embedded in the ConfigMap.</p> <p>The ConfigMap may look like this:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+<p>The ConfigMap that is signed is <code>cluster-info</code> in the <code>kube-public</code> namespace. The typical flow is that a client reads this ConfigMap while unauthenticated and ignoring TLS errors. It then validates the payload of the ConfigMap by looking at a signature embedded in the ConfigMap.</p> <p>The ConfigMap may look like this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cluster-info
@@ -144,7 +144,7 @@ data:
     kind: Config
     preferences: {}
     users: []    
-</pre>
+</pre></div>
 <p>The <code>kubeconfig</code> member of the ConfigMap is a config file with only the cluster information filled out. The key thing being communicated here is the <code>certificate-authority-data</code>. This may be expanded in the future.</p> <p>The signature is a JWS signature using the "detached" mode. To validate the signature, the user should encode the <code>kubeconfig</code> payload according to JWS rules (base64 encoded while discarding any trailing <code>=</code>). That encoded payload is then used to form a whole JWS by inserting it between the 2 dots. You can verify the JWS using the <code>HS256</code> scheme (HMAC-SHA256) with the full token (e.g. <code>07401b.f395accd246ae52d</code>) as the shared secret. Users <em>must</em> verify that HS256 is used.</p> <div class="alert alert-danger warning callout" role="alert"> <strong>Warning:</strong> Any party with a bootstrapping token can create a valid signature for that token. When using ConfigMap signing it's discouraged to share the same token with many clients, since a compromised client can potentially man-in-the middle another client relying on the signature to bootstrap TLS trust. </div> <p>Consult the <a href="../../setup-tools/kubeadm/implementation-details/index">kubeadm implementation details</a> section for more information.</p>
 <div class="_attribution">
   <p class="_attribution-p">

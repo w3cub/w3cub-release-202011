@@ -16,7 +16,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/kubernetes/concepts/services-networking/ingress/">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-60a6449bb52e9968d95c133a29f066ffcb8dbe4f077d4022e51c991ce30bf256c8e19c508207a4193c414ffd0414826564317669b0f27f9f85c1cb21b84e097e.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
   <script src="/assets/application-d9be6f56a823612443fc15b2e027a630e02c4ad2685bb750d13fa4fae28d46c3e7f7ebb69bd4bafddf116f218f9372e9be44021d4247dc20424e2fd1ff8cef81.js" type="text/javascript"></script>
   <script src="/json/kubernetes.js"></script>
   
@@ -89,9 +89,46 @@
 				
 				
 <h1>Ingress</h1>  
-<div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.19 [stable]</code> </div> <p>An API object that manages external access to the services in a cluster, typically HTTP.</p> <p>Ingress may provide load balancing, SSL termination and name-based virtual hosting.</p>  <h2 id="terminology">Terminology</h2> <p>For clarity, this guide defines the following terms:</p> <ul> <li>Node: A worker machine in Kubernetes, part of a cluster.</li> <li>Cluster: A set of Nodes that run containerized applications managed by Kubernetes. For this example, and in most common Kubernetes deployments, nodes in the cluster are not part of the public internet.</li> <li>Edge router: A router that enforces the firewall policy for your cluster. This could be a gateway managed by a cloud provider or a physical piece of hardware.</li> <li>Cluster network: A set of links, logical or physical, that facilitate communication within a cluster according to the Kubernetes <a href="https://kubernetes.io/docs/concepts/cluster-administration/networking/">networking model</a>.</li> <li>Service: A Kubernetes <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../service/index" target="_blank" aria-label="Service">Service</a> that identifies a set of Pods using <a class="glossary-tooltip" title="Tags objects with identifying attributes that are meaningful and relevant to users." data-toggle="tooltip" data-placement="top" href="../../overview/working-with-objects/labels" target="_blank" aria-label="label">label</a> selectors. Unless mentioned otherwise, Services are assumed to have virtual IPs only routable within the cluster network.</li> </ul> <h2 id="what-is-ingress">What is Ingress?</h2> <p><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#ingress-v1-networking-k8s-io">Ingress</a> exposes HTTP and HTTPS routes from outside the cluster to <a href="../service/index" target="_blank">services</a> within the cluster. Traffic routing is controlled by rules defined on the Ingress resource.</p> <p>Here is a simple example where an Ingress sends all its traffic to one Service: </p>
-<div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress]; ingress--&gt;|routing rule|service[Service]; subgraph cluster ingress; service--&gt;pod1[Pod]; service--&gt;pod2[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service,pod1,pod2 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>An Ingress may be configured to give Services externally-reachable URLs, load balance traffic, terminate SSL / TLS, and offer name-based virtual hosting. An <a href="../ingress-controllers">Ingress controller</a> is responsible for fulfilling the Ingress, usually with a load balancer, though it may also configure your edge router or additional frontends to help handle the traffic.</p> <p>An Ingress does not expose arbitrary ports or protocols. Exposing services other than HTTP and HTTPS to the internet typically uses a service of type <a href="../service/index#type-nodeport">Service.Type=NodePort</a> or <a href="../service/index#loadbalancer">Service.Type=LoadBalancer</a>.</p> <h2 id="prerequisites">Prerequisites</h2> <p>You must have an <a href="../ingress-controllers">Ingress controller</a> to satisfy an Ingress. Only creating an Ingress resource has no effect.</p> <p>You may need to deploy an Ingress controller such as <a href="https://kubernetes.github.io/ingress-nginx/deploy/">ingress-nginx</a>. You can choose from a number of <a href="../ingress-controllers">Ingress controllers</a>.</p> <p>Ideally, all Ingress controllers should fit the reference specification. In reality, the various Ingress controllers operate slightly differently.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Make sure you review your Ingress controller's documentation to understand the caveats of choosing it. </div> <h2 id="the-ingress-resource">The Ingress resource</h2> <p>A minimal Ingress resource example:</p> <pre class="highlight" data-language="">service/networking/minimal-ingress.yaml</pre> <p>As with all other Kubernetes resources, an Ingress needs <code>apiVersion</code>, <code>kind</code>, and <code>metadata</code> fields. The name of an Ingress object must be a valid <a href="../../overview/working-with-objects/names#dns-subdomain-names">DNS subdomain name</a>. For general information about working with config files, see <a href="../../../tasks/run-application/run-stateless-application-deployment/index">deploying applications</a>, <a href="../../../tasks/configure-pod-container/configure-pod-configmap/index">configuring containers</a>, <a href="https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/">managing resources</a>. Ingress frequently uses annotations to configure some options depending on the Ingress controller, an example of which is the <a href="https://github.com/kubernetes/ingress-nginx/blob/master/docs/examples/rewrite/README.md">rewrite-target annotation</a>. Different <a href="../ingress-controllers">Ingress controllers</a> support different annotations. Review the documentation for your choice of Ingress controller to learn which annotations are supported.</p> <p>The Ingress <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status">spec</a> has all the information needed to configure a load balancer or proxy server. Most importantly, it contains a list of rules matched against all incoming requests. Ingress resource only supports rules for directing HTTP(S) traffic.</p> <h3 id="ingress-rules">Ingress rules</h3> <p>Each HTTP rule contains the following information:</p> <ul> <li>An optional host. In this example, no host is specified, so the rule applies to all inbound HTTP traffic through the IP address specified. If a host is provided (for example, foo.bar.com), the rules apply to that host.</li> <li>A list of paths (for example, <code>/testpath</code>), each of which has an associated backend defined with a <code>service.name</code> and a <code>service.port.name</code> or <code>service.port.number</code>. Both the host and path must match the content of an incoming request before the load balancer directs traffic to the referenced Service.</li> <li>A backend is a combination of Service and port names as described in the <a href="../service/index">Service doc</a> or a <a href="#resource-backend">custom resource backend</a> by way of a <a class="glossary-tooltip" title="Custom code that defines a resource to add to your Kubernetes API server without building a complete custom server." data-toggle="tooltip" data-placement="top" href="../../../tasks/extend-kubernetes/custom-resources/custom-resource-definitions/index" target="_blank" aria-label="CRD">CRD</a>. HTTP (and HTTPS) requests to the Ingress that matches the host and path of the rule are sent to the listed backend.</li> </ul> <p>A <code>defaultBackend</code> is often configured in an Ingress controller to service any requests that do not match a path in the spec.</p> <h3 id="default-backend">DefaultBackend</h3> <p>An Ingress with no rules sends all traffic to a single default backend. The <code>defaultBackend</code> is conventionally a configuration option of the <a href="../ingress-controllers">Ingress controller</a> and is not specified in your Ingress resources.</p> <p>If none of the hosts or paths match the HTTP request in the Ingress objects, the traffic is routed to your default backend.</p> <h3 id="resource-backend">Resource backends</h3> <p>A <code>Resource</code> backend is an ObjectRef to another Kubernetes resource within the same namespace as the Ingress object. A <code>Resource</code> is a mutually exclusive setting with Service, and will fail validation if both are specified. A common usage for a <code>Resource</code> backend is to ingress data to an object storage backend with static assets.</p> <pre class="highlight" data-language="">service/networking/ingress-resource-backend.yaml</pre> <p>After creating the Ingress above, you can view it with the following command:</p> <pre class="highlight" data-language="bash">kubectl describe ingress ingress-resource-backend
-</pre>
+<div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.19 [stable]</code> </div> <p>An API object that manages external access to the services in a cluster, typically HTTP.</p> <p>Ingress may provide load balancing, SSL termination and name-based virtual hosting.</p>  <h2 id="terminology">Terminology</h2> <p>For clarity, this guide defines the following terms:</p> <ul> <li>Node: A worker machine in Kubernetes, part of a cluster.</li> <li>Cluster: A set of Nodes that run containerized applications managed by Kubernetes. For this example, and in most common Kubernetes deployments, nodes in the cluster are not part of the public internet.</li> <li>Edge router: A router that enforces the firewall policy for your cluster. This could be a gateway managed by a cloud provider or a physical piece of hardware.</li> <li>Cluster network: A set of links, logical or physical, that facilitate communication within a cluster according to the Kubernetes <a href="https://kubernetes.io/docs/concepts/cluster-administration/networking/">networking model</a>.</li> <li>Service: A Kubernetes <a class="glossary-tooltip" title="A way to expose an application running on a set of Pods as a network service." data-toggle="tooltip" data-placement="top" href="../service/index" target="_blank" aria-label="Service">Service</a> that identifies a set of Pods using <a class="glossary-tooltip" title="Tags objects with identifying attributes that are meaningful and relevant to users." data-toggle="tooltip" data-placement="top" href="../../overview/working-with-objects/labels/index" target="_blank" aria-label="label">label</a> selectors. Unless mentioned otherwise, Services are assumed to have virtual IPs only routable within the cluster network.</li> </ul> <h2 id="what-is-ingress">What is Ingress?</h2> <p><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#ingress-v1-networking-k8s-io">Ingress</a> exposes HTTP and HTTPS routes from outside the cluster to <a href="../service/index" target="_blank">services</a> within the cluster. Traffic routing is controlled by rules defined on the Ingress resource.</p> <p>Here is a simple example where an Ingress sends all its traffic to one Service: </p>
+<div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress]; ingress--&gt;|routing rule|service[Service]; subgraph cluster ingress; service--&gt;pod1[Pod]; service--&gt;pod2[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service,pod1,pod2 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>An Ingress may be configured to give Services externally-reachable URLs, load balance traffic, terminate SSL / TLS, and offer name-based virtual hosting. An <a href="../ingress-controllers/index">Ingress controller</a> is responsible for fulfilling the Ingress, usually with a load balancer, though it may also configure your edge router or additional frontends to help handle the traffic.</p> <p>An Ingress does not expose arbitrary ports or protocols. Exposing services other than HTTP and HTTPS to the internet typically uses a service of type <a href="../service/index#type-nodeport">Service.Type=NodePort</a> or <a href="../service/index#loadbalancer">Service.Type=LoadBalancer</a>.</p> <h2 id="prerequisites">Prerequisites</h2> <p>You must have an <a href="../ingress-controllers/index">Ingress controller</a> to satisfy an Ingress. Only creating an Ingress resource has no effect.</p> <p>You may need to deploy an Ingress controller such as <a href="https://kubernetes.github.io/ingress-nginx/deploy/">ingress-nginx</a>. You can choose from a number of <a href="../ingress-controllers/index">Ingress controllers</a>.</p> <p>Ideally, all Ingress controllers should fit the reference specification. In reality, the various Ingress controllers operate slightly differently.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Make sure you review your Ingress controller's documentation to understand the caveats of choosing it. </div> <h2 id="the-ingress-resource">The Ingress resource</h2> <p>A minimal Ingress resource example:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/minimal-ingress.yaml" download="service/networking/minimal-ingress.yaml"><code>service/networking/minimal-ingress.yaml</code> </a>   <div class="includecode" id="service-networking-minimal-ingress-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /testpath
+        pathType: Prefix
+        backend:
+          service:
+            name: test
+            port:
+              number: 80
+</pre></div> </div> </div> <p>As with all other Kubernetes resources, an Ingress needs <code>apiVersion</code>, <code>kind</code>, and <code>metadata</code> fields. The name of an Ingress object must be a valid <a href="../../overview/working-with-objects/names/index#dns-subdomain-names">DNS subdomain name</a>. For general information about working with config files, see <a href="../../../tasks/run-application/run-stateless-application-deployment/index">deploying applications</a>, <a href="../../../tasks/configure-pod-container/configure-pod-configmap/index">configuring containers</a>, <a href="https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/">managing resources</a>. Ingress frequently uses annotations to configure some options depending on the Ingress controller, an example of which is the <a href="https://github.com/kubernetes/ingress-nginx/blob/master/docs/examples/rewrite/README.md">rewrite-target annotation</a>. Different <a href="../ingress-controllers/index">Ingress controllers</a> support different annotations. Review the documentation for your choice of Ingress controller to learn which annotations are supported.</p> <p>The Ingress <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status">spec</a> has all the information needed to configure a load balancer or proxy server. Most importantly, it contains a list of rules matched against all incoming requests. Ingress resource only supports rules for directing HTTP(S) traffic.</p> <h3 id="ingress-rules">Ingress rules</h3> <p>Each HTTP rule contains the following information:</p> <ul> <li>An optional host. In this example, no host is specified, so the rule applies to all inbound HTTP traffic through the IP address specified. If a host is provided (for example, foo.bar.com), the rules apply to that host.</li> <li>A list of paths (for example, <code>/testpath</code>), each of which has an associated backend defined with a <code>service.name</code> and a <code>service.port.name</code> or <code>service.port.number</code>. Both the host and path must match the content of an incoming request before the load balancer directs traffic to the referenced Service.</li> <li>A backend is a combination of Service and port names as described in the <a href="../service/index">Service doc</a> or a <a href="#resource-backend">custom resource backend</a> by way of a <a class="glossary-tooltip" title="Custom code that defines a resource to add to your Kubernetes API server without building a complete custom server." data-toggle="tooltip" data-placement="top" href="../../../tasks/extend-kubernetes/custom-resources/custom-resource-definitions/index" target="_blank" aria-label="CRD">CRD</a>. HTTP (and HTTPS) requests to the Ingress that matches the host and path of the rule are sent to the listed backend.</li> </ul> <p>A <code>defaultBackend</code> is often configured in an Ingress controller to service any requests that do not match a path in the spec.</p> <h3 id="default-backend">DefaultBackend</h3> <p>An Ingress with no rules sends all traffic to a single default backend. The <code>defaultBackend</code> is conventionally a configuration option of the <a href="../ingress-controllers/index">Ingress controller</a> and is not specified in your Ingress resources.</p> <p>If none of the hosts or paths match the HTTP request in the Ingress objects, the traffic is routed to your default backend.</p> <h3 id="resource-backend">Resource backends</h3> <p>A <code>Resource</code> backend is an ObjectRef to another Kubernetes resource within the same namespace as the Ingress object. A <code>Resource</code> is a mutually exclusive setting with Service, and will fail validation if both are specified. A common usage for a <code>Resource</code> backend is to ingress data to an object storage backend with static assets.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/ingress-resource-backend.yaml" download="service/networking/ingress-resource-backend.yaml"><code>service/networking/ingress-resource-backend.yaml</code> </a>   <div class="includecode" id="service-networking-ingress-resource-backend-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-resource-backend
+spec:
+  defaultBackend:
+    resource:
+      apiGroup: k8s.example.com
+      kind: StorageBucket
+      name: static-assets
+  rules:
+    - http:
+        paths:
+          - path: /icons
+            pathType: ImplementationSpecific
+            backend:
+              resource:
+                apiGroup: k8s.example.com
+                kind: StorageBucket
+                name: icon-assets
+</pre></div> </div> </div> <p>After creating the Ingress above, you can view it with the following command:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="bash">kubectl describe ingress ingress-resource-backend
+</pre></div>
 <pre><code>Name:             ingress-resource-backend
 Namespace:        default
 Address:
@@ -115,11 +152,47 @@ Events:       &lt;none&gt;
 </td> <td><code>/aaa/bbb</code></td> <td>Yes, matches <code>/aaa/bbb</code> prefix</td> </tr> <tr> <td>Prefix</td> <td>
 <code>/</code>, <code>/aaa</code>, <code>/aaa/bbb</code>
 </td> <td><code>/ccc</code></td> <td>Yes, matches <code>/</code> prefix</td> </tr> <tr> <td>Prefix</td> <td><code>/aaa</code></td> <td><code>/ccc</code></td> <td>No, uses default backend</td> </tr> <tr> <td>Mixed</td> <td>
-<code>/foo</code> (Prefix), <code>/foo</code> (Exact)</td> <td><code>/foo</code></td> <td>Yes, prefers Exact</td> </tr> </tbody> </table> <h4 id="multiple-matches">Multiple matches</h4> <p>In some cases, multiple paths within an Ingress will match a request. In those cases precedence will be given first to the longest matching path. If two paths are still equally matched, precedence will be given to paths with an exact path type over prefix path type.</p> <h2 id="hostname-wildcards">Hostname wildcards</h2> <p>Hosts can be precise matches (for example “<code>foo.bar.com</code>”) or a wildcard (for example “<code>*.foo.com</code>”). Precise matches require that the HTTP <code>host</code> header matches the <code>host</code> field. Wildcard matches require the HTTP <code>host</code> header is equal to the suffix of the wildcard rule.</p> <table> <thead> <tr> <th>Host</th> <th>Host header</th> <th>Match?</th> </tr> </thead> <tbody> <tr> <td><code>*.foo.com</code></td> <td><code>bar.foo.com</code></td> <td>Matches based on shared suffix</td> </tr> <tr> <td><code>*.foo.com</code></td> <td><code>baz.bar.foo.com</code></td> <td>No match, wildcard only covers a single DNS label</td> </tr> <tr> <td><code>*.foo.com</code></td> <td><code>foo.com</code></td> <td>No match, wildcard only covers a single DNS label</td> </tr> </tbody> </table> <pre class="highlight" data-language="">service/networking/ingress-wildcard-host.yaml</pre> <h2 id="ingress-class">Ingress class</h2> <p>Ingresses can be implemented by different controllers, often with different configuration. Each Ingress should specify a class, a reference to an IngressClass resource that contains additional configuration including the name of the controller that should implement the class.</p> <pre class="highlight" data-language="">service/networking/external-lb.yaml</pre> <p>The <code>.spec.parameters</code> field of an IngressClass lets you reference another resource that provides configuration related to that IngressClass.</p> <p>The specific type of parameters to use depends on the ingress controller that you specify in the <code>.spec.controller</code> field of the IngressClass.</p> <h3 id="ingressclass-scope">IngressClass scope</h3> <p>Depending on your ingress controller, you may be able to use parameters that you set cluster-wide, or just for one namespace.</p> <ul class="nav nav-tabs" id="tabs-ingressclass-parameter-scope" role="tablist">
+<code>/foo</code> (Prefix), <code>/foo</code> (Exact)</td> <td><code>/foo</code></td> <td>Yes, prefers Exact</td> </tr> </tbody> </table> <h4 id="multiple-matches">Multiple matches</h4> <p>In some cases, multiple paths within an Ingress will match a request. In those cases precedence will be given first to the longest matching path. If two paths are still equally matched, precedence will be given to paths with an exact path type over prefix path type.</p> <h2 id="hostname-wildcards">Hostname wildcards</h2> <p>Hosts can be precise matches (for example “<code>foo.bar.com</code>”) or a wildcard (for example “<code>*.foo.com</code>”). Precise matches require that the HTTP <code>host</code> header matches the <code>host</code> field. Wildcard matches require the HTTP <code>host</code> header is equal to the suffix of the wildcard rule.</p> <table> <thead> <tr> <th>Host</th> <th>Host header</th> <th>Match?</th> </tr> </thead> <tbody> <tr> <td><code>*.foo.com</code></td> <td><code>bar.foo.com</code></td> <td>Matches based on shared suffix</td> </tr> <tr> <td><code>*.foo.com</code></td> <td><code>baz.bar.foo.com</code></td> <td>No match, wildcard only covers a single DNS label</td> </tr> <tr> <td><code>*.foo.com</code></td> <td><code>foo.com</code></td> <td>No match, wildcard only covers a single DNS label</td> </tr> </tbody> </table> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/ingress-wildcard-host.yaml" download="service/networking/ingress-wildcard-host.yaml"><code>service/networking/ingress-wildcard-host.yaml</code> </a>   <div class="includecode" id="service-networking-ingress-wildcard-host-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-wildcard-host
+spec:
+  rules:
+  - host: "foo.bar.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/bar"
+        backend:
+          service:
+            name: service1
+            port:
+              number: 80
+  - host: "*.foo.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/foo"
+        backend:
+          service:
+            name: service2
+            port:
+              number: 80
+</pre></div> </div> </div> <h2 id="ingress-class">Ingress class</h2> <p>Ingresses can be implemented by different controllers, often with different configuration. Each Ingress should specify a class, a reference to an IngressClass resource that contains additional configuration including the name of the controller that should implement the class.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/external-lb.yaml" download="service/networking/external-lb.yaml"><code>service/networking/external-lb.yaml</code> </a>   <div class="includecode" id="service-networking-external-lb-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: external-lb
+spec:
+  controller: example.com/ingress-controller
+  parameters:
+    apiGroup: k8s.example.com
+    kind: IngressParameters
+    name: external-lb
+</pre></div> </div> </div> <p>The <code>.spec.parameters</code> field of an IngressClass lets you reference another resource that provides configuration related to that IngressClass.</p> <p>The specific type of parameters to use depends on the ingress controller that you specify in the <code>.spec.controller</code> field of the IngressClass.</p> <h3 id="ingressclass-scope">IngressClass scope</h3> <p>Depending on your ingress controller, you may be able to use parameters that you set cluster-wide, or just for one namespace.</p> <ul class="nav nav-tabs" id="tabs-ingressclass-parameter-scope" role="tablist">
 <li class="nav-item"><a data-toggle="tab" class="nav-link active" href="#tabs-ingressclass-parameter-scope-0" role="tab" aria-controls="tabs-ingressclass-parameter-scope-0" aria-selected="true">Cluster</a></li> <li class="nav-item"><a data-toggle="tab" class="nav-link" href="#tabs-ingressclass-parameter-scope-1" role="tab" aria-controls="tabs-ingressclass-parameter-scope-1">Namespaced</a></li>
 </ul> <div class="tab-content" id="tabs-ingressclass-parameter-scope">
 <div id="tabs-ingressclass-parameter-scope-0" class="tab-pane show active" role="tabpanel" aria-labelledby="tabs-ingressclass-parameter-scope-0"> 
-<p>The default scope for IngressClass parameters is cluster-wide.</p> <p>If you set the <code>.spec.parameters</code> field and don't set <code>.spec.parameters.scope</code>, or if you set <code>.spec.parameters.scope</code> to <code>Cluster</code>, then the IngressClass refers to a cluster-scoped resource. The <code>kind</code> (in combination the <code>apiGroup</code>) of the parameters refers to a cluster-scoped API (possibly a custom resource), and the <code>name</code> of the parameters identifies a specific cluster scoped resource for that API.</p> <p>For example:</p> <pre class="highlight" data-language="yaml">---
+<p>The default scope for IngressClass parameters is cluster-wide.</p> <p>If you set the <code>.spec.parameters</code> field and don't set <code>.spec.parameters.scope</code>, or if you set <code>.spec.parameters.scope</code> to <code>Cluster</code>, then the IngressClass refers to a cluster-scoped resource. The <code>kind</code> (in combination the <code>apiGroup</code>) of the parameters refers to a cluster-scoped API (possibly a custom resource), and the <code>name</code> of the parameters identifies a specific cluster scoped resource for that API.</p> <p>For example:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
@@ -135,9 +208,9 @@ spec:
     apiGroup: k8s.example.net
     kind: ClusterIngressParameter
     name: external-config-1
-</pre>
+</pre></div>
 </div> <div id="tabs-ingressclass-parameter-scope-1" class="tab-pane" role="tabpanel" aria-labelledby="tabs-ingressclass-parameter-scope-1"> 
-<div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.23 [stable]</code> </div> <p>If you set the <code>.spec.parameters</code> field and set <code>.spec.parameters.scope</code> to <code>Namespace</code>, then the IngressClass refers to a namespaced-scoped resource. You must also set the <code>namespace</code> field within <code>.spec.parameters</code> to the namespace that contains the parameters you want to use.</p> <p>The <code>kind</code> (in combination the <code>apiGroup</code>) of the parameters refers to a namespaced API (for example: ConfigMap), and the <code>name</code> of the parameters identifies a specific resource in the namespace you specified in <code>namespace</code>.</p> <p>Namespace-scoped parameters help the cluster operator delegate control over the configuration (for example: load balancer settings, API gateway definition) that is used for a workload. If you used a cluster-scoped parameter then either:</p> <ul> <li>the cluster operator team needs to approve a different team's changes every time there's a new configuration change being applied.</li> <li>the cluster operator must define specific access controls, such as <a href="../../../reference/access-authn-authz/rbac/index">RBAC</a> roles and bindings, that let the application team make changes to the cluster-scoped parameters resource.</li> </ul> <p>The IngressClass API itself is always cluster-scoped.</p> <p>Here is an example of an IngressClass that refers to parameters that are namespaced:</p> <pre class="highlight" data-language="yaml">---
+<div style="margin-top: 10px; margin-bottom: 10px;"> <b>FEATURE STATE:</b> <code>Kubernetes v1.23 [stable]</code> </div> <p>If you set the <code>.spec.parameters</code> field and set <code>.spec.parameters.scope</code> to <code>Namespace</code>, then the IngressClass refers to a namespaced-scoped resource. You must also set the <code>namespace</code> field within <code>.spec.parameters</code> to the namespace that contains the parameters you want to use.</p> <p>The <code>kind</code> (in combination the <code>apiGroup</code>) of the parameters refers to a namespaced API (for example: ConfigMap), and the <code>name</code> of the parameters identifies a specific resource in the namespace you specified in <code>namespace</code>.</p> <p>Namespace-scoped parameters help the cluster operator delegate control over the configuration (for example: load balancer settings, API gateway definition) that is used for a workload. If you used a cluster-scoped parameter then either:</p> <ul> <li>the cluster operator team needs to approve a different team's changes every time there's a new configuration change being applied.</li> <li>the cluster operator must define specific access controls, such as <a href="../../../reference/access-authn-authz/rbac/index">RBAC</a> roles and bindings, that let the application team make changes to the cluster-scoped parameters resource.</li> </ul> <p>The IngressClass API itself is always cluster-scoped.</p> <p>Here is an example of an IngressClass that refers to parameters that are namespaced:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
@@ -153,15 +226,48 @@ spec:
     kind: IngressParameter
     namespace: external-configuration
     name: external-config
-</pre>
+</pre></div>
 </div>
-</div> <h3 id="deprecated-annotation">Deprecated annotation</h3> <p>Before the IngressClass resource and <code>ingressClassName</code> field were added in Kubernetes 1.18, Ingress classes were specified with a <code>kubernetes.io/ingress.class</code> annotation on the Ingress. This annotation was never formally defined, but was widely supported by Ingress controllers.</p> <p>The newer <code>ingressClassName</code> field on Ingresses is a replacement for that annotation, but is not a direct equivalent. While the annotation was generally used to reference the name of the Ingress controller that should implement the Ingress, the field is a reference to an IngressClass resource that contains additional Ingress configuration, including the name of the Ingress controller.</p> <h3 id="default-ingress-class">Default IngressClass</h3> <p>You can mark a particular IngressClass as default for your cluster. Setting the <code>ingressclass.kubernetes.io/is-default-class</code> annotation to <code>true</code> on an IngressClass resource will ensure that new Ingresses without an <code>ingressClassName</code> field specified will be assigned this default IngressClass.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> If you have more than one IngressClass marked as the default for your cluster, the admission controller prevents creating new Ingress objects that don't have an <code>ingressClassName</code> specified. You can resolve this by ensuring that at most 1 IngressClass is marked as default in your cluster. </div> <h2 id="types-of-ingress">Types of Ingress</h2> <h3 id="single-service-ingress">Ingress backed by a single Service</h3> <p>There are existing Kubernetes concepts that allow you to expose a single Service (see <a href="#alternatives">alternatives</a>). You can also do this with an Ingress by specifying a <em>default backend</em> with no rules.</p> <pre class="highlight" data-language="">service/networking/test-ingress.yaml</pre> <p>If you create it using <code>kubectl apply -f</code> you should be able to view the state of the Ingress you added:</p> <pre class="highlight" data-language="bash">kubectl get ingress test-ingress
-</pre>
+</div> <h3 id="deprecated-annotation">Deprecated annotation</h3> <p>Before the IngressClass resource and <code>ingressClassName</code> field were added in Kubernetes 1.18, Ingress classes were specified with a <code>kubernetes.io/ingress.class</code> annotation on the Ingress. This annotation was never formally defined, but was widely supported by Ingress controllers.</p> <p>The newer <code>ingressClassName</code> field on Ingresses is a replacement for that annotation, but is not a direct equivalent. While the annotation was generally used to reference the name of the Ingress controller that should implement the Ingress, the field is a reference to an IngressClass resource that contains additional Ingress configuration, including the name of the Ingress controller.</p> <h3 id="default-ingress-class">Default IngressClass</h3> <p>You can mark a particular IngressClass as default for your cluster. Setting the <code>ingressclass.kubernetes.io/is-default-class</code> annotation to <code>true</code> on an IngressClass resource will ensure that new Ingresses without an <code>ingressClassName</code> field specified will be assigned this default IngressClass.</p> <div class="alert alert-warning caution callout" role="alert"> <strong>Caution:</strong> If you have more than one IngressClass marked as the default for your cluster, the admission controller prevents creating new Ingress objects that don't have an <code>ingressClassName</code> specified. You can resolve this by ensuring that at most 1 IngressClass is marked as default in your cluster. </div> <h2 id="types-of-ingress">Types of Ingress</h2> <h3 id="single-service-ingress">Ingress backed by a single Service</h3> <p>There are existing Kubernetes concepts that allow you to expose a single Service (see <a href="#alternatives">alternatives</a>). You can also do this with an Ingress by specifying a <em>default backend</em> with no rules.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/test-ingress.yaml" download="service/networking/test-ingress.yaml"><code>service/networking/test-ingress.yaml</code> </a>   <div class="includecode" id="service-networking-test-ingress-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-ingress
+spec:
+  defaultBackend:
+    service:
+      name: test
+      port:
+        number: 80
+</pre></div> </div> </div> <p>If you create it using <code>kubectl apply -f</code> you should be able to view the state of the Ingress you added:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="bash">kubectl get ingress test-ingress
+</pre></div>
 <pre><code>NAME           CLASS         HOSTS   ADDRESS         PORTS   AGE
 test-ingress   external-lb   *       203.0.113.123   80      59s
 </code></pre>
-<p>Where <code>203.0.113.123</code> is the IP allocated by the Ingress controller to satisfy this Ingress.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Ingress controllers and load balancers may take a minute or two to allocate an IP address. Until that time, you often see the address listed as <code>&lt;pending&gt;</code>. </div> <h3 id="simple-fanout">Simple fanout</h3> <p>A fanout configuration routes traffic from a single IP address to more than one Service, based on the HTTP URI being requested. An Ingress allows you to keep the number of load balancers down to a minimum. For example, a setup like:</p> <div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress, 178.91.123.132]; ingress--&gt;|/foo|service1[Service service1:4200]; ingress--&gt;|/bar|service2[Service service2:8080]; subgraph cluster ingress; service1--&gt;pod1[Pod]; service1--&gt;pod2[Pod]; service2--&gt;pod3[Pod]; service2--&gt;pod4[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service1,service2,pod1,pod2,pod3,pod4 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>would require an Ingress such as:</p> <pre class="highlight" data-language="">service/networking/simple-fanout-example.yaml</pre> <p>When you create the Ingress with <code>kubectl apply -f</code>:</p> <pre class="highlight" data-language="shell">kubectl describe ingress simple-fanout-example
-</pre>
+<p>Where <code>203.0.113.123</code> is the IP allocated by the Ingress controller to satisfy this Ingress.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Ingress controllers and load balancers may take a minute or two to allocate an IP address. Until that time, you often see the address listed as <code>&lt;pending&gt;</code>. </div> <h3 id="simple-fanout">Simple fanout</h3> <p>A fanout configuration routes traffic from a single IP address to more than one Service, based on the HTTP URI being requested. An Ingress allows you to keep the number of load balancers down to a minimum. For example, a setup like:</p> <div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress, 178.91.123.132]; ingress--&gt;|/foo|service1[Service service1:4200]; ingress--&gt;|/bar|service2[Service service2:8080]; subgraph cluster ingress; service1--&gt;pod1[Pod]; service1--&gt;pod2[Pod]; service2--&gt;pod3[Pod]; service2--&gt;pod4[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service1,service2,pod1,pod2,pod3,pod4 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>would require an Ingress such as:</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/simple-fanout-example.yaml" download="service/networking/simple-fanout-example.yaml"><code>service/networking/simple-fanout-example.yaml</code> </a>   <div class="includecode" id="service-networking-simple-fanout-example-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simple-fanout-example
+spec:
+  rules:
+  - host: foo.bar.com
+    http:
+      paths:
+      - path: /foo
+        pathType: Prefix
+        backend:
+          service:
+            name: service1
+            port:
+              number: 4200
+      - path: /bar
+        pathType: Prefix
+        backend:
+          service:
+            name: service2
+            port:
+              number: 8080
+</pre></div> </div> </div> <p>When you create the Ingress with <code>kubectl apply -f</code>:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe ingress simple-fanout-example
+</pre></div>
 <pre><code>Name:             simple-fanout-example
 Namespace:        default
 Address:          178.91.123.132
@@ -177,7 +283,68 @@ Events:
   ----     ------  ----               ----                     -------
   Normal   ADD     22s                loadbalancer-controller  default/test
 </code></pre>
-<p>The Ingress controller provisions an implementation-specific load balancer that satisfies the Ingress, as long as the Services (<code>service1</code>, <code>service2</code>) exist. When it has done so, you can see the address of the load balancer at the Address field.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Depending on the <a href="../ingress-controllers/index">Ingress controller</a> you are using, you may need to create a default-http-backend <a href="../service/index">Service</a>. </div> <h3 id="name-based-virtual-hosting">Name based virtual hosting</h3> <p>Name-based virtual hosts support routing HTTP traffic to multiple host names at the same IP address.</p> <div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress, 178.91.123.132]; ingress--&gt;|Host: foo.bar.com|service1[Service service1:80]; ingress--&gt;|Host: bar.foo.com|service2[Service service2:80]; subgraph cluster ingress; service1--&gt;pod1[Pod]; service1--&gt;pod2[Pod]; service2--&gt;pod3[Pod]; service2--&gt;pod4[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service1,service2,pod1,pod2,pod3,pod4 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>The following Ingress tells the backing load balancer to route requests based on the <a href="https://tools.ietf.org/html/rfc7230#section-5.4">Host header</a>.</p> <pre class="highlight" data-language="">service/networking/name-virtual-host-ingress.yaml</pre> <p>If you create an Ingress resource without any hosts defined in the rules, then any web traffic to the IP address of your Ingress controller can be matched without a name based virtual host being required.</p> <p>For example, the following Ingress routes traffic requested for <code>first.bar.com</code> to <code>service1</code>, <code>second.bar.com</code> to <code>service2</code>, and any traffic to the IP address without a hostname defined in request (that is, without a request header being presented) to <code>service3</code>.</p> <pre class="highlight" data-language="">service/networking/name-virtual-host-ingress-no-third-host.yaml</pre> <h3 id="tls">TLS</h3> <p>You can secure an Ingress by specifying a <a class="glossary-tooltip" title="Stores sensitive information, such as passwords, OAuth tokens, and ssh keys." data-toggle="tooltip" data-placement="top" href="../../configuration/secret/index" target="_blank" aria-label="Secret">Secret</a> that contains a TLS private key and certificate. The Ingress resource only supports a single TLS port, 443, and assumes TLS termination at the ingress point (traffic to the Service and its Pods is in plaintext). If the TLS configuration section in an Ingress specifies different hosts, they are multiplexed on the same port according to the hostname specified through the SNI TLS extension (provided the Ingress controller supports SNI). The TLS secret must contain keys named <code>tls.crt</code> and <code>tls.key</code> that contain the certificate and private key to use for TLS. For example:</p> <pre class="highlight" data-language="yaml">apiVersion: v1
+<p>The Ingress controller provisions an implementation-specific load balancer that satisfies the Ingress, as long as the Services (<code>service1</code>, <code>service2</code>) exist. When it has done so, you can see the address of the load balancer at the Address field.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Depending on the <a href="../ingress-controllers/index">Ingress controller</a> you are using, you may need to create a default-http-backend <a href="../service/index">Service</a>. </div> <h3 id="name-based-virtual-hosting">Name based virtual hosting</h3> <p>Name-based virtual hosts support routing HTTP traffic to multiple host names at the same IP address.</p> <div class="mermaid"> graph LR; client([client])-. Ingress-managed <br> load balancer .-&gt;ingress[Ingress, 178.91.123.132]; ingress--&gt;|Host: foo.bar.com|service1[Service service1:80]; ingress--&gt;|Host: bar.foo.com|service2[Service service2:80]; subgraph cluster ingress; service1--&gt;pod1[Pod]; service1--&gt;pod2[Pod]; service2--&gt;pod3[Pod]; service2--&gt;pod4[Pod]; end classDef plain fill:#ddd,stroke:#fff,stroke-width:4px,color:#000; classDef k8s fill:#326ce5,stroke:#fff,stroke-width:4px,color:#fff; classDef cluster fill:#fff,stroke:#bbb,stroke-width:2px,color:#326ce5; class ingress,service1,service2,pod1,pod2,pod3,pod4 k8s; class client plain; class cluster cluster; </div> <noscript>  <h4>[JavaScript must be <a href="https://www.enable-javascript.com/">enabled</a> to view content]</h4> </noscript> <p>The following Ingress tells the backing load balancer to route requests based on the <a href="https://tools.ietf.org/html/rfc7230#section-5.4">Host header</a>.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/name-virtual-host-ingress.yaml" download="service/networking/name-virtual-host-ingress.yaml"><code>service/networking/name-virtual-host-ingress.yaml</code> </a>   <div class="includecode" id="service-networking-name-virtual-host-ingress-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: name-virtual-host-ingress
+spec:
+  rules:
+  - host: foo.bar.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service1
+            port:
+              number: 80
+  - host: bar.foo.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service2
+            port:
+              number: 80
+</pre></div> </div> </div> <p>If you create an Ingress resource without any hosts defined in the rules, then any web traffic to the IP address of your Ingress controller can be matched without a name based virtual host being required.</p> <p>For example, the following Ingress routes traffic requested for <code>first.bar.com</code> to <code>service1</code>, <code>second.bar.com</code> to <code>service2</code>, and any traffic to the IP address without a hostname defined in request (that is, without a request header being presented) to <code>service3</code>.</p> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/name-virtual-host-ingress-no-third-host.yaml" download="service/networking/name-virtual-host-ingress-no-third-host.yaml"><code>service/networking/name-virtual-host-ingress-no-third-host.yaml</code> </a>   <div class="includecode" id="service-networking-name-virtual-host-ingress-no-third-host-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: name-virtual-host-ingress-no-third-host
+spec:
+  rules:
+  - host: first.bar.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service1
+            port:
+              number: 80
+  - host: second.bar.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service2
+            port:
+              number: 80
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: service3
+            port:
+              number: 80
+</pre></div> </div> </div> <h3 id="tls">TLS</h3> <p>You can secure an Ingress by specifying a <a class="glossary-tooltip" title="Stores sensitive information, such as passwords, OAuth tokens, and ssh keys." data-toggle="tooltip" data-placement="top" href="../../configuration/secret/index" target="_blank" aria-label="Secret">Secret</a> that contains a TLS private key and certificate. The Ingress resource only supports a single TLS port, 443, and assumes TLS termination at the ingress point (traffic to the Service and its Pods is in plaintext). If the TLS configuration section in an Ingress specifies different hosts, they are multiplexed on the same port according to the hostname specified through the SNI TLS extension (provided the Ingress controller supports SNI). The TLS secret must contain keys named <code>tls.crt</code> and <code>tls.key</code> that contain the certificate and private key to use for TLS. For example:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: v1
 kind: Secret
 metadata:
   name: testsecret-tls
@@ -186,9 +353,29 @@ data:
   tls.crt: base64 encoded cert
   tls.key: base64 encoded key
 type: kubernetes.io/tls
-</pre>
-<p>Referencing this secret in an Ingress tells the Ingress controller to secure the channel from the client to the load balancer using TLS. You need to make sure the TLS secret you created came from a certificate that contains a Common Name (CN), also known as a Fully Qualified Domain Name (FQDN) for <code>https-example.foo.com</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Keep in mind that TLS will not work on the default rule because the certificates would have to be issued for all the possible sub-domains. Therefore, <code>hosts</code> in the <code>tls</code> section need to explicitly match the <code>host</code> in the <code>rules</code> section. </div> <pre class="highlight" data-language="">service/networking/tls-example-ingress.yaml</pre> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> There is a gap between TLS features supported by various Ingress controllers. Please refer to documentation on <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/">nginx</a>, <a href="https://git.k8s.io/ingress-gce/README.md#frontend-https">GCE</a>, or any other platform specific Ingress controller to understand how TLS works in your environment. </div> <h3 id="load-balancing">Load balancing</h3> <p>An Ingress controller is bootstrapped with some load balancing policy settings that it applies to all Ingress, such as the load balancing algorithm, backend weight scheme, and others. More advanced load balancing concepts (e.g. persistent sessions, dynamic weights) are not yet exposed through the Ingress. You can instead get these features through the load balancer used for a Service.</p> <p>It's also worth noting that even though health checks are not exposed directly through the Ingress, there exist parallel concepts in Kubernetes such as <a href="../../../tasks/configure-pod-container/configure-liveness-readiness-startup-probes/index">readiness probes</a> that allow you to achieve the same end result. Please review the controller specific documentation to see how they handle health checks (for example: <a href="https://git.k8s.io/ingress-nginx/README.md">nginx</a>, or <a href="https://git.k8s.io/ingress-gce/README.md#health-checks">GCE</a>).</p> <h2 id="updating-an-ingress">Updating an Ingress</h2> <p>To update an existing Ingress to add a new Host, you can update it by editing the resource:</p> <pre class="highlight" data-language="shell">kubectl describe ingress test
-</pre>
+</pre></div>
+<p>Referencing this secret in an Ingress tells the Ingress controller to secure the channel from the client to the load balancer using TLS. You need to make sure the TLS secret you created came from a certificate that contains a Common Name (CN), also known as a Fully Qualified Domain Name (FQDN) for <code>https-example.foo.com</code>.</p> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> Keep in mind that TLS will not work on the default rule because the certificates would have to be issued for all the possible sub-domains. Therefore, <code>hosts</code> in the <code>tls</code> section need to explicitly match the <code>host</code> in the <code>rules</code> section. </div> <div class="highlight">  <a href="https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/tls-example-ingress.yaml" download="service/networking/tls-example-ingress.yaml"><code>service/networking/tls-example-ingress.yaml</code> </a>   <div class="includecode" id="service-networking-tls-example-ingress-yaml"> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-example-ingress
+spec:
+  tls:
+  - hosts:
+      - https-example.foo.com
+    secretName: testsecret-tls
+  rules:
+  - host: https-example.foo.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: service1
+            port:
+              number: 80
+</pre></div> </div> </div> <div class="alert alert-info note callout" role="alert"> <strong>Note:</strong> There is a gap between TLS features supported by various Ingress controllers. Please refer to documentation on <a href="https://kubernetes.github.io/ingress-nginx/user-guide/tls/">nginx</a>, <a href="https://git.k8s.io/ingress-gce/README.md#frontend-https">GCE</a>, or any other platform specific Ingress controller to understand how TLS works in your environment. </div> <h3 id="load-balancing">Load balancing</h3> <p>An Ingress controller is bootstrapped with some load balancing policy settings that it applies to all Ingress, such as the load balancing algorithm, backend weight scheme, and others. More advanced load balancing concepts (e.g. persistent sessions, dynamic weights) are not yet exposed through the Ingress. You can instead get these features through the load balancer used for a Service.</p> <p>It's also worth noting that even though health checks are not exposed directly through the Ingress, there exist parallel concepts in Kubernetes such as <a href="../../../tasks/configure-pod-container/configure-liveness-readiness-startup-probes/index">readiness probes</a> that allow you to achieve the same end result. Please review the controller specific documentation to see how they handle health checks (for example: <a href="https://git.k8s.io/ingress-nginx/README.md">nginx</a>, or <a href="https://git.k8s.io/ingress-gce/README.md#health-checks">GCE</a>).</p> <h2 id="updating-an-ingress">Updating an Ingress</h2> <p>To update an existing Ingress to add a new Host, you can update it by editing the resource:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe ingress test
+</pre></div>
 <pre><code>Name:             test
 Namespace:        default
 Address:          178.91.123.132
@@ -205,9 +392,9 @@ Events:
   ----     ------  ----               ----                     -------
   Normal   ADD     35s                loadbalancer-controller  default/test
 </code></pre>
-<pre class="highlight" data-language="shell">kubectl edit ingress test
-</pre>
-<p>This pops up an editor with the existing configuration in YAML format. Modify it to include the new Host:</p> <pre class="highlight" data-language="yaml">spec:
+<div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl edit ingress test
+</pre></div>
+<p>This pops up an editor with the existing configuration in YAML format. Modify it to include the new Host:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="yaml">spec:
   rules:
   - host: foo.bar.com
     http:
@@ -230,9 +417,9 @@ Events:
         path: /foo
         pathType: Prefix
 ..
-</pre>
-<p>After you save your changes, kubectl updates the resource in the API server, which tells the Ingress controller to reconfigure the load balancer.</p> <p>Verify this:</p> <pre class="highlight" data-language="shell">kubectl describe ingress test
-</pre>
+</pre></div>
+<p>After you save your changes, kubectl updates the resource in the API server, which tells the Ingress controller to reconfigure the load balancer.</p> <p>Verify this:</p> <div class="highlight"><pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:4;-o-tab-size:4;tab-size:4" data-language="shell">kubectl describe ingress test
+</pre></div>
 <pre><code>Name:             test
 Namespace:        default
 Address:          178.91.123.132
@@ -251,7 +438,7 @@ Events:
   ----     ------  ----               ----                     -------
   Normal   ADD     45s                loadbalancer-controller  default/test
 </code></pre>
-<p>You can achieve the same outcome by invoking <code>kubectl replace -f</code> on a modified Ingress YAML file.</p> <h2 id="failing-across-availability-zones">Failing across availability zones</h2> <p>Techniques for spreading traffic across failure domains differ between cloud providers. Please check the documentation of the relevant <a href="../ingress-controllers">Ingress controller</a> for details.</p> <h2 id="alternatives">Alternatives</h2> <p>You can expose a Service in multiple ways that don't directly involve the Ingress resource:</p> <ul> <li>Use <a href="../service/index#loadbalancer">Service.Type=LoadBalancer</a>
+<p>You can achieve the same outcome by invoking <code>kubectl replace -f</code> on a modified Ingress YAML file.</p> <h2 id="failing-across-availability-zones">Failing across availability zones</h2> <p>Techniques for spreading traffic across failure domains differ between cloud providers. Please check the documentation of the relevant <a href="../ingress-controllers/index">Ingress controller</a> for details.</p> <h2 id="alternatives">Alternatives</h2> <p>You can expose a Service in multiple ways that don't directly involve the Ingress resource:</p> <ul> <li>Use <a href="../service/index#loadbalancer">Service.Type=LoadBalancer</a>
 </li> <li>Use <a href="../service/index#nodeport">Service.Type=NodePort</a>
 </li> </ul> <h2 id="what-s-next">What's next</h2> <ul> <li>Learn about the <a href="../../../reference/kubernetes-api/service-resources/ingress-v1/index">Ingress</a> API</li> <li>Learn about <a href="../ingress-controllers/index">Ingress controllers</a>
 </li> <li><a href="../../../tasks/access-application-cluster/ingress-minikube/index">Set up Ingress on Minikube with the NGINX Controller</a></li> </ul>
