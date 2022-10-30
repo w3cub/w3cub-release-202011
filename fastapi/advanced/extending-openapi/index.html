@@ -1,0 +1,491 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Extending OpenAPI - FastAPI - W3cubDocs</title>
+  
+  <meta name="description" content=" Warning ">
+  <meta name="keywords" content="extending, openapi, fastapi">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/fastapi/advanced/extending-openapi/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/fastapi.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/fastapi/" class="_nav-link" title="" style="margin-left:0;">FastAPI</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _fastapi">
+				
+				
+<h1 id="extending-openapi">Extending OpenAPI</h1> <div class="admonition warning"> <p class="admonition-title">Warning</p> <p>This is a rather advanced feature. You probably can skip it.</p> <p>If you are just following the tutorial - user guide, you can probably skip this section.</p> <p>If you already know that you need to modify the generated OpenAPI schema, continue reading.</p> </div> <p>There are some cases where you might need to modify the generated OpenAPI schema.</p> <p>In this section you will see how.</p> <h2 id="the-normal-process">The normal process</h2> <p>The normal (default) process, is as follows.</p> <p>A <code>FastAPI</code> application (instance) has an <code>.openapi()</code> method that is expected to return the OpenAPI schema.</p> <p>As part of the application object creation, a <em>path operation</em> for <code>/openapi.json</code> (or for whatever you set your <code>openapi_url</code>) is registered.</p> <p>It just returns a JSON response with the result of the application's <code>.openapi()</code> method.</p> <p>By default, what the method <code>.openapi()</code> does is check the property <code>.openapi_schema</code> to see if it has contents and return them.</p> <p>If it doesn't, it generates them using the utility function at <code>fastapi.openapi.utils.get_openapi</code>.</p> <p>And that function <code>get_openapi()</code> receives as parameters:</p> <ul> <li>
+<code>title</code>: The OpenAPI title, shown in the docs.</li> <li>
+<code>version</code>: The version of your API, e.g. <code>2.5.0</code>.</li> <li>
+<code>openapi_version</code>: The version of the OpenAPI specification used. By default, the latest: <code>3.0.2</code>.</li> <li>
+<code>description</code>: The description of your API.</li> <li>
+<code>routes</code>: A list of routes, these are each of the registered <em>path operations</em>. They are taken from <code>app.routes</code>.</li> </ul> <h2 id="overriding-the-defaults">Overriding the defaults</h2> <p>Using the information above, you can use the same utility function to generate the OpenAPI schema and override each part that you need.</p> <p>For example, let's add <a href="https://github.com/Rebilly/ReDoc/blob/master/docs/redoc-vendor-extensions.md#x-logo" class="external-link" target="_blank">ReDoc's OpenAPI extension to include a custom logo</a>.</p> <h3 id="normal-fastapi">Normal <strong>FastAPI</strong>
+</h3> <p>First, write all your <strong>FastAPI</strong> application as normally:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"name": "Foo"}]
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+</pre></div> <h3 id="generate-the-openapi-schema">Generate the OpenAPI schema</h3> <p>Then, use the same utility function to generate the OpenAPI schema, inside a <code>custom_openapi()</code> function:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"name": "Foo"}]
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+</pre></div> <h3 id="modify-the-openapi-schema">Modify the OpenAPI schema</h3> <p>Now you can add the ReDoc extension, adding a custom <code>x-logo</code> to the <code>info</code> "object" in the OpenAPI schema:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"name": "Foo"}]
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+</pre></div> <h3 id="cache-the-openapi-schema">Cache the OpenAPI schema</h3> <p>You can use the property <code>.openapi_schema</code> as a "cache", to store your generated schema.</p> <p>That way, your application won't have to generate the schema every time a user opens your API docs.</p> <p>It will be generated only once, and then the same cached schema will be used for the next requests.</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"name": "Foo"}]
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+</pre></div> <h3 id="override-the-method">Override the method</h3> <p>Now you can replace the <code>.openapi()</code> method with your new function.</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
+
+app = FastAPI()
+
+
+@app.get("/items/")
+async def read_items():
+    return [{"name": "Foo"}]
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Custom title",
+        version="2.5.0",
+        description="This is a very custom OpenAPI schema",
+        routes=app.routes,
+    )
+    openapi_schema["info"]["x-logo"] = {
+        "url": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png"
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+</pre></div> <h3 id="check-it">Check it</h3> <p>Once you go to <a href="http://127.0.0.1:8000/redoc" class="external-link" target="_blank">http://127.0.0.1:8000/redoc</a> you will see that you are using your custom logo (in this example, <strong>FastAPI</strong>'s logo):</p> <p><img src="data:image/png;base64,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"></p> <h2 id="self-hosting-javascript-and-css-for-docs">Self-hosting JavaScript and CSS for docs</h2> <p>The API docs use <strong>Swagger UI</strong> and <strong>ReDoc</strong>, and each of those need some JavaScript and CSS files.</p> <p>By default, those files are served from a <abbr title="Content Delivery Network: A service, normally composed of several servers, that provides static files, like JavaScript and CSS. It's commonly used to serve those files from the server closer to the client, improving performance.">CDN</abbr>.</p> <p>But it's possible to customize it, you can set a specific CDN, or serve the files yourself.</p> <p>That's useful, for example, if you need your app to keep working even while offline, without open Internet access, or in a local network.</p> <p>Here you'll see how to serve those files yourself, in the same FastAPI app, and configure the docs to use them.</p> <h3 id="project-file-structure">Project file structure</h3> <p>Let's say your project file structure looks like this:</p> <div class="highlight"><pre class="language-python" data-language="python">.
+├── app
+│   ├── __init__.py
+│   ├── main.py
+</pre></div> <p>Now create a directory to store those static files.</p> <p>Your new file structure could look like this:</p> <div class="highlight"><pre class="language-python" data-language="python">.
+├── app
+│   ├── __init__.py
+│   ├── main.py
+└── static/
+</pre></div> <h3 id="download-the-files">Download the files</h3> <p>Download the static files needed for the docs and put them on that <code>static/</code> directory.</p> <p>You can probably right-click each link and select an option similar to <code>Save link as...</code>.</p> <p><strong>Swagger UI</strong> uses the files:</p> <ul> <li><a href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui-bundle.js" class="external-link" target="_blank"><code>swagger-ui-bundle.js</code></a></li> <li><a href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4/swagger-ui.css" class="external-link" target="_blank"><code>swagger-ui.css</code></a></li> </ul> <p>And <strong>ReDoc</strong> uses the file:</p> <ul> <li><a href="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js" class="external-link" target="_blank"><code>redoc.standalone.js</code></a></li> </ul> <p>After that, your file structure could look like:</p> <div class="highlight"><pre class="language-python" data-language="python">.
+├── app
+│   ├── __init__.py
+│   ├── main.py
+└── static
+    ├── redoc.standalone.js
+    ├── swagger-ui-bundle.js
+    └── swagger-ui.css
+</pre></div> <h3 id="serve-the-static-files">Serve the static files</h3> <ul> <li>Import <code>StaticFiles</code>.</li> <li>"Mount" a <code>StaticFiles()</code> instance in a specific path.</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc.standalone.js",
+    )
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <h3 id="test-the-static-files">Test the static files</h3> <p>Start your application and go to <a href="http://127.0.0.1:8000/static/redoc.standalone.js" class="external-link" target="_blank">http://127.0.0.1:8000/static/redoc.standalone.js</a>.</p> <p>You should see a very long JavaScript file for <strong>ReDoc</strong>.</p> <p>It could start with something like:</p> <div class="highlight"><pre class="language-python" data-language="python">/*!
+ * ReDoc - OpenAPI/Swagger-generated API Reference Documentation
+ * -------------------------------------------------------------
+ *   Version: "2.0.0-rc.18"
+ *   Repo: https://github.com/Redocly/redoc
+ */
+!function(e,t){"object"==typeof exports&amp;&amp;"object"==typeof m
+
+...
+</pre></div> <p>That confirms that you are being able to serve static files from your app, and that you placed the static files for the docs in the correct place.</p> <p>Now we can configure the app to use those static files for the docs.</p> <h3 id="disable-the-automatic-docs">Disable the automatic docs</h3> <p>The first step is to disable the automatic docs, as those use the CDN by default.</p> <p>To disable them, set their URLs to <code>None</code> when creating your <code>FastAPI</code> app:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc.standalone.js",
+    )
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <h3 id="include-the-custom-docs">Include the custom docs</h3> <p>Now you can create the <em>path operations</em> for the custom docs.</p> <p>You can re-use FastAPI's internal functions to create the HTML pages for the docs, and pass them the needed arguments:</p> <ul> <li>
+<code>openapi_url</code>: the URL where the HTML page for the docs can get the OpenAPI schema for your API. You can use here the attribute <code>app.openapi_url</code>.</li> <li>
+<code>title</code>: the title of your API.</li> <li>
+<code>oauth2_redirect_url</code>: you can use <code>app.swagger_ui_oauth2_redirect_url</code> here to use the default.</li> <li>
+<code>swagger_js_url</code>: the URL where the HTML for your Swagger UI docs can get the <strong>JavaScript</strong> file. This is the one that your own app is now serving.</li> <li>
+<code>swagger_css_url</code>: the URL where the HTML for your Swagger UI docs can get the <strong>CSS</strong> file. This is the one that your own app is now serving.</li> </ul> <p>And similarly for ReDoc...</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc.standalone.js",
+    )
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <div class="admonition tip"> <p class="admonition-title">Tip</p> <p>The <em>path operation</em> for <code>swagger_ui_redirect</code> is a helper for when you use OAuth2.</p> <p>If you integrate your API with an OAuth2 provider, you will be able to authenticate and come back to the API docs with the acquired credentials. And interact with it using the real OAuth2 authentication.</p> <p>Swagger UI will handle it behind the scenes for you, but it needs this "redirect" helper.</p> </div> <h3 id="create-a-path-operation-to-test-it">Create a <em>path operation</em> to test it</h3> <p>Now, to be able to test that everything works, create a <em>path operation</em>:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc.standalone.js",
+    )
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <h3 id="test-it">Test it</h3> <p>Now, you should be able to disconnect your WiFi, go to your docs at <a href="http://127.0.0.1:8000/docs" class="external-link" target="_blank">http://127.0.0.1:8000/docs</a>, and reload the page.</p> <p>And even without Internet, you would be able to see the docs for your API and interact with it.</p> <h2 id="configuring-swagger-ui">Configuring Swagger UI</h2> <p>You can configure some extra <a href="https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration" class="external-link" target="_blank">Swagger UI parameters</a>.</p> <p>To configure them, pass the <code>swagger_ui_parameters</code> argument when creating the <code>FastAPI()</code> app object or to the <code>get_swagger_ui_html()</code> function.</p> <p><code>swagger_ui_parameters</code> receives a dictionary with the configurations passed to Swagger UI directly.</p> <p>FastAPI converts the configurations to <strong>JSON</strong> to make them compatible with JavaScript, as that's what Swagger UI needs.</p> <h3 id="disable-syntax-highlighting">Disable Syntax Highlighting</h3> <p>For example, you could disable syntax highlighting in Swagger UI.</p> <p>Without changing the settings, syntax highlighting is enabled by default:</p> <p><img src="data:image/png;base64,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"></p> <p>But you can disable it by setting <code>syntaxHighlight</code> to <code>False</code>:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+
+app = FastAPI(swagger_ui_parameters={"syntaxHighlight": False})
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <p>...and then Swagger UI won't show the syntax highlighting anymore:</p> <p><img src="data:image/png;base64,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"></p> <h3 id="change-the-theme">Change the Theme</h3> <p>The same way you could set the syntax highlighting theme with the key <code>"syntaxHighlight.theme"</code> (notice that it has a dot in the middle):</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+
+app = FastAPI(swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"})
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <p>That configuration would change the syntax highlighting color theme:</p> <p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA6gAAAD1CAMAAABqZyiuAAAAEHRFWHRTb2Z0d2FyZQBTaHV0dGVyY4LQCQAAAwBQTFRFJysu+nApLSsu4OLk+fn57u7uO7P47ff+/////v7+JysyJyso4eHFPS0tJy0gKzcdBn63EFCKOkJRaiwv4XAmNCsuJC1J4uC3XS4vSCsu828otuPkO5rJesLh+2grRUgXveLknFQ4smk99dOnxOPk5U8w2eLiD1qXIjRX4eHQ4OLeQiouu3JD+1cvv8bMkUU1Jyw400Qwl2QedCwvqGE7q2shd3hwTqvZgj4u2W8lhUQkJi0/VVlcIDNp+mwqO0lUvW8i7vf5pNzj7VQwkUQyoOn9tnZbOEJk7G8n+2QsyuDkUzYvQaDO572TuDsy0HEk8PTT57iGAXKs4eDZilFSLD8Zks7iHTxxOUcXxvX+0lMnHHKyeDMv+1wtQafhe2dgOJfY9Nq0mi8xIUxkmNrj05VpX0FQpDQxRkVY5q2CF0h9Lysj2Pj88/P0WkVSMTc7cFgZVSotT1NTnqaxgl4c4eG/sF0gZbnegTQuntf5WFqSUrXt614p2uHZ5M6v5vj+U0JQu/j9wn1RS0NO5cuhxZp9YlUZoEcl+lgv07SZ5sOZxYlVtrvBxz0yhEYz0eHk9c2iXkIhc0QmhVEd3LmXJnm6bc373/j+/Pz81b2oTpK4WVVNL1SFZML6R12Nwk0nZXh9v3dKQGB5u2UhZKjI36V30+r6S1RkKl+a3c2731kpy41c1+DqNEt7ncTVK4jJXmRoYVBj2aBxOUxhMGuqtNDf9sWY7/bfxNfeN3CcJYi7CFWQQFZeq7W9n0o1bURQvnhhjNz8apq1WVt68erHXKzWUYKy8LaNmFoeBmKcUp7F4uzzPIq4dEh47vfxw6mU06aCoWUe9FkvqOPjp2ZVxXIk4tfDeDstfUUiZEs1RDk7fq3HioyUHn6zeNb7lrW/cVdHcMbtiLfSfEtSwOTYinp7SDwgro2A2/fYj1dlll1R7vfnxmYiNTcho1ogkGxptIJwSXekcHugzdbIr+DjmZelyIRospqZy8etV0wa3bKL3FUs7dW9KkVPmTcwiMrikEcRDQAAEEdJREFUeNrs3Xt0zFcCwPHfzFSnnSTChIgQEkPkscjqikdCOiGT1qMeCdmkmsd6hdogSrxOgtRxQiotIiekoYREKyLEmyMhHlUNu3VsW2+qlG1Rau1295y9v5nIowhKM7/U93t+Tk0m/ur9nPu7N3fyk166r5dfqPeilohquxfrvfDySw9OAioRUIkIqERAJSKgEhFQiYBKREAlAipQiYBKREAlAurvB2p7/q8TUIFK9DxBfX+mXu7DR3zbgNA3x1a8KL1YJF5sSY62vBwdvKQGqP+Nio1d6VL+wjBtFoOBgPproG6fKAp6Eqhlxfni+0cEn3kMqFu/S0gyLt4XBFQC6lNBtcyLG4PPl93JL7l2Y2bAgfABF0/fiL15K2pT5yRD3IGogJvhMtSyOXGbDoTL39wvdrp269W88GPL9NlTZahbkqdrY0ZGy9PnyvPVoJZ+Lowa1yUZUwpzD4Qbpl32zz2vLZvjL14YTXsvFR4+6ruvRFt6PTd3fwbjhID6UKhH1q1btyZJuLsbF6ldHbv/WHLkgNDgkzf02WdD84MMI7OGHEuOlqEOjD18d0+05d43PUO4NMQdubsnPaMS6tarWetv5AdVhXrNlL1+jfhvzL6gMlOkoTBBO7po7MHs8LLiSKMpfWxM3HTtxgLtnYKMmM9LGCcE1BrXqFmztIY4fVG49q+fJZXuKRgQmhcuT7UjgkvkebL04ptXBFRTfpCxOE+eUo3FWbNWB5cYP0u6djwvvBKqIS5aaxg5vdoatd5RMcu6JI1OT9Iak+RbX/GnOFIscYvGmqabJ9yD6RnGJHGPvIRxQkB9KNSi1NTUzRnaa8f1QlhilGBbIM+fBnl+DT4TMzJSuzU0T4Z6XB8QoLfMlwdjz5uKwkuvx+r1FVANI6O3JOsD9PrIalBlqymFS8S0Wb5GFX9Mm3Jz47eHC6gDLFATfTdsiAUqAfVRa1Sx7vTPCrp2PCvIPKNWgVpQOaMOF3fJSea9pYs3L0aKCfd8xYwaKe8CG+Kap4n76KpQQzbLM7ApcnR6hrbemnszqnnSNVZAvfLddGZUAmqNUM27voGloemT9hRckReZyUXfVIWaf+GGPlKmOzr2cPvrS81bPsbigOAS7Z3ghKNxWVMF1Jg9eanX9dFbQ7PWH91XUhWqodAlSZtYeCZm39Sy4uhyqAeLwo0pCVWhntEuLvyQcUJArXGNqo++k18iz5CL4zblzIk9XBXqgeuVu7767PKfs2xJFgvamIsBB1Li0o8FLyk7NjP/7B5511e/qXz39t6tb6b556jyru8uedfXDFXe9b0ZVAk141juvpw52UEMFALqr0teoz5exuovOZlEQFUiVC1QCahAJQLqsw+oBFQiAioRUIFKBFQiAioRUIFKBFQiAioRUIkIqEQEVCKgEhFQiYAKVCKgEhFQiYBaS6X6j5OIlNs4/1SganczEEjx7QaqP6OAFJ8/ULnvpTpw9wtUBgHVgYDKGCCgApUIqM8SqmNOb083BgQBVdlQxzT7zzI7BgQBVdlQd7rOZzgQUJUOtW3r2QwHAqrCofoccW/FcCCgKhtq9+GaxU4MBwKqsqH67MoJYUYloLJGJQIqu74E1OcCasNmGxszHgioCofq4aKx5WQSAVXxZ30D4jmZREDlUD4RUK0AddzXrGoJqIqAqutsu+BhbzX3dJP8EjSagd4P/eeOLho+k0NA/Y2gNnT9g7jug7rDq9UvoepW/thMhqrr/K6TuO6HOm8kK18CqhWhltc9sEao/ZoyygiovylUx5y0lAsCatZ697WmxmOaaUQj1Nvbu4ccdZLatrbc1f4Cqp//MjVQCai1AdVjxVfikk67J55Ns10QNvzEqQuerTxWnPSa43tOt/Topb1pI9QeKy5UgSqtjLITl3xwYt4EoBJQa28zSdz2ujm62C4Y5D5/XP7t1eryW99xkk9Y4Gg7yxq1AmrFZAxUAmqtQvVLaDJUXqPukG95NQPtLFD9lm7TmHd6HwyVNSoBtdZn1F5+CfKMOmfDhg1i6XlahtqwWWLUtNtVoA6vZtHRf1ljoBJQa/HnqKfdU35sLdaogWsvnzprkqRB7im+5xo26xe3NG2g98oVF0Iu+34lLHpe9u3DrS8B1VpQHXPSMtebd33TvO5elXQeJ9M0I8Stb0iq60Dv/fL9sDzF5m2uepwfqARUqx4htJF09/6qlir/XmOcTCKg1oFD+bqAeD6TQ0Dl0zMEVKASAbUOQeXBNATUOgCVB9MQUOsAVH5FIQG1DkDll/4SUJUPlQfTEFCVD5UH0xBQ6wBUHkxDQGWNSgRUdn0JqM8NVB5MQ0CtA1B5MA0BtU6c9eXBNARUDuUTARWoBNTnFWr34RrNJ4/7zbrmGg37xgTU2oTawLZDA9tejiv2pn3ysDfvhzop9GtGGwG11qFK0qe9nwBqk6EMNgKq9aDqtm/2ylwgSY57t4VkLqx402dX1Q+wApWAWttQh/n2GSb/Il8L1Lat1/7kmuggVqGZP+12q3jTY8ikLkAloFp/19cMVdfX000qCGnlMSTRwfxrRMsDKgFVSVD3T5oiDXL/qMYn0ACVgGo1qG1bj1BbZtQd8oxa/SnGPrv8WaMSUBUAdUzg2ktR3lXWqKfOunHrS0BVGFSfI7017zqZd33PmXd9vTIXApWAquAjhGrLs2h0D12jarw4mURAVfpZ3//Fx3MyiYDKoXwCKlCfIjs+x0pAVTzUwa/9kVFGQLU6VJtOPd/u1LPySFJL1RuPgvpn1V/ExeAjoCoG6oMCKgHVWlC//aezc4R3/f4qURu1TccWkxv1GFX/VZVKzKj1X31rsvPP3pL9KueI/u3UQCWg1jrUD6aIS3h9vduXkyfYLDykiug2VLLpqJoxd5F4Z5GzGapq+WTVKPHFiFWqdmr7bhPExeAjoNb6ZlL9Ti3mOlXe+tp07DGlco0qZtSm4uv1+//de3CjdvJtso6hR0C1xq5vS3HT+3PTSqgtHKpBtRNft+/aRl2/fzs1w46Aar0fz3z/jmpUjVDFjGpn3wioBFSrQbU5NHfhDzLUwc4zzGtUM1T7Lxc5f9ztH+VQxRp1ubxGZdgRUK0F9Z1GKufl3mL2PPSaZdfXwbxgNW8Cv22BKn2/qkdEV6ASUBV/1te+f0+gElAVDfXfEXMnq95j1BFQFQ21ZVdn54imjDoCKh9zI6ACVa77cE2TVxg6BFRlQ/UJ2A9UAqrib311fYFKQAUqEVCBSkAFKhFQgUpABSpQCai/O6iOLjyngoCqdKg6oBJQ68DJpLDA1Y0ZQQRUxZ5Mio+XhX56qwMDiIDKoXwioCoIKs+nIaAqHyrPpyGgPnuoDWw7NLDt9URvjn/dSVwVL+0btVE/Aqp91/fExQAloCoG6oMCKgH1WUANu51661/bFjv5Ld3mdcsk6bZvPjHRfXYFVJ9dy+zug2o/2bnHxw42f5N/NeFbTWt8Pg1QCahPB3WYbx9xhX2RMuTERFu3na4pvntN6rDAExNdNbPL35QkjyGTulT+k2+72IlLGt/jjYU/vGLzwaJGM7p1aVzj82lsFjqIiwFKQH26zaSwL2b3nZf9zZ92umZGNZWkQe7zpR0C6r2qQ7WkHq9a7qCuuPV91PNpiID6DKB+ZIbqt7S3xtOkPu3V6v/t3V1oU1cAwPF7k25mSdOS1apNSnRSUhu7WXFZbZLVUWEzdVK0zI76IGxKaSVotdgGYh+2tcUpK348ZINQOz9YHUiZCI6tLxuDYgdbnavODzYGbi/VB3HIVqY7aVOSdkm7mttw4v5/8lTQh3J+nHNvz8kRWN+Z5cHzpKoG82JQuZ+GgJomqIri+Xhre970GbXsS2+iP47e2RNBOQNU7qchoM4H1KZ9t08IqE33R/64MMvSV+nsuXZsHGWNryvyjPof7qcxFta+yDAloKYKte7namffFcX4+cWRAccsz6h/Vlgrx5aIuXTPwom3vrPfT2N8HagEVE13Jm1zlGry/8TfT7Oo9b0lDFMCqka/SM+pBzcvZGtwnGba/TR1Vb2MUgKqVlDLLl3U913R4B0Q99MQUOd36WtM7Z+bzCsZkARU2c+j5vz4PN8YQUDVelN+cdHOpEtdy7JS8Zn+0zfVt8Qn9tJo6t78RFBNrvW7XFx9TECVB2rC5TBQCaipQF3xSC/adL11ZK2ypftTi+3Dcwc6CpS3b3SXdGyMQT3v3fgvqKaWhZXBh5OHaJROtadGXW1qUVUxo5paKvdvCOYppkHr2ZP2PKASUFM6PeP5+qvq4y9tz7/l6DWWZ6+y2Ep+/9VZuqi15MGN7p26FSd+Eh9FMZY7l8f+Za67WXyUpdb6o4MNk4doBFR717EG5Td3xThUtb5FXS1+GNyvCqhH2sSHcQpUoD52E0vfuqrG17a+X2CxNZoty0432RqvP/sotkdhKlTjxJvhperYVXNs6dsZ/bPp+DOqmFHbxM93DdvX5Lxi55wbAVUbqJ5vFt+rPqRYbKd1dT80flIUWRAvnhlYzqBVtT+Mg9owBeqaCFSXr9k0DFQCaqpQdV9MvEza5nghe5WAurmguEjMqH/19/fHfbnDlGfU2DuiIzWXzTNCjcyoLqASUFOeUZvut9/enq/U7dBvKhBQa7875+yNPKPe3NeRn3jpO/lOqcd9reJyfvQQTRSq6ai7wudea56AqutUz961ApWAmjLUyJFxQbSsXH9IEVAPRt/6Vjv7XtXNCPXO6AY12DZ5iCYKNbci8hLY1xyFmjNsDY4ClYCq1c4kY2H2BxGon+niXxppkMnl4+AMAVUTqMbz92ybV06DqkFv1Hfdta5nSyEBVRuohfo+MaFqDjV31Fo5xsqXgCrdpnwioKYC9eUdtQd5WiSgSg61bN1HjuWMFQKq7Evf4upSxgoBVXqoRUAloEoPtcn2PXcNE1Blh+q55Ch5jtFCQJV8Rq06/gtTKgFV+mdUvl2XgMrLJCKgpg71Fn9HJaDKvzNJ336VsUJAlX1n0rscYyGgyr/0NTFSCKicniEC6mNA9bTquT+YgCr9jPr3tweASkCVfum7BagEVKASARWoBFSgEgEVqERABSoBFahEQAUqARWocbEziYCaCTPqur17+eoVAiqb8omAClQC6pMIletlCKgZAJXrZQioGbH05XoZAmomQOUbQQmo8kPlehkCagZA5XoZAmomzKhcL0NAzYRnVK6XIaDyMokIqKlD5XoZAmoG7EziehkCagbsTOJ6GQJqBix9uV6GgMrpGSKgApWA+oRD3c0gIOnbDVQvo4CkzwvUAUYBSd8AUBcc9rL6JanXvd7DC4BKREAlAioRAZUIqEAlAioRAZUIqEAlAioRAZUIqEQEVCKgApUIqEQEVCKgApUIqEQ0P1DDZ/ilEaW5M+G5QQ35AwF+a0RpLhDwh+YA1RDyD4UDzKlEaZ1PA+Ehf8gwB6iGLP9QIPw0EaWvcGDIn3TlmxhqKMvvf4qI0pnfn5V0Qk0MVVANZRFROgslfUBNDtXwDBGlN4Nh7lCJSKKASgRUIgIqEVCJCKhEBFQioBIRUIkIqERAJSKgEv0v+wedxzucP6MlEQAAAABJRU5ErkJggg=="></p> <h3 id="change-default-swagger-ui-parameters">Change Default Swagger UI Parameters</h3> <p>FastAPI includes some default configuration parameters appropriate for most of the use cases.</p> <p>It includes these default configurations:</p> <div class="highlight"><pre class="language-python" data-language="python">swagger_ui_default_parameters = {
+    "dom_id": "#swagger-ui",
+    "layout": "BaseLayout",
+    "deepLinking": True,
+    "showExtensions": True,
+    "showCommonExtensions": True,
+}
+</pre></div> <p>You can override any of them by setting a different value in the argument <code>swagger_ui_parameters</code>.</p> <p>For example, to disable <code>deepLinking</code> you could pass these settings to <code>swagger_ui_parameters</code>:</p> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import FastAPI
+
+app = FastAPI(swagger_ui_parameters={"deepLinking": False})
+
+
+@app.get("/users/{username}")
+async def read_user(username: str):
+    return {"message": f"Hello {username}"}
+</pre></div> <h3 id="other-swagger-ui-parameters">Other Swagger UI Parameters</h3> <p>To see all the other possible configurations you can use, read the official <a href="https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration" class="external-link" target="_blank">docs for Swagger UI parameters</a>.</p> <h3 id="javascript-only-settings">JavaScript-only settings</h3> <p>Swagger UI also allows other configurations to be <strong>JavaScript-only</strong> objects (for example, JavaScript functions).</p> <p>FastAPI also includes these JavaScript-only <code>presets</code> settings:</p> <div class="highlight"><pre class="language-python" data-language="python">presets: [
+    SwaggerUIBundle.presets.apis,
+    SwaggerUIBundle.SwaggerUIStandalonePreset
+]
+</pre></div> <p>These are <strong>JavaScript</strong> objects, not strings, so you can't pass them from Python code directly.</p> <p>If you need to use JavaScript-only configurations like those, you can use one of the methods above. Override all the Swagger UI <em>path operation</em> and manually write any JavaScript you need.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 Sebastián Ramírez<br>Licensed under the MIT License.<br>
+    <a href="https://fastapi.tiangolo.com/advanced/extending-openapi/" class="_attribution-link">https://fastapi.tiangolo.com/advanced/extending-openapi/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

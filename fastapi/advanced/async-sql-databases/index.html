@@ -1,0 +1,585 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Async SQL (Relational) Databases - FastAPI - W3cubDocs</title>
+  
+  <meta name="description" content=" You can also use encode&#47;databases with FastAPI to connect to databases using async and await. ">
+  <meta name="keywords" content="async, sql, relational, databases, fastapi">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/fastapi/advanced/async-sql-databases/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/fastapi.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/fastapi/" class="_nav-link" title="" style="margin-left:0;">FastAPI</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _fastapi">
+				
+				
+<h1 id="async-sql-relational-databases">Async SQL (Relational) Databases</h1> <p>You can also use <a href="https://github.com/encode/databases" class="external-link" target="_blank"><code>encode/databases</code></a> with <strong>FastAPI</strong> to connect to databases using <code>async</code> and <code>await</code>.</p> <p>It is compatible with:</p> <ul> <li>PostgreSQL</li> <li>MySQL</li> <li>SQLite</li> </ul> <p>In this example, we'll use <strong>SQLite</strong>, because it uses a single file and Python has integrated support. So, you can copy this example and run it as is.</p> <p>Later, for your production application, you might want to use a database server like <strong>PostgreSQL</strong>.</p> <div class="admonition tip"> <p class="admonition-title">Tip</p> <p>You could adopt ideas from the section about SQLAlchemy ORM (<a class="internal-link" href="../../tutorial/sql-databases/index" target="_blank">SQL (Relational) Databases</a>), like using utility functions to perform operations in the database, independent of your <strong>FastAPI</strong> code.</p> <p>This section doesn't apply those ideas, to be equivalent to the counterpart in <a href="https://www.starlette.io/database/" class="external-link" target="_blank">Starlette</a>.</p> </div> <h2 id="import-and-set-up-sqlalchemy">Import and set up <code>SQLAlchemy</code>
+</h2> <ul> <li>Import <code>SQLAlchemy</code>.</li> <li>Create a <code>metadata</code> object.</li> <li>Create a table <code>notes</code> using the <code>metadata</code> object.</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <div class="admonition tip"> <p class="admonition-title">Tip</p> <p>Notice that all this code is pure SQLAlchemy Core.</p> <p><code>databases</code> is not doing anything here yet.</p> </div> <h2 id="import-and-set-up-databases">Import and set up <code>databases</code>
+</h2> <ul> <li>Import <code>databases</code>.</li> <li>Create a <code>DATABASE_URL</code>.</li> <li>Create a <code>database</code> object.</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <div class="admonition tip"> <p class="admonition-title">Tip</p> <p>If you were connecting to a different database (e.g. PostgreSQL), you would need to change the <code>DATABASE_URL</code>.</p> </div> <h2 id="create-the-tables">Create the tables</h2> <p>In this case, we are creating the tables in the same Python file, but in production, you would probably want to create them with Alembic, integrated with migrations, etc.</p> <p>Here, this section would run directly, right before starting your <strong>FastAPI</strong> application.</p> <ul> <li>Create an <code>engine</code>.</li> <li>Create all the tables from the <code>metadata</code> object.</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <h2 id="create-models">Create models</h2> <p>Create Pydantic models for:</p> <ul> <li>Notes to be created (<code>NoteIn</code>).</li> <li>Notes to be returned (<code>Note</code>).</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <p>By creating these Pydantic models, the input data will be validated, serialized (converted), and annotated (documented).</p> <p>So, you will be able to see it all in the interactive API docs.</p> <h2 id="connect-and-disconnect">Connect and disconnect</h2> <ul> <li>Create your <code>FastAPI</code> application.</li> <li>Create event handlers to connect and disconnect from the database.</li> </ul> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <h2 id="read-notes">Read notes</h2> <p>Create the <em>path operation function</em> to read notes:</p> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <div class="admonition note"> <p class="admonition-title">Note</p> <p>Notice that as we communicate with the database using <code>await</code>, the <em>path operation function</em> is declared with <code>async</code>.</p> </div> <h3 id="notice-the-response_modellistnote">Notice the <code>response_model=List[Note]</code>
+</h3> <p>It uses <code>typing.List</code>.</p> <p>That documents (and validates, serializes, filters) the output data, as a <code>list</code> of <code>Note</code>s.</p> <h2 id="create-notes">Create notes</h2> <p>Create the <em>path operation function</em> to create notes:</p> <div class="highlight"><pre class="language-python" data-language="python">from typing import List
+
+import databases
+import sqlalchemy
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+# SQLAlchemy specific code, as with any other app
+DATABASE_URL = "sqlite:///./test.db"
+# DATABASE_URL = "postgresql://user:password@postgresserver/db"
+
+database = databases.Database(DATABASE_URL)
+
+metadata = sqlalchemy.MetaData()
+
+notes = sqlalchemy.Table(
+    "notes",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column("text", sqlalchemy.String),
+    sqlalchemy.Column("completed", sqlalchemy.Boolean),
+)
+
+
+engine = sqlalchemy.create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}
+)
+metadata.create_all(engine)
+
+
+class NoteIn(BaseModel):
+    text: str
+    completed: bool
+
+
+class Note(BaseModel):
+    id: int
+    text: str
+    completed: bool
+
+
+app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+
+@app.get("/notes/", response_model=List[Note])
+async def read_notes():
+    query = notes.select()
+    return await database.fetch_all(query)
+
+
+@app.post("/notes/", response_model=Note)
+async def create_note(note: NoteIn):
+    query = notes.insert().values(text=note.text, completed=note.completed)
+    last_record_id = await database.execute(query)
+    return {**note.dict(), "id": last_record_id}
+</pre></div> <div class="admonition note"> <p class="admonition-title">Note</p> <p>Notice that as we communicate with the database using <code>await</code>, the <em>path operation function</em> is declared with <code>async</code>.</p> </div> <h3 id="about-notedict-id-last_record_id">About <code>{**note.dict(), "id": last_record_id}</code>
+</h3> <p><code>note</code> is a Pydantic <code>Note</code> object.</p> <p><code>note.dict()</code> returns a <code>dict</code> with its data, something like:</p> <div class="highlight"><pre class="language-python" data-language="python">{
+    "text": "Some note",
+    "completed": False,
+}
+</pre></div> <p>but it doesn't have the <code>id</code> field.</p> <p>So we create a new <code>dict</code>, that contains the key-value pairs from <code>note.dict()</code> with:</p> <div class="highlight"><pre class="language-python" data-language="python">{**note.dict()}
+</pre></div> <p><code>**note.dict()</code> "unpacks" the key value pairs directly, so, <code>{**note.dict()}</code> would be, more or less, a copy of <code>note.dict()</code>.</p> <p>And then, we extend that copy <code>dict</code>, adding another key-value pair: <code>"id": last_record_id</code>:</p> <div class="highlight"><pre class="language-python" data-language="python">{**note.dict(), "id": last_record_id}
+</pre></div> <p>So, the final result returned would be something like:</p> <div class="highlight"><pre class="language-python" data-language="python">{
+    "id": 1,
+    "text": "Some note",
+    "completed": False,
+}
+</pre></div> <h2 id="check-it">Check it</h2> <p>You can copy this code as is, and see the docs at <a href="http://127.0.0.1:8000/docs" class="external-link" target="_blank">http://127.0.0.1:8000/docs</a>.</p> <p>There you can see all your API documented and interact with it:</p> <p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8AAAAQ4CAMAAADxbkVTAAAAEHRFWHRTb2Z0d2FyZQBTaHV0dGVyY4LQCQAAAwBQTFRFR3BM6fr0NDk7KzAyQkZOPkJF8vLy/P3/7ff+////wMHB8PHxPrL49/f3/f39+Pj4AMuU7e3u7Pb9wcTI6/X8RkZG4+712+XsPERRXF9iSkpKKywsAH8nWVlZZ2tsPbD2x9LaeoOQf39/gbw86fP6+vz+3Ofu8vP06+vsPKvvwMjPQUVTPEZd5+jq9fb4en6CM4zMT0RR1IZl///5uvr9bMj1OEVo5/z/T1BSPJvZW73ySEVRfElNcEZR2/3+YWFi0fz9NlePY0VQpqquddT6xvv+kVhVMjhH/vHFOUp5WUZS//7tuG5V///+//vgJ3+//seYAgIDP05rqWVWiFNRO0RVrPX+m+n8kJaTSaniM0+FKHW0hIeI8O3B8v//YKDANW6pyH5b9M+j7/TQUoaz7Pjs4qd+TlJk/r6P7vj4KzlbnJ2h//rTxZx8Rzc5NGCZcXV48t2vqen7/+S9/9+yZj42VrXkhtv3eGRhOj1Auen57vTfFhcXuMDEmuTtMTM1Z1ZYR1p1bklsg5ub7at83LiYt7m3i9Du8sCU4eLj3JJstolx87aH0tLVYKXXyvH7iej7undhyePx4Z1woIV2fLDEPFmCIEl02dveVnmaRmqJ0pBw9N3Cj3hxrHpdndj3ZGx21fD8BZFKd1ZVmFhJpdHncrbaeZizVlGEh2pnqLrAW3OK5saslWla/9Sll4+LAJqResTnQG+XHmqo0vXl/+rrOoO+WmJuREhK8ePSk7vjlbvCc4ie6vnZT41KK2yU+PXo7tDnrJWLgKDdUJfOTWV+KphXTlNZzKCR1Lu0ZZOn/+jQKjE9wL2l6NjFy8zN3vb89Org//jy1eazYNz5gcuZ9Nd60aKB6c+6ALqHwaqSq8PWyOjQScyYuu/kjeDCGbPuA87j08pLta3fsKqZfsNqA9C/kJo+Odnzu6xIQUZIwt2Pjb0/ALXI6s9i6fPyncpU3PDQY9izo8uxiaayrsFEAsSQIs2Z++t/0b3jVDs729GC7/L1t8P45tn5wrrhG/osvAAAAAF0Uk5TAEDm2GYAACAASURBVHja7J1PaBtXGsDNiFzkkwmhlYxE60Nllgj1UqNlDSIeWBEI7NZOYNY7wUnqtqDBYhpQ15NqMg5OJ6tos7CuHdkJdrNYqYm8xtQua6UOGEKDFiPb+LTgQ0456RKWzcnksN9780d/PCP/U7yW9f1I5r3RPA3Bnp+/733vyWlqampyeRAEqTuCTQSX2OZFEKTuCAXPgMCi6CmcQhCk3igUsk1NQdGDXwkEqU/ONLlDGH8RpH4FduFXAUFQYARBUGAEQVBgBGlMgSWJaQAk/NYjJ1LghtAXFUZOqMBMA4HffeSkCSw1ksAYg5ETJnBD+YshGEGBMQQjyLERmGEwBCMICowCIwgKjAIjDULAxPp6QcyWNCgwCozUlcDeAFE3Kwa8+xJYiQMOFBhB3rXA5W0loK6YpYd9CKzEP6XEld1d6O46KQJzHD5OyHETmBoMfwr7mANTf+P0UPJquM9JSJaPjYxNmf2zY1vbZJGmX3Y61edd8I6BaKnqbzJOdXT7gM7BzUizstZZcduaCcyy+Dghx05gmP4GdvpbVWAaf+Otn5YbHO7bGvJ4PG57ga+o6pwxcPZNpWkdy1tPlmYno0ctMMuTI8+iwEhjCKzQ9NnRqjWlBlFvVvQ4+mDZqU6BwBCVNYcvjU31kxCsDexYniozTVnJpGmHjAmPQSDv/W/avBkzsSw7X10s6YQnMjK0pKH3f/+gAgdUMJhXAygwUo8CF/adQuuht5Um0a07BO4OeWYzU0xvZtSzNAQCJ4NBzaeVtRhx0hQ4WW5aajm5rSsIfbhyZS3GdGg3g+A96nqxXNrpX3viWgVbx7ZCS12HSqF5ledVHlNopK6LWIU9CxzXI6/SWpZDa3NgkI7KJJ1T0+UpdLgvSS9QgaXuVWdaN03St2o+yKijXcTsHmZFXYsZHpL3gO1kCj3FlHR64OYQxcf0Sff7B58D82qFvzsE5lgTrGQhtRW0+jLRO1hGMqtX8QqBt4ZyuaB0/01GlQeil/rU59OlAtPoS8KrbvqcEbP74aST3uHFGzkZBdGl/udj6cgYKKrfrJek1+RWJR1yk9NJU+AwCow0oMBZbf0ou49lJBp443Etld6RQvdmkkO5GdK9NQM6FgX+Jy1Sw3yVmB48U3zHWY/HYxi3IqeZK1tdY+n+5Dm107wZlZ8E3mInM+cOut1nSgWWtDwdU2gE2W0ODKE3blnEIjGW0RWCWWzEEAw6OaBva9sUzMK0DpjeppbnX8VWXpEfAsbNyMs08JZ0tPuaAsOkOEbTgG0sYiHIQZaRjAjsyRHnvJ4vV0k4XBtcmiZiqzRNXlHT1gJLqflB19IMzJwhxU7C9NbZU7xZuF+ddE1kIHobHUi8R0NL3qgpsJTKbD1ZmpGnGFxGQpCqO7GKGzmUHQIzC8uyU01K9/Xlno43sjpFQ2NUD8SSdQTuHoZp7avfapLrAdW4GRNezThZ4m2xM5GR1efbxQhMN4K8mpMY3MiBIIfdSml35RC/GoAWnss6R7qVssBj/Qo5GQIzjCMej7ce4YcZXng9SzMkJpsd/DADghxYYIk52t+y05+BhHy6tIMCI8iBBf6/oOyWn6PACHJ8BcbPAyPIQQSWGk1g/LWUCAqMAiPIsRCYYTCHRpB6FVhqPIExBCMnRuAG9BcNRk6MwA3pLxqMnAyBG1RfVBg5CQIzCILUYw0WBUYQFBhBEBQYQZB6EVhRHAhyjFFQ4Cr64vOBoMP1KjDqi6DC9Ssw+ougwfUrMPqLoMEGkpdTEwmV89aPwPhMIPXEO5UhuOEDmuHvRrBOBMYnAjnmwh6dwW1+n0GzP1BLgd3j96q/WwxUEb/AORMJJ1dgGK5qAi1x6vi4ykmlr0X6emy+suRKeDV92G9Qdxc5hpei+KwiFni9R5ZE88RcgW1pZwXSa6udwO5x33j1dwd4e4O9Ce2HSkIUfNUCcGjcz/I86x8v/ZJFbl61ExiuWF/N34rt+fsTXr1ImtRwDJ9VxAKWrWUS3XHndjT8wvo3rAbbiSVuplBgsiSL9ttk0ZyP26fAxF/3LvrbGyz6mgV4t1togeS+SgD2+tUgaYOq33s4gVM3Lxh6zg4LTyC25h8Mc4PKzhbGctsoMGJLTpZz1UJw+JPfb+9D4MgPD6MdN7+z/Lwfnf9uaP3TpH/a+h4Jn39/Agd397eKwYV2n/6/AKrwb7IXWEo44ej3w8GZkA4jcKspcH5i1H12dU5xrMwP3RqGUFvZOpSVUYW+BQVGrOAEgauhwDQKWwvsomkqG6Kw9MRVkwi8J3/tDeZ8qtah/yZ7gblE1hA4m+DKBY70vbf5LRgW7htp+UfM8ct7zetTChX4+6cf0Sv6iHz/SPN6OnX97dvP0pFnFyOrnSDraDRC8mSLVsugSZj+kIuRsCxMauEa2vz9YWEerW5gpGwuJMohryyGclmpisDhvvEWeCLBynD/B6+f/g2akdfm+eb6BcYcEblzW+q4CSLcLQ4qnQEXi1jkwNdiDrxHf20NvucL0ZbOy332U+BfqcW+umFOZ4mm+T88HZ19fC1GWq8YddwaXPrhcqcm8LeDEzduK8aIxZ+Srkex1PWHniCxNA/RN78wp9D4muJilS095Bfmh3ITWvvls9EoaYNBeM90IYeVrQb2l5VllRUURYCOzErWk2AicOTONVH8+bM0w/zyzYAYmGZ+Dc3Y51e182c37jLmCE3gL1wud3EQU0xQx9tCOuI4Cce1EHi89OeCRS1a5EsQd173+6Q9LSL5adSlERiicVkETr2EKNz78gJt9Wnuyx4zhf74q5gxYvE/6bI5cGqY/xACrebqcKyydTgWRpXIcCc9oS0caKv7jTQwjCAHtF5AFhhHNYFvS0zvjavM+es0OT5/A5rwJ9di569/EYWM+S5jjtAEJqPMQcWpbYIvUUXi/TaV432m0PdKBd7YReCAlcCn9iRwwl5gqmXkT99pesLM9gN/4vMLpsB/vBwzRkTubA7ESgS+z4dmuU57gUkGTU5ajRchZuvmhie4QQzADY0iyDxpeVlQHLsJDFoyiz9dIK9pzceXO2nHFJiMKApsDioKXElzohZFrD2n0JJ1Cr1RnIpnnQF7gU+rRYHV09UEXvxpYGjhZVHgxaLAkDA/ftpjChx5RubA81HbFNr4a1odNgV25LufYRBu9BKWDI8oI3OKYy8CS7sKLFURWKXObtC9HP4NOgdWj7KIJe1WxCJlLNZe4CpFLJogp0aMFPp3l8G6coGNESRy/viXDqM2bYhqW8QiNegIKUfvTKFpqJ/DZ7ihCbAOt9vBBqpXoU09e2/QFDpFs+Mfv4rRcwuB4aQ4qCgKTFFdbR4W5r6eNhfJfLnabOQ43DJS1lxGCrW3Z+2r0KdslpHu/DlmFrG+JkWsGETgEInAcMUQ2BiRmgy9+P42zCwGxRitQk+6L00QUa2XkegujvwCN+2+rxez9CLWb3LRiCd7dhUFbmxYjpflACfsUeDwX7/5lygOktrVI1KfCn+9OeCd+XuFwGF4jMUn5qDifgmfT9zwNed4Ptfs26CnNdqJFazBRo5TIaG9Ray2k/KRX9Y2csilGzkcV0aumstI0Davd+b7R95urqfJFUNgY8QiXIHm3OPXT8kyEuTQw8Lktu1GDm31lywbcW3bZctI89upYYGeIQ1cxpJB3wAcGLsMulxgJtw38nrzoQRN8/pUlGEiY9D5qEJg5vzj15v/jpqDjBQWYq4LEuggy+Z8voQL4rFUo51YxOB7B99KKerTc79Y/bMMXqutlECr/oOv/LSiWzrCsiBh1Wq7OCxpxccX8cjCKYejIJRvxtrnvo3zL6/ubaCnxSe0OQNgbohVXYKvJfc/9u4/NMrzAOA4wsjtrSUig3lu1JKFYGPiNH0z00tcuPaMU7M3LXaXeGt9t9UyK5dhmxTrBGWiNrPoNdNWRLRONg1WV5EaXbP8sfM2Oue2zESLoJCQ7EAwOGUKygbueZ73fe9nLjltfnjx+8Emlzd390rI1+d5n/e96yhdiaUK7vqSL2bY65v385FeDTzUixnG0t+YImM4s2Zan2fOyjSDHmFdaN+BWb/u2L8w+xcz+N5cIQbhuSve9GW+jOMhRuBJ+nJCrp/EQ8yrs/e90Ix/Xzi+OOv7z5s7O2/q7Dzx39TZo/tyQl4QDDzMBPrBfONrzjngJ37PW+oAo26s3xTr83m+veJw83Pe1A7IvX5z8E3tmEWD+XNuB8wgDIbfXA6YhkG9uR0wAAIGCBgAAQMgYAAPEPA3AeScWMAagEff1GQEDBAwAAIGQMAAAQMgYACjHnBekICBnA04GAzmETCQkwHnBSUCBnIy4GDQF7THYAIGcm4EzhN/8vIYgYHcPAZmFRogYAAEDICAgcch4CfiCBggYAAEDICAAQIGQMAACBgAAQMEDICAARAwQMAEDBAwAAIGQMAAAQMgYAAEDBAwAQMEDICAARAwQMAACBgAAQMgYICAARAwAAIGCJiAAQIGQMAACBggYAAEPD72bvRtKchsi2/j3rTH9Fy/OViY0eDN6z38moCAx8H0YMHIgtOTHrPqZuGIbq7iFwUEPMZcOwuy05XwoOuFWbnObwoIeGx1FRQ8cMFZ9kvBIOCxnj8XZM+eRbtWFWaNWTQIeAzlO8e/bbvM7ssnnNtas72587Cpf3bWOQ7Otx6kjn+jV9fodW/dUZlu0ur67W1a7cp+ecPU5efCm/yugIDHznYn1A36hUPaa+p2pGJaLOAW7cKMovN22AXb1WN6ZKuXTK3x1hStUVYa9equG3Jjjb6y56pZ1x8VN065lsi6WYvGpAn4WXeqF81R+gu9tEw+3YJFGfbmX33sw0OJ2+fbX8yx04xUNJ9o89apsbblcsS0A26rqTvb2VT7F/tec2JHwFFv7Y1BOfTeHZQxv+V9W9R6qUJ+7O3pj976YrCwvrafo2AQcHy6uz8Y7Bj6Abr91PMz762kNFSRHrDPTvNI0WtiFHZK/TAWcLUYfVu0bfa9fLEZ9CVTtloYrZZD8Kba/k1yDh2trrsROzcc9aoRmDk0CNiu9Fdu9ysVQ36r8QfW8z1fM9zeTlenBexcv3FSO14QH2pjI7AYmF8VAR93ruhQj5GN9mp3VablYpiNiuG31/xCbjU1fdV/VdlebYk6LB7klwUErDQvzBjwS2XW85UuGm5vJZ4sA46NwB9mE3CveVdFLLu9fnWKtaB19ZTr7h0CxqQL+PSMuXFff5Cd7ijJFLD+E/HEe34jwzRT9rZd2nvuQJX8amlTdlPoUPIUWh9+Ct2kGWKrOuKVel13B62l6RtMoTHpApbp5Bv2nwdR+313hoANNYOe/56cQ5en780wxI52yDHavy4lYNfGgthQe6LN23iiMxiMjcC3gyc6309axNoYX8Sq0Z1FLHHk29PTc0rc6l0j0xUD8n9MccMKmEUsTL6AU50/u/65Ev/y+Eqx8A+1rfTPbRvUl+/FV5Qr0x7/RpWcPct5dOl3Muyt9mXny6TtznWUnU36hUP6cTESNxf8oWtXUXvXuRVyQFankZqd00g71WOSTiPdsUfcaPWSO9FqbUnPLVO/EfXqK0+ZairNaSRM9oBrf1bm9ltxLj/pJP1RibPN/7rI2hgmYEOubrmfr1HjcPyoOmVvu932AJ60/dspF3LIgA9af4OgDLjz8Jr4hRxbpmmxObS6aKNOHuZap4sKm+RylnUhx2Bh9FQRF3Lg8QhYf7Ykvs60wBpB6xYnLj792Dv8CLxkoTr6VeeSflifYW9b5ZefpgaszX2ASymfsR/DpZQg4Nj4qVaQF/x149+Pym+vrXGGS//mNp/v7C/kxoCmXfadlffbc9vn2zDU6pacO6s5dGWGval/AV4x07bPybrfOfYjXAYvZgABJ65N+UWiLjXsqoPYut/KcVedta172Tm9+/YLGRax1DPI1avkOXTy3tTzuD1D/C2yfTnSzoRd8nJCELClcfHq1as3N8ixeLc92mqNC+N3/KRgy8dXKoYLuPm79vkjNYdeWj/U3vSfVjmnidP+Fv/L6gX9eYmzBhcv6MdjGnDSeeCvpk2FVVpqKN3TkPzojAE7M2hrDh07RFZ7e1HtZrt9Hnitd+h/RqZ3jfCWOl3PpOzTZWTxljouflEw6QJOlHDSR45rbzgBq0mx272v7co/RwzYiM2g7fCduyTurSRhdxlPZgEE/BAB65cPzKyKbZvvDKXCV0r8m9t2mcOPwGq7dQWWNYduyrS3kEnAwCgHfP53SdvmW4esZfEt+w4OG/DWlCdVl1sNsbelJ4c5EgcI+KECtk/5lp45c+aphLT2H4gPyqUnhwnYWl5OOm1ckbY3//JjHRUaAQNfNuCUdIyt8vh0aUvSMbC4nW/88dyJ9daxq19dnZEhYLU5eahtGGJv6oJoAgZGN2DrNPC6+GQ4Ibl8rfvyB2XOxVcZAt6d9qpBdSYqc6gEDAIetYAbF8feCke9KDAtLfVmOZ6MAatrPha0TrOpO31aTcDA+AVsrUZbk2H5/c/ePfut1+1U1YXOsYCtNhN8sixpqzoiXtBKwMC4BGytQZ02Na3ZelscOcbKafECe9F4R1niFHppytUd1iXOnpQZdYCAgXEJ2Nro3/fq0Sr3nvUy3B/NOaQujiw9dvvjd/+lFqPVIpYait1LO1ccSexfzcDfSRmR11YTMDAuAduryH45kd7tvLHVjrLERSlrMLYvz0oab60jZHWFpMWIF03AwNgHrP1yWSxTa5AVAevbEk4O7WmxB9cX0gK23k7WM+ScmoCBcQhY2//BU/KSyffF+Ln/aJV/c+cGeYXzNnV9ZenmzivO6wON/QeeExuOHY4/VF38nPhWlM6YXEPAwCgHPCIj4W3uXGk3NIMfPPAIBwyAgAEQMEDAAAgYAAEDIGCAgAEQMAACBgh4+ID1gdYsn94YuBj7COCRCLg7Up7t808z4x8BPAIB57c/XTQ9Egi8o7UHOkLik34vEKis1iMtR0KVprE35AnUa+Fi8a362AisD3g867xGWHyvyfpeEz98YCICNu5d7I4s0tpD9e1/WqRdCHjDxTX6/Wt6pLKoO1TfHWow7vUVhT31xr3iIifgcF+Ffr9VPMQIF1er7z3JDx+YkBF4oKE9UC6OhC/KT92RhvuVmtZePCXSqumRBi1f00Su4T5TbPOqgOU9PQcr5HZT3L8+3FckbvLDByYi4O6Qtz3gleOq/KRHWsX02OMp9op4RcD6/VAgJAMWUQdqnBHY2B7xVHrlRnF/+YmAgYkJOPx0UcoIfE1u1q2Aw8VeawQuShyBZfcD12IjMAEDExSwOAQWocaOgUWw4o8RXuQE3Gd2D4iA5XFunzgG1nd55TFwpWncq3SOgQkYmKiA9Ui9mB1HPPYqtEetQnsC5XbA3RHPug2RJ8PFHYHicrn+HGkVH7s7PJ5AbBWagIEJm0LHyWPgoeQbhghU/j+RrC/FFNq6yf/qHnj0A9aSR1idK7GAnA1YH+gr5ycNPHIBZymft5EFcjdgAAQMgIABAgZAwAAIGCBgAgYIGAABAyBggIABEDAAAgZAwAABAyBgAAQMEDABAwQMgIABEDBAwAAIGAABAyBggIABEDAAAgYIGAABAyBgAAQMEDAAAv4/e/cf0+SdB3D8P/dUfsXuwr4Xw9iaeIPrg8IKrW2FKAOiaMUgyCFOAZXaeIuTLULA5MSNwKZOZWpUcIV4Mt10ibdEoxeT2w+yeUsm3i3R3P65P+7/+/uSae77fZ62/Fi3MVofsLxfiZaWtiDl7ef5Pk8LAAgYIGACBggYAAEDIGCAgAEQMAACBkDAAAEDIGAABAwQMAEDBAyAgAEQMEDAAAgYAAEDIGCAgAEQMAACBgiYgAECBkDAAAgYIGAABAxgXgW8xym2Fk+/MLO/01+/Zsuvvh2AeRDwpmohxDoCBp7KgFuEOPPXFzwzud0e/5pKHgxgHgXs2iBE4cxu5zopCBiYVwGvlwF7Z3a7tasIGJiDgF29nX7943A0YNfDCzlO/ePb2222l4VBroFdvVdWOvWxUbUxvanIXBWvLRV6RSTgP9YZ16wv4eHAApFRMPV8XsacBBxwDTpVe+5tfnNTeNBvtvjl9omA17c4zTdvlMUCDhAwFjLHwWOTzx476JibCfxJtRDnP1p8TfanAj7qF+7RgocXhV5iu39PXnrjhbPb96gLz/aWC90XfwK7PhuUN//+2DiPKxaIvKUH702cu3fwT3lzErBLjtmtW2yBjVVGwBv/LESjzTh+1FwWWwO3vf76Do/N1SJETfwJbAvIE9bAWEgKJhV87+DSgrlZA6tiC+V61/a+EfCb5cJdkZWVtXaVqnTaTqx3hWjaHncCGycEjAVacCL9JhZwQK1e1ciNhCjrjHJ3TAR89cJKcxXc5Ik/gQkYC05AFvysemNxIv0mOIHlqDUD3mTsxNrjjAUsF8GxTWi/PBu8uXJywExgMIOXHlycaL8JBhydwIHYBHafiL0zErCKvNBjbkJPTOA3ygkYC3wGvyMLTrDfZK2B342ugfWS6QGrqjuMJ1tFAnY32IxLCRgLnCw4wX4T3QvdYuyFtn1TF9sLfUP2/IbjxdNlkwOWqcq4xacedVJ/QMYtc54aMK9pwIKT+c7Spe/Y5jBg4wVH5z+6e80ZOw6s7/r93TpjLkcCVuU2D1y9WCs3ni9lqwNOtafvHQlOmcByCV2/a/EAjygW2FZ0WpptTgNWB4JFvaj9g7m0XT8Y2Y3VfDy2Ce0yn5J15nuZrjx/1NhT7T5dNTlgtU6O7A4DYFnAtvVfH3Lq58KfVJs7l13qkJE+dtozsQa2/e21HGft37tsrYdE7XV5jU6/fv6S3NpWT52Mbju3djr1nus8HIC1AZsbAoFfvEbkz0yuC8DSgAEQMAACBgiYrwxAwAAIGAABAwQMgIABEDBAwAQMEDAAAgZAwAABA0i1gJ8FYB0mMMAEBpACAQcCgUwA1gj87E+h+vUBq3yzAFhDJZzEgGW/WRmL0pYAePLSFmVk/VzBvz7gzKyXssO+dABPni+c/ZIsOJkBZ2SXhEc0AE/eSLgkOyOZAWdmLQqHNTtfWcACdns4vCgrM5kBp/mYv4BlM9iXltyAl6TzRQWsGsFa+hICBp5aTyjgkT7rdkX3jfMwgoCTGnCFlTvTK3gYQcBJDdjaw2E8jCBgAgYImIABAiZggIABAiZggICtC7i12hv/X/vff70V5jEHAScx4I6RZYHlA7709IrIK5r6yiJvPJplwKGT6xri/2vvVAkfjzkIOHkBb7FlZo94bMt9MuCXBpTr7QMDnsDvBgZuzy5g+/7yQk8CAbdWCyH0833x3vfq4RPqpE0vkX/376uMXn63K86V7b2d/vqeHROv7rj1Pd9wSK2Av1v2jy/yG/O7svtkwJ/lR1W6bufn584uYHMA76wTO644z6gMv71QZPS4v1wYZMP3T+XItI7Ld17t9Os9uyonB3xZ3nzJgzPtPxNwcE3x5IC7r3TEufKD2tGR0MPOG7Gneh69wTccUivghsD/ZKcy4VwZ8OP03Fx5Tv4lA07PneUaeH+pSkYGrI/lCNnYUKnQVwp3iTZ05fki0TM8fF3rrhK1N4tE02oZdf3Y6zlbt0wPWKbaIW8QDO5arXWfCgbPtWu7jwTH3jICtrc1nfR6jICvdgZ73tv9gbPWF/r6UHCsT+s+ElQnat5e9KmXi+TJCWzeUWu1fq6SbzmkUsDFLrnSrejq6noUXQP/IC81Ap7lTqzQy241DmXAN8b7/esaQi1iX1f3B6J59cQmdJtzX5cM212hva0SD51d/aMJ/Nqa4u7NX453b27U3m2u3P1Boda2pis0uM6cwDVDhytUwEOHS1Soqvb+nrDWe3lL/75irXdHmdrCvhz9byF6R4M1/LADpFTAuUbAJ+RNH0fXwI8SDHiotGbcDDhXLmfdJ+7UiUZZk19tV0cCDm0QtcPDw0XyHZuKxPkPL3mmroGdTqd+LqztPyxv8nbz6pC8v7am8ZZCOd0jE7hGe9BcKQM+qraiWwpVwOrdd6pKWoOnBzSj06NqM7vlq696GqJ3JAMGUirghsDj9PRG77+XPY6tgRMMeNBtvDpJBuyTG8juEztX1ftUlWp2RgLevdlcDAuvFnpQJE+bu6ZN4O6qRnWbYDD41b7ihxdu3sxpGt/gnVgD18ip2igDbmuSs3awRgYc2qCra/u0uxdWmjvANqlJ/sNz/zzcEb0jAkaKBZz/3bLMPvWKQGMCR9bACQV8a5VqalLAMto4E7gwdoO0e59Xq2tMCdjef7ndnMDmBrD2/vQJLK/2n79Mn8CRjfgHavbad148YHwihzsid6QRMFJtDZzfoA4jaTaXWgMvP648Sihg8wjPpIDNNfBmYw3cXSW85hp4nRyS919p125dksG1TOo5sgbevaFwXJUb+np0Z51PG7rWXDZlDazW2kFzDTx0seRVtSI+0659+2JX266yyOrX3qb2Qn977Ux75I60wSZ+9gBSLODGipFlmT8MfJEbeyJHIgHbd9Y1V04N2NgL7Vd7odURJqHfHL6u3aoS9cGVQtbYX1Q7/Lxf9/1oL3SrbFLtPD7XrvXm9OxafOjLgiPBng8nJrB2qy66F3p890n9PbUXumfUc/9UMDh23ZzEd9Vx4A+Pa9E7aq1es4VvOaRSwOm5+V6v1zjm2+g1qcNK3pkfBJ46gduiLU4EHDsOrPZwXSkyjwN/nuPUVVtDF34rIxudMhnNPcX22A5j9VZIs//GHmcX8vTL5LV+4RpAKgVsVvyjXHNn91zoO1UTz476yXTs0zOjMRDwfHkxAzGCgHk5IUDABAwQMAEDBAwQMD/YHUj5gMet+9UqPn61Cgg42b/czLqDORw2AgHz2wkBAiZggIABzFXAdgBWSXbAeeo1+QCskZ6X5IBznwFgldzkBpyRl8/XFLBMfl4GKgL15QAAIABJREFUAQMETMAAAQMgYICACRggYAAEDICAgeRZZiUCBpLc77G92xxW2Lb3bNyCCRhIoF+HdY7FK5iAgVkHnLXX8UqBJR+q4BXH3iwCBpIZ8PJtjgKLPlaBY9tyAgaSGrDDYdkHczgIGCBgAgYIGCBgAgYImIABawLeVFTz1AWcubZUCFHfM+qZ+ae7scrLNwie1oA3VgnTgektfLP39jOul5t/IoU3Skvm4wReW6p/vOL5ovoDM//avFlOwHhqA17/2ooV5eL8ihV98fP+9CcCPqrPx4DlBN5aLD85/6dl35wq+j979/vTRJoAcDyXXHbGBI9ANu7sC6ObCMumc2tLoRUKSPnR0JYU0lI44CwoVCDR9BaJEngDrigBgcV1iYAcaYg/UDCB3ePCuZe7GI2/soj3xs16yb3hH9icL+/FPTOFDeC5yZ21pZfv54W20ym2zHz7PNNBqk60i6L/crKlxH1yr793QfL4nP/sVJt//L1tokuSjnXavA3WVoOi2LM8gy51Ynp9bXHlvxvEgXgFnCalucu1GFsNS6POee3SOSVnfQp9SkxILV/onT/qMXgbVqWL2m2Z/txMMWZX7MgRWAv4jiv0zaja8IMrVCiG5N5v248bGtdmnDVun/rgN/nqH5/MK8ZAR9HY3UFb7dNBZfHlLzLV5vMzdVmRtQfElfk3v0ABO+oYOBJwpc374EafzRhwl1vOrAfseeSy3wqLy+YBw0TxrGK0bgS8Mu9vuLZTR2DPqFIRfPyywONwtpflac/m+1sj4lFnu8v9udKAUmG94/q6YEA5/WmTI1SoPaWyPHvpp+f8ufra5lHLQuAPV1bZbZBIAZvsWdKJKrsYhUIFG29idRTpU+i0E3lOMRvNc1ZvBCwdVXfoMbB+QO+cNvd12gyKs6YsTxuSr86afqn4c/XXJm2CcSo/VDgaWVN/Sndc+pWcyNoXTYp3/FqA3QYJFXBFQDJnqiWttlppW8DanLRQcvssJTs8YDECW25/9NGrEfHIx66tOLSAxeuSx2G5fmVUD/gLEXCtHvBR//DQ0NB+ayRg+0tx5ZK+tiSt3DtsUE+z2yCxAtZLNWZaan4uYOMOH4G1IVTSDukrAmLKEAn4lFiqTZ83Byym0DmSeehSIDKFrquWlvev6mubl/cHxDOuYAhGwgXscYzNfF2wOWD9StnGFFp0YfX4dvIIvB7wHZfz7tRedfjHPP3IwNIw+KGh+dLmgDuKvK8GbUZrq2HsbkGmslg8s567eKG6cf6yjZNLSLyAxe69cQ5VW3Aq33JjRAtjwLBYPKvcD3QUWW5c3isCFnv8y8AOHoHdJ13e4WNFzn/ok+L+HrX57w51YXPA0lynwdtcID2dN4S000j+iQtSZAr9dOqQ4m0oYLdB4gXcUSTG2p8Cdk/avGf0dV5op5Gskvm4y9swKQLu6PEvWXdewNvt2qU//fXHs/Vh7Xpt/N7ydxq7DRIi4C0qXRWbukx70178c3s3PwsNxCfgp/d6LCVv+48RMBCfgCtN3usBAgYSdQr95lkzAQM7P+C3R8AAARMw8FPA/FpZIIEDjukvdidgILoBP4vhR6s8I2AgqgEnv/csZh9u9uw9PloFiGrAackfp2T8OhYyUj5O5sPNgCgXnJb8aWwkp/HxokD0C+YDvgH8j95twNlJ706YjQckbsAjbDwgYQPexwgMMAIDBMybWAABA4h3wOnpHwCIhfT0KAecnLHvwB4AsXFgX0ZydANOeh9ArCRFOeCUpFQAsZKUEu2AZQCxQsAAARMwQMAACBggYAIGCBgAAQMgYICACRggYAAEDBAwAQMETMDA/2HA3Y66dvHXsZvVb/NYr/6J7QXEJeCHRutbBzxpZHsBcQn4ydmSSMArszZ1vEtfetG+9mFLc5YcHHT5exfkbl9DZ4X1+06b2jwi99vXDrfcf9z5UFxue9Rj6L1unTT47Vndg4fUiWn5yNnPe2qval+qnW0IAn7nAedONpZqAXc7lsLPffUFesCG+6vPHTny8bHpthdj7UHfgwt7mqruh5fFsn512NpvWio8kpcr94nb+86WtJUb5bbMxq7gSXvWkfzFrj3lS+GUwfpVNiII+J0HvFxVqwVc6ayR5f6bNXrA2uUvQ6X/Covj27MlQZ82zd4jgsyssPaL247k58pBX06wPEeW28pztICbZrJluakqO3KTkXhBwLEJWL441i4CPmfPkuXPtPm0CLiuWptHZz2/vLfloUUErIXa19nSYhIB26vlJrGaqPfPDkVToQX8WZF+ufaI9hXminq/vWZlG4KAYxBwsNw4tzXgVhGpLBaMLnaJg1oRcK04TG45bdVH4M0B1+pfRA84ck9ZD1hOeTxlYhQGAcciYBHf5zerj93cNoUeaPxGu7G/JRKwFnjQtyVgUb4YZtOt+hRaHBLLbemRgPeIxf1j1WxEEHAMAm6bVMequx3G8PP5JX3YbFWXwstVOUHfUsHKlCtbD7jfeyb46HBj4aaA5T7vQtvc2ey20frwgcxQe9uLmzVawE1Vw+HgZKiUjQgCjkHAorg6/TSSt3n9NNLY2l7tlNHcjDpxbdS7oAUcHDR5h+d6lvo2Bbx+Gknuc9mruwcP+ScuREZg7YzTxDTbEAQclx+lvKgdD6f+p1tSX7uWmpq6/YbUVDYfCDjOAQMgYICA+d9IAAEDIGAABAwQMAEDBAyAgAEQMEDABAwQMAACBgiYgAECBkDAAAgYIGACBggYAAEDBEzAAAETMEDAAAgYIGACBggYAAEDIGCAgAkYIGAABAwQMAEDBEzAAAEDIGCAgAkYIGAABAyAgAECJmCAgAEQMEDABAwQMAACBkDAAAETMEDAAAgYAAEDBEzAAAEDIGCAgAkYIGAABAyAgAECJmCAgAEQMEDAUQ44FUCsRDvgjKT3AcRKUkaUA94nAYiVfdENeHfGJ3xPgZj5JGM3AQMETMAAAQMgYICACRggYAAEDICAAQImYICAARAwQMAEDBAwAQMEDICAAQImYICAARAwgBgHXJavCOr4NN9wIOEC/lVZvnr74O96lLpqvuNAAo7AdVmS5PH5s6WnUyZ1fESS5jpt6niX1GpbGjzkHbZK7kc9Bm/DqtRqMJ50aQvEiv6JC9L2OwCI/QgcCVjN9jgsX/3gqreeyh+7u1YUKqi0qQ3fzagl5gHDRPGsYrRW2rzj91yWMx6f5aviGWfN9juwyYDYj8CW2wcP9iihwkpTRdvuUWfNHVdjWFr+IFBpEk2eU4xlec52SfxRLRaUmo8qp09U1bVLz6/I2+/AJgNiPwJrb2IpzWHRqv52VrZnXvE/uDEiiT4DYh5df8wVKpTcPkuJvuBLpdacqSi9T7peuwOAuBwDnzPUa4Nt/ZCwKv31uymXYs+KBGzYErCkBSyZ537bo1jObL8DmwyIyzGwx6HmihG33iqt7Lf+bSgsuUctZ8SMuVAa2DKFjgRsvnJJEs3Xbr8DmwyIywgs9ZvsWaLiJ2tFodJK0+KttZk60avavFZk0d7EWiyeVe4HNgIuyxt7dX5ee9dr6x3YZEBcRmDJXa78m72zi2kqTeP4TRMPE+PEzmY4e+EOJpRM7Ensd+0HLC3Q0AOhpqV2gYD9oNVGDUs1YNq4AaRDVxixgGSlKJgOjKKOETdscDVjCEZnzJriXkhG49XebzbZ+933PYWKxHHCrsFy+P8SaM/H29r2+fV53uc9BkOLsCoU3aGOd8m5sQmakft553TLjpoXdBlJvyNXQvtPm9zd5MC6AQCAzc7Aa1zetYv8lu2Q7RK2sr6S7feNWDtAho8MgI8n8HqyAgMAIDAAEBj/GwkACAwAgMAAAAgMAASGwABAYAAABAYAQGAAIDAEBgACAwAgMAAQGAIDAIEBABAYAACBAYDAEBgACAwAyEOBS0oKAQCbQUnJBxb40y+/KP4cALA5FH/x5acfVuCdvwIAbBY7P7DAu3dKAQCbxc7dH1pgBgCwWUBgACAwBAYAAgMAIDAAEBgCAwCBAQAQGAAAgQGAwBAYAAgMAIDAAEBgCAwABIbAAEBgAAAEBgACQ2AAIDAAAAIDACAwABAYAgMAgQEAEBgACAyBAYDAAAAIDACAwABAYAgMAAQGAEBgAEAeCOxzG/ERgC1Bim3I3W82WzTbTOCb1w+4nT9G1+1V5a/AfiXLcjf6fv6EQH1TWe7V3WParQYEuQhpLm08lP2Mz05sY4HjSnf35B7WEtkyGdivnK24zeu0P3tC+LOp1bsxl4KJfRJFtItZ4Ld2bjOBpYE0d17PBJNcB7M0wru7p/VMOL6Ha71CBI7189zYRB4KTDJqe2lbVfAEz7UOMvEuuZO8hptd8tE+JqQ7e2SaZGBy28Ut/tnGsnf/TjLw/GUl1xolR/+d5hbLEPwiQJoTmJbQKm76inL0jiBwzKarDD8hUUGCQ/QZOKG8W0Vudl8lycp96ViaiOzndd+OKN3GsI9r/SrdGMlLgcO1dk/ItPhDqSFg9u7r7/aMl87O3Gr0hNyjF19RgVlv0RVOe9PaNERK6JjLfvEn3pEJuclJukpEv6gyMBU4xXb/OGKyaIjAr2k2SihnZ0ZMCr3oBe5lHTkviMrkV3mKNTBBl9tI3otocSj/SmlBYMan6yQOh5Ntr8yjfx1imBBnZOb3DdJ/L50D01tyYnOpgs6B/byCKE/1NjIDcrTnxJeBU+yc/oFN10mCdsG0qGdC7GIm/PUQs40EDrGK7LdakjpL5sB+nqUY8lJgkoH/4GLlcnnjoXgX6/YOpmhilRKPtVmByWa7VbEicIIO8ZGcTY4mTBBYjBm4gWQdXWWz2S2nkTBeynI3LpaJX+CDyjZSQkuX/pN5h8CWl0VFRUN5KXC79e4gcbiwsJBUSX/qNxlpcn1WEc0JTDYT6zPwIQgs3gxMBK6lAnOTSi8J6fl//EbJzmVEL3CgnuugTSzWIJTQiZUSOiaU0GT+O7/vav4JPFtx26rTMiHT4c+uty5bF4t+Uhrbrd/P3LJHcgKzdLarbTa3TeXmwHMZCCzqDCwIbNHQOfAfi8qY+fp3tKnFJjCT4Nnu39NlJOJs67E0mUnSJtblA7SJxc5WpO2d+Scwy3JjfQwTPMG7xyLhJ3tY5+EyJp6WP+p7U0Jz97u4xUwwKfdmu9AmXesgA4FFlYF1N/bv338/sl7gdqslknK3zizw3nLxCyxdvnyAFS7kWBo54H5El5Fe8Fxrf3YZyT3Wl/cfpHT1F50Dr+4McZVvnQBEmIGFHo3uwnqBwyrWEOsnX+uXPuoKymZdiSVdd/sOPbYgNNcCcafgDR8Qp8DiBAIDCAwAgMAAQGAIDAAEBgBAYAAABAYAAkNgACAwAAACAwAgMAAQGAIDAIEBABAYAAj8oQUuAgD8vyADA4AMDIEBgMAAAAgMAASGwABAYAgMAAQGAEBgACAwBAYAAgMAIPBmcmbysQSInseTZyCwGAU+g9jeLpyBwCIUeBKBvV2Y3Hh0SNuveQL1xtxWj0fkAj+7buIuRRlm+bTceV7PhONd9K905jOon7dPFf3eQIi5hL//S4xdu3fAogl/fXXNlqgFlsZsc0PPbI5Mc3pxKN6lZRJHpgtPdHvyWWDE9fbhvbk2kD7QQR1tq1q7O9WUWbN1rqlM3Bl4fG+EkfZaNCH6LqgcmaRCT77ZGiAwyHeBGf+1BS+J2pRDHzyxR/7ojrAzXKtgQt7y0PcLv+YWM+GkggkmvVFSVzpby0VZQlOGveU+h55+l7220dmDzwGBQd5n4AHvv3oqibGGsMoSCb/I1o0PSAST+PU5p/UJuydmM8aS3sF2ct6ztFasAi/3aOn3FsMkRl8L0/+3qxAIDPIyA6cUYdVcJlCvpX4ygbTQuWruqQy6GoIuUkm291xo7rlzZW6Q5OoLgvLiFPhmVweTFfgoBAZbRuB/1jbQBtZ4j6eXdqoCZhq6Uv81TyCtJVbTfHTIf+S39Fiwn7t0Ty/SZaT4kTtC1UxeXy9KaLBlBA7YtEyw1pCwaFK0U9Xe00n3htqqiNXC6hGZGfZyN3qEynl+gVfoRSlw/Frfyutmwj5HsdDEsqGJBfJeYJJ6GWlidKEpQ0zNRnA2Ew1YNMRqhjawVI5iVVP5x1lQ2hyBm9PnCwsLS/TCMlLPyjLSaAQCg3wXOEGNfWB7bGD8pIikE0FC0GWgM0C6ehSjU2ED8VxLZsL63f1NouxCJ0wswe6hF3J0T2cv5BibYLaIwLqLV9VLL5QbigluurjgZOnKRkNBwXFb7pDdU1DwMM7Dmy0h8LDQqRl2G7NXH00LFXKg3hiuVdDkS9tZ9JKssMpbTo4LVyuJ91JKqVS60qaTrvxsBYHlHbLlipcDpg3FhLfs5O8urw658W35KWvukKXq6cxgTRLebI0u9Nrwfffutw5vdlTjWuhfFNjpoanUJHG0DHOVx+sl9nvF6vFbEu5wiWwpKXHeK34eL6U36qUrZOdV9cOUyaIhb4ZapZuoNjfpeyWStqqjb/wne0wNap9kbIp5+IJfHeloWR4iI7nDn6uXbZJGzdMpWcJKz3k+Xr/6JOCjCpyXQOBfFnhCffM6LYRrfPbIKauzU70888pF8vJ4RZFP11fzw8uWXlNHzZO9M7ckcy3xvRf7Jc77kZont9ONmu94A1FVMidTvXk8g1o1OvHUNhqt+9tUjU++MrKh4OSxwer687Lxl/qDvLfseMXgcZtz4unC2a/Mq08C1SAwBN6wwOzYlEwd4uXaum9oJlW09NLpcFu2Km7SH93zKPIdr6050SXIGT8tTIE7SaomdfSAyVjnIkV4XW3u4UxG8kaRDN6gHn58qaxXnh1JHt1Ffi5rTpqdnmqzQjbsnKiut0eejvBvngSqQWAI/L90oWejdS6756SZVNFyY40go0N2bqU/RTjIz0YLnoeUklHiup+IbT9E9VbIzuk6q+uJztXmNQm97pOyajPXKYwclmRH0jqdFOj39QMmctfcUVPbqDlllS9mCuqSuSeBahAYAm9Y4L8oJdRay3/Zu/eYprI8DuAx4Y87u7khYVmsk7pxJz6SaRcplAqUmoJCbNeAvFXEqaVFGjCkQIBA1sDswLiiFBgxjuNjvS6r4jhT1CWjrl1CtL6iU0dEZjUmmHELmy2bXd2/3D/2d/rgocCsCs54+/1GW27vPbeJ6YfzO+dee1K+0FfFbAkAjvICpgJ42/Lly6nXle0vJ6ohIQ3dbL9BS4Ne2tmWpPwiOYSV0uNzWPRK1a+3qKpL91DLen/LJGWFht7BRIANK9fpaaxtWMnGzTKTdp1+7E0QAAbglwScuf1c032uQlOmvbHqSNofQi7R2Pd+GxEtbeq6p+7ZPFjS9ZNsw7Uvj9kqNXt/0/fLTjqGTXgRvoSYxs53dqnp2Ir1mwLT0AYymk9/E2KulXQ1JvtbGlb0XquNiU5SpjXZ0tbSWFtDXbzsg5ubOuhQ/5tAGgAD8EsDVnUsXfLN59khmR8vuWWrSGRXeGMOpFLXaIu53RYi73DF/Kkx2dS+5JvBUyFJnVzMuWa1d8KLmppcae+zjjrz483vVASKaNZ168orNLrzXMztz0L8LaOWXK1lc9Km9phzh9RlKesU1H3LWiLorY8G3gTSABiA5/ROrK++mrQp+b+PnTTNNeEY9vB3CANgAP5x30rpvcCMADAAv52A2aAXkAAYgN9SwAgAAzAAIwAMwAAMwAAMwAgAAzAAIwAMwACMAHBwAcbSKkGTKwCMxc2Qtze/B2DxAQ7D8qJBEywvigW+kbe2fsYC3yIFjCAAjCAIACMIAsAIAsAAjCAAjCAIACMIAAMwggAwACMIACMIAsAIAsAAjCAAjCAIACMIAsAIAsBiBxwWvlj0CQ8DAAAW6TdyLH4iSEUe4cliCAZgUQImv9IgCAQDsDgBh0cIUucDXtR54JQKEeEgAMAiBLx4qVQqcr986AOpdOliEABgMfbABJgXfQAYgEXcAwMwAsAADMAIAAMwACMADMAADMAAPJY1iUnKYkX6tPumejV9ugYAjADwGwUcyZAeKDn/wo4KTSyf1tfherFFZXL8VA0AGAHgH6YHnur1j+SxPB8aOsWeXfIElNAIAL9ZwIMn1HJTO1+s7mmOy2yZl5alWlUj218+XkLTAZmmI3zvtoU5Dd18tEQiSffiPnBQId/fyadl6Z6cYA34nartrEHv1XpZpsnGhzbWqDM/raUu+8zNejmdYS6yu8n33LQbgAE4GAGvyVZ1NMuiLMXE+OZReWxvVs7ermaZwRUAXKFRHTso65lXJDN8d1S3fTA153on21eRqLrel6w73Jslv/z0lCR/Xu/ajd4GxYrTq5rVUZYdet3TPeoy25pE+eWSozkb5gTwpowS9lSSsQmAATgYAd9uum+pTD6jLVaUafkiSRR5TCDVurwA4J2SeL6078+2wa52fktOAr+FSmi27xNJFM9/whrkVPGVyUkppalnXKxBkeTSvN7d83vX0onYw5pE1XZ+lyzdMhe3TC6Ly1jP8+sz4iIBGICDEXDvtnqZRFJmI3oWqqPzzVmqaiqLVasDgBnaSG+prZBJJgBmr481WJO4UVmhieJZg0qNRH6yw1WarcrjGX9vvb1OkT8XgEnwuxmb3st4dxnGwAAcjIBDP5KdXvR5cgCw7EXAbQwqH1maqvrjvraZAK/TV3kB8ze+q1FIegr9gDfMKWAS/POMKfwCMAAHRw8cLdlAuhjgJBtx81XEFYnPldB7Tt7RbFTSvudKaNrZGwDMpqdZg9tfu/gb2Rsf+kvo2LkFzPM/jYtbhlloAA5SwEWSv6yqidOd36GQf9qXrGKTWA1PT0nGJ7EqNapje2Q9/8pWfdC8QGZqj5acvl8QmMTSs0ksP+BoXZ4X8M4cU1ef3uDyTWIZbHMNGJeRADiIAd84pG7oLlIYGhX5zfrMFgt5fFojO1074TJSjfcyUmO93PQgVR5rrM/pYYDZoFh+spMPAH6YlZTi64GbF0rY5SO+sUaWaWrnARgB4DkDHOmfvg3cBOn1yPOR0w86A8+Tb+bwbRSr08du8pjyZg8ARgB4NgEH8hzgV8vgCTYwxp1YCAC/YcChswK4SLb3MAAjAPzme+BZu6wDwAgAv72A8Z8ZEAAGYABGAHh6wGL/WlkeXysLwOIFHBxf7A7AACzS74W+GwxLq9wFYAAW6dIq+34r/sXN7u7D0ioALNLFzSL2LXpf5Fm0LwKLmwGwWJcXjVgq+sAvAIt2ge/wQjcVmVWuSStiW/PGf65zD49vmN1C3syLaRdcsPmeHa1T7R7x/BDre8MvAIsVcJ3bY+OsjqFJL45M2DS7h8c3rA5heObzDdiV3mcCPNXukSF8FhEAnr0M2HOpkP6VyzwiOO25BY7HTuewUSoMj3zr7H/mdArVBLjAIQgeFzt61D7ioadn9MJqzvwfQaDWvo0Bwemw59JZpIKz1Qv4sZOwWx10Ps53gotuOmaIo7M66axOZx4+lggAv2ZG7S4/5BTLiKfAMcxeoX7ykV1ppU501H7WPfzIw9U9YR2rZWSI9bBW52quzkb7lNy5I6yrNTpzB4RWjuEe74GH6ICLbma41drNeuRRu7bOPWR15NFBZ92+3wgIAsCvMwQOAGb4Ru13SOOAXcsAe5hpsrrdPWx1fPtvG5vxKnD0F/qIs6becjhsgLpcQWhlcKnlpBJ6gM4nUC/eX/CYPbK3oN8A7Hh7rhu1NALAs1BCC1RCc7fKZwLMme/8QyhnB0sFQeoJ9Nq+8Sw7yj/2nQowK6ctbg9tBwB7j580skYQAH7lSSxWEztYaewtoScAHiuhn63mLrr7qbf1KVeOldC53O+0rOo2L3INCP1mttvqzJ0A+Cx1tAVPH9LjM6F/1J5CJTRJ5oxV/yTAt2vxuUQA+DVT6BYEoco3iaX0A34kDBFgNt0ktJpZCS04PVo6lKyyrvTFSSyPdkBwSNl8GDtP6xhgLWs6THqdf3PbH7JJLA8XmBrzVu0IAsCvmemukoZ5r5+G+f6wny3eUbN3z8SmYWyntzKmzfAXzhY+8Trs5gmNOVyeRQD4xzKW9g2FEQSAEQQBYAQBYABGEABGEASAEQSAARhBABhBEABGEASAEQSAARhBABhBEABGEASAEQSAARhBABhBEABGEAAGYAQBYARBABhBEABGEAAGYAQB4ODOz/BPgAAwACMIAE8fo0JCkSd8z2GF2fkrxzYKEs9oOW6HIt63WSSPnQHw4IkrVy53B97tuBKfRQSAZxPw6VWU71um6OIEwGGWNl0ex32mWj0D4DA/4LrUqhWWxuN5AIwA8JwAjveujXJPHmvZoquua1bITTbqb5vVhq9r5C0rjHpTjcxQy3pg8zY97WONdqkTSGaZ7erCnP2HGeAdigTOmhzP3Tqhbuie1AMXfEh2LfMJcf1Wk814/MsFmd2cedtC2rC0XX9vwaW//qKhmjt3cOvWFiwYjADwywPumT9//tIVdafKbuo3EMaWe4oNhdmqjkM5ey9k6/KMyXs776njGeAi9aVrGlY2hxUmprvIq1Hfc1OT7xoHfDE16X6zrnwiYPOh/Rfa6dl6PM/cFm/cWsUVGbS7ymppw9KWv9Kqr+I+ieKio1wHPmzFxxQB4FcaA2/M5Yx6mSGF+2/EigJNVGF2WYpREUVVcrX1f+zdf0zTdx7H8X++Wfp1uSXHLhv/uMwLTS77NrGlQgOFHtSW0JYVUtACvdOiTCRAUCBAMFymws6gkQAbOSaOEg/OH5yGeUHcaULMGSRkC3N/SGR/3l/7bzn/vOTu++23LS0/nHNF+4XnK0UF2xLI55H35/Pu59Ov3ag7mnf7x4rAUonLXz/QrFwCqX6g+uCx7I76dyynypudq4CPuHN0R+y5CWvgXz/ttA5PW44FLLr/WpQptPwxUCUvoYMF8l9Kgb5QulSfIVd0B8OUAPhnAw52d3evLOnD2GEJAAAXT0lEQVQ+Kj8gs5rqlNLTjUq9PaLU42yHMjG+X9H8fUXgH+XpkiRVK5f/TTtnmC657bx72ZqeHgN8xJ5zznRAktJzEgArhnvPZA3NRNfA8keJoa5uvtk5kKs7qgAOLC1fu3OnLothSgD8EmvgcM6Zdle3nCqvbhnNTwRs1P0xL6BW4D/Js+3wSvVo3khejlygsyIVuMxUpSszyRXYOPjuu+PxgO+uKBW7pOpYYEn3u8G4CqzU8Sjg+0XtcgUGMAHwzwcc7kJP3K0IfJc/c7+oeuW8Kfh9PGDXZ+elyBr48NvXasOAf1NzILtDV5M9+dRdPSYDPpnffP3vUngN/DTUEQ/4yJlpi27qjOPk1TFlDawCvhDsr++dXAX8Y6dD1+sGMAHwy62B0401rg7dJUNWr9t3scl6OB5w7TW1L610oQ983hKt17edutErhtqv3aUy4PonJtez/Bzdcqfki3STo1Po3k6r9eFkrAsdBqx0oUdaVgEvPam7c7Fp2M84JQD+JUlTPmJ/KJ8qa+C4r+jS4u6clvC4+M91a3dipYWz5lut+wIhAE5uFMAvFbZSEgC//pL8soDTAEwATAgBMCEABjAhACaEAJgQAAOYEAATQgBMCAEwIQAGMCEA1kC6Q/MC2faZD3UDeBsCTutmbO+UdAN4G1bgEAN7pyQE4G0ImPnzzplFA3gbAmZc75wAGMAEwAAGMAEwgAFMAAxgAmAAA5gAGMAAJgAG8MsBltpFcYhhDmAAaxWw94uPGeYABrBWATcWMcoBDGAAEwADGMAEwAAGMAEwgAmAAQxgAmAAA5gAGMAABjCAt9VOLDM7sQAMYI0CFk6HQuzEAjCAtQpYmGWQAxjA2gVMAAzg7QJ4NjioL7My7AEMYE0ClnK951kSAxjAGgVszSquYNADGMBarcBZxXkMegADWKOAhw+25TPoAQxgbQKuEj2ZjHkAA1ijgH33+tvsDHoAA1ijU2iDgzUwgAGs5S40gAEMYO12ob3lDHoAA1ijgIUZi8hOLAADWKuAhbo77MQCMIA1C5gAGMDbDLBUtxsJAAawVgEXOstM4X8EC46zQAYwgLUBWMpqzZdvawAHbZnybe19fdO6uSYTXgAM4NQDHMumgKV28zeDnhK8ABjAqQbY4BBFpQLX9s8t2OIAPzyx2q/2+YvzApYLzK8BDOCUATw78qlbvkkjz2wyYFeLZ2FQPG71ne2Ubwpvc6wOW6v3te3ZE51oEwADOIWaWLPhNXBQVjxzKNrEmk0ALK+S2yYWnDfdgAEwgFOzCx2w9MjT54270HIFvmkvpAIDGMApC1jBG7DEAWYNDGAAawDw6XvPbK2Vl6+2eB9MiKuAE6bQUrt5edAzIEse41ItAAZwKgEO2pQfvy2/tt+zYNsEcOx1YJ+/sQI1AAZwKk2hVwvtczpdkdn2vuMshAEM4NQE/NMpPcV5YgADWLOACYABvN0Bz+9mmg1gAGsVsNTOrmkAA3jLAUcPM0iOxr+u/1/XQeUdaNcfeAj/X8tx+bbasE58gg0B53jLc3g/LgADOPUBbxgAAxjAWwLYqPz05hpheEL3uDffkOWpaS5ovZKrfLWxKAbYEHrPug5w7aB+rtcdfYJC5+jEoeKKgEVUKnDAstzvuWSVase9K/o+AAMYwEkGHDmNNFzZ5X1UeSW7w7Pw1aEea2FX61eeAeHG3woWH9yyC+p9lKPCcVdVMty7LN9kx4u3nn1tjzyBDNg81fCfvNNnJ1TAiw39rXmFzrldNrFP+PxWvnwDHIABnOwmljoDbi4o2326RS62Mxbxgik6hY4lAbAg/KDcXAcXH1xZnUIXOtVHqGtg5XCEo7HIqB8SqmTA6mMIgAG8NYDlma8yaa4Qhg+Ge1BrAG/4wNpx0XzOHgXcHDmuFAMsf70ox5wpGPV9SAMwgLcKcJY3XIFv7t2794Rbajfrb9rXATac6NzgxV3p4Z9lrOoTKIearOsAx1VgAmAAbwFga665V10DN6ycMwVsxy/K6ASf3/voln2zKbTay/rnv/8w4ZUBh58gCnikcsIsL4kjgJsLvJ+MxwHmOBOAAZzkjRxfDurVLrT52yZXi7fc5Vf6xfL8OM7aRoB90xni3BN39AlUwFJWuCmdGQEs1S7N/S9uCs1xJgADOFV2Ys2+2N2M+rg35+E4E4ABnCKAXyCG6YX9/XEvAHOcCcAA1g5gSZrMEL89z3vxABjAmqzAapsMaAAG8OsAXBV+afh561sxE0UABvBrALzxQYXEfH62KwFwcO1bUyqAN97n/AI7QQiAAbylgAVDB4ABDOBUBuybzHj8TZHyOvDcE3eh8y8f7Vo6mW8UF/rnLpmigNWjSj5/+A0s7VLtoPnuF4J0OGNxJQ5w/IklKXKcSSjVTw3qy+r8rXmlh3rC32uZF4IBDOBfDjh6baR2cfST90sMDvPChHmo0Lnc5V3xlhjFxYYuWaUKOHJUybDnM8to5WVTwDK6v6uxKFjgfdsiA46eNErY7BE9zlSq9/Q2PI0Alqr0U9dtVGYAAzhpTSxXS3GeIFibnWXu4X1tV519uW0jthqj2CPkyDhVwLGjSuEptJTrGZj/l74vR+yT9a82sRJ3a0Wm0KV6ZdLtUwH7/MUV89OcCwYwgJMGuHBf+KJlQdsFq8xsFXCmbG8oAjh2VEkF7FA++7CnylyzeRfaGgM8JP+ZrQJ2HVQeqVzigQAYwEmqwK1yBRbWV2BruAI7lA3R0aNKsQrcJH/aqRwVrIoDnHhiqToKWNkIrVxcqVTf4/IXf7p372+ZQgMYwMkCrKyB939QYuiIrIGjgL27xuW5rpRrnqrsjB5VkpkvPrhsmrGMNux/vyRoa23o33QKHTnOpAI2ODyPJsQeqd081XD9uzzgARjAydrI4ZvMeGtU7UL32lcBq11oobBLL/ZFjipZBcOkTu1C6x8vV0gXLeEu9MaAI8eZVMBCsN/zQbgLvSTK3wV4AAbw1u3EssbtsPphkzv8dGVPbHkLz3k6AmAAJxGwwBZJAAMYwATAAH49gAmAAZxqgHPEuUuMeQADWKOA6250sY0RwADW7BTa4Gjl6ggABrBWAUsABjCAtQvYmuvl0r0ABrBmu9Bf9otlvK0rgAGs0Sl0u6fpY0Y9gAGs2TUwBwkADGC60ATAAH7lgF3+NgADGMCa3Yll7uFN1gEMYK3uxHqPDhaAAazhl5EIgAEMYAJgAL8KwAGLGH7PSQJgAGsQsO9GC4ABDGDNTqGz/QAGMIA1C9gHYAADWLOArVRgAAOYCkwADGAqMAEwgKnABMBUYAJgAFOBCYABzE4sAmAAb7ATKxT6PQcIAQxgjQKeXb0uIAEwgDW3BiYABjCACYABDGACYAADmAAYwATAAAYwATCAk5t5xvVOyfw2BpyQHQU4xMDeKQkBeBsC7mZg75R0A3gbAtZ1h5hF74T5c0jTfgFMCIABTAiACSEAJgTAACYEwIQQABNCAEwIgAFMCIAJIQAmBMAAJgTAACYEwIQQABMCYAATAmBCiBYAv5k7zi+VkFeTtPHcN5ML+I2xMX6thLyijI29kUzAH771q3eyxqjBhLyS+jv2f/buP6bJOw/geJ5/uHvkaDEmS41xmcsVTWCL2Krz59MtYkRWXEDkPIfnhFqXuSC6SAOGEz1DmTccN2bCHNj9gY6hZzCczYwkxps53RLgnMSxURsTQ5bcHxdxwX/uj/s8z0OxNUpOru0Gfb8S2vI8hWgf3nyf77cFlj6XYXHHM2DrwudOrfwNgMRbeeq5hda4BiwFZ6SlzwaQeOlpGdJvHAPWC7ZYASSHZbJ+pxCwFCwJA0gK92T9TiVgAL8UBAwQMAACBkDAAAEDIGAABAyAgIGUD5hXYgHT95VYvBYamL6vheankYBp/NNI+s8DZ4VDmQASLxTOivPPA1syskbDPQqAxOsJj2bF9TdyWKxp4TCPK5Ak4XBanH8rZYjxF0jaGByK82+lnJ3JgwokTeZsAgYIODbgntGHyVqJezjKSTsIOL4BjyZzMX2UwwgCjmvAD5MZ8EMOIwg4rgEn9/lsDiMImIABAiZggIAJGCBggICnXcA7N6548v/W8/2RDo45CDgeAY+45CMcV759KDfrBuzW+4P61mqXXbaF7o5/xj2Dzx6wpzm/7sn/2971tgMccxBwfAJ23B/u2e74NnMkT73Zc9wutzJvqVeG7yx3fDtyZ/iOvWB4eDj07AFXvbZY+X8Crv3+UHZO15OH6hs10e/tylkql/7KvKfsttlsJfWnJ/8cwHQNuHBwaOiufUPolloWGhr6cXnh4MiWgntDQyPDD8bkcvmG0NDYs59Ce5qLZAAu32z7ujP7RINs6GvLzfmkQQ/bZpCGy1vml9R/fVx2nvWtyqmvcMZ8/IkOpfaYt+FJ3wE6q2MK9b66JTrgx3fvcCmeo97qST8HMH0Dlsvle0adBfqJ8tiHMgTLWyhzzOhWD3gqc+CqNRcHjIBzrs23SVtVa2w5r9iWdStlnc/n2uoDgW6lfL2tKJhr2+aSqEuu7Z2fvyXq4/1mcTdqetcfObRSSva27lM878731jfUtmcXnR7fYhS6rX2xEbDn9lxvfbex23Nd815rmAhYqS3eqnza6fVW1Mg3C7nq0e/EFx5mSMAfqmUja82Z7o9qlTEx9gwP6i/FvDvFgJcs0wOUgC8O+Ffl13mabZU1te02PabIKfSu7FdrJOxl65Q/2SqdiucDV9THn9zhipxw7zgu7zk9J7e5/PV1ntuVzrLD1ZEtxufZVHV4nR6w/0Sd4v+8Tt8t91SOfr4lOuDe4q/kanFv8QGltqVBvxMwMxaxVFXOm8cDviUBj42N1umz4YdTHoHL1mwbMAM+oOzcuKy6d7Ntq4ySq/JLJwL2vG4rCgQCubLDn2u7diZ2uvvWpokZ8wHjTak6XKr8W1F2fr5F4pvYYgSs3L6QJwG/tdi4u96meXNp9Cl01WE5p/9z5Z3mCx3yTyNgzJRFrOHh4QehzBFnwQN9w4eOf+ln0jL7XWueXE8p4JMyrkYCrnptWXX56pKVipHyo4CLzcmwbYXiuZ0r1xdqnjwCr1TKV+d4vd6i6vKWYHDu7/WAI1vGA+4t3uqv7Hl9hTHUym7P6/ruf5gDfUl2ds61S1K+5O4/4Sy/qhVVHCdgzKBFrDFj6C2TVI1FLNceuTWSpwc8tVPostVmfxMBS7RPGIE3PVqz6r+6Ub/HhJ3GHNhzvVsPWH8zhmU5m46MwCsfrVJt0sflexceH4GjFrGMWbk5AusrZX2btxIwZtAc2LjlVG/2uOz6AFyqP43kUveHpjoCm8/sRAVszoGLI3PgFeYcOL9B7nJvn/Jlh77sbFscuwp9aeDLY/Vmqiel3KNnepovKrXt+aVlMuU1t7giAXuWeGUOXD8+B5YZsUyH+xbURAc8Pgcub2swh+l1fN1hJgU8llk3YL95f1AfjasHjBdyTHUVunzzjrzYgI1V6FX6KrSRak7QXIUu8b5ik53+3KLA86tyYp4d9nx/KLuotcMcfWuPzdcXlb875O16cO7CneacpvEtkYCVss3mKrRs88hufRV6/LnfSMDmKrRkf0iunPqd+MLDtA9YJrsTt4d0Y7G3ovf/zwHvirT4KOCJ54GNknIjzwNn59SfcSqfts1dVVL/8UDyHnEPX3SYEQEn4rXQvesrnRxUEDA/jQQQMAEDBEzAAAEDBMyvlQVmesD8Yndg+gb8Nn9aBZjGI3BSvc1hBAHz1wmBlA+YP/ANJE+c/8C325oWDvOoAkkSDqfFNWBLRtZomDEYSMr4Gx7NyrC44xmwdWFWOJQJIPFC4ayF1rgGLAVnpKXPBpB46WkZ0m8cA1YtbovFCiA5LJP1O4WAZQyWhAEkhXuyfqcSMIBfCgIGCBgAAQMgYICAARAwAAIGQMAAAQMgYAAEDBAwAQMEDICAARAwQMAACBgAAQMgYICAARAwAAIGCJiAAQIGQMAACBggYAAEDICAARAwQMAACBgAAQMETMAAAQMgYAAEDBAwAAIGQMAAARMwkFoBWxv75wBIvP5Ga9wDts5pfJlvfUASvNw4xxrvgBsbeVyBJJk8t6kE3M/4CyRtDO6Pd8BzeFCBpJlDwAABEzBAwAAIGCBgAgYIGAABAyBggIAJGJj5AbsdZ9s07fnLHVG7d2sVa3nUgWkQsGOXpu1906cFTxEwMN0Cdhee07pVtbBd+8pOwMAzyXgp9v1FGUkfgfec0xrk6m+/lYvC6z4tcGm7HnBfm9YlY7JjZ5sWODOgOk5qp4/6gh97bvsCl6R02axdrlHVguudWlC/AaSgFw9+EP3uBwdfTPoIXNCsBX564df6bbnZdd6nNdl3a12de31aq0v1+wI/tWgV2yXgvQvatOCbchHYp/7VFzzSorXmOT7Sut5p0bryOJRIRYvmHYz6UcH+g39clPQRWH2vUxOXO+zqG1pXjbTZlbdbCzbokZ4qaNdOS9fBUsf7krOcZ7e69hTLKbf//N/tG85p1bKrWnWc/eIzDiVS0ktRBfcfnPeSmvyA3VduyLCrSam7ZKhV3cYcWAZfObeu3tAZbEifLafPEvBXdscSrUmVi9P6hzn2tGvrZGAOHPlhgOOIFOWeKNj99H4T/Dyw2+12fConxK73tQpzIctYxCos1qr3G6OzpjVJwE36RNgIuEn9pkU2ztXWmTe0PyznSCJ1x2AjpzlP7zehc+B/3vhhu1zLmbPzI30EdqT9xz4RsIzAH/eLv8QGLJPlr1/oOycBq+qV76769HVsIDU1zjs4S1VnTdJvQkfgN2S+a9efDW51RebAzomAjTmwo6//s9iAjZXr/T5taeGNL2Tw/cg8qQZSdQyeNWm/CQ244C1NC+yVSXC3Wtisdf3OXIUeD1j1+4JHzvu6amID1lez3mlr01pfaNcuv3PVFyzlKCJlWWQMnrTfxM6Bbx7VX0q5oEOmv4XvTjwPPB6w/jpL/Xnex+bA77VpXQ37O4Pd38j5s7agg4OIFOZunDevUf25AlZ/FXvL4jb/Ueal+yn/ZN2juwEpPQanp6s/X8AAEoqAAQImYICAARAwQMAEDBAwAAIGQMAAARMwQMAACBggYAL+b3t3z9pUFABguIt3SKGLpOCg4FALDh06nV/gIAqKHRwUlBYyt5NWrA34QatUqAqaVlFClaKltIM1Tg4N+TkZXB08uUGrEhFaMPfQ5xkSKF3uvbycr4SAgAUMiQcM/D9GYDACCxgEDAgYBCxgEDAgYEDAIGABg4ABAYOABQwCFjAIGBAwCFjAIGBAwICAQcAChsMR8NDYaAbs29hQHwMecf/hgEb6FvD5MXcfDjoG928ENn+GA+tfwO49CBgELGAQsIBBwICAQcACBgELGAQMCBgELGAQMCBgELCAQcACBgEDAgYBCxgE/K+AJ8+E5mx8Hw9LHg0kGHCe7u8BT25MtT0pSCLg5syfAV+YFzAkEXBlPey2uwGvPp0PO++Ws8UQQmsrazycD68/976K0s0FjxIB9z/g6td6dSYPeDWuh6/Uw4vH99ZD8/Ja41J4v1mvPOh5FScu3lEwAi7ACDw3HofgTsCLobacTU+03mZPQpxCPzrbnI0vf5lMH1cwAi5EwNP1aox46da5sJtlXzqvecCLYfv5wod6vkmtYChqwIMrYWolLE1u5BtZ18PHbsDjIVedyxQMxQ04TpsrL3uNwLXbpVLp6CkBQ5EDzredO2vg7bgGrre2YsDXhuPytzabNe6fbusXCh3w1Ymwtws99Sa7G1on1xobobl5o3PGpF8ocsBxyN07B45T5sarcKx7DrzzbLjnVThGQsAF+zJD9+dHR79l2eAvfx3s+b8+yIGAfRsJDkXA3ROdIGBIcgT+2a+AIcEp9I9+BQwproGDNTCkG7BNLBAwIGAQ8P4DLgsYEg64JWBIN+BPR4A0lQcGyu4CJNvvQFnBkGa/nYA7CQPpifF+B5Fgp/FkbzmtAAAAAElFTkSuQmCC"></p> <h2 id="more-info">More info</h2> <p>You can read more about <a href="https://github.com/encode/databases" class="external-link" target="_blank"><code>encode/databases</code> at its GitHub page</a>.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 Sebastián Ramírez<br>Licensed under the MIT License.<br>
+    <a href="https://fastapi.tiangolo.com/advanced/async-sql-databases/" class="_attribution-link">https://fastapi.tiangolo.com/advanced/async-sql-databases/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,461 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Classes as Dependencies - FastAPI - W3cubDocs</title>
+  
+  <meta name="description" content=" Before diving deeper into the Dependency Injection system, let&#39;s upgrade the previous example. ">
+  <meta name="keywords" content="classes, dependencies, fastapi">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/fastapi/tutorial/dependencies/classes-as-dependencies/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/fastapi.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/fastapi/" class="_nav-link" title="" style="margin-left:0;">FastAPI</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _fastapi">
+				
+				
+<h1 id="classes-as-dependencies">Classes as Dependencies</h1> <p>Before diving deeper into the <strong>Dependency Injection</strong> system, let's upgrade the previous example.</p> <h2 id="a-dict-from-the-previous-example">A <code>dict</code> from the previous example</h2> <p>In the previous example, we were returning a <code>dict</code> from our dependency ("dependable"):</p> <div class="tabbed-set tabbed-alternate" data-tabs="1:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_1_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_1_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+</pre></div> </div> </div> </div> <p>But then we get a <code>dict</code> in the parameter <code>commons</code> of the <em>path operation function</em>.</p> <p>And we know that editors can't provide a lot of support (like completion) for <code>dict</code>s, because they can't know their keys and value types.</p> <p>We can do better...</p> <h2 id="what-makes-a-dependency">What makes a dependency</h2> <p>Up to now you have seen dependencies declared as functions.</p> <p>But that's not the only way to declare dependencies (although it would probably be the more common).</p> <p>The key factor is that a dependency should be a "callable".</p> <p>A "<strong>callable</strong>" in Python is anything that Python can "call" like a function.</p> <p>So, if you have an object <code>something</code> (that might <em>not</em> be a function) and you can "call" it (execute it) like:</p> <div class="highlight"><pre class="language-python" data-language="python">something()
+</pre></div> <p>or</p> <div class="highlight"><pre class="language-python" data-language="python">something(some_argument, some_keyword_argument="foo")
+</pre></div> <p>then it is a "callable".</p> <h2 id="classes-as-dependencies_1">Classes as dependencies</h2> <p>You might notice that to create an instance of a Python class, you use that same syntax.</p> <p>For example:</p> <div class="highlight"><pre class="language-python" data-language="python">class Cat:
+    def __init__(self, name: str):
+        self.name = name
+
+
+fluffy = Cat(name="Mr Fluffy")
+</pre></div> <p>In this case, <code>fluffy</code> is an instance of the class <code>Cat</code>.</p> <p>And to create <code>fluffy</code>, you are "calling" <code>Cat</code>.</p> <p>So, a Python class is also a <strong>callable</strong>.</p> <p>Then, in <strong>FastAPI</strong>, you could use a Python class as a dependency.</p> <p>What FastAPI actually checks is that it is a "callable" (function, class or anything else) and the parameters defined.</p> <p>If you pass a "callable" as a dependency in <strong>FastAPI</strong>, it will analyze the parameters for that "callable", and process them in the same way as the parameters for a <em>path operation function</em>. Including sub-dependencies.</p> <p>That also applies to callables with no parameters at all. The same as it would be for <em>path operation functions</em> with no parameters.</p> <p>Then, we can change the dependency "dependable" <code>common_parameters</code> from above to the class <code>CommonQueryParams</code>:</p> <div class="tabbed-set tabbed-alternate" data-tabs="2:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_2_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_2_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> </div> </div> <p>Pay attention to the <code>__init__</code> method used to create the instance of the class:</p> <div class="tabbed-set tabbed-alternate" data-tabs="3:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_3_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_3_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> </div> </div> <p>...it has the same parameters as our previous <code>common_parameters</code>:</p> <div class="tabbed-set tabbed-alternate" data-tabs="4:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_4_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(
+    q: Union[str, None] = None, skip: int = 0, limit: int = 100
+):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_4_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+async def common_parameters(q: str | None = None, skip: int = 0, limit: int = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
+@app.get("/items/")
+async def read_items(commons: dict = Depends(common_parameters)):
+    return commons
+
+
+@app.get("/users/")
+async def read_users(commons: dict = Depends(common_parameters)):
+    return commons
+</pre></div> </div> </div> </div> <p>Those parameters are what <strong>FastAPI</strong> will use to "solve" the dependency.</p> <p>In both cases, it will have:</p> <ul> <li>An optional <code>q</code> query parameter that is a <code>str</code>.</li> <li>A <code>skip</code> query parameter that is an <code>int</code>, with a default of <code>0</code>.</li> <li>A <code>limit</code> query parameter that is an <code>int</code>, with a default of <code>100</code>.</li> </ul> <p>In both cases the data will be converted, validated, documented on the OpenAPI schema, etc.</p> <h2 id="use-it">Use it</h2> <p>Now you can declare your dependency using this class.</p> <div class="tabbed-set tabbed-alternate" data-tabs="5:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_5_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_5_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> </div> </div> <p><strong>FastAPI</strong> calls the <code>CommonQueryParams</code> class. This creates an "instance" of that class and the instance will be passed as the parameter <code>commons</code> to your function.</p> <h2 id="type-annotation-vs-depends">Type annotation vs <code>Depends</code>
+</h2> <p>Notice how we write <code>CommonQueryParams</code> twice in the above code:</p> <div class="highlight"><pre class="language-python" data-language="python">commons: CommonQueryParams = Depends(CommonQueryParams)
+</pre></div> <p>The last <code>CommonQueryParams</code>, in:</p> <div class="highlight"><pre class="language-python" data-language="python">... = Depends(CommonQueryParams)
+</pre></div> <p>...is what <strong>FastAPI</strong> will actually use to know what is the dependency.</p> <p>From it is that FastAPI will extract the declared parameters and that is what FastAPI will actually call.</p> <hr> <p>In this case, the first <code>CommonQueryParams</code>, in:</p> <div class="highlight"><pre class="language-python" data-language="python">commons: CommonQueryParams ...
+</pre></div> <p>...doesn't have any special meaning for <strong>FastAPI</strong>. FastAPI won't use it for data conversion, validation, etc. (as it is using the <code>= Depends(CommonQueryParams)</code> for that).</p> <p>You could actually write just:</p> <div class="highlight"><pre class="language-python" data-language="python">commons = Depends(CommonQueryParams)
+</pre></div> <p>..as in:</p> <div class="tabbed-set tabbed-alternate" data-tabs="6:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_6_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons=Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_6_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons=Depends(CommonQueryParams)):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> </div> </div> <p>But declaring the type is encouraged as that way your editor will know what will be passed as the parameter <code>commons</code>, and then it can help you with code completion, type checks, etc:</p> <p><img src="data:image/png;base64,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"></p> <h2 id="shortcut">Shortcut</h2> <p>But you see that we are having some code repetition here, writing <code>CommonQueryParams</code> twice:</p> <div class="highlight"><pre class="language-python" data-language="python">commons: CommonQueryParams = Depends(CommonQueryParams)
+</pre></div> <p><strong>FastAPI</strong> provides a shortcut for these cases, in where the dependency is <em>specifically</em> a class that <strong>FastAPI</strong> will "call" to create an instance of the class itself.</p> <p>For those specific cases, you can do the following:</p> <p>Instead of writing:</p> <div class="highlight"><pre class="language-python" data-language="python">commons: CommonQueryParams = Depends(CommonQueryParams)
+</pre></div> <p>...you write:</p> <div class="highlight"><pre class="language-python" data-language="python">commons: CommonQueryParams = Depends()
+</pre></div> <p>You declare the dependency as the type of the parameter, and you use <code>Depends()</code> as its "default" value (that after the <code>=</code>) for that function's parameter, without any parameter in <code>Depends()</code>, instead of having to write the full class <em>again</em> inside of <code>Depends(CommonQueryParams)</code>.</p> <p>The same example would then look like:</p> <div class="tabbed-set tabbed-alternate" data-tabs="7:2"> <div class="tabbed-content"> <div class="tabbed-block">
+<label for="__tabbed_7_1">Python 3.6 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from typing import Union
+
+from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: Union[str, None] = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends()):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> <div class="tabbed-block">
+<label for="__tabbed_7_2">Python 3.10 and above</label> <div class="highlight"><pre class="language-python" data-language="python">from fastapi import Depends, FastAPI
+
+app = FastAPI()
+
+
+fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
+
+
+class CommonQueryParams:
+    def __init__(self, q: str | None = None, skip: int = 0, limit: int = 100):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
+
+
+@app.get("/items/")
+async def read_items(commons: CommonQueryParams = Depends()):
+    response = {}
+    if commons.q:
+        response.update({"q": commons.q})
+    items = fake_items_db[commons.skip : commons.skip + commons.limit]
+    response.update({"items": items})
+    return response
+</pre></div> </div> </div> </div> <p>...and <strong>FastAPI</strong> will know what to do.</p> <div class="admonition tip"> <p class="admonition-title">Tip</p> <p>If that seems more confusing than helpful, disregard it, you don't <em>need</em> it.</p> <p>It is just a shortcut. Because <strong>FastAPI</strong> cares about helping you minimize code repetition.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2018 Sebastián Ramírez<br>Licensed under the MIT License.<br>
+    <a href="https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/" class="_attribution-link">https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
