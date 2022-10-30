@@ -10,13 +10,12 @@
   <meta name="description" content="If you want to use your own parser and provide additional capabilities for your rules, you can specify your own custom parser. If a parseForESLint &hellip;">
   <meta name="keywords" content="working, with, custom, parsers, eslint">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/eslint/developer-guide/working-with-custom-parsers.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/eslint.js"></script>
   
@@ -86,72 +85,24 @@
 			<div class="_page _simple">
 				
 				
-<h1 id="working-with-custom-parsers">Working with Custom Parsers</h1>
-<p>If you want to use your own parser and provide additional capabilities for your rules, you can specify your own custom parser. If a <code>parseForESLint</code> method is exposed on the parser, this method will be used to parse the code. Otherwise, the <code>parse</code> method will be used. Both methods should take in the source code as the first argument, and an optional configuration object as the second argument (provided as <code>parserOptions</code> in a config file). The <code>parse</code> method should simply return the AST. The <code>parseForESLint</code> method should return an object that contains the required property <code>ast</code> and optional properties <code>services</code>, <code>scopeManager</code>, and <code>visitorKeys</code>.</p>
-<ul>
-<li>
-<code>ast</code> should contain the AST.</li>
-<li>
-<code>services</code> can contain any parser-dependent services (such as type checkers for nodes). The value of the <code>services</code> property is available to rules as <code>context.parserServices</code>. Default is an empty object.</li>
-<li>
-<code>scopeManager</code> can be a <a href="scope-manager-interface">ScopeManager</a> object. Custom parsers can use customized scope analysis for experimental/enhancement syntaxes. Default is the <code>ScopeManager</code> object which is created by <a href="https://github.com/eslint/eslint-scope">eslint-scope</a>.<ul><li>Support for <code>scopeManager</code> was added in ESLint v4.14.0. ESLint versions which support <code>scopeManager</code> will provide an <code>eslintScopeManager: true</code> property in <code>parserOptions</code>, which can be used for feature detection.</li></ul>
-</li>
-<li>
-<code>visitorKeys</code> can be an object to customize AST traversal. The keys of the object are the type of AST nodes. Each value is an array of the property names which should be traversed. Default is <a href="https://github.com/eslint/eslint-visitor-keys#evkkeys">KEYS of <code>eslint-visitor-keys</code></a>.<ul><li>Support for <code>visitorKeys</code> was added in ESLint v4.14.0. ESLint versions which support <code>visitorKeys</code> will provide an <code>eslintVisitorKeys: true</code> property in <code>parserOptions</code>, which can be used for feature detection.</li></ul>
-</li>
-</ul>
-<p>You can find an ESLint parser project <a href="https://github.com/typescript-eslint/typescript-eslint">here</a>.</p>
-<pre data-language="json">{
-    "parser": "./path/to/awesome-custom-parser.js"
-}</pre>
-<pre data-language="javascript">var espree = require("espree");
-// awesome-custom-parser.js
-exports.parseForESLint = function(code, options) {
-    return {
-        ast: espree.parse(code, options),
-        services: {
-            foo: function() {
-                console.log("foo");
-            }
-        },
-        scopeManager: null,
-        visitorKeys: null
-    };
-};</pre>
-<h2 id="the-ast-specification">The AST specification</h2>
-<p>The AST that custom parsers should create is based on <a href="https://github.com/estree/estree">ESTree</a>. The AST requires some additional properties about detail information of the source code.</p>
-<h3 id="all-nodes">All nodes:</h3>
-<p>All nodes must have <code>range</code> property.</p>
-<ul>
-<li>
-<code>range</code> (<code>number[]</code>) is an array of two numbers. Both numbers are a 0-based index which is the position in the array of source code characters. The first is the start position of the node, the second is the end position of the node. <code>code.slice(node.range[0], node.range[1])</code> must be the text of the node. This range does not include spaces/parentheses which are around the node.</li>
-<li>
-<code>loc</code> (<code>SourceLocation</code>) must not be <code>null</code>. <a href="https://github.com/estree/estree/blob/25834f7247d44d3156030f8e8a2d07644d771fdb/es5.md#node-objects">The <code>loc</code> property is defined as nullable by ESTree</a>, but ESLint requires this property. On the other hand, <code>SourceLocation#source</code> property can be <code>undefined</code>. ESLint does not use the <code>SourceLocation#source</code> property.</li>
-</ul>
-<p>The <code>parent</code> property of all nodes must be rewritable. ESLint sets each node's <code>parent</code> property to its parent node while traversing, before any rules have access to the AST.</p>
-<h3 id="the-program-node">The <code>Program</code> node:</h3>
-<p>The <code>Program</code> node must have <code>tokens</code> and <code>comments</code> properties. Both properties are an array of the below Token interface.</p>
-<pre data-language="ts">interface Token {
-    type: string;
-    loc: SourceLocation;
-    range: [number, number]; // See "All nodes:" section for details of `range` property.
-    value: string;
-}</pre>
-<ul>
-<li>
-<code>tokens</code> (<code>Token[]</code>) is the array of tokens which affect the behavior of programs. Arbitrary spaces can exist between tokens, so rules check the <code>Token#range</code> to detect spaces between tokens. This must be sorted by <code>Token#range[0]</code>.</li>
-<li>
-<code>comments</code> (<code>Token[]</code>) is the array of comment tokens. This must be sorted by <code>Token#range[0]</code>.</li>
-</ul>
-<p>The range indexes of all tokens and comments must not overlap with the range of other tokens and comments.</p>
-<h3 id="the-literal-node">The <code>Literal</code> node:</h3>
-<p>The <code>Literal</code> node must have <code>raw</code> property.</p>
-<ul><li>
-<code>raw</code> (<code>string</code>) is the source code of this literal. This is the same as <code>code.slice(node.range[0], node.range[1])</code>.</li></ul>
+<h1>Working with Custom Parsers</h1> <nav class="docs-toc c-toc" aria-labelledby="js-toc-label"><h2 class="c-toc__label" id="js-toc-label">Table of Contents</h2> <div class="c-toc__panel" id="js-toc-panel"> <nav class="c-toc"> <ol> <li>
+<a href="#the-ast-specification">The AST specification</a> <ol> <li>
+<a href="#all-nodes">All nodes:</a> </li> <li>
+<a href="#the-program-node">The Program node:</a> </li> <li>
+<a href="#the-literal-node">The Literal node:</a> </li> </ol> </li> </ol> </nav> </div></nav> <p>If you want to use your own parser and provide additional capabilities for your rules, you can specify your own custom parser. If a <code>parseForESLint</code> method is exposed on the parser, this method will be used to parse the code. Otherwise, the <code>parse</code> method will be used. Both methods should take in the source code as the first argument, and an optional configuration object as the second argument (provided as <code>parserOptions</code> in a config file). The <code>parse</code> method should simply return the AST. The <code>parseForESLint</code> method should return an object that contains the required property <code>ast</code> and optional properties <code>services</code>, <code>scopeManager</code>, and <code>visitorKeys</code>.</p> <ul> <li>
+<code>ast</code> should contain the AST.</li> <li>
+<code>services</code> can contain any parser-dependent services (such as type checkers for nodes). The value of the <code>services</code> property is available to rules as <code>context.parserServices</code>. Default is an empty object.</li> <li>
+<code>scopeManager</code> can be a <a href="working-with-custom-parsers./scope-manager-interface">ScopeManager</a> object. Custom parsers can use customized scope analysis for experimental/enhancement syntaxes. Default is the <code>ScopeManager</code> object which is created by <a href="https://github.com/eslint/eslint-scope">eslint-scope</a>. <ul> <li>Support for <code>scopeManager</code> was added in ESLint v4.14.0. ESLint versions which support <code>scopeManager</code> will provide an <code>eslintScopeManager: true</code> property in <code>parserOptions</code>, which can be used for feature detection.</li> </ul> </li> <li>
+<code>visitorKeys</code> can be an object to customize AST traversal. The keys of the object are the type of AST nodes. Each value is an array of the property names which should be traversed. Default is <a href="https://github.com/eslint/eslint-visitor-keys#evkkeys">KEYS of <code>eslint-visitor-keys</code></a>. <ul> <li>Support for <code>visitorKeys</code> was added in ESLint v4.14.0. ESLint versions which support <code>visitorKeys</code> will provide an <code>eslintVisitorKeys: true</code> property in <code>parserOptions</code>, which can be used for feature detection.</li> </ul> </li> </ul> <p>You can find an ESLint parser project <a href="https://github.com/typescript-eslint/typescript-eslint">here</a>.</p> <pre class="language-json"><code><span class="highlight-line"><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token property">"parser"</span><span class="token operator">:</span> <span class="token string">"./path/to/awesome-custom-parser.js"</span></span><br><span class="highlight-line"><span class="token punctuation">}</span></span></code></pre> <pre class="language-javascript"><code><span class="highlight-line"><span class="token keyword">var</span> espree <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">"espree"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token comment">// awesome-custom-parser.js</span></span><br><span class="highlight-line">exports<span class="token punctuation">.</span><span class="token function-variable function">parseForESLint</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">code<span class="token punctuation">,</span> options</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token keyword">return</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">ast</span><span class="token operator">:</span> espree<span class="token punctuation">.</span><span class="token function">parse</span><span class="token punctuation">(</span>code<span class="token punctuation">,</span> options<span class="token punctuation">)</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">services</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token function-variable function">foo</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">"foo"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">scopeManager</span><span class="token operator">:</span> <span class="token keyword">null</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">visitorKeys</span><span class="token operator">:</span> <span class="token keyword">null</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span><br></code></pre> <h2 id="the-ast-specification" tabindex="-1">The AST specification</h2> <p>The AST that custom parsers should create is based on <a href="https://github.com/estree/estree">ESTree</a>. The AST requires some additional properties about detail information of the source code.</p> <h3 id="all-nodes" tabindex="-1">All nodes:</h3> <p>All nodes must have <code>range</code> property.</p> <ul> <li>
+<code>range</code> (<code>number[]</code>) is an array of two numbers. Both numbers are a 0-based index which is the position in the array of source code characters. The first is the start position of the node, the second is the end position of the node. <code>code.slice(node.range[0], node.range[1])</code> must be the text of the node. This range does not include spaces/parentheses which are around the node.</li> <li>
+<code>loc</code> (<code>SourceLocation</code>) must not be <code>null</code>. <a href="https://github.com/estree/estree/blob/25834f7247d44d3156030f8e8a2d07644d771fdb/es5.md#node-objects">The <code>loc</code> property is defined as nullable by ESTree</a>, but ESLint requires this property. On the other hand, <code>SourceLocation#source</code> property can be <code>undefined</code>. ESLint does not use the <code>SourceLocation#source</code> property.</li> </ul> <p>The <code>parent</code> property of all nodes must be rewritable. ESLint sets each node’s <code>parent</code> property to its parent node while traversing, before any rules have access to the AST.</p> <h3 id="the-program-node" tabindex="-1">The <code>Program</code> node:</h3> <p>The <code>Program</code> node must have <code>tokens</code> and <code>comments</code> properties. Both properties are an array of the below Token interface.</p> <pre class="language-ts"><code><span class="highlight-line"><span class="token keyword">interface</span> <span class="token class-name">Token</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    type<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    loc<span class="token operator">:</span> SourceLocation<span class="token punctuation">;</span></span><br><span class="highlight-line">    range<span class="token operator">:</span> <span class="token punctuation">[</span><span class="token builtin">number</span><span class="token punctuation">,</span> <span class="token builtin">number</span><span class="token punctuation">]</span><span class="token punctuation">;</span> <span class="token comment">// See "All nodes:" section for details of `range` property.</span></span><br><span class="highlight-line">    value<span class="token operator">:</span> <span class="token builtin">string</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token punctuation">}</span></span></code></pre> <ul> <li>
+<code>tokens</code> (<code>Token[]</code>) is the array of tokens which affect the behavior of programs. Arbitrary spaces can exist between tokens, so rules check the <code>Token#range</code> to detect spaces between tokens. This must be sorted by <code>Token#range[0]</code>.</li> <li>
+<code>comments</code> (<code>Token[]</code>) is the array of comment tokens. This must be sorted by <code>Token#range[0]</code>.</li> </ul> <p>The range indexes of all tokens and comments must not overlap with the range of other tokens and comments.</p> <h3 id="the-literal-node" tabindex="-1">The <code>Literal</code> node:</h3> <p>The <code>Literal</code> node must have <code>raw</code> property.</p> <ul> <li>
+<code>raw</code> (<code>string</code>) is the source code of this literal. This is the same as <code>code.slice(node.range[0], node.range[1])</code>.</li> </ul>
 <div class="_attribution">
   <p class="_attribution-p">
-    © JS Foundation and other contributors<br>Licensed under the MIT License.<br>
-    <a href="https://eslint.org/docs/developer-guide/working-with-custom-parsers" class="_attribution-link">https://eslint.org/docs/developer-guide/working-with-custom-parsers</a>
+    © OpenJS Foundation and other contributors<br>Licensed under the MIT License.<br>
+    <a href="https://eslint.org/docs/latest/developer-guide/working-with-custom-parsers" class="_attribution-link">https://eslint.org/docs/latest/developer-guide/working-with-custom-parsers</a>
   </p>
 </div>
 

@@ -7,16 +7,15 @@
   <meta charset="utf-8">
   <title>Working With Custom Formatters - ESLint - W3cubDocs</title>
   
-  <meta name="description" content="While ESLint has some built-in formatters available to format the linting results, it&#39;s also possible to create and distribute your own custom &hellip;">
+  <meta name="description" content="While ESLint has some built-in formatters available to format the linting results, it’s also possible to create and distribute your own custom &hellip;">
   <meta name="keywords" content="working, with, custom, formatters, eslint">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/eslint/developer-guide/working-with-custom-formatters.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/eslint.js"></script>
   
@@ -86,305 +85,38 @@
 			<div class="_page _simple">
 				
 				
-<h1 id="working-with-custom-formatters">Working with Custom Formatters</h1>
-<p>While ESLint has some built-in formatters available to format the linting results, it's also possible to create and distribute your own custom formatters. You can include custom formatters in your project directly or create an npm package to distribute them separately.</p>
-<p>Each formatter is just a function that receives a <code>results</code> object and returns a string. For example, the following is how the <code>json</code> built-in formatter is implemented:</p>
-<pre data-language="js">//my-awesome-formatter.js
-module.exports = function(results) {
-    return JSON.stringify(results, null, 2);
-};</pre>
-<p>To run ESLint with this formatter, you can use the <code>-f</code> (or <code>--format</code>) command line flag:</p>
-<pre data-language="bash">eslint -f ./my-awesome-formatter.js src/</pre>
-<p>In order to use a local file as a custom formatter, you must begin the filename with a dot (such as <code>./my-awesome-formatter.js</code> or <code>../formatters/my-awesome-formatter.js</code>).</p>
-<h3 id="the-data-argument">The <code>data</code> Argument</h3>
-<p>The exported function receives an optional second argument named <code>data</code>. The <code>data</code> object provides extended information related to the analysis results. Currently, the <code>data</code> object consists of a single property named <code>rulesMeta</code>. This property is a dictionary of rule metadata, keyed with <code>ruleId</code>. The value for each entry is the <code>meta</code> property from the corresponding rule object. The dictionary contains an entry for each rule that was run during the analysis.</p>
-<p>Here's what the <code>data</code> object would look like if one rule, <code>no-extra-semi</code>, had been run:</p>
-<pre data-language="js">{
-    rulesMeta: {
-        "no-extra-semi": {
-            type: "suggestion",
-            docs: {
-                description: "disallow unnecessary semicolons",
-                category: "Possible Errors",
-                recommended: true,
-                url: "https://eslint.org/docs/rules/no-extra-semi"
-            },
-            fixable: "code",
-            schema: [],
-            messages: {
-                unexpected: "Unnecessary semicolon."
-            }
-        }
-    }
-}</pre>
-<p>The <a href="#using-rule-metadata">Using Rule metadata</a> example shows how to use the <code>data</code> object in a custom formatter. See the <a href="working-with-rules">Working with Rules</a> page for more information about rules.</p>
-<h2 id="packaging-the-custom-formatter">Packaging the Custom Formatter</h2>
-<p>Custom formatters can also be distributed through npm packages. To do so, create an npm package with a name in the format of <code>eslint-formatter-*</code>, where <code>*</code> is the name of your formatter (such as <code>eslint-formatter-awesome</code>). Projects should then install the package and can use the custom formatter with the <code>-f</code> (or <code>--format</code>) flag like this:</p>
-<pre data-language="bash">eslint -f awesome src/</pre>
-<p>Because ESLint knows to look for packages beginning with <code>eslint-formatter-</code> when the specified formatter doesn't begin with a dot, there is no need to type <code>eslint-formatter-</code> when using a packaged custom formatter.</p>
-<p>Tips for <code>package.json</code>:</p>
-<ul>
-<li>The <code>main</code> entry should be the JavaScript file implementing your custom formatter.</li>
-<li>Add these <code>keywords</code> to help users find your formatter:<ul>
-<li><code>"eslint"</code></li>
-<li><code>"eslint-formatter"</code></li>
-<li><code>"eslintformatter"</code></li>
-</ul>
-</li>
-</ul>
-<p>See all <a href="https://www.npmjs.com/search?q=eslint-formatter">formatters on npm</a>;</p>
-<h2 id="the-results-object">The <code>results</code> Object</h2>
-<p>The <code>results</code> object passed into a formatter is an array of objects containing the lint results for individual files. Here's some example output:</p>
-<pre data-language="js">[
-    {
-        filePath: "path/to/file.js",
-        messages: [
-            {
-                ruleId: "curly",
-                severity: 2,
-                message: "Expected { after 'if' condition.",
-                line: 2,
-                column: 1,
-                nodeType: "IfStatement"
-            },
-            {
-                ruleId: "no-process-exit",
-                severity: 2,
-                message: "Don't use process.exit(); throw an error instead.",
-                line: 3,
-                column: 1,
-                nodeType: "CallExpression"
-            }
-        ],
-        errorCount: 2,
-        warningCount: 0,
-        fixableErrorCount: 0,
-        fixableWarningCount: 0,
-        source:
-            "var err = doStuff();\nif (err) console.log('failed tests: ' + err);\nprocess.exit(1);\n"
-    },
-    {
-        filePath: "Gruntfile.js",
-        messages: [],
-        errorCount: 0,
-        warningCount: 0,
-        fixableErrorCount: 0,
-        fixableWarningCount: 0
-    }
-]</pre>
-<h3 id="the-result-object">The <code>result</code> Object</h3>
-<p>Each object in the <code>results</code> array is a <code>result</code> object. Each <code>result</code> object contains the path of the file that was linted and information about linting issues that were encountered. Here are the properties available on each <code>result</code> object:</p>
-<ul>
-<li>
-<strong>filePath</strong>: The absolute path to the file that was linted.</li>
-<li>
-<strong>messages</strong>: An array of <code>message</code> objects. See below for more info about messages.</li>
-<li>
-<strong>errorCount</strong>: The number of errors for the given file.</li>
-<li>
-<strong>warningCount</strong>: The number of warnings for the given file.</li>
-<li>
-<strong>source</strong>: The source code for the given file. This property is omitted if this file has no errors/warnings or if the <code>output</code> property is present.</li>
-<li>
-<strong>output</strong>: The source code for the given file with as many fixes applied as possible. This property is omitted if no fix is available.</li>
-</ul>
-<h3 id="the-message-object">The <code>message</code> Object</h3>
-<p>Each <code>message</code> object contains information about the ESLint rule that was triggered by some source code. The properties available on each <code>message</code> object are:</p>
-<ul>
-<li>
-<strong>ruleId</strong>: the ID of the rule that produced the error or warning.</li>
-<li>
-<strong>severity</strong>: the severity of the failure, <code>1</code> for warnings and <code>2</code> for errors.</li>
-<li>
-<strong>message</strong>: the human readable description of the error.</li>
-<li>
-<strong>line</strong>: the line where the issue is located.</li>
-<li>
-<strong>column</strong>: the column where the issue is located.</li>
-<li>
+<h1>Working with Custom Formatters</h1> <nav class="docs-toc c-toc" aria-labelledby="js-toc-label"><h2 class="c-toc__label" id="js-toc-label">Table of Contents</h2> <div class="c-toc__panel" id="js-toc-panel"> <nav class="c-toc"> <ol> <li>
+<a href="#packaging-the-custom-formatter">Packaging the Custom Formatter</a> </li> <li>
+<a href="#the-results-argument">The results Argument</a> <ol> <li>
+<a href="#the-result-object">The result Object</a> </li> <li>
+<a href="#the-message-object">The message Object</a> </li> </ol> </li> <li>
+<a href="#the-context-argument">The context Argument</a> </li> <li>
+<a href="#examples">Examples</a> <ol> <li>
+<a href="#summary-formatter">Summary formatter</a> </li> <li>
+<a href="#detailed-formatter">Detailed formatter</a> </li> </ol> </li> <li>
+<a href="#passing-arguments-to-formatters">Passing Arguments to Formatters</a> </li> <li>
+<a href="#using-environment-variables">Using Environment Variables</a> <ol> <li>
+<a href="#complex-argument-passing">Complex Argument Passing</a> </li> </ol> </li> <li>
+<a href="#note-formatting-for-terminals">Note: Formatting for Terminals</a> </li> </ol> </nav> </div></nav> <p>While ESLint has some built-in formatters available to format the linting results, it’s also possible to create and distribute your own custom formatters. You can include custom formatters in your project directly or create an npm package to distribute them separately.</p> <p>Each formatter is just a function that receives a <code>results</code> object and a <code>context</code> and returns a string. For example, the following is how the <code>json</code> built-in formatter is implemented:</p> <pre class="language-js"><code><span class="highlight-line"><span class="token comment">//my-awesome-formatter.js</span></span><br><span class="highlight-line">module<span class="token punctuation">.</span><span class="token function-variable function">exports</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">results<span class="token punctuation">,</span> context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token keyword">return</span> <span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">stringify</span><span class="token punctuation">(</span>results<span class="token punctuation">,</span> <span class="token keyword">null</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>A formatter can also be an async function (from ESLint v8.4.0), the following shows a simple example:</p> <pre class="language-js"><code><span class="highlight-line"><span class="token comment">//my-awesome-formatter.js</span></span><br><span class="highlight-line">module<span class="token punctuation">.</span><span class="token function-variable function">exports</span> <span class="token operator">=</span> <span class="token keyword">async</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">results</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token keyword">const</span> formatted <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token function">asyncTask</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token keyword">return</span> formatted<span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>To run ESLint with this formatter, you can use the <code>-f</code> (or <code>--format</code>) command line flag:</p> <pre class="language-bash"><code><span class="highlight-line">eslint -f ./my-awesome-formatter.js src/</span></code></pre> <p>In order to use a local file as a custom formatter, you must begin the filename with a dot (such as <code>./my-awesome-formatter.js</code> or <code>../formatters/my-awesome-formatter.js</code>).</p> <h2 id="packaging-the-custom-formatter" tabindex="-1">Packaging the Custom Formatter</h2> <p>Custom formatters can also be distributed through npm packages. To do so, create an npm package with a name in the format of <code>eslint-formatter-*</code>, where <code>*</code> is the name of your formatter (such as <code>eslint-formatter-awesome</code>). Projects should then install the package and can use the custom formatter with the <code>-f</code> (or <code>--format</code>) flag like this:</p> <pre class="language-bash"><code><span class="highlight-line">eslint -f awesome src/</span></code></pre> <p>Because ESLint knows to look for packages beginning with <code>eslint-formatter-</code> when the specified formatter doesn’t begin with a dot, there is no need to type <code>eslint-formatter-</code> when using a packaged custom formatter.</p> <p>Tips for <code>package.json</code>:</p> <ul> <li>The <code>main</code> entry should be the JavaScript file implementing your custom formatter.</li> <li>Add these <code>keywords</code> to help users find your formatter: <ul> <li><code>"eslint"</code></li> <li><code>"eslint-formatter"</code></li> <li><code>"eslintformatter"</code></li> </ul> </li> </ul> <p>See all <a href="https://www.npmjs.com/search?q=eslint-formatter">formatters on npm</a>;</p> <h2 id="the-results-argument" tabindex="-1">The <code>results</code> Argument</h2> <p>The <code>results</code> object passed into a formatter is an array of objects containing the lint results for individual files. Here’s some example output:</p> <pre class="language-js"><code><span class="highlight-line"><span class="token punctuation">[</span></span><br><span class="highlight-line">    <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">filePath</span><span class="token operator">:</span> <span class="token string">"/path/to/a/file.js"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">            <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token literal-property property">ruleId</span><span class="token operator">:</span> <span class="token string">"curly"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">severity</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Expected { after 'if' condition."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">line</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">column</span><span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">nodeType</span><span class="token operator">:</span> <span class="token string">"IfStatement"</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token literal-property property">ruleId</span><span class="token operator">:</span> <span class="token string">"no-process-exit"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">severity</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Don't use process.exit(); throw an error instead."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">line</span><span class="token operator">:</span> <span class="token number">3</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">column</span><span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">nodeType</span><span class="token operator">:</span> <span class="token string">"CallExpression"</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">errorCount</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">warningCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">fixableErrorCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">fixableWarningCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">source</span><span class="token operator">:</span></span><br><span class="highlight-line">            <span class="token string">"var err = doStuff();\nif (err) console.log('failed tests: ' + err);\nprocess.exit(1);\n"</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">filePath</span><span class="token operator">:</span> <span class="token string">"/path/to/Gruntfile.js"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">errorCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">warningCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">fixableErrorCount</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">fixableWarningCount</span><span class="token operator">:</span> <span class="token number">0</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">]</span></span></code></pre> <h3 id="the-result-object" tabindex="-1">The <code>result</code> Object</h3>  <p>Each object in the <code>results</code> array is a <code>result</code> object. Each <code>result</code> object contains the path of the file that was linted and information about linting issues that were encountered. Here are the properties available on each <code>result</code> object:</p> <ul> <li>
+<strong>filePath</strong>: The absolute path to the file that was linted.</li> <li>
+<strong>messages</strong>: An array of <code>message</code> objects. See below for more info about messages.</li> <li>
+<strong>errorCount</strong>: The number of errors for the given file.</li> <li>
+<strong>warningCount</strong>: The number of warnings for the given file.</li> <li>
+<strong>source</strong>: The source code for the given file. This property is omitted if this file has no errors/warnings or if the <code>output</code> property is present.</li> <li>
+<strong>output</strong>: The source code for the given file with as many fixes applied as possible. This property is omitted if no fix is available.</li> </ul> <h3 id="the-message-object" tabindex="-1">The <code>message</code> Object</h3> <p>Each <code>message</code> object contains information about the ESLint rule that was triggered by some source code. The properties available on each <code>message</code> object are:</p> <ul> <li>
+<strong>ruleId</strong>: the ID of the rule that produced the error or warning.</li> <li>
+<strong>severity</strong>: the severity of the failure, <code>1</code> for warnings and <code>2</code> for errors.</li> <li>
+<strong>message</strong>: the human readable description of the error.</li> <li>
+<strong>line</strong>: the line where the issue is located.</li> <li>
+<strong>column</strong>: the column where the issue is located.</li> <li>
 <strong>nodeType</strong>: the type of the node in the <a href="https://github.com/estree/estree/blob/master/spec.md#node-objects">AST</a>
-</li>
-</ul>
-<h2 id="examples">Examples</h2>
-<h3 id="summary-formatter">Summary formatter</h3>
-<p>A formatter that only cares about the total count of errors and warnings will look like this:</p>
-<pre data-language="javascript">module.exports = function(results) {
-    // accumulate the errors and warnings
-    var summary = results.reduce(
-        function(seq, current) {
-            seq.errors += current.errorCount;
-            seq.warnings += current.warningCount;
-            return seq;
-        },
-        { errors: 0, warnings: 0 }
-    );
-
-    if (summary.errors &gt; 0 || summary.warnings &gt; 0) {
-        return (
-            "Errors: " +
-            summary.errors +
-            ", Warnings: " +
-            summary.warnings +
-            "\n"
-        );
-    }
-
-    return "";
-};</pre>
-<p>Running <code>eslint</code> with the previous custom formatter,</p>
-<pre data-language="bash">eslint -f ./my-awesome-formatter.js src/</pre>
-<p>Will produce the following output:</p>
-<pre data-language="bash">Errors: 2, Warnings: 4</pre>
-<h3 id="detailed-formatter">Detailed formatter</h3>
-<p>A more complex report will look something like this:</p>
-<pre data-language="javascript">module.exports = function(results, data) {
-    var results = results || [];
-
-    var summary = results.reduce(
-        function(seq, current) {
-            current.messages.forEach(function(msg) {
-                var logMessage = {
-                    filePath: current.filePath,
-                    ruleId: msg.ruleId,
-                    ruleUrl: data.rulesMeta[msg.ruleId].url,
-                    message: msg.message,
-                    line: msg.line,
-                    column: msg.column
-                };
-
-                if (msg.severity === 1) {
-                    logMessage.type = "warning";
-                    seq.warnings.push(logMessage);
-                }
-                if (msg.severity === 2) {
-                    logMessage.type = "error";
-                    seq.errors.push(logMessage);
-                }
-            });
-            return seq;
-        },
-        {
-            errors: [],
-            warnings: []
-        }
-    );
-
-    if (summary.errors.length &gt; 0 || summary.warnings.length &gt; 0) {
-        var lines = summary.errors
-            .concat(summary.warnings)
-            .map(function(msg) {
-                return (
-                    "\n" +
-                    msg.type +
-                    " " +
-                    msg.ruleId + (msg.ruleUrl ? " (" + msg.ruleUrl + ")" : ""
-                    "\n  " +
-                    msg.filePath +
-                    ":" +
-                    msg.line +
-                    ":" +
-                    msg.column
-                );
-            })
-            .join("\n");
-
-        return lines + "\n";
-    }
-};</pre>
-<p>So running <code>eslint</code> with this custom formatter:</p>
-<pre data-language="bash">eslint -f ./my-awesome-formatter.js src/</pre>
-<p>The output will be</p>
-<pre data-language="bash">error space-infix-ops (https://eslint.org/docs/rules/space-infix-ops)
-  src/configs/bundler.js:6:8
-error semi (https://eslint.org/docs/rules/semi)
-  src/configs/bundler.js:6:10
-warning no-unused-vars (https://eslint.org/docs/rules/no-unused-vars)
-  src/configs/bundler.js:5:6
-warning no-unused-vars (https://eslint.org/docs/rules/no-unused-vars)
-  src/configs/bundler.js:6:6
-warning no-shadow (https://eslint.org/docs/rules/no-shadow)
-  src/configs/bundler.js:65:32
-warning no-unused-vars (https://eslint.org/docs/rules/no-unused-vars)
-  src/configs/clean.js:3:6</pre>
-<h2 id="passing-arguments-to-formatters">Passing Arguments to Formatters</h2>
-<p>While custom formatter do not receive arguments in addition to the results object, it is possible to pass additional data into formatters.</p>
-<h2 id="using-environment-variables">Using Environment Variables</h2>
-<p>Custom formatters have access to environment variables and so can change their behavior based on environment variable data. Here's an example that uses a <code>AF_SKIP_WARNINGS</code> environment variable to determine whether or not to show warnings in the results:</p>
-<pre data-language="js">module.exports = function(results) {
-    var skipWarnings = process.env.AF_SKIP_WARNINGS === "true"; //af stands for awesome-formatter
-
-    var results = results || [];
-    var summary = results.reduce(
-        function(seq, current) {
-            current.messages.forEach(function(msg) {
-                var logMessage = {
-                    filePath: current.filePath,
-                    ruleId: msg.ruleId,
-                    message: msg.message,
-                    line: msg.line,
-                    column: msg.column
-                };
-
-                if (msg.severity === 1) {
-                    logMessage.type = "warning";
-                    seq.warnings.push(logMessage);
-                }
-                if (msg.severity === 2) {
-                    logMessage.type = "error";
-                    seq.errors.push(logMessage);
-                }
-            });
-            return seq;
-        },
-        {
-            errors: [],
-            warnings: []
-        }
-    );
-
-    if (summary.errors.length &gt; 0 || summary.warnings.length &gt; 0) {
-        var warnings = !skipWarnings ? summary.warnings : []; // skip the warnings in that case
-
-        var lines = summary.errors
-            .concat(warnings)
-            .map(function(msg) {
-                return (
-                    "\n" +
-                    msg.type +
-                    " " +
-                    msg.ruleId +
-                    "\n  " +
-                    msg.filePath +
-                    ":" +
-                    msg.line +
-                    ":" +
-                    msg.column
-                );
-            })
-            .join("\n");
-
-        return lines + "\n";
-    }
-};</pre>
-<p>You would run ESLint with this custom formatter and an environment variable set like this:</p>
-<pre data-language="bash">AF_SKIP_WARNINGS=true eslint -f ./my-awesome-formatter.js src/</pre>
-<p>The output would be:</p>
-<pre data-language="bash">error space-infix-ops
-  src/configs/bundler.js:6:8
-
-error semi
-  src/configs/bundler.js:6:10</pre>
-<h3 id="complex-argument-passing">Complex Argument Passing</h3>
-<p>If you find the custom formatter pattern doesn't provide enough options for the way you'd like to format ESLint results, the best option is to use ESLint's built-in <a href="../user-guide/formatters/index">JSON formatter</a> and pipe the output to a second program. For example:</p>
-<pre data-language="bash">eslint -f json src/ | your-program-that-reads-JSON --option</pre>
-<p>In this example, the <code>your-program-that-reads-json</code> program can accept the raw JSON of ESLint results and process it before outputting its own format of the results. You can pass as many command line arguments to that program as are necessary to customize the output.</p>
-<h2 id="note-formatting-for-terminals">Note: Formatting for Terminals</h2>
-<p>Modern terminals like <a href="https://www.iterm2.com/">iTerm2</a> or <a href="http://guake-project.org/">Guake</a> expect a specific results format to automatically open filenames when they are clicked. Most terminals support this format for that purpose:</p>
-<pre data-language="bash">file:line:column</pre>
+</li> </ul> <h2 id="the-context-argument" tabindex="-1">The <code>context</code> Argument</h2> <p>The formatter function receives an object as the second argument. The object has two properties:</p> <ul> <li>
+<code>cwd</code> … The current working directory. This value comes from the <code>cwd</code> constructor option of the <a href="working-with-custom-formattersnodejs-api#-new-eslintoptions">ESLint</a> class.</li> <li>
+<code>rulesMeta</code> … The <code>meta</code> property values of rules. See the <a href="working-with-custom-formattersworking-with-rules">Working with Rules</a> page for more information about rules.</li> </ul> <p>For example, here’s what the object would look like if one rule, <code>no-extra-semi</code>, had been run:</p> <pre class="language-js"><code><span class="highlight-line"><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">cwd</span><span class="token operator">:</span> <span class="token string">"/path/to/cwd"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">rulesMeta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token string-property property">"no-extra-semi"</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">type</span><span class="token operator">:</span> <span class="token string">"suggestion"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">docs</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token literal-property property">description</span><span class="token operator">:</span> <span class="token string">"disallow unnecessary semicolons"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">recommended</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token literal-property property">url</span><span class="token operator">:</span> <span class="token string">"https://eslint.org/docs/rules/no-extra-semi"</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">fixable</span><span class="token operator">:</span> <span class="token string">"code"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">schema</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token literal-property property">unexpected</span><span class="token operator">:</span> <span class="token string">"Unnecessary semicolon."</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span></span></code></pre> <p><strong>Note:</strong> if a linting is executed by deprecated <code>CLIEngine</code> class, the <code>context</code> argument may be a different value because it is up to the API users. Please check whether the <code>context</code> argument is an expected value or not if you want to support legacy environments.</p> <h2 id="examples" tabindex="-1">Examples</h2> <h3 id="summary-formatter" tabindex="-1">Summary formatter</h3> <p>A formatter that only cares about the total count of errors and warnings will look like this:</p> <pre class="language-javascript"><code><span class="highlight-line">module<span class="token punctuation">.</span><span class="token function-variable function">exports</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">results<span class="token punctuation">,</span> context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token comment">// accumulate the errors and warnings</span></span><br><span class="highlight-line">    <span class="token keyword">var</span> summary <span class="token operator">=</span> results<span class="token punctuation">.</span><span class="token function">reduce</span><span class="token punctuation">(</span></span><br><span class="highlight-line">        <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">seq<span class="token punctuation">,</span> current</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            seq<span class="token punctuation">.</span>errors <span class="token operator">+=</span> current<span class="token punctuation">.</span>errorCount<span class="token punctuation">;</span></span><br><span class="highlight-line">            seq<span class="token punctuation">.</span>warnings <span class="token operator">+=</span> current<span class="token punctuation">.</span>warningCount<span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token keyword">return</span> seq<span class="token punctuation">;</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span> <span class="token literal-property property">errors</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token literal-property property">warnings</span><span class="token operator">:</span> <span class="token number">0</span> <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>summary<span class="token punctuation">.</span>errors <span class="token operator">&gt;</span> <span class="token number">0</span> <span class="token operator">||</span> summary<span class="token punctuation">.</span>warnings <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">return</span> <span class="token punctuation">(</span></span><br><span class="highlight-line">            <span class="token string">"Errors: "</span> <span class="token operator">+</span></span><br><span class="highlight-line">            summary<span class="token punctuation">.</span>errors <span class="token operator">+</span></span><br><span class="highlight-line">            <span class="token string">", Warnings: "</span> <span class="token operator">+</span></span><br><span class="highlight-line">            summary<span class="token punctuation">.</span>warnings <span class="token operator">+</span></span><br><span class="highlight-line">            <span class="token string">"\n"</span></span><br><span class="highlight-line">        <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><br><span class="highlight-line">    <span class="token keyword">return</span> <span class="token string">""</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>Running <code>eslint</code> with the previous custom formatter,</p> <pre class="language-bash"><code><span class="highlight-line">eslint -f ./my-awesome-formatter.js src/</span></code></pre> <p>Will produce the following output:</p> <pre class="language-bash"><code><span class="highlight-line">Errors: <span class="token number">2</span>, Warnings: <span class="token number">4</span></span></code></pre> <h3 id="detailed-formatter" tabindex="-1">Detailed formatter</h3> <p>A more complex report will look something like this:</p> <pre class="language-javascript"><code><span class="highlight-line">module<span class="token punctuation">.</span><span class="token function-variable function">exports</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">results<span class="token punctuation">,</span> context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token keyword">var</span> results <span class="token operator">=</span> results <span class="token operator">||</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">    <span class="token keyword">var</span> summary <span class="token operator">=</span> results<span class="token punctuation">.</span><span class="token function">reduce</span><span class="token punctuation">(</span></span><br><span class="highlight-line">        <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">seq<span class="token punctuation">,</span> current</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            current<span class="token punctuation">.</span>messages<span class="token punctuation">.</span><span class="token function">forEach</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">msg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">var</span> logMessage <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">filePath</span><span class="token operator">:</span> current<span class="token punctuation">.</span>filePath<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">ruleId</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>ruleId<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">ruleUrl</span><span class="token operator">:</span> context<span class="token punctuation">.</span>rulesMeta<span class="token punctuation">[</span>msg<span class="token punctuation">.</span>ruleId<span class="token punctuation">]</span><span class="token punctuation">.</span>docs<span class="token punctuation">.</span>url<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">message</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>message<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">line</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>line<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">column</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>column</span><br><span class="highlight-line">                <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">                <span class="token keyword">if</span> <span class="token punctuation">(</span>msg<span class="token punctuation">.</span>severity <span class="token operator">===</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    logMessage<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"warning"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    seq<span class="token punctuation">.</span>warnings<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>logMessage<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token keyword">if</span> <span class="token punctuation">(</span>msg<span class="token punctuation">.</span>severity <span class="token operator">===</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    logMessage<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"error"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    seq<span class="token punctuation">.</span>errors<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>logMessage<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token keyword">return</span> seq<span class="token punctuation">;</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">errors</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">warnings</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>summary<span class="token punctuation">.</span>errors<span class="token punctuation">.</span>length <span class="token operator">&gt;</span> <span class="token number">0</span> <span class="token operator">||</span> summary<span class="token punctuation">.</span>warnings<span class="token punctuation">.</span>length <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">var</span> lines <span class="token operator">=</span> summary<span class="token punctuation">.</span>errors</span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>summary<span class="token punctuation">.</span>warnings<span class="token punctuation">)</span></span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">msg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">return</span> <span class="token punctuation">(</span></span><br><span class="highlight-line">                    <span class="token string">"\n"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>type <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">" "</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>ruleId <span class="token operator">+</span> <span class="token punctuation">(</span>msg<span class="token punctuation">.</span>ruleUrl <span class="token operator">?</span> <span class="token string">" ("</span> <span class="token operator">+</span> msg<span class="token punctuation">.</span>ruleUrl <span class="token operator">+</span> <span class="token string">")"</span> <span class="token operator">:</span> <span class="token string">""</span><span class="token punctuation">)</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">"\n  "</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>filePath <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">":"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>line <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">":"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>column</span><br><span class="highlight-line">                <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">)</span></span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">join</span><span class="token punctuation">(</span><span class="token string">"\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">        <span class="token keyword">return</span> lines <span class="token operator">+</span> <span class="token string">"\n"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>So running <code>eslint</code> with this custom formatter:</p> <pre class="language-bash"><code><span class="highlight-line">eslint -f ./my-awesome-formatter.js src/</span></code></pre> <p>The output will be</p> <pre class="language-bash"><code><span class="highlight-line">error space-infix-ops <span class="token punctuation">(</span>https://eslint.org/docs/rules/space-infix-ops<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/bundler.js:6:8</span><br><span class="highlight-line">error semi <span class="token punctuation">(</span>https://eslint.org/docs/rules/semi<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/bundler.js:6:10</span><br><span class="highlight-line">warning no-unused-vars <span class="token punctuation">(</span>https://eslint.org/docs/rules/no-unused-vars<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/bundler.js:5:6</span><br><span class="highlight-line">warning no-unused-vars <span class="token punctuation">(</span>https://eslint.org/docs/rules/no-unused-vars<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/bundler.js:6:6</span><br><span class="highlight-line">warning no-shadow <span class="token punctuation">(</span>https://eslint.org/docs/rules/no-shadow<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/bundler.js:65:32</span><br><span class="highlight-line">warning no-unused-vars <span class="token punctuation">(</span>https://eslint.org/docs/rules/no-unused-vars<span class="token punctuation">)</span></span><br><span class="highlight-line">  src/configs/clean.js:3:6</span></code></pre> <h2 id="passing-arguments-to-formatters" tabindex="-1">Passing Arguments to Formatters</h2> <p>While formatter functions do not receive arguments in addition to the results object and the context, it is possible to pass additional data into custom formatters using the methods described below.</p> <h2 id="using-environment-variables" tabindex="-1">Using Environment Variables</h2> <p>Custom formatters have access to environment variables and so can change their behavior based on environment variable data. Here’s an example that uses a <code>AF_SKIP_WARNINGS</code> environment variable to determine whether or not to show warnings in the results:</p> <pre class="language-js"><code><span class="highlight-line">module<span class="token punctuation">.</span><span class="token function-variable function">exports</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">results</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token keyword">var</span> skipWarnings <span class="token operator">=</span> process<span class="token punctuation">.</span>env<span class="token punctuation">.</span><span class="token constant">AF_SKIP_WARNINGS</span> <span class="token operator">===</span> <span class="token string">"true"</span><span class="token punctuation">;</span> <span class="token comment">//af stands for awesome-formatter</span></span><br><br><span class="highlight-line">    <span class="token keyword">var</span> results <span class="token operator">=</span> results <span class="token operator">||</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token keyword">var</span> summary <span class="token operator">=</span> results<span class="token punctuation">.</span><span class="token function">reduce</span><span class="token punctuation">(</span></span><br><span class="highlight-line">        <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">seq<span class="token punctuation">,</span> current</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            current<span class="token punctuation">.</span>messages<span class="token punctuation">.</span><span class="token function">forEach</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">msg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">var</span> logMessage <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">filePath</span><span class="token operator">:</span> current<span class="token punctuation">.</span>filePath<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">ruleId</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>ruleId<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">message</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>message<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">line</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>line<span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">column</span><span class="token operator">:</span> msg<span class="token punctuation">.</span>column</span><br><span class="highlight-line">                <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">                <span class="token keyword">if</span> <span class="token punctuation">(</span>msg<span class="token punctuation">.</span>severity <span class="token operator">===</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    logMessage<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"warning"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    seq<span class="token punctuation">.</span>warnings<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>logMessage<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token keyword">if</span> <span class="token punctuation">(</span>msg<span class="token punctuation">.</span>severity <span class="token operator">===</span> <span class="token number">2</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    logMessage<span class="token punctuation">.</span>type <span class="token operator">=</span> <span class="token string">"error"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    seq<span class="token punctuation">.</span>errors<span class="token punctuation">.</span><span class="token function">push</span><span class="token punctuation">(</span>logMessage<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token keyword">return</span> seq<span class="token punctuation">;</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">errors</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">warnings</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>summary<span class="token punctuation">.</span>errors<span class="token punctuation">.</span>length <span class="token operator">&gt;</span> <span class="token number">0</span> <span class="token operator">||</span> summary<span class="token punctuation">.</span>warnings<span class="token punctuation">.</span>length <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">var</span> warnings <span class="token operator">=</span> <span class="token operator">!</span>skipWarnings <span class="token operator">?</span> summary<span class="token punctuation">.</span>warnings <span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">;</span> <span class="token comment">// skip the warnings in that case</span></span><br><br><span class="highlight-line">        <span class="token keyword">var</span> lines <span class="token operator">=</span> summary<span class="token punctuation">.</span>errors</span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">concat</span><span class="token punctuation">(</span>warnings<span class="token punctuation">)</span></span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">map</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">msg</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">return</span> <span class="token punctuation">(</span></span><br><span class="highlight-line">                    <span class="token string">"\n"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>type <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">" "</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>ruleId <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">"\n  "</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>filePath <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">":"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>line <span class="token operator">+</span></span><br><span class="highlight-line">                    <span class="token string">":"</span> <span class="token operator">+</span></span><br><span class="highlight-line">                    msg<span class="token punctuation">.</span>column</span><br><span class="highlight-line">                <span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">)</span></span><br><span class="highlight-line">            <span class="token punctuation">.</span><span class="token function">join</span><span class="token punctuation">(</span><span class="token string">"\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">        <span class="token keyword">return</span> lines <span class="token operator">+</span> <span class="token string">"\n"</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>You would run ESLint with this custom formatter and an environment variable set like this:</p> <pre class="language-bash"><code><span class="highlight-line"><span class="token assign-left variable">AF_SKIP_WARNINGS</span><span class="token operator">=</span>true eslint -f ./my-awesome-formatter.js src/</span></code></pre> <p>The output would be:</p> <pre class="language-bash"><code><span class="highlight-line">error space-infix-ops</span><br><span class="highlight-line">  src/configs/bundler.js:6:8</span><br><br><span class="highlight-line">error semi</span><br><span class="highlight-line">  src/configs/bundler.js:6:10</span></code></pre> <h3 id="complex-argument-passing" tabindex="-1">Complex Argument Passing</h3> <p>If you find the custom formatter pattern doesn’t provide enough options for the way you’d like to format ESLint results, the best option is to use ESLint’s built-in <a href="https://eslint.org/docs/user-guide/formatters/">JSON formatter</a> and pipe the output to a second program. For example:</p> <pre class="language-bash"><code><span class="highlight-line">eslint -f json src/ <span class="token operator">|</span> your-program-that-reads-JSON --option</span></code></pre> <p>In this example, the <code>your-program-that-reads-json</code> program can accept the raw JSON of ESLint results and process it before outputting its own format of the results. You can pass as many command line arguments to that program as are necessary to customize the output.</p> <h2 id="note-formatting-for-terminals" tabindex="-1">Note: Formatting for Terminals</h2> <p>Modern terminals like <a href="https://www.iterm2.com/">iTerm2</a> or <a href="http://guake-project.org/">Guake</a> expect a specific results format to automatically open filenames when they are clicked. Most terminals support this format for that purpose:</p> <pre class="language-bash"><code><span class="highlight-line">file:line:column</span></code></pre>
 <div class="_attribution">
   <p class="_attribution-p">
-    © JS Foundation and other contributors<br>Licensed under the MIT License.<br>
-    <a href="https://eslint.org/docs/developer-guide/working-with-custom-formatters" class="_attribution-link">https://eslint.org/docs/developer-guide/working-with-custom-formatters</a>
+    © OpenJS Foundation and other contributors<br>Licensed under the MIT License.<br>
+    <a href="https://eslint.org/docs/latest/developer-guide/working-with-custom-formatters" class="_attribution-link">https://eslint.org/docs/latest/developer-guide/working-with-custom-formatters</a>
   </p>
 </div>
 

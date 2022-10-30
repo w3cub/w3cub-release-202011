@@ -10,13 +10,12 @@
   <meta name="description" content=" Note&#58; This page covers the most recent rule format for ESLint &#62;&#61; 3.0.0. There is also a deprecated rule format. ">
   <meta name="keywords" content="working, with, rules, eslint">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/eslint/developer-guide/working-with-rules.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/eslint.js"></script>
   
@@ -86,754 +85,134 @@
 			<div class="_page _simple">
 				
 				
-<h1 id="working-with-rules">Working with Rules</h1>
-<p><strong>Note:</strong> This page covers the most recent rule format for ESLint &gt;= 3.0.0. There is also a <a href="working-with-rules-deprecated">deprecated rule format</a>.</p>
-<p>Each rule in ESLint has three files named with its identifier (for example, <code>no-extra-semi</code>).</p>
-<ul>
-<li>in the <code>lib/rules</code> directory: a source file (for example, <code>no-extra-semi.js</code>)</li>
-<li>in the <code>tests/lib/rules</code> directory: a test file (for example, <code>no-extra-semi.js</code>)</li>
-<li>in the <code>docs/rules</code> directory: a Markdown documentation file (for example, <code>no-extra-semi</code>)</li>
-</ul>
-<p><strong>Important:</strong> If you submit a <strong>core</strong> rule to the ESLint repository, you <strong>must</strong> follow some conventions explained below.</p>
-<p>Here is the basic format of the source file for a rule:</p>
-<pre data-language="js">/**
- * @fileoverview Rule to disallow unnecessary semicolons
- * @author Nicholas C. Zakas
- */
-
-"use strict";
-
-//------------------------------------------------------------------------------
-// Rule Definition
-//------------------------------------------------------------------------------
-
-module.exports = {
-    meta: {
-        type: "suggestion",
-
-        docs: {
-            description: "disallow unnecessary semicolons",
-            category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-extra-semi"
-        },
-        fixable: "code",
-        schema: [] // no options
-    },
-    create: function(context) {
-        return {
-            // callback functions
-        };
-    }
-};</pre>
-<h2 id="rule-basics">Rule Basics</h2>
-<p>The source file for a rule exports an object with the following properties.</p>
-<p><code>meta</code> (object) contains metadata for the rule:</p>
-<ul>
-<li>
-<p><code>type</code> (string) indicates the type of rule, which is one of <code>"problem"</code>, <code>"suggestion"</code>, or <code>"layout"</code>:</p>
-<ul>
-<li>
-<code>"problem"</code> means the rule is identifying code that either will cause an error or may cause a confusing behavior. Developers should consider this a high priority to resolve.</li>
-<li>
-<code>"suggestion"</code> means the rule is identifying something that could be done in a better way but no errors will occur if the code isn't changed.</li>
-<li>
-<code>"layout"</code> means the rule cares primarily about whitespace, semicolons, commas, and parentheses, all the parts of the program that determine how the code looks rather than how it executes. These rules work on parts of the code that aren't specified in the AST.</li>
-</ul>
-</li>
-<li>
-<p><code>docs</code> (object) is required for core rules of ESLint:</p>
-<ul>
-<li>
-<code>description</code> (string) provides the short description of the rule in the <a href="../rules/index">rules index</a>
-</li>
-<li>
-<code>category</code> (string) specifies the heading under which the rule is listed in the <a href="../rules/index">rules index</a>
-</li>
-<li>
-<code>recommended</code> (boolean) is whether the <code>"extends": "eslint:recommended"</code> property in a <a href="../user-guide/configuring#extending-configuration-files">configuration file</a> enables the rule</li>
-<li>
-<code>url</code> (string) specifies the URL at which the full documentation can be accessed</li>
-<li>
-<code>suggestion</code> (boolean) specifies whether rules can return suggestions (defaults to false if omitted)</li>
-</ul>
-<p>In a custom rule or plugin, you can omit <code>docs</code> or include any properties that you need in it.</p>
-</li>
-<li>
-<p><code>fixable</code> (string) is either <code>"code"</code> or <code>"whitespace"</code> if the <code>--fix</code> option on the <a href="../user-guide/command-line-interface#fix">command line</a> automatically fixes problems reported by the rule</p>
-<p><strong>Important:</strong> the <code>fixable</code> property is mandatory for fixable rules. If this property isn't specified, ESLint will throw an error whenever the rule attempts to produce a fix. Omit the <code>fixable</code> property if the rule is not fixable.</p>
-</li>
-<li><p><code>schema</code> (array) specifies the <a href="#options-schemas">options</a> so ESLint can prevent invalid <a href="../user-guide/configuring#configuring-rules">rule configurations</a></p></li>
-<li><p><code>deprecated</code> (boolean) indicates whether the rule has been deprecated. You may omit the <code>deprecated</code> property if the rule has not been deprecated.</p></li>
-<li><p><code>replacedBy</code> (array) in the case of a deprecated rule, specifies replacement rule(s)</p></li>
-</ul>
-<p><code>create</code> (function) returns an object with methods that ESLint calls to "visit" nodes while traversing the abstract syntax tree (AST as defined by <a href="https://github.com/estree/estree">ESTree</a>) of JavaScript code:</p>
-<ul>
-<li>if a key is a node type or a <a href="selectors">selector</a>, ESLint calls that <strong>visitor</strong> function while going <strong>down</strong> the tree</li>
-<li>if a key is a node type or a <a href="selectors">selector</a> plus <code>:exit</code>, ESLint calls that <strong>visitor</strong> function while going <strong>up</strong> the tree</li>
-<li>if a key is an event name, ESLint calls that <strong>handler</strong> function for <a href="code-path-analysis">code path analysis</a>
-</li>
-</ul>
-<p>A rule can use the current node and its surrounding tree to report or fix problems.</p>
-<p>Here are methods for the <a href="../rules/array-callback-return">array-callback-return</a> rule:</p>
-<pre data-language="js">function checkLastSegment (node) {
-    // report problem for function if last code path segment is reachable
-}
-
-module.exports = {
-    meta: { ... },
-    create: function(context) {
-        // declare the state of the rule
-        return {
-            ReturnStatement: function(node) {
-                // at a ReturnStatement node while going down
-            },
-            // at a function expression node while going up:
-            "FunctionExpression:exit": checkLastSegment,
-            "ArrowFunctionExpression:exit": checkLastSegment,
-            onCodePathStart: function (codePath, node) {
-                // at the start of analyzing a code path
-            },
-            onCodePathEnd: function(codePath, node) {
-                // at the end of analyzing a code path
-            }
-        };
-    }
-};</pre>
-<h2 id="the-context-object">The Context Object</h2>
-<p>The <code>context</code> object contains additional functionality that is helpful for rules to do their jobs. As the name implies, the <code>context</code> object contains information that is relevant to the context of the rule. The <code>context</code> object has the following properties:</p>
-<ul>
-<li>
-<code>parserOptions</code> - the parser options configured for this run (more details <a href="../user-guide/configuring#specifying-parser-options">here</a>).</li>
-<li>
-<code>id</code> - the rule ID.</li>
-<li>
-<code>options</code> - an array of the <a href="../user-guide/configuring#configuring-rules">configured options</a> for this rule. This array does not include the rule severity. For more information, see <a href="#contextoptions">here</a>.</li>
-<li>
-<code>settings</code> - the <a href="../user-guide/configuring#adding-shared-settings">shared settings</a> from configuration.</li>
-<li>
-<code>parserPath</code> - the name of the <code>parser</code> from configuration.</li>
-<li>
-<code>parserServices</code> - an object containing parser-provided services for rules. The default parser does not provide any services. However, if a rule is intended to be used with a custom parser, it could use <code>parserServices</code> to access anything provided by that parser. (For example, a TypeScript parser could provide the ability to get the computed type of a given node.)</li>
-</ul>
-<p>Additionally, the <code>context</code> object has the following methods:</p>
-<ul>
-<li>
-<code>getAncestors()</code> - returns an array of the ancestors of the currently-traversed node, starting at the root of the AST and continuing through the direct parent of the current node. This array does not include the currently-traversed node itself.</li>
-<li>
-<code>getCwd()</code> - returns the <code>cwd</code> passed to <a href="nodejs-api#Linter">Linter</a>. It is a path to a directory that should be considered as the current working directory.</li>
-<li>
-<code>getDeclaredVariables(node)</code> - returns a list of <a href="scope-manager-interface#variable-interface">variables</a> declared by the given node. This information can be used to track references to variables.<ul>
-<li>If the node is a <code>VariableDeclaration</code>, all variables declared in the declaration are returned.</li>
-<li>If the node is a <code>VariableDeclarator</code>, all variables declared in the declarator are returned.</li>
-<li>If the node is a <code>FunctionDeclaration</code> or <code>FunctionExpression</code>, the variable for the function name is returned, in addition to variables for the function parameters.</li>
-<li>If the node is an <code>ArrowFunctionExpression</code>, variables for the parameters are returned.</li>
-<li>If the node is a <code>ClassDeclaration</code> or a <code>ClassExpression</code>, the variable for the class name is returned.</li>
-<li>If the node is a <code>CatchClause</code>, the variable for the exception is returned.</li>
-<li>If the node is an <code>ImportDeclaration</code>, variables for all of its specifiers are returned.</li>
-<li>If the node is an <code>ImportSpecifier</code>, <code>ImportDefaultSpecifier</code>, or <code>ImportNamespaceSpecifier</code>, the declared variable is returned.</li>
-<li>Otherwise, if the node does not declare any variables, an empty array is returned.</li>
-</ul>
-</li>
-<li>
-<code>getFilename()</code> - returns the filename associated with the source.</li>
-<li>
-<code>getScope()</code> - returns the <a href="scope-manager-interface#scope-interface">scope</a> of the currently-traversed node. This information can be used to track references to variables.</li>
-<li>
-<code>getSourceCode()</code> - returns a <a href="#context-getsourcecode"><code>SourceCode</code></a> object that you can use to work with the source that was passed to ESLint.</li>
-<li>
-<code>markVariableAsUsed(name)</code> - marks a variable with the given name in the current scope as used. This affects the <a href="../rules/no-unused-vars">no-unused-vars</a> rule. Returns <code>true</code> if a variable with the given name was found and marked as used, otherwise <code>false</code>.</li>
-<li>
-<code>report(descriptor)</code> - reports a problem in the code (see the <a href="#context-report">dedicated section</a>).</li>
-</ul>
-<p><strong>Note:</strong> Earlier versions of ESLint supported additional methods on the <code>context</code> object. Those methods were removed in the new format and should not be relied upon.</p>
-<h3 id="contextgetscope">context.getScope()</h3>
-<p>This method returns the scope which has the following types:</p>
-<table>
-<thead><tr>
-<th style="text-align:left">AST Node Type</th>
-<th style="text-align:left">Scope Type</th>
-</tr></thead>
-<tbody>
-<tr>
-<td style="text-align:left"><code>Program</code></td>
-<td style="text-align:left"><code>global</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>FunctionDeclaration</code></td>
-<td style="text-align:left"><code>function</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>FunctionExpression</code></td>
-<td style="text-align:left"><code>function</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>ArrowFunctionExpression</code></td>
-<td style="text-align:left"><code>function</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>ClassDeclaration</code></td>
-<td style="text-align:left"><code>class</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>ClassExpression</code></td>
-<td style="text-align:left"><code>class</code></td>
-</tr>
-<tr>
-<td style="text-align:left">
-<code>BlockStatement</code> ※1</td>
-<td style="text-align:left"><code>block</code></td>
-</tr>
-<tr>
-<td style="text-align:left">
-<code>SwitchStatement</code> ※1</td>
-<td style="text-align:left"><code>switch</code></td>
-</tr>
-<tr>
-<td style="text-align:left">
-<code>ForStatement</code> ※2</td>
-<td style="text-align:left"><code>for</code></td>
-</tr>
-<tr>
-<td style="text-align:left">
-<code>ForInStatement</code> ※2</td>
-<td style="text-align:left"><code>for</code></td>
-</tr>
-<tr>
-<td style="text-align:left">
-<code>ForOfStatement</code> ※2</td>
-<td style="text-align:left"><code>for</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>WithStatement</code></td>
-<td style="text-align:left"><code>with</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>CatchClause</code></td>
-<td style="text-align:left"><code>catch</code></td>
-</tr>
-<tr>
-<td style="text-align:left">others</td>
-<td style="text-align:left">※3</td>
-</tr>
-</tbody>
-</table>
-<p><strong>※1</strong> Only if the configured parser provided the block-scope feature. The default parser provides the block-scope feature if <code>parserOptions.ecmaVersion</code> is not less than <code>6</code>.<br><strong>※2</strong> Only if the <code>for</code> statement defines the iteration variable as a block-scoped variable (E.g., <code>for (let i = 0;;) {}</code>).<br><strong>※3</strong> The scope of the closest ancestor node which has own scope. If the closest ancestor node has multiple scopes then it chooses the innermost scope (E.g., the <code>Program</code> node has a <code>global</code> scope and a <code>module</code> scope if <code>Program#sourceType</code> is <code>"module"</code>. The innermost scope is the <code>module</code> scope.).</p>
-<p>The returned value is a <a href="scope-manager-interface"><code>Scope</code> object</a> defined by the <code>eslint-scope</code> package. The <code>Variable</code> objects of global variables have some additional properties.</p>
-<ul>
-<li>
-<code>variable.writeable</code> (<code>boolean | undefined</code>) ... If <code>true</code>, this global variable can be assigned arbitrary value. If <code>false</code>, this global variable is read-only.</li>
-<li>
-<code>variable.eslintExplicitGlobal</code> (<code>boolean | undefined</code>) ... If <code>true</code>, this global variable was defined by a <code>/* globals */</code> directive comment in the source code file.</li>
-<li>
-<code>variable.eslintExplicitGlobalComments</code> (<code>Comment[] | undefined</code>) ... The array of <code>/* globals */</code> directive comments which defined this global variable in the source code file. This property is <code>undefined</code> if there are no <code>/* globals */</code> directive comments.</li>
-<li>
-<code>variable.eslintImplicitGlobalSetting</code> (<code>"readonly" | "writable" | undefined</code>) ... The configured value in config files. This can be different from <code>variable.writeable</code> if there are <code>/* globals */</code> directive comments.</li>
-</ul>
-<h3 id="contextreport">context.report()</h3>
-<p>The main method you'll use is <code>context.report()</code>, which publishes a warning or error (depending on the configuration being used). This method accepts a single argument, which is an object containing the following properties:</p>
-<ul>
-<li>
-<code>message</code> - the problem message.</li>
-<li>
-<code>node</code> - (optional) the AST node related to the problem. If present and <code>loc</code> is not specified, then the starting location of the node is used as the location of the problem.</li>
-<li>
-<code>loc</code> - (optional) an object specifying the location of the problem. If both <code>loc</code> and <code>node</code> are specified, then the location is used from <code>loc</code> instead of <code>node</code>.<ul>
-<li>
-<code>start</code> - An object of the start location.<ul>
-<li>
-<code>line</code> - the 1-based line number at which the problem occurred.</li>
-<li>
-<code>column</code> - the 0-based column number at which the problem occurred.</li>
-</ul>
-</li>
-<li>
-<code>end</code> - An object of the end location.<ul>
-<li>
-<code>line</code> - the 1-based line number at which the problem occurred.</li>
-<li>
-<code>column</code> - the 0-based column number at which the problem occurred.</li>
-</ul>
-</li>
-</ul>
-</li>
-<li>
-<code>data</code> - (optional) <a href="#using-message-placeholders">placeholder</a> data for <code>message</code>.</li>
-<li>
-<code>fix</code> - (optional) a function that applies a <a href="#applying-fixes">fix</a> to resolve the problem.</li>
-</ul>
-<p>Note that at least one of <code>node</code> or <code>loc</code> is required.</p>
-<p>The simplest example is to use just <code>node</code> and <code>message</code>:</p>
-<pre data-language="js">context.report({
-    node: node,
-    message: "Unexpected identifier"
-});</pre>
-<p>The node contains all of the information necessary to figure out the line and column number of the offending text as well the source text representing the node.</p>
-<h3 id="using-message-placeholders">Using message placeholders</h3>
-<p>You can also use placeholders in the message and provide <code>data</code>:</p>
-<pre data-language="js">context.report({
-    node: node,
-    message: "Unexpected identifier: {{ identifier }}",
-    data: {
-        identifier: node.name
-    }
-});</pre>
-<p>Note that leading and trailing whitespace is optional in message parameters.</p>
-<p>The node contains all of the information necessary to figure out the line and column number of the offending text as well the source text representing the node.</p>
-<h3 id="messageids">
-<code>messageId</code>s</h3>
-<p>Instead of typing out messages in both the <code>context.report()</code> call and your tests, you can use <code>messageId</code>s instead.</p>
-<p>This allows you to avoid retyping error messages. It also prevents errors reported in different sections of your rule from having out-of-date messages.</p>
-<pre data-language="js">// in your rule
-module.exports = {
-    meta: {
-        messages: {
-            avoidName: "Avoid using variables named '{{ name }}'"
-        }
-    },
-    create(context) {
-        return {
-            Identifier(node) {
-                if (node.name === "foo") {
-                    context.report({
-                        node,
-                        messageId: "avoidName",
-                        data: {
-                            name: "foo",
-                        }
-                    });
-                }
-            }
-        };
-    }
-};
-
-// in the file to lint:
-
-var foo = 2;
-//  ^ error: Avoid using variables named 'foo'
-
-// In your tests:
-var rule = require("../../../lib/rules/my-rule");
-var RuleTester = require("eslint").RuleTester;
-
-var ruleTester = new RuleTester();
-ruleTester.run("my-rule", rule, {
-    valid: ["bar", "baz"],
-    invalid: [
-        {
-            code: "foo",
-            errors: [
-                {
-                    messageId: "avoidName"
-                }
-            ]
-        }
-    ]
-});</pre>
-<h3 id="applying-fixes">Applying Fixes</h3>
-<p>If you'd like ESLint to attempt to fix the problem you're reporting, you can do so by specifying the <code>fix</code> function when using <code>context.report()</code>. The <code>fix</code> function receives a single argument, a <code>fixer</code> object, that you can use to apply a fix. For example:</p>
-<pre data-language="js">context.report({
-    node: node,
-    message: "Missing semicolon",
-    fix: function(fixer) {
-        return fixer.insertTextAfter(node, ";");
-    }
-});</pre>
-<p>Here, the <code>fix()</code> function is used to insert a semicolon after the node. Note that a fix is not immediately applied, and may not be applied at all if there are conflicts with other fixes. After applying fixes, ESLint will run all of the enabled rules again on the fixed code, potentially applying more fixes. This process will repeat up to 10 times, or until no more fixable problems are found. Afterwards, any remaining problems will be reported as usual.</p>
-<p><strong>Important:</strong> The <code>meta.fixable</code> property is mandatory for fixable rules. ESLint will throw an error if a rule that implements <code>fix</code> functions does not <a href="#rule-basics">export</a> the <code>meta.fixable</code> property.</p>
-<p>The <code>fixer</code> object has the following methods:</p>
-<ul>
-<li>
-<code>insertTextAfter(nodeOrToken, text)</code> - inserts text after the given node or token</li>
-<li>
-<code>insertTextAfterRange(range, text)</code> - inserts text after the given range</li>
-<li>
-<code>insertTextBefore(nodeOrToken, text)</code> - inserts text before the given node or token</li>
-<li>
-<code>insertTextBeforeRange(range, text)</code> - inserts text before the given range</li>
-<li>
-<code>remove(nodeOrToken)</code> - removes the given node or token</li>
-<li>
-<code>removeRange(range)</code> - removes text in the given range</li>
-<li>
-<code>replaceText(nodeOrToken, text)</code> - replaces the text in the given node or token</li>
-<li>
-<code>replaceTextRange(range, text)</code> - replaces the text in the given range</li>
-</ul>
-<p>The above methods return a <code>fixing</code> object. The <code>fix()</code> function can return the following values:</p>
-<ul>
-<li>A <code>fixing</code> object.</li>
-<li>An array which includes <code>fixing</code> objects.</li>
-<li>An iterable object which enumerates <code>fixing</code> objects. Especially, the <code>fix()</code> function can be a generator.</li>
-</ul>
-<p>If you make a <code>fix()</code> function which returns multiple <code>fixing</code> objects, those <code>fixing</code> objects must not be overlapped.</p>
-<p>Best practices for fixes:</p>
-<ol>
-<li>Avoid any fixes that could change the runtime behavior of code and cause it to stop working.</li>
-<li>Make fixes as small as possible. Fixes that are unnecessarily large could conflict with other fixes, and prevent them from being applied.</li>
-<li>Only make one fix per message. This is enforced because you must return the result of the fixer operation from <code>fix()</code>.</li>
-<li>Since all rules are run again after the initial round of fixes is applied, it's not necessary for a rule to check whether the code style of a fix will cause errors to be reported by another rule.<ul>
-<li>
-<p>For example, suppose a fixer would like to surround an object key with quotes, but it's not sure whether the user would prefer single or double quotes.</p>
-<pre data-language="js">({ foo : 1 })
-
-// should get fixed to either
-
-({ 'foo': 1 })
-
-// or
-
-({ "foo": 1 })</pre>
-</li>
-<li><p>This fixer can just select a quote type arbitrarily. If it guesses wrong, the resulting code will be automatically reported and fixed by the <a href="../rules/quotes"><code>quotes</code></a> rule.</p></li>
-</ul>
-</li>
-</ol>
-<h3 id="providing-suggestions">Providing Suggestions</h3>
-<p>In some cases fixes aren't appropriate to be automatically applied, for example, if a fix potentially changes functionality or if there are multiple valid ways to fix a rule depending on the implementation intent (see the best practices for <a href="#applying-fixes">applying fixes</a> listed above). In these cases, there is an alternative <code>suggest</code> option on <code>context.report()</code> that allows other tools, such as editors, to expose helpers for users to manually apply a suggestion.</p>
-<p>In order to provide suggestions, use the <code>suggest</code> key in the report argument with an array of suggestion objects. The suggestion objects represent individual suggestions that could be applied and require either a <code>desc</code> key string that describes what applying the suggestion would do or a <code>messageId</code> key (see <a href="#suggestion-messageids">below</a>), and a <code>fix</code> key that is a function defining the suggestion result. This <code>fix</code> function follows the same API as regular fixes (described above in <a href="#applying-fixes">applying fixes</a>).</p>
-<pre data-language="js">context.report({
-    node: node,
-    message: "Unnecessary escape character: \\{{character}}.",
-    data: { character },
-    suggest: [
-        {
-            desc: "Remove the `\\`. This maintains the current functionality.",
-            fix: function(fixer) {
-                return fixer.removeRange(range);
-            }
-        },
-        {
-            desc: "Replace the `\\` with `\\\\` to include the actual backslash character.",
-            fix: function(fixer) {
-                return fixer.insertTextBeforeRange(range, "\\");
-            }
-        }
-    ]
-});</pre>
-<p>Note: Suggestions will be applied as a stand-alone change, without triggering multipass fixes. Each suggestion should focus on a singular change in the code and should not try to conform to user defined styles. For example, if a suggestion is adding a new statement into the codebase, it should not try to match correct indentation, or confirm to user preferences on presence/absence of semicolons. All of those things can be corrected by multipass autofix when the user triggers it.</p>
-<p>Best practices for suggestions:</p>
-<ol>
-<li>Don't try to do too much and suggest large refactors that could introduce a lot of breaking changes.</li>
-<li>As noted above, don't try to conform to user-defined styles.</li>
-</ol>
-<p>Suggestions are intended to provide fixes. ESLint will automatically remove the whole suggestion from the linting output if the suggestion's <code>fix</code> function returned <code>null</code> or an empty array/sequence.</p>
-<h4 id="suggestion-messageids">Suggestion <code>messageId</code>s</h4>
-<p>Instead of using a <code>desc</code> key for suggestions a <code>messageId</code> can be used instead. This works the same way as <code>messageId</code>s for the overall error (see <a href="#messageIds">messageIds</a>). Here is an example of how to use it in a rule:</p>
-<pre data-language="js">module.exports = {
-    meta: {
-        messages: {
-            unnecessaryEscape: "Unnecessary escape character: \\{{character}}.",
-            removeEscape: "Remove the `\\`. This maintains the current functionality.",
-            escapeBackslash: "Replace the `\\` with `\\\\` to include the actual backslash character."
-        }
-    },
-    create: function(context) {
-        // ...
-        context.report({
-            node: node,
-            messageId: 'unnecessaryEscape',
-            data: { character },
-            suggest: [
-                {
-                    messageId: "removeEscape",
-                    fix: function(fixer) {
-                        return fixer.removeRange(range);
-                    }
-                },
-                {
-                    messageId: "escapeBackslash",
-                    fix: function(fixer) {
-                        return fixer.insertTextBeforeRange(range, "\\");
-                    }
-                }
-            ]
-        });
-    }
-};</pre>
-<h4 id="placeholders-in-suggestion-messages">Placeholders in suggestion messages</h4>
-<p>You can also use placeholders in the suggestion message. This works the same way as placeholders for the overall error (see <a href="#using-message-placeholders">using message placeholders</a>).</p>
-<p>Please note that you have to provide <code>data</code> on the suggestion's object. Suggestion messages cannot use properties from the overall error's <code>data</code>.</p>
-<pre data-language="js">module.exports = {
-    meta: {
-        messages: {
-            unnecessaryEscape: "Unnecessary escape character: \\{{character}}.",
-            removeEscape: "Remove `\\` before {{character}}.",
-        }
-    },
-    create: function(context) {
-        // ...
-        context.report({
-            node: node,
-            messageId: "unnecessaryEscape",
-            data: { character }, // data for the unnecessaryEscape overall message
-            suggest: [
-                {
-                    messageId: "removeEscape",
-                    data: { character }, // data for the removeEscape suggestion message
-                    fix: function(fixer) {
-                        return fixer.removeRange(range);
-                    }
-                }
-            ]
-        });
-    }
-};</pre>
-<h3 id="contextoptions">context.options</h3>
-<p>Some rules require options in order to function correctly. These options appear in configuration (<code>.eslintrc</code>, command line, or in comments). For example:</p>
-<pre data-language="json">{
-    "quotes": ["error", "double"]
-}</pre>
-<p>The <code>quotes</code> rule in this example has one option, <code>"double"</code> (the <code>error</code> is the error level). You can retrieve the options for a rule by using <code>context.options</code>, which is an array containing every configured option for the rule. In this case, <code>context.options[0]</code> would contain <code>"double"</code>:</p>
-<pre data-language="js">module.exports = {
-    create: function(context) {
-        var isDouble = (context.options[0] === "double");
-
-        // ...
-    }
-};</pre>
-<p>Since <code>context.options</code> is just an array, you can use it to determine how many options have been passed as well as retrieving the actual options themselves. Keep in mind that the error level is not part of <code>context.options</code>, as the error level cannot be known or modified from inside a rule.</p>
-<p>When using options, make sure that your rule has some logical defaults in case the options are not provided.</p>
-<h3 id="contextgetsourcecode">context.getSourceCode()</h3>
-<p>The <code>SourceCode</code> object is the main object for getting more information about the source code being linted. You can retrieve the <code>SourceCode</code> object at any time by using the <code>getSourceCode()</code> method:</p>
-<pre data-language="js">module.exports = {
-    create: function(context) {
-        var sourceCode = context.getSourceCode();
-
-        // ...
-    }
-};</pre>
-<p>Once you have an instance of <code>SourceCode</code>, you can use the methods on it to work with the code:</p>
-<ul>
-<li>
-<code>getText(node)</code> - returns the source code for the given node. Omit <code>node</code> to get the whole source.</li>
-<li>
-<code>getAllComments()</code> - returns an array of all comments in the source.</li>
-<li>
-<code>getCommentsBefore(nodeOrToken)</code> - returns an array of comment tokens that occur directly before the given node or token.</li>
-<li>
-<code>getCommentsAfter(nodeOrToken)</code> - returns an array of comment tokens that occur directly after the given node or token.</li>
-<li>
-<code>getCommentsInside(node)</code> - returns an array of all comment tokens inside a given node.</li>
-<li>
-<code>getJSDocComment(node)</code> - returns the JSDoc comment for a given node or <code>null</code> if there is none.</li>
-<li>
-<code>isSpaceBetween(nodeOrToken, nodeOrToken)</code> - returns true if there is a whitespace character between the two tokens or, if given a node, the last token of the first node and the first token of the second node.</li>
-<li>
-<code>getFirstToken(node, skipOptions)</code> - returns the first token representing the given node.</li>
-<li>
-<code>getFirstTokens(node, countOptions)</code> - returns the first <code>count</code> tokens representing the given node.</li>
-<li>
-<code>getLastToken(node, skipOptions)</code> - returns the last token representing the given node.</li>
-<li>
-<code>getLastTokens(node, countOptions)</code> - returns the last <code>count</code> tokens representing the given node.</li>
-<li>
-<code>getTokenAfter(nodeOrToken, skipOptions)</code> - returns the first token after the given node or token.</li>
-<li>
-<code>getTokensAfter(nodeOrToken, countOptions)</code> - returns <code>count</code> tokens after the given node or token.</li>
-<li>
-<code>getTokenBefore(nodeOrToken, skipOptions)</code> - returns the first token before the given node or token.</li>
-<li>
-<code>getTokensBefore(nodeOrToken, countOptions)</code> - returns <code>count</code> tokens before the given node or token.</li>
-<li>
-<code>getFirstTokenBetween(nodeOrToken1, nodeOrToken2, skipOptions)</code> - returns the first token between two nodes or tokens.</li>
-<li>
-<code>getFirstTokensBetween(nodeOrToken1, nodeOrToken2, countOptions)</code> - returns the first <code>count</code> tokens between two nodes or tokens.</li>
-<li>
-<code>getLastTokenBetween(nodeOrToken1, nodeOrToken2, skipOptions)</code> - returns the last token between two nodes or tokens.</li>
-<li>
-<code>getLastTokensBetween(nodeOrToken1, nodeOrToken2, countOptions)</code> - returns the last <code>count</code> tokens between two nodes or tokens.</li>
-<li>
-<code>getTokens(node)</code> - returns all tokens for the given node.</li>
-<li>
-<code>getTokensBetween(nodeOrToken1, nodeOrToken2)</code> - returns all tokens between two nodes.</li>
-<li>
-<code>getTokenByRangeStart(index, rangeOptions)</code> - returns the token whose range starts at the given index in the source.</li>
-<li>
-<code>getNodeByRangeIndex(index)</code> - returns the deepest node in the AST containing the given source index.</li>
-<li>
-<code>getLocFromIndex(index)</code> - returns an object with <code>line</code> and <code>column</code> properties, corresponding to the location of the given source index. <code>line</code> is 1-based and <code>column</code> is 0-based.</li>
-<li>
-<code>getIndexFromLoc(loc)</code> - returns the index of a given location in the source code, where <code>loc</code> is an object with a 1-based <code>line</code> key and a 0-based <code>column</code> key.</li>
-<li>
-<code>commentsExistBetween(nodeOrToken1, nodeOrToken2)</code> - returns <code>true</code> if comments exist between two nodes.</li>
-</ul>
-<p><code>skipOptions</code> is an object which has 3 properties; <code>skip</code>, <code>includeComments</code>, and <code>filter</code>. Default is <code>{skip: 0, includeComments: false, filter: null}</code>.</p>
-<ul>
-<li>
-<code>skip</code> is a positive integer, the number of skipping tokens. If <code>filter</code> option is given at the same time, it doesn't count filtered tokens as skipped.</li>
-<li>
-<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li>
-<li>
-<code>filter</code> is a function which gets a token as the first argument, if the function returns <code>false</code> then the result excludes the token.</li>
-</ul>
-<p><code>countOptions</code> is an object which has 3 properties; <code>count</code>, <code>includeComments</code>, and <code>filter</code>. Default is <code>{count: 0, includeComments: false, filter: null}</code>.</p>
-<ul>
-<li>
-<code>count</code> is a positive integer, the maximum number of returning tokens.</li>
-<li>
-<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li>
-<li>
-<code>filter</code> is a function which gets a token as the first argument, if the function returns <code>false</code> then the result excludes the token.</li>
-</ul>
-<p><code>rangeOptions</code> is an object which has 1 property: <code>includeComments</code>.</p>
-<ul><li>
-<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li></ul>
-<p>There are also some properties you can access:</p>
-<ul>
-<li>
-<code>hasBOM</code> - the flag to indicate whether or not the source code has Unicode BOM.</li>
-<li>
-<code>text</code> - the full text of the code being linted. Unicode BOM has been stripped from this text.</li>
-<li>
-<code>ast</code> - the <code>Program</code> node of the AST for the code being linted.</li>
-<li>
-<code>scopeManager</code> - the <a href="scope-manager-interface#scopemanager-interface">ScopeManager</a> object of the code.</li>
-<li>
-<code>visitorKeys</code> - the visitor keys to traverse this AST.</li>
-<li>
-<code>lines</code> - an array of lines, split according to the specification's definition of line breaks.</li>
-</ul>
-<p>You should use a <code>SourceCode</code> object whenever you need to get more information about the code being linted.</p>
-<h4 id="deprecated">Deprecated</h4>
-<p>Please note that the following methods have been deprecated and will be removed in a future version of ESLint:</p>
-<ul>
-<li>
+<h1>Working with Rules</h1> <nav class="docs-toc c-toc" aria-labelledby="js-toc-label"><h2 class="c-toc__label" id="js-toc-label">Table of Contents</h2> <div class="c-toc__panel" id="js-toc-panel"> <nav class="c-toc"> <ol> <li>
+<a href="#rule-basics">Rule Basics</a> </li> <li>
+<a href="#the-context-object">The Context Object</a> <ol> <li>
+<a href="#contextgetscope">context.getScope()</a> </li> <li>
+<a href="#contextreport">context.report()</a> </li> <li>
+<a href="#using-message-placeholders">Using message placeholders</a> </li> <li>
+<a href="#messageids">messageIds</a> </li> <li>
+<a href="#applying-fixes">Applying Fixes</a> </li> <li>
+<a href="#providing-suggestions">Providing Suggestions</a> <ol> <li>
+<a href="#suggestion-messageids">Suggestion messageIds</a> </li> <li>
+<a href="#placeholders-in-suggestion-messages">Placeholders in suggestion messages</a> </li> </ol> </li> <li>
+<a href="#contextoptions">context.options</a> </li> <li>
+<a href="#contextgetsourcecode">context.getSourceCode()</a> <ol> <li>
+<a href="#deprecated">Deprecated</a> </li> </ol> </li> <li>
+<a href="#options-schemas">Options Schemas</a> </li> <li>
+<a href="#getting-the-source">Getting the Source</a> </li> <li>
+<a href="#accessing-comments">Accessing Comments</a> <ol> <li>
+<a href="#sourcecodegetallcomments">sourceCode.getAllComments()</a> </li> <li>
+<a href="#sourcecodegetcommentsbefore-sourcecodegetcommentsafter-and-sourcecodegetcommentsinside">sourceCode.getCommentsBefore(), sourceCode.getCommentsAfter(), and sourceCode.getCommentsInside()</a> </li> <li>
+<a href="#token-traversal-methods">Token traversal methods</a> </li> </ol> </li> <li>
+<a href="#accessing-shebangs">Accessing Shebangs</a> </li> <li>
+<a href="#accessing-code-paths">Accessing Code Paths</a> </li> </ol> </li> <li>
+<a href="#rule-unit-tests">Rule Unit Tests</a> </li> <li>
+<a href="#performance-testing">Performance Testing</a> <ol> <li>
+<a href="#overall-performance">Overall Performance</a> </li> <li>
+<a href="#per-rule-performance">Per-rule Performance</a> </li> </ol> </li> <li>
+<a href="#rule-naming-conventions">Rule Naming Conventions</a> </li> <li>
+<a href="#runtime-rules">Runtime Rules</a> </li> </ol> </nav> </div></nav> <p><strong>Note:</strong> This page covers the most recent rule format for ESLint &gt;= 3.0.0. There is also a <a href="working-with-rules./working-with-rules-deprecated">deprecated rule format</a>.</p> <p>Each rule in ESLint has three files named with its identifier (for example, <code>no-extra-semi</code>).</p> <ul> <li>in the <code>lib/rules</code> directory: a source file (for example, <code>no-extra-semi.js</code>)</li> <li>in the <code>tests/lib/rules</code> directory: a test file (for example, <code>no-extra-semi.js</code>)</li> <li>in the <code>docs/src/rules</code> directory: a Markdown documentation file (for example, <code>no-extra-semi.md</code>)</li> </ul> <p><strong>Important:</strong> If you submit a <strong>core</strong> rule to the ESLint repository, you <strong>must</strong> follow some conventions explained below.</p> <p>Here is the basic format of the source file for a rule:</p> <pre class="language-js"><code><span class="token comment">/**<br><span class="highlight-line"> * @fileoverview Rule to disallow unnecessary semicolons</span><br><span class="highlight-line"> * @author Nicholas C. Zakas</span><br> */</span><br><br><span class="highlight-line"><span class="token string">"use strict"</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token comment">//------------------------------------------------------------------------------</span></span><br><span class="highlight-line"><span class="token comment">// Rule Definition</span></span><br><span class="highlight-line"><span class="token comment">//------------------------------------------------------------------------------</span></span><br><br><span class="highlight-line"><span class="token comment">/** @type {import('eslint').Rule.RuleModule} */</span></span><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">type</span><span class="token operator">:</span> <span class="token string">"suggestion"</span><span class="token punctuation">,</span></span><br><br><span class="highlight-line">        <span class="token literal-property property">docs</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">description</span><span class="token operator">:</span> <span class="token string">"disallow unnecessary semicolons"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">recommended</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">url</span><span class="token operator">:</span> <span class="token string">"https://eslint.org/docs/rules/no-extra-semi"</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">fixable</span><span class="token operator">:</span> <span class="token string">"code"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">schema</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token comment">// no options</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">return</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token comment">// callback functions</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <h2 id="rule-basics" tabindex="-1">Rule Basics</h2> <p>The source file for a rule exports an object with the following properties.</p> <p><code>meta</code> (object) contains metadata for the rule:</p> <ul> <li> <p><code>type</code> (string) indicates the type of rule, which is one of <code>"problem"</code>, <code>"suggestion"</code>, or <code>"layout"</code>:</p> <ul> <li>
+<code>"problem"</code> means the rule is identifying code that either will cause an error or may cause a confusing behavior. Developers should consider this a high priority to resolve.</li> <li>
+<code>"suggestion"</code> means the rule is identifying something that could be done in a better way but no errors will occur if the code isn’t changed.</li> <li>
+<code>"layout"</code> means the rule cares primarily about whitespace, semicolons, commas, and parentheses, all the parts of the program that determine how the code looks rather than how it executes. These rules work on parts of the code that aren’t specified in the AST.</li> </ul> </li> <li> <p><code>docs</code> (object) is required for core rules of ESLint:</p> <ul> <li>
+<code>description</code> (string) provides the short description of the rule in the <a href="working-with-rules../rules/index">rules index</a>
+</li> <li>
+<code>recommended</code> (boolean) is whether the <code>"extends": "eslint:recommended"</code> property in a <a href="working-with-rules../user-guide/configuring/configuration-files#extending-configuration-files">configuration file</a> enables the rule</li> <li>
+<code>url</code> (string) specifies the URL at which the full documentation can be accessed (enabling code editors to provide a helpful link on highlighted rule violations)</li> </ul> <p>In a custom rule or plugin, you can omit <code>docs</code> or include any properties that you need in it.</p> </li> <li> <p><code>fixable</code> (string) is either <code>"code"</code> or <code>"whitespace"</code> if the <code>--fix</code> option on the <a href="working-with-rules../user-guide/command-line-interface#--fix">command line</a> automatically fixes problems reported by the rule</p> <p><strong>Important:</strong> the <code>fixable</code> property is mandatory for fixable rules. If this property isn’t specified, ESLint will throw an error whenever the rule attempts to produce a fix. Omit the <code>fixable</code> property if the rule is not fixable.</p> </li> <li> <p><code>hasSuggestions</code> (boolean) specifies whether rules can return suggestions (defaults to <code>false</code> if omitted)</p> <p><strong>Important:</strong> the <code>hasSuggestions</code> property is mandatory for rules that provide suggestions. If this property isn’t set to <code>true</code>, ESLint will throw an error whenever the rule attempts to produce a suggestion. Omit the <code>hasSuggestions</code> property if the rule does not provide suggestions.</p> </li> <li> <p><code>schema</code> (array) specifies the <a href="#options-schemas">options</a> so ESLint can prevent invalid <a href="working-with-rules../user-guide/configuring/rules#configuring-rules">rule configurations</a></p> </li> <li> <p><code>deprecated</code> (boolean) indicates whether the rule has been deprecated. You may omit the <code>deprecated</code> property if the rule has not been deprecated.</p> </li> <li> <p><code>replacedBy</code> (array) in the case of a deprecated rule, specifies replacement rule(s)</p> </li> </ul> <p><code>create</code> (function) returns an object with methods that ESLint calls to “visit” nodes while traversing the abstract syntax tree (AST as defined by <a href="https://github.com/estree/estree">ESTree</a>) of JavaScript code:</p> <ul> <li>if a key is a node type or a <a href="working-with-rules./selectors">selector</a>, ESLint calls that <strong>visitor</strong> function while going <strong>down</strong> the tree</li> <li>if a key is a node type or a <a href="working-with-rules./selectors">selector</a> plus <code>:exit</code>, ESLint calls that <strong>visitor</strong> function while going <strong>up</strong> the tree</li> <li>if a key is an event name, ESLint calls that <strong>handler</strong> function for <a href="working-with-rules./code-path-analysis">code path analysis</a>
+</li> </ul> <p>A rule can use the current node and its surrounding tree to report or fix problems.</p> <p>Here are methods for the <a href="working-with-rules../rules/array-callback-return">array-callback-return</a> rule:</p> <pre class="language-js"><code><span class="highlight-line"><span class="token keyword">function</span> <span class="token function">checkLastSegment</span> <span class="token punctuation">(</span><span class="token parameter">node</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token comment">// report problem for function if last code path segment is reachable</span></span><br><span class="highlight-line"><span class="token punctuation">}</span></span><br><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token operator">...</span> <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token comment">// declare the state of the rule</span></span><br><span class="highlight-line">        <span class="token keyword">return</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token function-variable function">ReturnStatement</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">node</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token comment">// at a ReturnStatement node while going down</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token comment">// at a function expression node while going up:</span></span><br><span class="highlight-line">            <span class="token string-property property">"FunctionExpression:exit"</span><span class="token operator">:</span> checkLastSegment<span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token string-property property">"ArrowFunctionExpression:exit"</span><span class="token operator">:</span> checkLastSegment<span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token function-variable function">onCodePathStart</span><span class="token operator">:</span> <span class="token keyword">function</span> <span class="token punctuation">(</span><span class="token parameter">codePath<span class="token punctuation">,</span> node</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token comment">// at the start of analyzing a code path</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token function-variable function">onCodePathEnd</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">codePath<span class="token punctuation">,</span> node</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token comment">// at the end of analyzing a code path</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <h2 id="the-context-object" tabindex="-1">The Context Object</h2> <p>The <code>context</code> object contains additional functionality that is helpful for rules to do their jobs. As the name implies, the <code>context</code> object contains information that is relevant to the context of the rule. The <code>context</code> object has the following properties:</p> <ul> <li>
+<code>parserOptions</code> - the parser options configured for this run (more details <a href="working-with-rules../user-guide/configuring/language-options#specifying-parser-options">here</a>).</li> <li>
+<code>id</code> - the rule ID.</li> <li>
+<code>options</code> - an array of the <a href="https://eslint.org/docs/user-guide/configuring/rules#configuring-rules">configured options</a> for this rule. This array does not include the rule severity. For more information, see <a href="#contextoptions">here</a>.</li> <li>
+<code>settings</code> - the <a href="https://eslint.org/docs/user-guide/configuring/configuration-files#adding-shared-settings">shared settings</a> from configuration.</li> <li>
+<code>parserPath</code> - the name of the <code>parser</code> from configuration.</li> <li>
+<code>parserServices</code> - an object containing parser-provided services for rules. The default parser does not provide any services. However, if a rule is intended to be used with a custom parser, it could use <code>parserServices</code> to access anything provided by that parser. (For example, a TypeScript parser could provide the ability to get the computed type of a given node.)</li> </ul> <p>Additionally, the <code>context</code> object has the following methods:</p> <ul> <li>
+<code>getAncestors()</code> - returns an array of the ancestors of the currently-traversed node, starting at the root of the AST and continuing through the direct parent of the current node. This array does not include the currently-traversed node itself.</li> <li>
+<code>getCwd()</code> - returns the <code>cwd</code> passed to <a href="working-with-rules./nodejs-api#linter">Linter</a>. It is a path to a directory that should be considered as the current working directory.</li> <li>
+<code>getDeclaredVariables(node)</code> - returns a list of <a href="working-with-rules./scope-manager-interface#variable-interface">variables</a> declared by the given node. This information can be used to track references to variables. <ul> <li>If the node is a <code>VariableDeclaration</code>, all variables declared in the declaration are returned.</li> <li>If the node is a <code>VariableDeclarator</code>, all variables declared in the declarator are returned.</li> <li>If the node is a <code>FunctionDeclaration</code> or <code>FunctionExpression</code>, the variable for the function name is returned, in addition to variables for the function parameters.</li> <li>If the node is an <code>ArrowFunctionExpression</code>, variables for the parameters are returned.</li> <li>If the node is a <code>ClassDeclaration</code> or a <code>ClassExpression</code>, the variable for the class name is returned.</li> <li>If the node is a <code>CatchClause</code>, the variable for the exception is returned.</li> <li>If the node is an <code>ImportDeclaration</code>, variables for all of its specifiers are returned.</li> <li>If the node is an <code>ImportSpecifier</code>, <code>ImportDefaultSpecifier</code>, or <code>ImportNamespaceSpecifier</code>, the declared variable is returned.</li> <li>Otherwise, if the node does not declare any variables, an empty array is returned.</li> </ul> </li> <li>
+<code>getFilename()</code> - returns the filename associated with the source.</li> <li>
+<code>getPhysicalFilename()</code> - when linting a file, it returns the full path of the file on disk without any code block information. When linting text, it returns the value passed to <code>—stdin-filename</code> or <code>&lt;text&gt;</code> if not specified.</li> <li>
+<code>getScope()</code> - returns the <a href="working-with-rules./scope-manager-interface#scope-interface">scope</a> of the currently-traversed node. This information can be used to track references to variables.</li> <li>
+<code>getSourceCode()</code> - returns a <a href="#contextgetsourcecode"><code>SourceCode</code></a> object that you can use to work with the source that was passed to ESLint.</li> <li>
+<code>markVariableAsUsed(name)</code> - marks a variable with the given name in the current scope as used. This affects the <a href="working-with-rules../rules/no-unused-vars">no-unused-vars</a> rule. Returns <code>true</code> if a variable with the given name was found and marked as used, otherwise <code>false</code>.</li> <li>
+<code>report(descriptor)</code> - reports a problem in the code (see the <a href="#contextreport">dedicated section</a>).</li> </ul> <p><strong>Note:</strong> Earlier versions of ESLint supported additional methods on the <code>context</code> object. Those methods were removed in the new format and should not be relied upon.</p> <h3 id="contextgetscope" tabindex="-1">context.getScope()</h3> <p>This method returns the scope which has the following types:</p> <table> <thead> <tr> <th style="text-align:left">AST Node Type</th> <th style="text-align:left">Scope Type</th> </tr> </thead> <tbody> <tr> <td style="text-align:left"><code>Program</code></td> <td style="text-align:left"><code>global</code></td> </tr> <tr> <td style="text-align:left"><code>FunctionDeclaration</code></td> <td style="text-align:left"><code>function</code></td> </tr> <tr> <td style="text-align:left"><code>FunctionExpression</code></td> <td style="text-align:left"><code>function</code></td> </tr> <tr> <td style="text-align:left"><code>ArrowFunctionExpression</code></td> <td style="text-align:left"><code>function</code></td> </tr> <tr> <td style="text-align:left"><code>ClassDeclaration</code></td> <td style="text-align:left"><code>class</code></td> </tr> <tr> <td style="text-align:left"><code>ClassExpression</code></td> <td style="text-align:left"><code>class</code></td> </tr> <tr> <td style="text-align:left">
+<code>BlockStatement</code> ※1</td> <td style="text-align:left"><code>block</code></td> </tr> <tr> <td style="text-align:left">
+<code>SwitchStatement</code> ※1</td> <td style="text-align:left"><code>switch</code></td> </tr> <tr> <td style="text-align:left">
+<code>ForStatement</code> ※2</td> <td style="text-align:left"><code>for</code></td> </tr> <tr> <td style="text-align:left">
+<code>ForInStatement</code> ※2</td> <td style="text-align:left"><code>for</code></td> </tr> <tr> <td style="text-align:left">
+<code>ForOfStatement</code> ※2</td> <td style="text-align:left"><code>for</code></td> </tr> <tr> <td style="text-align:left"><code>WithStatement</code></td> <td style="text-align:left"><code>with</code></td> </tr> <tr> <td style="text-align:left"><code>CatchClause</code></td> <td style="text-align:left"><code>catch</code></td> </tr> <tr> <td style="text-align:left">others</td> <td style="text-align:left">※3</td> </tr> </tbody> </table> <p><strong>※1</strong> Only if the configured parser provided the block-scope feature. The default parser provides the block-scope feature if <code>parserOptions.ecmaVersion</code> is not less than <code>6</code>.<br> <strong>※2</strong> Only if the <code>for</code> statement defines the iteration variable as a block-scoped variable (E.g., <code>for (let i = 0;;) {}</code>).<br> <strong>※3</strong> The scope of the closest ancestor node which has own scope. If the closest ancestor node has multiple scopes then it chooses the innermost scope (E.g., the <code>Program</code> node has a <code>global</code> scope and a <code>module</code> scope if <code>Program#sourceType</code> is <code>"module"</code>. The innermost scope is the <code>module</code> scope.).</p> <p>The returned value is a <a href="working-with-rulesscope-manager-interface"><code>Scope</code> object</a> defined by the <code>eslint-scope</code> package. The <code>Variable</code> objects of global variables have some additional properties.</p> <ul> <li>
+<code>variable.writeable</code> (<code>boolean | undefined</code>) … If <code>true</code>, this global variable can be assigned arbitrary value. If <code>false</code>, this global variable is read-only.</li> <li>
+<code>variable.eslintExplicitGlobal</code> (<code>boolean | undefined</code>) … If <code>true</code>, this global variable was defined by a <code>/* globals */</code> directive comment in the source code file.</li> <li>
+<code>variable.eslintExplicitGlobalComments</code> (<code>Comment[] | undefined</code>) … The array of <code>/* globals */</code> directive comments which defined this global variable in the source code file. This property is <code>undefined</code> if there are no <code>/* globals */</code> directive comments.</li> <li>
+<code>variable.eslintImplicitGlobalSetting</code> (<code>"readonly" | "writable" | undefined</code>) … The configured value in config files. This can be different from <code>variable.writeable</code> if there are <code>/* globals */</code> directive comments.</li> </ul> <h3 id="contextreport" tabindex="-1">context.report()</h3> <p>The main method you’ll use is <code>context.report()</code>, which publishes a warning or error (depending on the configuration being used). This method accepts a single argument, which is an object containing the following properties:</p> <ul> <li>
+<code>message</code> - the problem message.</li> <li>
+<code>node</code> - (optional) the AST node related to the problem. If present and <code>loc</code> is not specified, then the starting location of the node is used as the location of the problem.</li> <li>
+<code>loc</code> - (optional) an object specifying the location of the problem. If both <code>loc</code> and <code>node</code> are specified, then the location is used from <code>loc</code> instead of <code>node</code>. <ul> <li>
+<code>start</code> - An object of the start location. <ul> <li>
+<code>line</code> - the 1-based line number at which the problem occurred.</li> <li>
+<code>column</code> - the 0-based column number at which the problem occurred.</li> </ul> </li> <li>
+<code>end</code> - An object of the end location. <ul> <li>
+<code>line</code> - the 1-based line number at which the problem occurred.</li> <li>
+<code>column</code> - the 0-based column number at which the problem occurred.</li> </ul> </li> </ul> </li> <li>
+<code>data</code> - (optional) <a href="#using-message-placeholders">placeholder</a> data for <code>message</code>.</li> <li>
+<code>fix</code> - (optional) a function that applies a <a href="#applying-fixes">fix</a> to resolve the problem.</li> </ul> <p>Note that at least one of <code>node</code> or <code>loc</code> is required.</p> <p>The simplest example is to use just <code>node</code> and <code>message</code>:</p> <pre class="language-js"><code><span class="highlight-line">context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Unexpected identifier"</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span></code></pre> <p>The node contains all of the information necessary to figure out the line and column number of the offending text as well the source text representing the node.</p> <h3 id="using-message-placeholders" tabindex="-1">Using message placeholders</h3> <p>You can also use placeholders in the message and provide <code>data</code>:</p> <pre class="language-js"><code><br><span class="highlight-line">context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Unexpected identifier: {{ identifier }}"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">identifier</span><span class="token operator">:</span> node<span class="token punctuation">.</span>name</span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br></code></pre> <p>Note that leading and trailing whitespace is optional in message parameters.</p> <p>The node contains all of the information necessary to figure out the line and column number of the offending text as well the source text representing the node.</p> <h3 id="messageids" tabindex="-1">
+<code>messageId</code>s</h3> <p>Instead of typing out messages in both the <code>context.report()</code> call and your tests, you can use <code>messageId</code>s instead.</p> <p>This allows you to avoid retyping error messages. It also prevents errors reported in different sections of your rule from having out-of-date messages.</p> <pre class="language-js"><code><br><span class="highlight-line"><span class="token comment">// in your rule</span></span><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">avoidName</span><span class="token operator">:</span> <span class="token string">"Avoid using variables named '{{ name }}'"</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function">create</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">return</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token function">Identifier</span><span class="token punctuation">(</span><span class="token parameter">node</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">if</span> <span class="token punctuation">(</span>node<span class="token punctuation">.</span>name <span class="token operator">===</span> <span class="token string">"foo"</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">                        node<span class="token punctuation">,</span></span><br><span class="highlight-line">                        <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"avoidName"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                        <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                            <span class="token literal-property property">name</span><span class="token operator">:</span> <span class="token string">"foo"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                        <span class="token punctuation">}</span></span><br><span class="highlight-line">                    <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token comment">// in the file to lint:</span></span><br><br><span class="highlight-line"><span class="token keyword">var</span> foo <span class="token operator">=</span> <span class="token number">2</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token comment">//  ^ error: Avoid using variables named 'foo'</span></span><br><br><span class="highlight-line"><span class="token comment">// In your tests:</span></span><br><span class="highlight-line"><span class="token keyword">var</span> rule <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">"../../../lib/rules/my-rule"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line"><span class="token keyword">var</span> RuleTester <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">"eslint"</span><span class="token punctuation">)</span><span class="token punctuation">.</span>RuleTester<span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token keyword">var</span> ruleTester <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">RuleTester</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">ruleTester<span class="token punctuation">.</span><span class="token function">run</span><span class="token punctuation">(</span><span class="token string">"my-rule"</span><span class="token punctuation">,</span> rule<span class="token punctuation">,</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">valid</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"bar"</span><span class="token punctuation">,</span> <span class="token string">"baz"</span><span class="token punctuation">]</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">invalid</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">code</span><span class="token operator">:</span> <span class="token string">"foo"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">errors</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">                <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"avoidName"</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">]</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">]</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br></code></pre> <h3 id="applying-fixes" tabindex="-1">Applying Fixes</h3> <p>If you’d like ESLint to attempt to fix the problem you’re reporting, you can do so by specifying the <code>fix</code> function when using <code>context.report()</code>. The <code>fix</code> function receives a single argument, a <code>fixer</code> object, that you can use to apply a fix. For example:</p> <pre class="language-js"><code><span class="highlight-line">context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Missing semicolon"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">insertTextAfter</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> <span class="token string">";"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span></code></pre> <p>Here, the <code>fix()</code> function is used to insert a semicolon after the node. Note that a fix is not immediately applied, and may not be applied at all if there are conflicts with other fixes. After applying fixes, ESLint will run all of the enabled rules again on the fixed code, potentially applying more fixes. This process will repeat up to 10 times, or until no more fixable problems are found. Afterwards, any remaining problems will be reported as usual.</p> <p><strong>Important:</strong> The <code>meta.fixable</code> property is mandatory for fixable rules. ESLint will throw an error if a rule that implements <code>fix</code> functions does not <a href="#rule-basics">export</a> the <code>meta.fixable</code> property.</p> <p>The <code>fixer</code> object has the following methods:</p> <ul> <li>
+<code>insertTextAfter(nodeOrToken, text)</code> - inserts text after the given node or token</li> <li>
+<code>insertTextAfterRange(range, text)</code> - inserts text after the given range</li> <li>
+<code>insertTextBefore(nodeOrToken, text)</code> - inserts text before the given node or token</li> <li>
+<code>insertTextBeforeRange(range, text)</code> - inserts text before the given range</li> <li>
+<code>remove(nodeOrToken)</code> - removes the given node or token</li> <li>
+<code>removeRange(range)</code> - removes text in the given range</li> <li>
+<code>replaceText(nodeOrToken, text)</code> - replaces the text in the given node or token</li> <li>
+<code>replaceTextRange(range, text)</code> - replaces the text in the given range</li> </ul> <p>A range is a two-item array containing character indices inside of the source code. The first item is the start of the range (inclusive) and the second item is the end of the range (exclusive). Every node and token has a <code>range</code> property to identify the source code range they represent.</p> <p>The above methods return a <code>fixing</code> object. The <code>fix()</code> function can return the following values:</p> <ul> <li>A <code>fixing</code> object.</li> <li>An array which includes <code>fixing</code> objects.</li> <li>An iterable object which enumerates <code>fixing</code> objects. Especially, the <code>fix()</code> function can be a generator.</li> </ul> <p>If you make a <code>fix()</code> function which returns multiple <code>fixing</code> objects, those <code>fixing</code> objects must not be overlapped.</p> <p>Best practices for fixes:</p> <ol> <li>Avoid any fixes that could change the runtime behavior of code and cause it to stop working.</li> <li>Make fixes as small as possible. Fixes that are unnecessarily large could conflict with other fixes, and prevent them from being applied.</li> <li>Only make one fix per message. This is enforced because you must return the result of the fixer operation from <code>fix()</code>.</li> <li>Since all rules are run again after the initial round of fixes is applied, it’s not necessary for a rule to check whether the code style of a fix will cause errors to be reported by another rule. <ul> <li> <p>For example, suppose a fixer would like to surround an object key with quotes, but it’s not sure whether the user would prefer single or double quotes.</p> <pre class="language-js"><code><span class="highlight-line"><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token literal-property property">foo</span> <span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">)</span></span><br><br><span class="highlight-line"><span class="token comment">// should get fixed to either</span></span><br><br><span class="highlight-line"><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token string-property property">'foo'</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">)</span></span><br><br><span class="highlight-line"><span class="token comment">// or</span></span><br><br><span class="highlight-line"><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token string-property property">"foo"</span><span class="token operator">:</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">)</span></span></code></pre> </li> <li> <p>This fixer can just select a quote type arbitrarily. If it guesses wrong, the resulting code will be automatically reported and fixed by the <a href="https://eslint.org/docs/rules/quotes"><code>quotes</code></a> rule.</p> </li> </ul> </li> </ol> <p>Note: Making fixes as small as possible is a best practice, but in some cases it may be correct to extend the range of the fix in order to intentionally prevent other rules from making fixes in a surrounding range in the same pass. For instance, if replacement text declares a new variable, it can be useful to prevent other changes in the scope of the variable as they might cause name collisions.</p> <p>The following example replaces <code>node</code> and also ensures that no other fixes will be applied in the range of <code>node.parent</code> in the same pass:</p> <pre class="language-js"><code><span class="highlight-line">context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">    node<span class="token punctuation">,</span></span><br><span class="highlight-line">    message<span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token operator">*</span><span class="token function">fix</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">yield</span> fixer<span class="token punctuation">.</span><span class="token function">replaceText</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> replacementText<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">        <span class="token comment">// extend range of the fix to the range of `node.parent`</span></span><br><span class="highlight-line">        <span class="token keyword">yield</span> fixer<span class="token punctuation">.</span><span class="token function">insertTextBefore</span><span class="token punctuation">(</span>node<span class="token punctuation">.</span>parent<span class="token punctuation">,</span> <span class="token string">""</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">        <span class="token keyword">yield</span> fixer<span class="token punctuation">.</span><span class="token function">insertTextAfter</span><span class="token punctuation">(</span>node<span class="token punctuation">.</span>parent<span class="token punctuation">,</span> <span class="token string">""</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span></code></pre> <h3 id="providing-suggestions" tabindex="-1">Providing Suggestions</h3> <p>In some cases fixes aren’t appropriate to be automatically applied, for example, if a fix potentially changes functionality or if there are multiple valid ways to fix a rule depending on the implementation intent (see the best practices for <a href="#applying-fixes">applying fixes</a> listed above). In these cases, there is an alternative <code>suggest</code> option on <code>context.report()</code> that allows other tools, such as editors, to expose helpers for users to manually apply a suggestion.</p> <p>In order to provide suggestions, use the <code>suggest</code> key in the report argument with an array of suggestion objects. The suggestion objects represent individual suggestions that could be applied and require either a <code>desc</code> key string that describes what applying the suggestion would do or a <code>messageId</code> key (see <a href="#suggestion-messageids">below</a>), and a <code>fix</code> key that is a function defining the suggestion result. This <code>fix</code> function follows the same API as regular fixes (described above in <a href="#applying-fixes">applying fixes</a>).</p> <pre class="language-js"><code><br><span class="highlight-line">context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">message</span><span class="token operator">:</span> <span class="token string">"Unnecessary escape character: \\{{character}}."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span> character <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token literal-property property">suggest</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">desc</span><span class="token operator">:</span> <span class="token string">"Remove the `\\`. This maintains the current functionality."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">removeRange</span><span class="token punctuation">(</span>range<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">desc</span><span class="token operator">:</span> <span class="token string">"Replace the `\\` with `\\\\` to include the actual backslash character."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">insertTextBeforeRange</span><span class="token punctuation">(</span>range<span class="token punctuation">,</span> <span class="token string">"\\"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span></span><br><span class="highlight-line">    <span class="token punctuation">]</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br></code></pre> <p><strong>Important:</strong> The <code>meta.hasSuggestions</code> property is mandatory for rules that provide suggestions. ESLint will throw an error if a rule attempts to produce a suggestion but does not <a href="#rule-basics">export</a> this property.</p> <p>Note: Suggestions will be applied as a stand-alone change, without triggering multipass fixes. Each suggestion should focus on a singular change in the code and should not try to conform to user defined styles. For example, if a suggestion is adding a new statement into the codebase, it should not try to match correct indentation, or conform to user preferences on presence/absence of semicolons. All of those things can be corrected by multipass autofix when the user triggers it.</p> <p>Best practices for suggestions:</p> <ol> <li>Don’t try to do too much and suggest large refactors that could introduce a lot of breaking changes.</li> <li>As noted above, don’t try to conform to user-defined styles.</li> </ol> <p>Suggestions are intended to provide fixes. ESLint will automatically remove the whole suggestion from the linting output if the suggestion’s <code>fix</code> function returned <code>null</code> or an empty array/sequence.</p> <h4 id="suggestion-messageids" tabindex="-1">Suggestion <code>messageId</code>s</h4> <p>Instead of using a <code>desc</code> key for suggestions a <code>messageId</code> can be used instead. This works the same way as <code>messageId</code>s for the overall error (see <a href="#messageids">messageIds</a>). Here is an example of how to use it in a rule:</p> <pre class="language-js"><code><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">unnecessaryEscape</span><span class="token operator">:</span> <span class="token string">"Unnecessary escape character: \\{{character}}."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">removeEscape</span><span class="token operator">:</span> <span class="token string">"Remove the `\\`. This maintains the current functionality."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">escapeBackslash</span><span class="token operator">:</span> <span class="token string">"Replace the `\\` with `\\\\` to include the actual backslash character."</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">hasSuggestions</span><span class="token operator">:</span> <span class="token boolean">true</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token comment">// ...</span></span><br><span class="highlight-line">        context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">'unnecessaryEscape'</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span> character <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">suggest</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">                <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"removeEscape"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                        <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">removeRange</span><span class="token punctuation">(</span>range<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"escapeBackslash"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                        <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">insertTextBeforeRange</span><span class="token punctuation">(</span>range<span class="token punctuation">,</span> <span class="token string">"\\"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">]</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span><br></code></pre> <h4 id="placeholders-in-suggestion-messages" tabindex="-1">Placeholders in suggestion messages</h4> <p>You can also use placeholders in the suggestion message. This works the same way as placeholders for the overall error (see <a href="#using-message-placeholders">using message placeholders</a>).</p> <p>Please note that you have to provide <code>data</code> on the suggestion’s object. Suggestion messages cannot use properties from the overall error’s <code>data</code>.</p> <pre class="language-js"><code><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">messages</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">unnecessaryEscape</span><span class="token operator">:</span> <span class="token string">"Unnecessary escape character: \\{{character}}."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">removeEscape</span><span class="token operator">:</span> <span class="token string">"Remove `\\` before {{character}}."</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">        <span class="token literal-property property">hasSuggestions</span><span class="token operator">:</span> <span class="token boolean">true</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token comment">// ...</span></span><br><span class="highlight-line">        context<span class="token punctuation">.</span><span class="token function">report</span><span class="token punctuation">(</span><span class="token punctuation">{</span></span><br><span class="highlight-line">            <span class="token literal-property property">node</span><span class="token operator">:</span> node<span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"unnecessaryEscape"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span> character <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token comment">// data for the unnecessaryEscape overall message</span></span><br><span class="highlight-line">            <span class="token literal-property property">suggest</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">                <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token literal-property property">messageId</span><span class="token operator">:</span> <span class="token string">"removeEscape"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                    <span class="token literal-property property">data</span><span class="token operator">:</span> <span class="token punctuation">{</span> character <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token comment">// data for the removeEscape suggestion message</span></span><br><span class="highlight-line">                    <span class="token function-variable function">fix</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">fixer</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                        <span class="token keyword">return</span> fixer<span class="token punctuation">.</span><span class="token function">removeRange</span><span class="token punctuation">(</span>range<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">                    <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span></span><br><span class="highlight-line">            <span class="token punctuation">]</span></span><br><span class="highlight-line">        <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span><br></code></pre> <h3 id="contextoptions" tabindex="-1">context.options</h3> <p>Some rules require options in order to function correctly. These options appear in configuration (<code>.eslintrc</code>, command line, or in comments). For example:</p> <pre class="language-json"><code><span class="highlight-line"><span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token property">"quotes"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"error"</span><span class="token punctuation">,</span> <span class="token string">"double"</span><span class="token punctuation">]</span></span><br><span class="highlight-line"><span class="token punctuation">}</span></span></code></pre> <p>The <code>quotes</code> rule in this example has one option, <code>"double"</code> (the <code>error</code> is the error level). You can retrieve the options for a rule by using <code>context.options</code>, which is an array containing every configured option for the rule. In this case, <code>context.options[0]</code> would contain <code>"double"</code>:</p> <pre class="language-js"><code><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">var</span> isDouble <span class="token operator">=</span> <span class="token punctuation">(</span>context<span class="token punctuation">.</span>options<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">===</span> <span class="token string">"double"</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">        <span class="token comment">// ...</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>Since <code>context.options</code> is just an array, you can use it to determine how many options have been passed as well as retrieving the actual options themselves. Keep in mind that the error level is not part of <code>context.options</code>, as the error level cannot be known or modified from inside a rule.</p> <p>When using options, make sure that your rule has some logical defaults in case the options are not provided.</p> <h3 id="contextgetsourcecode" tabindex="-1">context.getSourceCode()</h3> <p>The <code>SourceCode</code> object is the main object for getting more information about the source code being linted. You can retrieve the <code>SourceCode</code> object at any time by using the <code>getSourceCode()</code> method:</p> <pre class="language-js"><code><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token function-variable function">create</span><span class="token operator">:</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter">context</span><span class="token punctuation">)</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token keyword">var</span> sourceCode <span class="token operator">=</span> context<span class="token punctuation">.</span><span class="token function">getSourceCode</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line">        <span class="token comment">// ...</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>Once you have an instance of <code>SourceCode</code>, you can use the following methods on it to work with the code:</p> <ul> <li>
+<code>getText(node)</code> - returns the source code for the given node. Omit <code>node</code> to get the whole source.</li> <li>
+<code>getAllComments()</code> - returns an array of all comments in the source.</li> <li>
+<code>getCommentsBefore(nodeOrToken)</code> - returns an array of comment tokens that occur directly before the given node or token.</li> <li>
+<code>getCommentsAfter(nodeOrToken)</code> - returns an array of comment tokens that occur directly after the given node or token.</li> <li>
+<code>getCommentsInside(node)</code> - returns an array of all comment tokens inside a given node.</li> <li>
+<code>isSpaceBetween(nodeOrToken, nodeOrToken)</code> - returns true if there is a whitespace character between the two tokens or, if given a node, the last token of the first node and the first token of the second node.</li> <li>
+<code>getFirstToken(node, skipOptions)</code> - returns the first token representing the given node.</li> <li>
+<code>getFirstTokens(node, countOptions)</code> - returns the first <code>count</code> tokens representing the given node.</li> <li>
+<code>getLastToken(node, skipOptions)</code> - returns the last token representing the given node.</li> <li>
+<code>getLastTokens(node, countOptions)</code> - returns the last <code>count</code> tokens representing the given node.</li> <li>
+<code>getTokenAfter(nodeOrToken, skipOptions)</code> - returns the first token after the given node or token.</li> <li>
+<code>getTokensAfter(nodeOrToken, countOptions)</code> - returns <code>count</code> tokens after the given node or token.</li> <li>
+<code>getTokenBefore(nodeOrToken, skipOptions)</code> - returns the first token before the given node or token.</li> <li>
+<code>getTokensBefore(nodeOrToken, countOptions)</code> - returns <code>count</code> tokens before the given node or token.</li> <li>
+<code>getFirstTokenBetween(nodeOrToken1, nodeOrToken2, skipOptions)</code> - returns the first token between two nodes or tokens.</li> <li>
+<code>getFirstTokensBetween(nodeOrToken1, nodeOrToken2, countOptions)</code> - returns the first <code>count</code> tokens between two nodes or tokens.</li> <li>
+<code>getLastTokenBetween(nodeOrToken1, nodeOrToken2, skipOptions)</code> - returns the last token between two nodes or tokens.</li> <li>
+<code>getLastTokensBetween(nodeOrToken1, nodeOrToken2, countOptions)</code> - returns the last <code>count</code> tokens between two nodes or tokens.</li> <li>
+<code>getTokens(node)</code> - returns all tokens for the given node.</li> <li>
+<code>getTokensBetween(nodeOrToken1, nodeOrToken2)</code> - returns all tokens between two nodes.</li> <li>
+<code>getTokenByRangeStart(index, rangeOptions)</code> - returns the token whose range starts at the given index in the source.</li> <li>
+<code>getNodeByRangeIndex(index)</code> - returns the deepest node in the AST containing the given source index.</li> <li>
+<code>getLocFromIndex(index)</code> - returns an object with <code>line</code> and <code>column</code> properties, corresponding to the location of the given source index. <code>line</code> is 1-based and <code>column</code> is 0-based.</li> <li>
+<code>getIndexFromLoc(loc)</code> - returns the index of a given location in the source code, where <code>loc</code> is an object with a 1-based <code>line</code> key and a 0-based <code>column</code> key.</li> <li>
+<code>commentsExistBetween(nodeOrToken1, nodeOrToken2)</code> - returns <code>true</code> if comments exist between two nodes.</li> </ul> <p><code>skipOptions</code> is an object which has 3 properties; <code>skip</code>, <code>includeComments</code>, and <code>filter</code>. Default is <code>{skip: 0, includeComments: false, filter: null}</code>.</p> <ul> <li>
+<code>skip</code> is a positive integer, the number of skipping tokens. If <code>filter</code> option is given at the same time, it doesn’t count filtered tokens as skipped.</li> <li>
+<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li> <li>
+<code>filter</code> is a function which gets a token as the first argument, if the function returns <code>false</code> then the result excludes the token.</li> </ul> <p><code>countOptions</code> is an object which has 3 properties; <code>count</code>, <code>includeComments</code>, and <code>filter</code>. Default is <code>{count: 0, includeComments: false, filter: null}</code>.</p> <ul> <li>
+<code>count</code> is a positive integer, the maximum number of returning tokens.</li> <li>
+<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li> <li>
+<code>filter</code> is a function which gets a token as the first argument, if the function returns <code>false</code> then the result excludes the token.</li> </ul> <p><code>rangeOptions</code> is an object which has 1 property: <code>includeComments</code>.</p> <ul> <li>
+<code>includeComments</code> is a boolean value, the flag to include comment tokens into the result.</li> </ul> <p>There are also some properties you can access:</p> <ul> <li>
+<code>hasBOM</code> - the flag to indicate whether or not the source code has Unicode BOM.</li> <li>
+<code>text</code> - the full text of the code being linted. Unicode BOM has been stripped from this text.</li> <li>
+<code>ast</code> - the <code>Program</code> node of the AST for the code being linted.</li> <li>
+<code>scopeManager</code> - the <a href="working-with-rules./scope-manager-interface#scopemanager-interface">ScopeManager</a> object of the code.</li> <li>
+<code>visitorKeys</code> - the visitor keys to traverse this AST.</li> <li>
+<code>lines</code> - an array of lines, split according to the specification’s definition of line breaks.</li> </ul> <p>You should use a <code>SourceCode</code> object whenever you need to get more information about the code being linted.</p> <h4 id="deprecated" tabindex="-1">Deprecated</h4> <p>Please note that the following methods have been deprecated and will be removed in a future version of ESLint:</p> <ul> <li>
 <code>getComments()</code> - replaced by <code>getCommentsBefore()</code>, <code>getCommentsAfter()</code>, and <code>getCommentsInside()</code>
-</li>
-<li>
-<code>getTokenOrCommentBefore()</code> - replaced by <code>getTokenBefore()</code> with the <code>{ includeComments: true }</code> option</li>
-<li>
-<code>getTokenOrCommentAfter()</code> - replaced by <code>getTokenAfter()</code> with the <code>{ includeComments: true }</code> option</li>
-<li>
+</li> <li>
+<code>getTokenOrCommentBefore()</code> - replaced by <code>getTokenBefore()</code> with the <code>{ includeComments: true }</code> option</li> <li>
+<code>getTokenOrCommentAfter()</code> - replaced by <code>getTokenAfter()</code> with the <code>{ includeComments: true }</code> option</li> <li>
 <code>isSpaceBetweenTokens()</code> - replaced by <code>isSpaceBetween()</code>
-</li>
-</ul>
-<h3 id="options-schemas">Options Schemas</h3>
-<p>Rules may export a <code>schema</code> property, which is a <a href="http://json-schema.org/">JSON schema</a> format description of a rule's options which will be used by ESLint to validate configuration options and prevent invalid or unexpected inputs before they are passed to the rule in <code>context.options</code>.</p>
-<p>There are two formats for a rule's exported <code>schema</code>. The first is a full JSON Schema object describing all possible options the rule accepts, including the rule's error level as the first argument and any optional arguments thereafter.</p>
-<p>However, to simplify schema creation, rules may also export an array of schemas for each optional positional argument, and ESLint will automatically validate the required error level first. For example, the <code>yoda</code> rule accepts a primary mode argument, as well as an extra options object with named properties.</p>
-<pre data-language="js">// "yoda": [2, "never", { "exceptRange": true }]
-module.exports = {
-    meta: {
-        schema: [
-            {
-                "enum": ["always", "never"]
-            },
-            {
-                "type": "object",
-                "properties": {
-                    "exceptRange": {
-                        "type": "boolean"
-                    }
-                },
-                "additionalProperties": false
-            }
-        ]
-    },
-};</pre>
-<p>In the preceding example, the error level is assumed to be the first argument. It is followed by the first optional argument, a string which may be either <code>"always"</code> or <code>"never"</code>. The final optional argument is an object, which may have a Boolean property named <code>exceptRange</code>.</p>
-<p>To learn more about JSON Schema, we recommend looking at some examples in <a href="http://json-schema.org/learn/">website</a> to start, and also reading <a href="http://spacetelescope.github.io/understanding-json-schema/">Understanding JSON Schema</a> (a free ebook).</p>
-<p><strong>Note:</strong> Currently you need to use full JSON Schema object rather than array in case your schema has references ($ref), because in case of array format ESLint transforms this array into a single schema without updating references that makes them incorrect (they are ignored).</p>
-<h3 id="getting-the-source">Getting the Source</h3>
-<p>If your rule needs to get the actual JavaScript source to work with, then use the <code>sourceCode.getText()</code> method. This method works as follows:</p>
-<pre data-language="js">// get all source
-var source = sourceCode.getText();
-
-// get source for just this AST node
-var nodeSource = sourceCode.getText(node);
-
-// get source for AST node plus previous two characters
-var nodeSourceWithPrev = sourceCode.getText(node, 2);
-
-// get source for AST node plus following two characters
-var nodeSourceWithFollowing = sourceCode.getText(node, 0, 2);</pre>
-<p>In this way, you can look for patterns in the JavaScript text itself when the AST isn't providing the appropriate data (such as location of commas, semicolons, parentheses, etc.).</p>
-<h3 id="accessing-comments">Accessing Comments</h3>
-<p>While comments are not technically part of the AST, ESLint provides a few ways for rules to access them:</p>
-<h4 id="sourcecodegetallcomments">sourceCode.getAllComments()</h4>
-<p>This method returns an array of all the comments found in the program. This is useful for rules that need to check all comments regardless of location.</p>
-<h4 id="sourcecodegetcommentsbefore-sourcecodegetcommentsafter-and-sourcecodegetcommentsinside">sourceCode.getCommentsBefore(), sourceCode.getCommentsAfter(), and sourceCode.getCommentsInside()</h4>
-<p>These methods return an array of comments that appear directly before, directly after, and inside nodes, respectively. They are useful for rules that need to check comments in relation to a given node or token.</p>
-<p>Keep in mind that the results of this method are calculated on demand.</p>
-<h4 id="token-traversal-methods">Token traversal methods</h4>
-<p>Finally, comments can be accessed through many of <code>sourceCode</code>'s methods using the <code>includeComments</code> option.</p>
-<h3 id="accessing-shebangs">Accessing Shebangs</h3>
-<p>Shebangs are represented by tokens of type <code>"Shebang"</code>. They are treated as comments and can be accessed by the methods outlined above.</p>
-<h3 id="accessing-code-paths">Accessing Code Paths</h3>
-<p>ESLint analyzes code paths while traversing AST. You can access that code path objects with five events related to code paths.</p>
-<p><a href="code-path-analysis">details here</a></p>
-<h2 id="rule-unit-tests">Rule Unit Tests</h2>
-<p>Each bundled rule for ESLint core must have a set of unit tests submitted with it to be accepted. The test file is named the same as the source file but lives in <code>tests/lib/</code>. For example, if the rule source file is <code>lib/rules/foo.js</code> then the test file should be <code>tests/lib/rules/foo.js</code>.</p>
-<p>ESLint provides the <a href="nodejs-api#ruletester"><code>RuleTester</code></a> utility to make it easy to write tests for rules.</p>
-<h2 id="performance-testing">Performance Testing</h2>
-<p>To keep the linting process efficient and unobtrusive, it is useful to verify the performance impact of new rules or modifications to existing rules.</p>
-<h3 id="overall-performance">Overall Performance</h3>
-<p>When developing in the ESLint core repository, the <code>npm run perf</code> command gives a high-level overview of ESLint running time with all core rules enabled.</p>
-<pre data-language="bash">$ git checkout master
-Switched to branch 'master'
-
-$ npm run perf
-CPU Speed is 2200 with multiplier 7500000
-Performance Run #1:  1394.689313ms
-Performance Run #2:  1423.295351ms
-Performance Run #3:  1385.09515ms
-Performance Run #4:  1382.406982ms
-Performance Run #5:  1409.68566ms
-Performance budget ok:  1394.689313ms (limit: 3409.090909090909ms)
-
-$ git checkout my-rule-branch
-Switched to branch 'my-rule-branch'
-
-$ npm run perf
-CPU Speed is 2200 with multiplier 7500000
-Performance Run #1:  1443.736547ms
-Performance Run #2:  1419.193291ms
-Performance Run #3:  1436.018228ms
-Performance Run #4:  1473.605485ms
-Performance Run #5:  1457.455283ms
-Performance budget ok:  1443.736547ms (limit: 3409.090909090909ms)</pre>
-<h3 id="per-rule-performance">Per-rule Performance</h3>
-<p>ESLint has a built-in method to track performance of individual rules. Setting the <code>TIMING</code> environment variable will trigger the display, upon linting completion, of the ten longest-running rules, along with their individual running time and relative performance impact as a percentage of total rule processing time.</p>
-<pre data-language="bash">$ TIMING=1 eslint lib
-Rule                    | Time (ms) | Relative
-:-----------------------|----------:|--------:
-no-multi-spaces         |    52.472 |     6.1%
-camelcase               |    48.684 |     5.7%
-no-irregular-whitespace |    43.847 |     5.1%
-valid-jsdoc             |    40.346 |     4.7%
-handle-callback-err     |    39.153 |     4.6%
-space-infix-ops         |    35.444 |     4.1%
-no-undefined            |    25.693 |     3.0%
-no-shadow               |    22.759 |     2.7%
-no-empty-class          |    21.976 |     2.6%
-semi                    |    19.359 |     2.3%</pre>
-<p>To test one rule explicitly, combine the <code>--no-eslintrc</code>, and <code>--rule</code> options:</p>
-<pre data-language="bash">$ TIMING=1 eslint --no-eslintrc --rule "quotes: [2, 'double']" lib
-Rule   | Time (ms) | Relative
-:------|----------:|--------:
-quotes |    18.066 |   100.0%</pre>
-<p>To see a longer list of results (more than 10), set the environment variable to another value such as <code>TIMING=50</code> or <code>TIMING=all</code>.</p>
-<h2 id="rule-naming-conventions">Rule Naming Conventions</h2>
-<p>The rule naming conventions for ESLint are fairly simple:</p>
-<ul>
-<li>If your rule is disallowing something, prefix it with <code>no-</code> such as <code>no-eval</code> for disallowing <code>eval()</code> and <code>no-debugger</code> for disallowing <code>debugger</code>.</li>
-<li>If your rule is enforcing the inclusion of something, use a short name without a special prefix.</li>
-<li>Use dashes between words.</li>
-</ul>
-<h2 id="runtime-rules">Runtime Rules</h2>
-<p>The thing that makes ESLint different from other linters is the ability to define custom rules at runtime. This is perfect for rules that are specific to your project or company and wouldn't make sense for ESLint to ship with. With runtime rules, you don't have to wait for the next version of ESLint or be disappointed that your rule isn't general enough to apply to the larger JavaScript community, just write your rules and include them at runtime.</p>
-<p>Runtime rules are written in the same format as all other rules. Create your rule as you would any other and then follow these steps:</p>
-<ol>
-<li>Place all of your runtime rules in the same directory (e.g., <code>eslint_rules</code>).</li>
-<li>Create a <a href="../user-guide/configuring">configuration file</a> and specify your rule ID error level under the <code>rules</code> key. Your rule will not run unless it has a value of <code>"warn"</code> or <code>"error"</code> in the configuration file.</li>
-<li>Run the <a href="../user-guide/command-line-interface">command line interface</a> using the <code>--rulesdir</code> option to specify the location of your runtime rules.</li>
-</ol>
+</li> <li><code>getJSDocComment()</code></li> </ul> <h3 id="options-schemas" tabindex="-1">Options Schemas</h3> <p>Rules may export a <code>schema</code> property, which is a <a href="https://json-schema.org/">JSON schema</a> format description of a rule’s options which will be used by ESLint to validate configuration options and prevent invalid or unexpected inputs before they are passed to the rule in <code>context.options</code>.</p> <p>There are two formats for a rule’s exported <code>schema</code>. The first is a full JSON Schema object describing all possible options the rule accepts, including the rule’s error level as the first argument and any optional arguments thereafter.</p> <p>However, to simplify schema creation, rules may also export an array of schemas for each optional positional argument, and ESLint will automatically validate the required error level first. For example, the <code>yoda</code> rule accepts a primary mode argument, as well as an extra options object with named properties.</p> <pre class="language-js"><code><span class="highlight-line"><span class="token comment">// "yoda": [2, "never", { "exceptRange": true }]</span></span><br><span class="highlight-line">module<span class="token punctuation">.</span>exports <span class="token operator">=</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">    <span class="token literal-property property">meta</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">        <span class="token literal-property property">schema</span><span class="token operator">:</span> <span class="token punctuation">[</span></span><br><span class="highlight-line">            <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token string-property property">"enum"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"always"</span><span class="token punctuation">,</span> <span class="token string">"never"</span><span class="token punctuation">]</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">            <span class="token punctuation">{</span></span><br><span class="highlight-line">                <span class="token string-property property">"type"</span><span class="token operator">:</span> <span class="token string">"object"</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token string-property property">"properties"</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                    <span class="token string-property property">"exceptRange"</span><span class="token operator">:</span> <span class="token punctuation">{</span></span><br><span class="highlight-line">                        <span class="token string-property property">"type"</span><span class="token operator">:</span> <span class="token string">"boolean"</span></span><br><span class="highlight-line">                    <span class="token punctuation">}</span></span><br><span class="highlight-line">                <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line">                <span class="token string-property property">"additionalProperties"</span><span class="token operator">:</span> <span class="token boolean">false</span></span><br><span class="highlight-line">            <span class="token punctuation">}</span></span><br><span class="highlight-line">        <span class="token punctuation">]</span></span><br><span class="highlight-line">    <span class="token punctuation">}</span><span class="token punctuation">,</span></span><br><span class="highlight-line"><span class="token punctuation">}</span><span class="token punctuation">;</span></span></code></pre> <p>In the preceding example, the error level is assumed to be the first argument. It is followed by the first optional argument, a string which may be either <code>"always"</code> or <code>"never"</code>. The final optional argument is an object, which may have a Boolean property named <code>exceptRange</code>.</p> <p>To learn more about JSON Schema, we recommend looking at some examples in <a href="https://json-schema.org/learn/">website</a> to start, and also reading <a href="https://json-schema.org/understanding-json-schema/">Understanding JSON Schema</a> (a free ebook).</p> <p><strong>Note:</strong> Currently you need to use full JSON Schema object rather than array in case your schema has references ($ref), because in case of array format ESLint transforms this array into a single schema without updating references that makes them incorrect (they are ignored).</p> <h3 id="getting-the-source" tabindex="-1">Getting the Source</h3> <p>If your rule needs to get the actual JavaScript source to work with, then use the <code>sourceCode.getText()</code> method. This method works as follows:</p> <pre class="language-js"><code><br><span class="highlight-line"><span class="token comment">// get all source</span></span><br><span class="highlight-line"><span class="token keyword">var</span> source <span class="token operator">=</span> sourceCode<span class="token punctuation">.</span><span class="token function">getText</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token comment">// get source for just this AST node</span></span><br><span class="highlight-line"><span class="token keyword">var</span> nodeSource <span class="token operator">=</span> sourceCode<span class="token punctuation">.</span><span class="token function">getText</span><span class="token punctuation">(</span>node<span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token comment">// get source for AST node plus previous two characters</span></span><br><span class="highlight-line"><span class="token keyword">var</span> nodeSourceWithPrev <span class="token operator">=</span> sourceCode<span class="token punctuation">.</span><span class="token function">getText</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span><br><br><span class="highlight-line"><span class="token comment">// get source for AST node plus following two characters</span></span><br><span class="highlight-line"><span class="token keyword">var</span> nodeSourceWithFollowing <span class="token operator">=</span> sourceCode<span class="token punctuation">.</span><span class="token function">getText</span><span class="token punctuation">(</span>node<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span></code></pre> <p>In this way, you can look for patterns in the JavaScript text itself when the AST isn’t providing the appropriate data (such as location of commas, semicolons, parentheses, etc.).</p> <h3 id="accessing-comments" tabindex="-1">Accessing Comments</h3> <p>While comments are not technically part of the AST, ESLint provides a few ways for rules to access them:</p> <h4 id="sourcecodegetallcomments" tabindex="-1">sourceCode.getAllComments()</h4> <p>This method returns an array of all the comments found in the program. This is useful for rules that need to check all comments regardless of location.</p> <h4 id="sourcecodegetcommentsbefore-sourcecodegetcommentsafter-and-sourcecodegetcommentsinside" tabindex="-1">sourceCode.getCommentsBefore(), sourceCode.getCommentsAfter(), and sourceCode.getCommentsInside()</h4> <p>These methods return an array of comments that appear directly before, directly after, and inside nodes, respectively. They are useful for rules that need to check comments in relation to a given node or token.</p> <p>Keep in mind that the results of this method are calculated on demand.</p> <h4 id="token-traversal-methods" tabindex="-1">Token traversal methods</h4> <p>Finally, comments can be accessed through many of <code>sourceCode</code>’s methods using the <code>includeComments</code> option.</p> <h3 id="accessing-shebangs" tabindex="-1">Accessing Shebangs</h3> <p>Shebangs are represented by tokens of type <code>"Shebang"</code>. They are treated as comments and can be accessed by the methods outlined above.</p> <h3 id="accessing-code-paths" tabindex="-1">Accessing Code Paths</h3> <p>ESLint analyzes code paths while traversing AST. You can access that code path objects with five events related to code paths.</p> <p><a href="working-with-rules./code-path-analysis">details here</a></p> <h2 id="rule-unit-tests" tabindex="-1">Rule Unit Tests</h2> <p>Each bundled rule for ESLint core must have a set of unit tests submitted with it to be accepted. The test file is named the same as the source file but lives in <code>tests/lib/</code>. For example, if the rule source file is <code>lib/rules/foo.js</code> then the test file should be <code>tests/lib/rules/foo.js</code>.</p> <p>ESLint provides the <a href="https://eslint.org/docs/developer-guide/nodejs-api#ruletester"><code>RuleTester</code></a> utility to make it easy to write tests for rules.</p> <h2 id="performance-testing" tabindex="-1">Performance Testing</h2> <p>To keep the linting process efficient and unobtrusive, it is useful to verify the performance impact of new rules or modifications to existing rules.</p> <h3 id="overall-performance" tabindex="-1">Overall Performance</h3> <p>When developing in the ESLint core repository, the <code>npm run perf</code> command gives a high-level overview of ESLint running time with all core rules enabled.</p> <pre class="language-bash"><code><span class="highlight-line">$ <span class="token function">git</span> checkout main</span><br><span class="highlight-line">Switched to branch <span class="token string">'main'</span></span><br><br><span class="highlight-line">$ <span class="token function">npm</span> run perf</span><br><span class="highlight-line">CPU Speed is <span class="token number">2200</span> with multiplier <span class="token number">7500000</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#1:  1394.689313ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#2:  1423.295351ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#3:  1385.09515ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#4:  1382.406982ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#5:  1409.68566ms</span></span><br><span class="highlight-line">Performance budget ok:  <span class="token number">1394</span>.689313ms <span class="token punctuation">(</span>limit: <span class="token number">3409</span>.090909090909ms<span class="token punctuation">)</span></span><br><br><span class="highlight-line">$ <span class="token function">git</span> checkout my-rule-branch</span><br><span class="highlight-line">Switched to branch <span class="token string">'my-rule-branch'</span></span><br><br><span class="highlight-line">$ <span class="token function">npm</span> run perf</span><br><span class="highlight-line">CPU Speed is <span class="token number">2200</span> with multiplier <span class="token number">7500000</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#1:  1443.736547ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#2:  1419.193291ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#3:  1436.018228ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#4:  1473.605485ms</span></span><br><span class="highlight-line">Performance Run <span class="token comment">#5:  1457.455283ms</span></span><br><span class="highlight-line">Performance budget ok:  <span class="token number">1443</span>.736547ms <span class="token punctuation">(</span>limit: <span class="token number">3409</span>.090909090909ms<span class="token punctuation">)</span></span></code></pre> <h3 id="per-rule-performance" tabindex="-1">Per-rule Performance</h3> <p>ESLint has a built-in method to track performance of individual rules. Setting the <code>TIMING</code> environment variable will trigger the display, upon linting completion, of the ten longest-running rules, along with their individual running time (rule creation + rule execution) and relative performance impact as a percentage of total rule processing time (rule creation + rule execution).</p> <pre class="language-bash"><code><span class="highlight-line">$ <span class="token assign-left variable">TIMING</span><span class="token operator">=</span><span class="token number">1</span> eslint lib</span><br><span class="highlight-line">Rule                    <span class="token operator">|</span> Time <span class="token punctuation">(</span>ms<span class="token punctuation">)</span> <span class="token operator">|</span> Relative</span><br><span class="highlight-line">:-----------------------<span class="token operator">|</span>----------:<span class="token operator">|</span>--------:</span><br><span class="highlight-line">no-multi-spaces         <span class="token operator">|</span>    <span class="token number">52.472</span> <span class="token operator">|</span>     <span class="token number">6.1</span>%</span><br><span class="highlight-line">camelcase               <span class="token operator">|</span>    <span class="token number">48.684</span> <span class="token operator">|</span>     <span class="token number">5.7</span>%</span><br><span class="highlight-line">no-irregular-whitespace <span class="token operator">|</span>    <span class="token number">43.847</span> <span class="token operator">|</span>     <span class="token number">5.1</span>%</span><br><span class="highlight-line">valid-jsdoc             <span class="token operator">|</span>    <span class="token number">40.346</span> <span class="token operator">|</span>     <span class="token number">4.7</span>%</span><br><span class="highlight-line">handle-callback-err     <span class="token operator">|</span>    <span class="token number">39.153</span> <span class="token operator">|</span>     <span class="token number">4.6</span>%</span><br><span class="highlight-line">space-infix-ops         <span class="token operator">|</span>    <span class="token number">35.444</span> <span class="token operator">|</span>     <span class="token number">4.1</span>%</span><br><span class="highlight-line">no-undefined            <span class="token operator">|</span>    <span class="token number">25.693</span> <span class="token operator">|</span>     <span class="token number">3.0</span>%</span><br><span class="highlight-line">no-shadow               <span class="token operator">|</span>    <span class="token number">22.759</span> <span class="token operator">|</span>     <span class="token number">2.7</span>%</span><br><span class="highlight-line">no-empty-class          <span class="token operator">|</span>    <span class="token number">21.976</span> <span class="token operator">|</span>     <span class="token number">2.6</span>%</span><br><span class="highlight-line">semi                    <span class="token operator">|</span>    <span class="token number">19.359</span> <span class="token operator">|</span>     <span class="token number">2.3</span>%</span></code></pre> <p>To test one rule explicitly, combine the <code>--no-eslintrc</code>, and <code>--rule</code> options:</p> <pre class="language-bash"><code><span class="highlight-line">$ <span class="token assign-left variable">TIMING</span><span class="token operator">=</span><span class="token number">1</span> eslint --no-eslintrc --rule <span class="token string">"quotes: [2, 'double']"</span> lib</span><br><span class="highlight-line">Rule   <span class="token operator">|</span> Time <span class="token punctuation">(</span>ms<span class="token punctuation">)</span> <span class="token operator">|</span> Relative</span><br><span class="highlight-line">:------<span class="token operator">|</span>----------:<span class="token operator">|</span>--------:</span><br><span class="highlight-line">quotes <span class="token operator">|</span>    <span class="token number">18.066</span> <span class="token operator">|</span>   <span class="token number">100.0</span>%</span></code></pre> <p>To see a longer list of results (more than 10), set the environment variable to another value such as <code>TIMING=50</code> or <code>TIMING=all</code>.</p> <h2 id="rule-naming-conventions" tabindex="-1">Rule Naming Conventions</h2> <p>The rule naming conventions for ESLint are fairly simple:</p> <ul> <li>If your rule is disallowing something, prefix it with <code>no-</code> such as <code>no-eval</code> for disallowing <code>eval()</code> and <code>no-debugger</code> for disallowing <code>debugger</code>.</li> <li>If your rule is enforcing the inclusion of something, use a short name without a special prefix.</li> <li>Use dashes between words.</li> </ul> <h2 id="runtime-rules" tabindex="-1">Runtime Rules</h2> <p>The thing that makes ESLint different from other linters is the ability to define custom rules at runtime. This is perfect for rules that are specific to your project or company and wouldn’t make sense for ESLint to ship with. With runtime rules, you don’t have to wait for the next version of ESLint or be disappointed that your rule isn’t general enough to apply to the larger JavaScript community, just write your rules and include them at runtime.</p> <p>Runtime rules are written in the same format as all other rules. Create your rule as you would any other and then follow these steps:</p> <ol> <li>Place all of your runtime rules in the same directory (e.g., <code>eslint_rules</code>).</li> <li>Create a <a href="working-with-rules../user-guide/configuring/index">configuration file</a> and specify your rule ID error level under the <code>rules</code> key. Your rule will not run unless it has a value of <code>"warn"</code> or <code>"error"</code> in the configuration file.</li> <li>Run the <a href="working-with-rules../user-guide/command-line-interface">command line interface</a> using the <code>--rulesdir</code> option to specify the location of your runtime rules.</li> </ol>
 <div class="_attribution">
   <p class="_attribution-p">
-    © JS Foundation and other contributors<br>Licensed under the MIT License.<br>
-    <a href="https://eslint.org/docs/developer-guide/working-with-rules" class="_attribution-link">https://eslint.org/docs/developer-guide/working-with-rules</a>
+    © OpenJS Foundation and other contributors<br>Licensed under the MIT License.<br>
+    <a href="https://eslint.org/docs/latest/developer-guide/working-with-rules" class="_attribution-link">https://eslint.org/docs/latest/developer-guide/working-with-rules</a>
   </p>
 </div>
 
