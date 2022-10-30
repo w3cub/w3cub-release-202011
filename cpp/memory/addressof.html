@@ -10,13 +10,12 @@
   <meta name="description" content=" The expression std&#58;&#58;addressof(E) is a constant subexpression, if E is an lvalue constant subexpression. ">
   <meta name="keywords" content="std, addressof, c++, cpp">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/memory/addressof.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/cpp.js"></script>
   
@@ -87,31 +86,42 @@
 				
 				
 <h1 id="firstHeading" class="firstHeading">std::addressof</h1>            <table class="t-dcl-begin"> <tr class="t-dsc-header"> <th> Defined in header <code><a href="../header/memory" title="cpp/header/memory">&lt;memory&gt;</a></code> </th> <th> </th> <th> </th> </tr>  <tr class="t-dcl-rev-aux"> <td></td> <td rowspan="3">(1)</td> <td></td> </tr> <tr class="t-dcl t-since-cxx11 t-until-cxx17"> <td> <pre data-language="cpp">template&lt; class T &gt;
-T* addressof(T&amp; arg) noexcept;</pre>
+T* addressof( T&amp; arg ) noexcept;</pre>
 </td>  <td> <span class="t-mark-rev t-since-cxx11">(since C++11)</span> <br><span class="t-mark-rev t-until-cxx17">(until C++17)</span> </td> </tr> <tr class="t-dcl t-since-cxx17"> <td> <pre data-language="cpp">template&lt; class T &gt;
-constexpr T* addressof(T&amp; arg) noexcept;</pre>
+constexpr T* addressof( T&amp; arg ) noexcept;</pre>
 </td>  <td> <span class="t-mark-rev t-since-cxx17">(since C++17)</span> </td> </tr>  <tr class="t-dcl t-since-cxx17"> <td> <pre data-language="cpp">template &lt;class T&gt;
-const T* addressof(const T&amp;&amp;) = delete;</pre>
+const T* addressof( const T&amp;&amp; ) = delete;</pre>
 </td> <td> (2) </td> <td> <span class="t-mark-rev t-since-cxx17">(since C++17)</span> </td> </tr>  </table> <div class="t-li1">
-<span class="t-li">1)</span> Obtains the actual address of the object or function <code>arg</code>, even in presence of overloaded <code>operator&amp;</code>
-</div> <div class="t-li1">
+<span class="t-li">1)</span> Obtains the actual address of the object or function <code>arg</code>, even in presence of overloaded <code>operator&amp;</code>.</div> <div class="t-li1">
 <span class="t-li">2)</span> Rvalue overload is deleted to prevent taking the address of <code>const</code> rvalues.</div> <table class="t-rev-begin"> <tr class="t-rev t-since-cxx17">
 <td> <p>The expression <code>std::addressof(E)</code> is a <a href="../language/constant_expression" title="cpp/language/constant expression">constant subexpression</a>, if <code>E</code> is an lvalue constant subexpression.</p>
 </td> <td><span class="t-mark-rev t-since-cxx17">(since C++17)</span></td>
-</tr> </table> <h3 id="Parameters">Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> arg </td> <td> - </td> <td> lvalue object or function </td>
+</tr> </table>  <h3 id="Parameters"> Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> arg </td> <td> - </td> <td> lvalue object or function </td>
 </tr>
-</table> <h3 id="Return_value">Return value</h3> <p>Pointer to <code>arg</code>.</p>
-<h3 id="Possible_implementation">Possible implementation</h3> <table class="eq-fun-cpp-table"> <tr> <td> <div class="cpp source-cpp"><pre data-language="cpp">template&lt; class T &gt;
-T* addressof(T&amp; arg) 
+</table> <h3 id="Return_value"> Return value</h3> <p>Pointer to <code>arg</code>.</p>
+<h3 id="Possible_implementation"> Possible implementation</h3> <p>The implementation below is not <code>constexpr</code> (which requires compiler support).</p>
+<table class="eq-fun-cpp-table"> <tr> <td> <div class="cpp source-cpp"><pre data-language="cpp">template&lt;class T&gt;
+typename std::enable_if&lt;std::is_object&lt;T&gt;::value, T*&gt;::type  addressof(T&amp; arg) noexcept
 {
     return reinterpret_cast&lt;T*&gt;(
                &amp;const_cast&lt;char&amp;&gt;(
-                  reinterpret_cast&lt;const volatile char&amp;&gt;(arg)));
+                   reinterpret_cast&lt;const volatile char&amp;&gt;(arg)));
+}
+ 
+template&lt;class T&gt;
+typename std::enable_if&lt;!std::is_object&lt;T&gt;::value, T*&gt;::type addressof(T&amp; arg) noexcept
+{
+    return &amp;arg;
 }</pre></div> </td>
 </tr>
-</table> <p>Note: the above implementation <a rel="nofollow" class="external text" href="http://stackoverflow.com/a/6495205/273767">is oversimplified</a> and is not <code>constexpr</code> (which requires compiler support).</p>
-<h3 id="Example">Example</h3> <div class="t-example">
-<p>operator&amp; may be overloaded for a pointer wrapper class to obtain a pointer to pointer:</p>
+</table> <p>Correct implementation of this function requires compiler support: <a rel="nofollow" class="external text" href="https://github.com/gcc-mirror/gcc/blob/master/libstdc++-v3/include/bits/move.h#L47-L50">GNU libstdc++</a>, <a rel="nofollow" class="external text" href="https://github.com/llvm/llvm-project/blob/main/libcxx/include/__memory/addressof.h#L21-L28">LLVM libc++</a>, <a rel="nofollow" class="external text" href="https://github.com/microsoft/STL/blob/main/stl/inc/xstddef#L251-L254">Microsoft STL</a>.</p>
+<h3 id="Notes"> Notes</h3> <table class="wikitable"> <tr> <th>
+<a href="../utility/feature_test" title="cpp/utility/feature test">Feature-test</a> macro </th>
+</tr> <tr> <td>
+<a href="../feature_test#Library_features" title="cpp/feature test"><code>__cpp_lib_addressof_constexpr</code></a> </td>
+</tr>
+</table> <h3 id="Example"> Example</h3> <div class="t-example">
+<p><code>operator&amp;</code> may be overloaded for a pointer wrapper class to obtain a pointer to pointer:</p>
 <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;iostream&gt;
 #include &lt;memory&gt;
  
@@ -147,13 +157,13 @@ int main()
 }</pre></div> <p>Possible output:</p>
 <div class="text source-text"><pre data-language="c">Ctor this = 0x7fff59ae6e88
 int** overload called with p = 0x7fff59ae6e90
-Ptr   overload called with p = 0x7fff59ae6e88</pre></div> </div> <h3 id="See_also">See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="allocator" title="cpp/memory/allocator"> <span class="t-lines"><span>allocator</span></span></a></div> </td> <td> the default allocator <br> <span class="t-mark">(class template)</span> </td>
+Ptr   overload called with p = 0x7fff59ae6e88</pre></div> </div> <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="allocator" title="cpp/memory/allocator"> <span class="t-lines"><span>allocator</span></span></a></div> </td> <td> the default allocator <br> <span class="t-mark">(class template)</span>  </td>
 </tr> <tr class="t-dsc"> <td> <div><a href="pointer_traits/pointer_to" title="cpp/memory/pointer traits/pointer to"> <span class="t-lines"><span>pointer_to</span></span></a></div>
-<div><span class="t-lines"><span><span class="t-cmark">[static]</span></span></span></div> </td> <td> obtains a dereferenceable pointer to its argument <br> <span class="t-mark">(public static member function of <code>std::pointer_traits&lt;Ptr&gt;</code>)</span> </td>
-</tr> </table>          <div class="_attribution">
+<div><span class="t-lines"><span><span class="t-cmark">[static]</span></span></span></div> </td> <td> obtains a dereferenceable pointer to its argument <br> <span class="t-mark">(public static member function of <code>std::pointer_traits&lt;Ptr&gt;</code>)</span>  </td>
+</tr> </table>           <div class="_attribution">
   <p class="_attribution-p">
     © cppreference.com<br>Licensed under the Creative Commons Attribution-ShareAlike Unported License v3.0.<br>
-    <a href="http://en.cppreference.com/w/cpp/memory/addressof" class="_attribution-link">http://en.cppreference.com/w/cpp/memory/addressof</a>
+    <a href="https://en.cppreference.com/w/cpp/memory/addressof" class="_attribution-link">https://en.cppreference.com/w/cpp/memory/addressof</a>
   </p>
 </div>
 

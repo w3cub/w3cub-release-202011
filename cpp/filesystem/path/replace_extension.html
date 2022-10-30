@@ -10,13 +10,12 @@
   <meta name="description" content=" Replaces the extension with replacement or removes it when the default value of replacement is used. ">
   <meta name="keywords" content="std, filesystem, path, replace, extension, c++, cpp">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/filesystem/path/replace_extension.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/cpp.js"></script>
   
@@ -87,35 +86,70 @@
 				
 				
 <h1 id="firstHeading" class="firstHeading">std::filesystem::path::replace_extension</h1>            <table class="t-dcl-begin"> <tr class="t-dcl t-since-cxx17"> <td> <pre data-language="cpp">path&amp; replace_extension( const path&amp; replacement = path() );</pre>
-</td> <td> (1) </td> <td> <span class="t-mark-rev t-since-cxx17">(since C++17)</span> </td> </tr>  </table> <p>Replaces the extension with <code>replacement</code> or removes it when the default value of <code>replacement</code> is used.</p>
+</td> <td class="t-dcl-nopad"> </td> <td> <span class="t-mark-rev t-since-cxx17">(since C++17)</span> </td> </tr>  </table> <p>Replaces the extension with <code>replacement</code> or removes it when the default value of <code>replacement</code> is used.</p>
 <p>Firstly, if this path has an <a href="extension" title="cpp/filesystem/path/extension"><code>extension()</code></a>, it is removed from the generic-format view of the pathname.</p>
-<p>Then, a dot character is appended to the generic-format view of the pathname, if <code>replacement</code> is not empty or does not begin with a dot character.</p>
+<p>Then, a dot character is appended to the generic-format view of the pathname, if <code>replacement</code> is not empty and does not begin with a dot character.</p>
 <p>Then <code>replacement</code> is appended as if by <code>operator+=(replacement)</code>.</p>
-<h3 id="Parameters">Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> replacement </td> <td> - </td> <td> the extension to replace with </td>
+<h3 id="Parameters"> Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> replacement </td> <td> - </td> <td> the extension to replace with </td>
 </tr>
-</table> <h3 id="Return_value">Return value</h3> <p><code>*this</code>.</p>
-<h3 id="Exceptions">Exceptions</h3> <p>(none).</p>
-<h3 id="Notes">Notes</h3> <p>The type of <code>replacement</code> is <code>std::filesystem::path</code> even though it is not intended to represent an object on the file system in order to correctly account for the filesystem character encoding.</p>
-<h3 id="Example">Example</h3> <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;iostream&gt;
-#include &lt;filesystem&gt;
+</table> <h3 id="Return_value"> Return value</h3> <p><code>*this</code>.</p>
+<h3 id="Exceptions"> Exceptions</h3> <p>May throw implementation-defined exceptions.</p>
+<h3 id="Notes"> Notes</h3> <p>The type of <code>replacement</code> is <code><a href="../path" title="cpp/filesystem/path">std::filesystem::path</a></code> even though it is not intended to represent an object on the file system in order to correctly account for the filesystem character encoding.</p>
+<h3 id="Example"> Example</h3> <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;filesystem&gt;
+#include &lt;iomanip&gt;
+#include &lt;iostream&gt;
+#include &lt;utility&gt;
 namespace fs = std::filesystem;
  
 int main()
 {
-    fs::path p = "/foo/bar.jpeg";
-    std::cout &lt;&lt; "Was: " &lt;&lt; p &lt;&lt; '\n';
-    p.replace_extension(".jpg");
-    std::cout &lt;&lt; "Now: " &lt;&lt; p &lt;&lt; '\n';
+    std::cout &lt;&lt; "Path:             Ext:       Result:\n" &lt;&lt; std::left;
+    for (const auto&amp; [path, extension] : {
+            std::make_pair( "/foo/bar.jpg", ".png" ),
+            std::make_pair( "/foo/bar.jpg", "png"  ),
+            std::make_pair( "/foo/bar.jpg", "."    ),
+            std::make_pair( "/foo/bar.jpg", ""     ),
+            std::make_pair( "/foo/bar."   , "png"  ),
+            std::make_pair( "/foo/bar"    , ".png" ),
+            std::make_pair( "/foo/bar"    , "png"  ),
+            std::make_pair( "/foo/bar"    , "."    ),
+            std::make_pair( "/foo/bar"    , ""     ),
+            std::make_pair( "/foo/."      , ".png" ),
+            std::make_pair( "/foo/."      , "png"  ),
+            std::make_pair( "/foo/."      , "."    ),
+            std::make_pair( "/foo/."      , ""     ),
+            std::make_pair( "/foo/"       , ".png" ),
+            std::make_pair( "/foo/"       , "png"  ), })
+    {
+        fs::path p = path, e = extension;
+        std::cout &lt;&lt; std::setw(18) &lt;&lt; p &lt;&lt; std::setw(11) &lt;&lt; e;
+        p.replace_extension(e);
+        std::cout &lt;&lt; p &lt;&lt; '\n';
+    }
 }</pre></div> <p>Output:</p>
-<div class="text source-text"><pre data-language="c">Was: "/foo/bar.jpeg"
-Now: "/foo/bar.jpg"</pre></div> </div> <h3 id="See_also">See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="extension" title="cpp/filesystem/path/extension"> <span class="t-lines"><span>extension</span></span></a></div> </td> <td> returns the file extension path component <br> <span class="t-mark">(public member function)</span> </td>
-</tr> <tr class="t-dsc"> <td> <div><a href="filename" title="cpp/filesystem/path/filename"> <span class="t-lines"><span>filename</span></span></a></div> </td> <td> returns the filename path component <br> <span class="t-mark">(public member function)</span> </td>
-</tr> <tr class="t-dsc"> <td> <div><a href="stem" title="cpp/filesystem/path/stem"> <span class="t-lines"><span>stem</span></span></a></div> </td> <td> returns the stem path component <br> <span class="t-mark">(public member function)</span> </td>
+<div class="text source-text"><pre data-language="c">Path:             Ext:       Result:
+"/foo/bar.jpg"    ".png"     "/foo/bar.png"
+"/foo/bar.jpg"    "png"      "/foo/bar.png"
+"/foo/bar.jpg"    "."        "/foo/bar."
+"/foo/bar.jpg"    ""         "/foo/bar"
+"/foo/bar."       "png"      "/foo/bar.png"
+"/foo/bar"        ".png"     "/foo/bar.png"
+"/foo/bar"        "png"      "/foo/bar.png"
+"/foo/bar"        "."        "/foo/bar."
+"/foo/bar"        ""         "/foo/bar"
+"/foo/."          ".png"     "/foo/..png"
+"/foo/."          "png"      "/foo/..png"
+"/foo/."          "."        "/foo/.."
+"/foo/."          ""         "/foo/."
+"/foo/"           ".png"     "/foo/.png"
+"/foo/"           "png"      "/foo/.png"</pre></div> </div> <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="extension" title="cpp/filesystem/path/extension"> <span class="t-lines"><span>extension</span></span></a></div> </td> <td> returns the file extension path component <br> <span class="t-mark">(public member function)</span>  </td>
+</tr> <tr class="t-dsc"> <td> <div><a href="filename" title="cpp/filesystem/path/filename"> <span class="t-lines"><span>filename</span></span></a></div> </td> <td> returns the filename path component <br> <span class="t-mark">(public member function)</span>  </td>
+</tr> <tr class="t-dsc"> <td> <div><a href="stem" title="cpp/filesystem/path/stem"> <span class="t-lines"><span>stem</span></span></a></div> </td> <td> returns the stem path component (filename without the final extension) <br> <span class="t-mark">(public member function)</span>  </td>
 </tr> <tr class="t-dsc"> <td> <div><a href="has_path" title="cpp/filesystem/path/has path"> <span class="t-lines"><span>has_extension</span></span></a></div> </td> <td> checks if the corresponding path element is not empty <br> <span class="t-mark">(public member function)</span> </td>
-</tr> </table>          <div class="_attribution">
+</tr> </table>           <div class="_attribution">
   <p class="_attribution-p">
     © cppreference.com<br>Licensed under the Creative Commons Attribution-ShareAlike Unported License v3.0.<br>
-    <a href="http://en.cppreference.com/w/cpp/filesystem/path/replace_extension" class="_attribution-link">http://en.cppreference.com/w/cpp/filesystem/path/replace_extension</a>
+    <a href="https://en.cppreference.com/w/cpp/filesystem/path/replace_extension" class="_attribution-link">https://en.cppreference.com/w/cpp/filesystem/path/replace_extension</a>
   </p>
 </div>
 
