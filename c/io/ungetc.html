@@ -10,13 +10,12 @@
   <meta name="description" content="If ch does not equal EOF, pushes the character ch (reinterpreted as unsigned char) into the input buffer associated with the stream stream in such a &hellip;">
   <meta name="keywords" content="ungetc, c">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/c/io/ungetc.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/c.js"></script>
   
@@ -83,7 +82,7 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">ungetc</h1>            <table class="t-dcl-begin"> <tr class="t-dsc-header"> <th> Defined in header <code>&lt;stdio.h&gt;</code> </th> <th> </th> <th> </th> </tr> <tr class="t-dcl"> <td class="t-dcl-nopad"> <pre data-language="c">int ungetc( int ch, FILE *stream );</pre>
@@ -94,57 +93,72 @@
 <p>A successful call to <code>ungetc</code> clears the end of file status flag <code><a href="feof" title="c/io/feof">feof</a></code>.</p>
 <p>A successful call to <code>ungetc</code> on a binary stream decrements the stream position indicator by one (the behavior is indeterminate if the stream position indicator was zero).</p>
 <p>A successful call to <code>ungetc</code> on a text stream modifies the stream position indicator in unspecified manner but guarantees that after all pushed-back characters are retrieved with a read operation, the stream position indicator is equal to its value before <code>ungetc</code>.</p>
-<h3 id="Parameters">Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> ch </td> <td> - </td> <td> character to be pushed into the input stream buffer </td>
+<h3 id="Parameters"> Parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> ch </td> <td> - </td> <td> character to be pushed into the input stream buffer </td>
 </tr> <tr class="t-par"> <td> stream </td> <td> - </td> <td> file stream to put the character back to </td>
 </tr>
-</table> <h3 id="Return_value">Return value</h3> <p>On success <code>ch</code> is returned.</p>
+</table> <h3 id="Return_value"> Return value</h3> <p>On success <code>ch</code> is returned.</p>
 <p>On failure <code><a href="../io" title="c/io">EOF</a></code> is returned and the given stream remains unchanged.</p>
-<h3 id="Notes">Notes</h3> <p>The size of the pushback buffer varies in practice from 4k (Linux, MacOS) to as little as 4 (Solaris) or the guaranteed minimum 1 (HPUX, AIX).</p>
+<h3 id="Notes"> Notes</h3> <p>The size of the pushback buffer varies in practice from 4k (Linux, MacOS) to as little as 4 (Solaris) or the guaranteed minimum 1 (HPUX, AIX).</p>
 <p>The apparent size of the pushback buffer may be larger if the character that is pushed back equals the character existing at that location in the external character sequence (the implementation may simply decrement the read file position indicator and avoid maintaining a pushback buffer).</p>
-<h3 id="Example">Example</h3> <div class="t-example">
-<p>demonstrates the original purpose of ungetc: implementation of scanf.</p>
+<h3 id="Example"> Example</h3> <div class="t-example">
+<p>demonstrates the original purpose of <code>ungetc</code>: implementation of <code><a href="fscanf" title="c/io/fscanf">scanf</a></code>.</p>
 <div class="c source-c"><pre data-language="c">#include &lt;ctype.h&gt;
 #include &lt;stdio.h&gt;
  
-void demo_scanf(const char* fmt, FILE* s) {
-    if(*fmt == '%') {
-        int c;
-        switch(*++fmt) {
-            case 'u': while(isspace(c=getc(s))) {} // skip leading white space
-                      unsigned int num = 0;
-                      while(isdigit(c)) {
-                          num = num*10 + c-'0';
-                          c = getc(s);
-                      }
-                      printf("%%u scanned %u\n", num);
-                      ungetc(c, s); // reprocess the non-digit
-            case 'c': c = getc(s);
-                      printf("%%c scanned '%c'\n", c);
+void demo_scanf(const char* fmt, FILE* s)
+{
+    while (*fmt != '\0') {
+        if (*fmt == '%') {
+            int c;
+            switch (*++fmt) {
+                case 'u':
+                    while (isspace(c=getc(s))) {}
+                    unsigned int num = 0;
+                    while (isdigit(c)) {
+                        num = num*10 + c-'0';
+                        c = getc(s);
+                    }
+                    printf("%%u scanned %u\n", num);
+                    ungetc(c, s);
+                    break;
+                case 'c':
+                    c = getc(s);
+                    printf("%%c scanned '%c'\n", c);
+                    break;
+            }
+        } else {
+            ++fmt;
         }
-    } 
+    }
 }
  
 int main(void)
 {
     FILE* f = fopen("input.txt", "w+");
-    fputs("123x", f);
-    rewind(f); 
-    demo_scanf("%u%c", f);
-    fclose(f);
+    if (f != NULL) {
+        fputs("123x", f);
+        rewind(f); 
+        demo_scanf("%u%c", f);
+        fclose(f);
+    }
+    return 0;
 }</pre></div> <p>Output:</p>
 <div class="text source-text"><pre data-language="c">%u scanned 123
-%c scanned 'x'</pre></div> </div> <h3 id="References">References</h3>  <ul>
+%c scanned 'x'</pre></div> </div> <h3 id="References"> References</h3>  <ul>
+<li> C17 standard (ISO/IEC 9899:2018): </li>
+<ul><li> 7.21.7.10 The ungetc function (p: 243) </li></ul>
 <li> C11 standard (ISO/IEC 9899:2011): </li>
 <ul><li> 7.21.7.10 The ungetc function (p: 334) </li></ul>
 <li> C99 standard (ISO/IEC 9899:1999): </li>
 <ul><li> 7.19.7.11 The ungetc function (p: 300) </li></ul>
 <li> C89/C90 standard (ISO/IEC 9899:1990): </li>
 <ul><li> 4.9.7.11 The ungetc function </li></ul>
-</ul>         <h3 id="See_also">See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="fgetc" title="c/io/fgetc"> <span class="t-lines"><span>fgetc</span><span>getc</span></span></a></div> </td> <td> gets a character from a file stream <br> <span class="t-mark">(function)</span> </td>
+</ul>               <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="fgetc" title="c/io/fgetc"> <span class="t-lines"><span>fgetc</span><span>getc</span></span></a></div> </td> <td> gets a character from a file stream <br> <span class="t-mark">(function)</span>  </td>
+</tr> <tr class="t-dsc"> <td colspan="2"> <span><a href="https://en.cppreference.com/w/cpp/io/c/ungetc" title="cpp/io/c/ungetc">C++ documentation</a></span> for <code>ungetc</code> </td>
 </tr> </table>           <div class="_attribution">
   <p class="_attribution-p">
     © cppreference.com<br>Licensed under the Creative Commons Attribution-ShareAlike Unported License v3.0.<br>
-    <a href="http://en.cppreference.com/w/c/io/ungetc" class="_attribution-link">http://en.cppreference.com/w/c/io/ungetc</a>
+    <a href="https://en.cppreference.com/w/c/io/ungetc" class="_attribution-link">https://en.cppreference.com/w/c/io/ungetc</a>
   </p>
 </div>
 
