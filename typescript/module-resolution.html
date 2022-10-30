@@ -10,13 +10,12 @@
   <meta name="description" content=" This section assumes some basic knowledge about modules. Please see the Modules documentation for more information. ">
   <meta name="keywords" content="module, resolution, typescript">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/typescript/module-resolution.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/typescript.js"></script>
   
@@ -109,7 +108,7 @@
       "jquery": ["node_modules/jquery/dist/jquery"] // This mapping is relative to "baseUrl"
     }
   }
-}</pre> <p>Please notice that <a href="https://www.typescriptlang.org/tsconfig#paths"><code>paths</code></a> are resolved relative to <a href="https://www.typescriptlang.org/tsconfig#baseUrl"><code>baseUrl</code></a>. When setting <a href="https://www.typescriptlang.org/tsconfig#baseUrl"><code>baseUrl</code></a> to another value than <code>"."</code>, i.e. the directory of <code>tsconfig.json</code>, the mappings must be changed accordingly. Say, you set <code>"baseUrl": "./src"</code> in the above example, then jquery should be mapped to <code>"../node_modules/jquery/dist/jquery"</code>.</p> <p>Using <a href="https://www.typescriptlang.org/tsconfig#paths"><code>paths</code></a> also allows for more sophisticated mappings including multiple fall back locations. Consider a project configuration where only some modules are available in one location, and the rest are in another. A build step would put them all together in one place. The project layout may look like:</p> <pre data-language="typescript">projectRoot
+}</pre> <p>Please notice that <a href="https://www.typescriptlang.org/tsconfig#paths"><code>paths</code></a> are resolved relative to <a href="https://www.typescriptlang.org/tsconfig#baseUrl"><code>baseUrl</code></a>. When setting <a href="https://www.typescriptlang.org/tsconfig#baseUrl"><code>baseUrl</code></a> to a value other than <code>"."</code>, i.e. the directory of <code>tsconfig.json</code>, the mappings must be changed accordingly. Say, you set <code>"baseUrl": "./src"</code> in the above example, then jquery should be mapped to <code>"../node_modules/jquery/dist/jquery"</code>.</p> <p>Using <a href="https://www.typescriptlang.org/tsconfig#paths"><code>paths</code></a> also allows for more sophisticated mappings including multiple fall back locations. Consider a project configuration where only some modules are available in one location, and the rest are in another. A build step would put them all together in one place. The project layout may look like:</p> <pre data-language="typescript">projectRoot
 ├── folder1
 │   ├── file1.ts (imports 'folder1/file2' and 'folder2/file3')
 │   └── file2.ts
@@ -117,9 +116,62 @@
 │   ├── folder1
 │   └── folder2
 │       └── file3.ts
-└── tsconfig.json</pre>Yes<button title="Dislike this page" id="dislike-button"> No</button><div class="_attribution">
+└── tsconfig.json</pre> <p>The corresponding <code>tsconfig.json</code> would look like:</p> <pre tsconfig="true" data-language="typescript">{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "*": ["*", "generated/*"]
+    }
+  }
+}</pre> <p>This tells the compiler for any module import that matches the pattern <code>"*"</code> (i.e. all values), to look in two locations:</p> <ol> <li>
+<code>"*"</code>: meaning the same name unchanged, so map <code>&lt;moduleName&gt;</code> =&gt; <code>&lt;baseUrl&gt;/&lt;moduleName&gt;</code>
+</li> <li>
+<code>"generated/*"</code> meaning the module name with an appended prefix “generated”, so map <code>&lt;moduleName&gt;</code> =&gt; <code>&lt;baseUrl&gt;/generated/&lt;moduleName&gt;</code>
+</li> </ol> <p>Following this logic, the compiler will attempt to resolve the two imports as such:</p> <p>import ‘folder1/file2’:</p> <ol> <li>pattern ’*’ is matched and wildcard captures the whole module name</li> <li>try first substitution in the list: ’*’ -&gt; <code>folder1/file2</code>
+</li> <li>result of substitution is non-relative name - combine it with <em>baseUrl</em> -&gt; <code>projectRoot/folder1/file2.ts</code>.</li> <li>File exists. Done.</li> </ol> <p>import ‘folder2/file3’:</p> <ol> <li>pattern ’*’ is matched and wildcard captures the whole module name</li> <li>try first substitution in the list: ’*’ -&gt; <code>folder2/file3</code>
+</li> <li>result of substitution is non-relative name - combine it with <em>baseUrl</em> -&gt; <code>projectRoot/folder2/file3.ts</code>.</li> <li>File does not exist, move to the second substitution</li> <li>second substitution ‘generated/*’ -&gt; <code>generated/folder2/file3</code>
+</li> <li>result of substitution is non-relative name - combine it with <em>baseUrl</em> -&gt; <code>projectRoot/generated/folder2/file3.ts</code>.</li> <li>File exists. Done.</li> </ol> <h3 id="virtual-directories-with-rootdirs" style="position:relative;">Virtual Directories with <code>rootDirs</code>
+</h3> <p>Sometimes the project sources from multiple directories at compile time are all combined to generate a single output directory. This can be viewed as a set of source directories create a “virtual” directory.</p> <p>Using <code>rootDirs</code>, you can inform the compiler of the <em>roots</em> making up this “virtual” directory; and thus the compiler can resolve relative modules imports within these “virtual” directories <em>as if</em> they were merged together in one directory.</p> <p>For example consider this project structure:</p> <pre data-language="typescript"> src
+ └── views
+     └── view1.ts (imports './template1')
+     └── view2.ts
+
+ generated
+ └── templates
+         └── views
+             └── template1.ts (imports './view2')</pre> <p>Files in <code>src/views</code> are user code for some UI controls. Files in <code>generated/templates</code> are UI template binding code auto-generated by a template generator as part of the build. A build step will copy the files in <code>/src/views</code> and <code>/generated/templates/views</code> to the same directory in the output. At run-time, a view can expect its template to exist next to it, and thus should import it using a relative name as <code>"./template"</code>.</p> <p>To specify this relationship to the compiler, use <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a>. <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a> specify a list of <em>roots</em> whose contents are expected to merge at run-time. So following our example, the <code>tsconfig.json</code> file should look like:</p> <pre tsconfig="true" data-language="typescript">{
+  "compilerOptions": {
+    "rootDirs": ["src/views", "generated/templates/views"]
+  }
+}</pre> <p>Every time the compiler sees a relative module import in a subfolder of one of the <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a>, it will attempt to look for this import in each of the entries of <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a>.</p> <p>The flexibility of <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a> is not limited to specifying a list of physical source directories that are logically merged. The supplied array may include any number of ad hoc, arbitrary directory names, regardless of whether they exist or not. This allows the compiler to capture sophisticated bundling and runtime features such as conditional inclusion and project specific loader plugins in a type safe way.</p> <p>Consider an internationalization scenario where a build tool automatically generates locale specific bundles by interpolating a special path token, say <code>#{locale}</code>, as part of a relative module path such as <code>./#{locale}/messages</code>. In this hypothetical setup the tool enumerates supported locales, mapping the abstracted path into <code>./zh/messages</code>, <code>./de/messages</code>, and so forth.</p> <p>Assume that each of these modules exports an array of strings. For example <code>./zh/messages</code> might contain:</p> <pre data-language="ts">export default ["您好吗", "很高兴认识你"];</pre> <p>By leveraging <a href="https://www.typescriptlang.org/tsconfig#rootDirs"><code>rootDirs</code></a> we can inform the compiler of this mapping and thereby allow it to safely resolve <code>./#{locale}/messages</code>, even though the directory will never exist. For example, with the following <code>tsconfig.json</code>:</p> <pre tsconfig="true" data-language="typescript">{
+  "compilerOptions": {
+    "rootDirs": ["src/zh", "src/de", "src/#{locale}"]
+  }
+}</pre> <p>The compiler will now resolve <code>import messages from './#{locale}/messages'</code> to <code>import messages from './zh/messages'</code> for tooling purposes, allowing development in a locale agnostic manner without compromising design time support.</p> <h2 id="tracing-module-resolution" style="position:relative;">Tracing module resolution</h2> <p>As discussed earlier, the compiler can visit files outside the current folder when resolving a module. This can be hard when diagnosing why a module is not resolved, or is resolved to an incorrect definition. Enabling the compiler module resolution tracing using <a href="https://www.typescriptlang.org/tsconfig#traceResolution"><code>traceResolution</code></a> provides insight in what happened during the module resolution process.</p> <p>Let’s say we have a sample application that uses the <code>typescript</code> module. <code>app.ts</code> has an import like <code>import * as ts from "typescript"</code>.</p> <pre data-language="typescript">│   tsconfig.json
+├───node_modules
+│   └───typescript
+│       └───lib
+│               typescript.d.ts
+└───src
+        app.ts</pre> <p>Invoking the compiler with <a href="https://www.typescriptlang.org/tsconfig#traceResolution"><code>traceResolution</code></a></p> <pre data-language="shell">tsc --traceResolution</pre> <p>Results in an output such as:</p> <pre data-language="txt">======== Resolving module 'typescript' from 'src/app.ts'. ========
+Module resolution kind is not specified, using 'NodeJs'.
+Loading module 'typescript' from 'node_modules' folder.
+File 'src/node_modules/typescript.ts' does not exist.
+File 'src/node_modules/typescript.tsx' does not exist.
+File 'src/node_modules/typescript.d.ts' does not exist.
+File 'src/node_modules/typescript/package.json' does not exist.
+File 'node_modules/typescript.ts' does not exist.
+File 'node_modules/typescript.tsx' does not exist.
+File 'node_modules/typescript.d.ts' does not exist.
+Found 'package.json' at 'node_modules/typescript/package.json'.
+'package.json' has 'types' field './lib/typescript.d.ts' that references 'node_modules/typescript/lib/typescript.d.ts'.
+File 'node_modules/typescript/lib/typescript.d.ts' exist - use it as a module resolution result.
+======== Module name 'typescript' was successfully resolved to 'node_modules/typescript/lib/typescript.d.ts'. ========</pre> <h4 id="things-to-look-out-for" style="position:relative;">Things to look out for</h4> <ul> <li>Name and location of the import</li> </ul> <blockquote> <p>======== Resolving module <strong>‘typescript’</strong> from <strong>‘src/app.ts’</strong>. ========</p> </blockquote> <ul> <li>The strategy the compiler is following</li> </ul> <blockquote> <p>Module resolution kind is not specified, using <strong>‘NodeJs’</strong>.</p> </blockquote> <ul> <li>Loading of types from npm packages</li> </ul> <blockquote> <p>‘package.json’ has <strong>‘types’</strong> field ‘./lib/typescript.d.ts’ that references ‘node_modules/typescript/lib/typescript.d.ts’.</p> </blockquote> <ul> <li>Final result</li> </ul> <blockquote> <p>======== Module name ‘typescript’ was <strong>successfully resolved</strong> to ‘node_modules/typescript/lib/typescript.d.ts’. ========</p> </blockquote> <h2 id="using---noresolve" style="position:relative;">Using <code>--noResolve</code>
+</h2> <p>Normally the compiler will attempt to resolve all module imports before it starts the compilation process. Every time it successfully resolves an <code>import</code> to a file, the file is added to the set of files the compiler will process later on.</p> <p>The <a href="https://www.typescriptlang.org/tsconfig#noResolve"><code>noResolve</code></a> compiler options instructs the compiler not to “add” any files to the compilation that were not passed on the command line. It will still try to resolve the module to files, but if the file is not specified, it will not be included.</p> <p>For instance:</p> <h4 id="appts" style="position:relative;">app.ts</h4> <pre data-language="ts">import * as A from "moduleA"; // OK, 'moduleA' passed on the command-line
+import * as B from "moduleB"; // Error TS2307: Cannot find module 'moduleB'.</pre> <pre data-language="shell">tsc app.ts moduleA.ts --noResolve</pre> <p>Compiling <code>app.ts</code> using <a href="https://www.typescriptlang.org/tsconfig#noResolve"><code>noResolve</code></a> should result in:</p> <ul> <li>Correctly finding <code>moduleA</code> as it was passed on the command-line.</li> <li>Error for not finding <code>moduleB</code> as it was not passed.</li> </ul> <h2 id="common-questions" style="position:relative;">Common Questions</h2> <h3 id="why-does-a-module-in-the-exclude-list-still-get-picked-up-by-the-compiler" style="position:relative;">Why does a module in the exclude list still get picked up by the compiler?</h3> <p><code>tsconfig.json</code> turns a folder into a “project”. Without specifying any <code>“exclude”</code> or <code>“files”</code> entries, all files in the folder containing the <code>tsconfig.json</code> and all its sub-directories are included in your compilation. If you want to exclude some of the files use <code>“exclude”</code>, if you would rather specify all the files instead of letting the compiler look them up, use <code>“files”</code>.</p> <p>That was <code>tsconfig.json</code> automatic inclusion. That does not embed module resolution as discussed above. If the compiler identified a file as a target of a module import, it will be included in the compilation regardless if it was excluded in the previous steps.</p> <p>So to exclude a file from the compilation, you need to exclude it and <strong>all</strong> files that have an <code>import</code> or <code>/// &lt;reference path="..." /&gt;</code> directive to it.</p>
+<div class="_attribution">
   <p class="_attribution-p">
-    © 2012-2021 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
+    © 2012-2022 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
     <a href="https://www.typescriptlang.org/docs/handbook/module-resolution.html" class="_attribution-link">https://www.typescriptlang.org/docs/handbook/module-resolution.html</a>
   </p>
 </div>
