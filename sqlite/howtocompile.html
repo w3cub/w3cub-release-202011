@@ -10,13 +10,12 @@
   <meta name="description" content="SQLite is ANSI-C source code. It must be compiled into machine code before it is useful. This article is a guide to the various ways of compiling &hellip;">
   <meta name="keywords" content="how, compile, sqlite, amalgamation, versus, individual, source, files, compiling, command-line, interface, tcl, building, windows, dll">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/sqlite/howtocompile.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/sqlite.js"></script>
   
@@ -99,17 +98,17 @@
 <pre data-language="sql">
 cl shell.c sqlite3.c -Fesqlite3.exe
 </pre> <p>On unix systems (or on Windows using cygwin or mingw+msys) the command typically looks something like this:</p> <pre data-language="sql">
-gcc shell.c sqlite3.c -lpthread -ldl
+gcc shell.c sqlite3.c -lpthread -ldl -lm -o sqlite3
 </pre> <p>The pthreads library is needed to make SQLite threadsafe. But since the CLI is single threaded, we could instruct SQLite to build in a non-threadsafe mode and thereby omit the pthreads library:</p> <pre data-language="sql">
-gcc -DSQLITE_THREADSAFE=0 shell.c sqlite3.c -ldl
+gcc -DSQLITE_THREADSAFE=0 shell.c sqlite3.c -ldl -lm -o sqlite3
 </pre> <p>The -ldl library is needed to support dynamic loading, the <a href="c3ref/load_extension">sqlite3_load_extension()</a> interface and the <a href="lang_corefunc#load_extension">load_extension() SQL function</a>. If these features are not required, then they can be omitted using <a href="compile#omit_load_extension">SQLITE_OMIT_LOAD_EXTENSION</a> compile-time option:</p> <pre data-language="sql">
-gcc -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION shell.c sqlite3.c
+gcc -DSQLITE_THREADSAFE=0 -DSQLITE_OMIT_LOAD_EXTENSION shell.c sqlite3.c -o sqlite3
 </pre> <p>One might want to provide other <a href="compile">compile-time options</a> such as <a href="compile#enable_fts4">-DSQLITE_ENABLE_FTS4</a> or <a href="compile#enable_fts5">-DSQLITE_ENABLE_FTS5</a> for full-text search, <a href="compile#enable_rtree">-DSQLITE_ENABLE_RTREE</a> for the R*Tree search engine extension, <a href="compile#enable_json1">-DSQLITE_ENABLE_JSON1</a> to include <a href="json1">JSON SQL functions</a>, or <a href="compile#enable_dbstat_vtab">-DSQLITE_ENABLE_DBSTAT_VTAB</a> for the <a href="dbstat">dbstat virtual table</a>. In order to see extra commentary in <a href="lang_explain">EXPLAIN</a> listings, add the <a href="compile#enable_explain_comments">-DSQLITE_ENABLE_EXPLAIN_COMMENTS</a> option. On unix systems, add -DHAVE_USLEEP=1 if the host machine supports the usleep() system call. Add -DHAVE_READLINE and the -lreadline and -lncurses libraries to get command-line editing support. One might also want to specify some compiler optimization switches. (The precompiled CLI available for download from the SQLite website uses "-Os".) There are countless possible variations here. A command to compile a full-featured shell might look something like this:</p> <pre data-language="sql">
 gcc -Os -I. -DSQLITE_THREADSAFE=0 -DSQLITE_ENABLE_FTS4 \
    -DSQLITE_ENABLE_FTS5 -DSQLITE_ENABLE_JSON1 \
    -DSQLITE_ENABLE_RTREE -DSQLITE_ENABLE_EXPLAIN_COMMENTS \
    -DHAVE_USLEEP -DHAVE_READLINE \
-   shell.c sqlite3.c -ldl -lreadline -lncurses -o sqlite3
+   shell.c sqlite3.c -ldl -lm -lreadline -lncurses -o sqlite3
 </pre> <p>The key point is this: Building the CLI consists of compiling together two C-language files. The <b>shell.c</b> file contains the definition of the entry point and the user input loop and the SQLite amalgamation <b>sqlite3.c</b> contains the complete implementation of the SQLite library.</p>  <h1 id="compiling_the_tcl_interface">
 <span>3. </span>Compiling The TCL Interface</h1> <p id="tcl">The TCL interface for SQLite is a small module that is added into the regular amalgamation. The result is a new amalgamated source file called "<b>tclsqlite3.c</b>". This single source file is all that is needed to generate a shared library that can be loaded into a standard <a href="http://wiki.tcl-lang.org/2541">tclsh</a> or <a href="http://wiki.tcl-lang.org/2364">wish</a> using the <a href="http://wiki.tcl-lang.org/9830">TCL load command</a>, or to generate a standalone tclsh that comes with SQLite built in. A copy of the tcl amalgamation is included on the <a href="https://sqlite.org/download.html">download page</a> as a file in the <a href="https://sqlite.org/download.html">TEA tarball</a>.</p> <p>To generate a TCL-loadable library for SQLite on Linux, the following command will suffice:</p> <pre data-language="sql">
 gcc -o libtclsqlite3.so -shared tclsqlite3.c -lpthread -ldl -ltcl
@@ -171,8 +170,7 @@ gcc -shared sqlite3.c -o sqlite3.dll
 <li><p><b>-DSQLITE_ENABLE_FTS4</b> - Include the <a href="fts3">full-text search</a> engine code in SQLite. </p></li>
 <li><p><b>-DSQLITE_ENABLE_RTREE</b> - Include the <a href="rtree">R-Tree extension</a>. </p></li>
 <li><p><b>-DSQLITE_ENABLE_COLUMN_METADATA</b> - This enables some extra APIs that are required by some common systems, including Ruby-on-Rails. </p></li>
-</ul>
-<div class="_attribution">
+</ul> <div class="_attribution">
   <p class="_attribution-p">
     SQLite is in the Public Domain.<br>
     <a href="https://sqlite.org/howtocompile.html" class="_attribution-link">https://sqlite.org/howtocompile.html</a>

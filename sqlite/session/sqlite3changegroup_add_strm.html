@@ -10,13 +10,12 @@
   <meta name="description" content=" The six streaming API xxx_strm() functions serve similar purposes to the corresponding non-streaming API functions&#58; ">
   <meta name="keywords" content="streaming, versions, api, functions, sqlite">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/sqlite/session/sqlite3changegroup_add_strm.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/sqlite.js"></script>
   
@@ -170,7 +169,7 @@ int sqlite3rebaser_rebase_strm(
   void *pOut
 );
 </pre>
-<p> The six streaming API xxx_strm() functions serve similar purposes to the corresponding non-streaming API functions:</p> 
+<p> The six streaming API xxx_strm() functions serve similar purposes to the corresponding non-streaming API functions:</p> <p></p>
 <table> <tr>
 <th>Streaming function</th>
 <th>Non-streaming equivalent</th> </tr>
@@ -209,25 +208,24 @@ int sqlite3rebaser_rebase_strm(
 <td>
 <a href="sqlite3session_patchset">sqlite3session_patchset</a> </td>
 </tr>
-</table> <p>Non-streaming functions that accept changesets (or patchsets) as input require that the entire changeset be stored in a single buffer in memory. Similarly, those that return a changeset or patchset do so by returning a pointer to a single large buffer allocated using sqlite3_malloc(). Normally this is convenient. However, if an application running in a low-memory environment is required to handle very large changesets, the large contiguous memory allocations required can become onerous.</p> <p>In order to avoid this problem, instead of a single large buffer, input is passed to a streaming API functions by way of a callback function that the sessions module invokes to incrementally request input data as it is required. In all cases, a pair of API function parameters such as</p> 
+</table> <p>Non-streaming functions that accept changesets (or patchsets) as input require that the entire changeset be stored in a single buffer in memory. Similarly, those that return a changeset or patchset do so by returning a pointer to a single large buffer allocated using sqlite3_malloc(). Normally this is convenient. However, if an application running in a low-memory environment is required to handle very large changesets, the large contiguous memory allocations required can become onerous.</p> <p>In order to avoid this problem, instead of a single large buffer, input is passed to a streaming API functions by way of a callback function that the sessions module invokes to incrementally request input data as it is required. In all cases, a pair of API function parameters such as</p> <p> </p>
 <pre data-language="sql">
        int nChangeset,
        void *pChangeset,
- </pre> <p>Is replaced by:</p> 
+ </pre> <p>Is replaced by:</p> <p> </p>
 <pre data-language="sql">
        int (*xInput)(void *pIn, void *pData, int *pnData),
        void *pIn,
- </pre> <p>Each time the xInput callback is invoked by the sessions module, the first argument passed is a copy of the supplied pIn context pointer. The second argument, pData, points to a buffer (*pnData) bytes in size. Assuming no error occurs the xInput method should copy up to (*pnData) bytes of data into the buffer and set (*pnData) to the actual number of bytes copied before returning SQLITE_OK. If the input is completely exhausted, (*pnData) should be set to zero to indicate this. Or, if an error occurs, an SQLite error code should be returned. In all cases, if an xInput callback returns an error, all processing is abandoned and the streaming API function returns a copy of the error code to the caller.</p> <p>In the case of sqlite3changeset_start_strm(), the xInput callback may be invoked by the sessions module at any point during the lifetime of the iterator. If such an xInput callback returns an error, the iterator enters an error state, whereby all subsequent calls to iterator functions immediately fail with the same error code as returned by xInput.</p> <p>Similarly, streaming API functions that return changesets (or patchsets) return them in chunks by way of a callback function instead of via a pointer to a single large buffer. In this case, a pair of parameters such as:</p> 
+ </pre> <p>Each time the xInput callback is invoked by the sessions module, the first argument passed is a copy of the supplied pIn context pointer. The second argument, pData, points to a buffer (*pnData) bytes in size. Assuming no error occurs the xInput method should copy up to (*pnData) bytes of data into the buffer and set (*pnData) to the actual number of bytes copied before returning SQLITE_OK. If the input is completely exhausted, (*pnData) should be set to zero to indicate this. Or, if an error occurs, an SQLite error code should be returned. In all cases, if an xInput callback returns an error, all processing is abandoned and the streaming API function returns a copy of the error code to the caller.</p> <p>In the case of sqlite3changeset_start_strm(), the xInput callback may be invoked by the sessions module at any point during the lifetime of the iterator. If such an xInput callback returns an error, the iterator enters an error state, whereby all subsequent calls to iterator functions immediately fail with the same error code as returned by xInput.</p> <p>Similarly, streaming API functions that return changesets (or patchsets) return them in chunks by way of a callback function instead of via a pointer to a single large buffer. In this case, a pair of parameters such as:</p> <p> </p>
 <pre data-language="sql">
        int *pnChangeset,
        void **ppChangeset,
- </pre> <p>Is replaced by:</p> 
+ </pre> <p>Is replaced by:</p> <p> </p>
 <pre data-language="sql">
        int (*xOutput)(void *pOut, const void *pData, int nData),
        void *pOut
  </pre> <p>The xOutput callback is invoked zero or more times to return data to the application. The first parameter passed to each call is a copy of the pOut pointer supplied by the application. The second parameter, pData, points to a buffer nData bytes in size containing the chunk of output data being returned. If the xOutput callback successfully processes the supplied data, it should return SQLITE_OK to indicate success. Otherwise, it should return some other SQLite error code. In this case processing is immediately abandoned and the streaming API function returns a copy of the xOutput error code to the application.</p> <p>The sessions module never invokes an xOutput callback with the third parameter set to a value less than or equal to zero. Other than this, no guarantees are made as to the size of the chunks of data returned. </p>
-<p>See also lists of <a href="objlist">Objects</a>, <a href="constlist">Constants</a>, and <a href="funclist">Functions</a>.</p>
-<div class="_attribution">
+<p>See also lists of <a href="objlist">Objects</a>, <a href="constlist">Constants</a>, and <a href="funclist">Functions</a>.</p> <div class="_attribution">
   <p class="_attribution-p">
     SQLite is in the Public Domain.<br>
     <a href="https://sqlite.org/session/sqlite3changegroup_add_strm.html" class="_attribution-link">https://sqlite.org/session/sqlite3changegroup_add_strm.html</a>

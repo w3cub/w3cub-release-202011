@@ -5,18 +5,17 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Defense Against Dark Arts - SQLite - W3cubDocs</title>
+  <title>Defense Against the Dark Arts - SQLite - W3cubDocs</title>
   
   <meta name="description" content="SQLite should never crash, overflow a buffer, leak memory, or exhibit any other harmful behavior, even when presented with maliciously malformed SQL &hellip;">
   <meta name="keywords" content="defense, against, dark, arts, sqlite, always, validates, its, inputs, summary">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/sqlite/security.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/sqlite.js"></script>
   
@@ -86,7 +85,7 @@
 			<div class="_page _sqlite">
 				
 				
-<h1 class="fancy_title"> Defense Against Dark Arts </h1>  <h1 id="sqlite_always_validates_its_inputs">
+<h1 class="fancy_title"> Defense Against The Dark Arts </h1>  <h1 id="sqlite_always_validates_its_inputs">
 <span>1. </span>SQLite Always Validates Its Inputs</h1> <p> SQLite should never crash, overflow a buffer, leak memory, or exhibit any other harmful behavior, even when presented with maliciously malformed SQL inputs or database files. SQLite should always detect erroneous inputs and raise an error, not crash or corrupt memory. Any malfunction caused by an SQL input or database file is considered a serious bug and will be promptly addressed when brought to the attention of the SQLite developers. SQLite is extensively fuzz-tested to help ensure that it is resistant to these kinds of errors. </p>
 <p> Nevertheless, bugs happen. If you are writing an application that sends untrusted SQL inputs or database files to SQLite, there are additional steps you can take to help reduce the attack surface and prevent zero-day exploits caused by undetected bugs. </p>
 <h2 id="untrusted_sql_inputs">
@@ -159,8 +158,11 @@
 <li><p> The SQL language is very powerful, and so it is always possible for malicious SQL inputs (or erroneous SQL inputs caused by an application bug) to submit SQL that runs for a very long time. To prevent this from becoming a denial-of-service attack, consider using the <a href="c3ref/progress_handler">sqlite3_progress_handler()</a> interface to invoke a callback periodically as each SQL statement runs, and have that callback return non-zero to abort the statement if the statement runs for too long. Alternatively, set a timer in a separate thread and invoke <a href="c3ref/interrupt">sqlite3_interrupt()</a> when the timer goes off to prevent the SQL statement from running forever. </p></li>
 <li><p> Limit the maximum amount of memory that SQLite will allocate using the <a href="c3ref/hard_heap_limit64">sqlite3_hard_heap_limit64()</a> interface. This helps prevent denial-of-service attacks. To find out how much heap space an application actually needs, run the it against typical inputs and then measure the maximum instantaneous memory usage with the <a href="c3ref/memory_highwater">sqlite3_memory_highwater()</a> interface. Set the hard heap limit to the maximum observed instantaneous memory usage plus some margin. </p></li>
 <li><p id="precisionlimit"> For embedded systems, consider compiling SQLite with the <a href="compile#enable_memsys5">-DSQLITE_ENABLE_MEMSYS5</a> option and then providing SQLite with a fixed chunk of memory to use as its heap via the <a href="c3ref/config">sqlite3_config</a>(<a href="c3ref/c_config_covering_index_scan#sqliteconfigheap">SQLITE_CONFIG_HEAP</a>) interface. This will prevent malicious SQL from executing a denial-of-service attack by using an excessive amount of memory. If (say) 5 MB of memory is provided for SQLite to use, once that much has been consumed, SQLite will start returning SQLITE_NOMEM errors rather than soaking up memory needed by other parts of the application. This also sandboxes SQLite's memory so that a write-after-free error in some other part of the application will not cause problems for SQLite, or vice versa.  </p></li>
-<li><p> To control memory usage in the <a href="lang_corefunc#printf">printf() SQL function</a>, compile with "<a href="compile#printf_precision_limit">-DSQLITE_PRINTF_PRECISION_LIMIT=1000</a>" or some similar small value. This #define limits the width and precision for %-substitutions in the printf() function, and thus prevents a hostile SQL statement from consuming large amounts of RAM via constructs such as "<code>printf('%1000000000s','hi')</code>". </p></li> </ol> <h2 id="untrusted_sqlite_database_files">
-<span>1.2. </span>Untrusted SQLite Database Files</h2> <p>Applications that read or write SQLite database files of uncertain provenance should take precautions enumerated below. </p>
+<li>
+<p> To control memory usage in the <a href="lang_corefunc#printf">printf() SQL function</a>, compile with "<a href="compile#printf_precision_limit">-DSQLITE_PRINTF_PRECISION_LIMIT=100000</a>" or some similarly reasonable value. This #define limits the width and precision for %-substitutions in the printf() function, and thus prevents a hostile SQL statement from consuming large amounts of RAM via constructs such as "<code>printf('%1000000000s','hi')</code>". </p>
+<p> Note that SQLite uses its built-in printf() internally to help it format the sql column in the <a href="schematab">sqlite_schema table</a>. For that reason, no table, index, view, or trigger definition can be much larger than the precision limit. You can set a precision limit of less than 100000, but be careful that whatever precision limit you use is at least as long as the longest CREATE statement in your schema. </p>
+</li> </ol>  <h2 id="untrusted_sqlite_database_files">
+<span>1.2. </span>Untrusted SQLite Database Files</h2> <p id="baddb">Applications that read or write SQLite database files of uncertain provenance should take precautions enumerated below. </p>
 <p>Even if the application does not deliberately accept database files from untrusted sources, beware of attacks in which a local database file is altered. For best security, any database file which might have ever been writable by an agent in a different security domain should be treated as suspect. </p>
 <ol> <li value="8">
 <p> If the application includes any <a href="appfunc">custom SQL functions</a> or <a href="vtab#customvtab">custom virtual tables</a> that have side effects or that might leak privileged information, then the application should use one or more of the techniques below to prevent a maliciously crafted database schema from surreptitiously running those SQL functions and/or virtual tables for nefarious purposes: </p>
@@ -179,12 +181,11 @@ sqlite3_db_config(db,SQLITE_DBCONFIG_ENABLE_VIEW,0,0);
 <ol> <li value="10"><p> Run <a href="pragma#pragma_integrity_check">PRAGMA integrity_check</a> or <a href="pragma#pragma_quick_check">PRAGMA quick_check</a> on the database as the first SQL statement after opening the database files and prior to running any other SQL statements. Reject and refuse to process any database file containing errors. </p></li>
 <li>
 <p> Enable the <a href="pragma#pragma_cell_size_check">PRAGMA cell_size_check=ON</a> setting. </p>
-
+<p> </p>
 </li>
 <li><p> Do not enable memory-mapped I/O. In other words, make sure that <a href="pragma#pragma_mmap_size">PRAGMA mmap_size=0</a>. </p></li>
 </ol> <h1 id="summary">
-<span>2. </span>Summary</h1> <p> The precautions above are not required in order to use SQLite safely with potentially hostile inputs. However, they do provide an extra layer of defense against zero-day exploits and are encouraged for applications that pass data from untrusted sources into SQLite. </p>
-<div class="_attribution">
+<span>2. </span>Summary</h1> <p> The precautions above are not required in order to use SQLite safely with potentially hostile inputs. However, they do provide an extra layer of defense against zero-day exploits and are encouraged for applications that pass data from untrusted sources into SQLite. </p> <div class="_attribution">
   <p class="_attribution-p">
     SQLite is in the Public Domain.<br>
     <a href="https://sqlite.org/security.html" class="_attribution-link">https://sqlite.org/security.html</a>

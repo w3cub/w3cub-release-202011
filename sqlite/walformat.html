@@ -10,13 +10,12 @@
   <meta name="description" content=" This document describes low-level details on how WAL mode is implemented on unix and windows. ">
   <meta name="keywords" content="wal-mode, file, format, files, on, disk, wal-index, recovery, sqlite">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/sqlite/walformat.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/sqlite.js"></script>
   
@@ -234,11 +233,11 @@ u16 aHash[8192];
 <h2 id="locking_matrix">
 <span>2.3. </span>Locking Matrix</h2> <p>Access is coordinated in WAL mode using both the legacy DELETE-mode locks controlled by the xLock and xUnlock methods of the <a href="c3ref/io_methods">sqlite3_io_methods</a> object and the WAL locks controlled by the xShmLock method of the <a href="c3ref/io_methods">sqlite3_io_methods</a> object. </p>
 <p>Conceptually, there is just a single DELETE-mode lock. The DELETE-mode lock for a single database connection can be in exactly one of the following states: </p>
-<ol> <li value="'0'"> SQLITE_LOCK_NONE (unlocked) </li>
-<li value="'1'"> SQLITE_LOCK_SHARED (reading) </li>
-<li value="'2'"> SQLITE_LOCK_RESERVED (reading, waiting to write) </li>
-<li value="'3'"> SQLITE_LOCK_PENDING (new readers blocked, waiting to write) </li>
-<li value="'4'"> SQLITE_LOCK_EXCLUSIVE (writing) </li>
+<ol> <li value="0"> SQLITE_LOCK_NONE (unlocked) </li>
+<li value="1"> SQLITE_LOCK_SHARED (reading) </li>
+<li value="2"> SQLITE_LOCK_RESERVED (reading, waiting to write) </li>
+<li value="3"> SQLITE_LOCK_PENDING (new readers blocked, waiting to write) </li>
+<li value="4"> SQLITE_LOCK_EXCLUSIVE (writing) </li>
 </ol> <p>The DELETE-mode locks are stored on the <a href="fileformat2#lockbyte">lock-byte page</a> of the main database file. Only SQLITE_LOCK_SHARED and SQLITE_LOCK_EXCLUSIVE are factors for WAL-mode databases. The other locking states are used in rollback-mode, but not in WAL-mode. </p>
 <p>The <a href="walformat#locks">WAL-mode locks</a> are described above. </p>
 <h3 id="how_the_various_locks_are_used">
@@ -343,8 +342,7 @@ u16 aHash[8192];
 <p> Recovery is run by the first thread to connect to a WAL-mode database. Recovery restores the WAL-index so that it accurately describes the WAL file. If there is no WAL file present when the first thread connects to the database, there is nothing to recover, but the recovery process still runs to initialize the WAL-index. </p>
 <p> If the WAL-index is implemented as a memory-mapped file and that file is read-only to the first thread to connect, then that thread creates an private heap-memory ersazt WAL-index and runs the recovery routine to populate that private WAL-index. The same data results, but it is held privately rather that being written into the public shared memory area. </p>
 <p> Recovery works by doing a single pass over the WAL, from beginning to end. The checksums are verified on each frame of the WAL as it is read. The scan stops at the end of the file or at the first invalid checksum. The <a href="walformat#mxframe">mxFrame</a> field is set to the index of the last valid commit frame in WAL. Since WAL frame numbers are indexed starting with 1, mxFrame is also the number of valid frames in the WAL. A "commit frame" is a frame that has a non-zero value in bytes 4 through 7 of the frame header. Since the recovery procedure has no way of knowing how many frames of the WAL might have previously been copied back into the database, it initializes the <a href="walformat#nbackfill">nBackfill</a> value to zero. </p>
-<p> During recovery of the global shared-memory WAL-index, exclusive locks are held on WAL_WRITE_LOCK, WAL_CKPT_LOCK, WAL_RECOVER_LOCK, and WAL_READ_LOCK(1) through WAL_READ_LOCK(4). In other words, all locks associated with the WAL-index except for WAL_READ_LOCK(0) are held exclusively. This prevents any other thread from writing the database and from reading any transactions that are held in the WAL, until the recovery is complete. </p>
-<div class="_attribution">
+<p> During recovery of the global shared-memory WAL-index, exclusive locks are held on WAL_WRITE_LOCK, WAL_CKPT_LOCK, WAL_RECOVER_LOCK, and WAL_READ_LOCK(1) through WAL_READ_LOCK(4). In other words, all locks associated with the WAL-index except for WAL_READ_LOCK(0) are held exclusively. This prevents any other thread from writing the database and from reading any transactions that are held in the WAL, until the recovery is complete. </p> <div class="_attribution">
   <p class="_attribution-p">
     SQLite is in the Public Domain.<br>
     <a href="https://sqlite.org/walformat.html" class="_attribution-link">https://sqlite.org/walformat.html</a>

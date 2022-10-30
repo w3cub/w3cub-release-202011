@@ -10,13 +10,12 @@
   <meta name="description" content=" SQLite contains its own implementation of the string formatting routine &#34;printf()&#34;, accessible via the following interfaces&#58; ">
   <meta name="keywords" content="sqlite&#39;s, built-in, printf, overview, formatting, details, implementation, and, history, sqlite">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/sqlite/printf.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/sqlite.js"></script>
   
@@ -89,7 +88,7 @@
 <h1 class="fancy_title"> SQLite's Built-in printf() </h1> <div class="fancy_toc">  <div id="toc_sub">
 <div class="fancy-toc1"><a href="#overview">1. Overview</a></div> <div class="fancy-toc2"><a href="#advantages">1.1. Advantages</a></div> <div class="fancy-toc2"><a href="#disadvantages">1.2. Disadvantages</a></div> <div class="fancy-toc1"><a href="#formatting_details">2. Formatting Details</a></div> <div class="fancy-toc2"><a href="#substitution_types">2.1. Substitution Types</a></div> <div class="fancy-toc2"><a href="#the_optional_length_field">2.2. The Optional Length Field</a></div> <div class="fancy-toc2"><a href="#the_optional_width_field">2.3. The Optional Width Field</a></div> <div class="fancy-toc2"><a href="#the_optional_precision_field">2.4. The Optional Precision Field</a></div> <div class="fancy-toc2"><a href="#the_options_flags_field">2.5. The Options Flags Field</a></div> <div class="fancy-toc1"><a href="#implementation_and_history">3. Implementation And History</a></div> </div> </div>   <h1 id="overview">
 <span>1. </span>Overview</h1> <p>SQLite contains its own implementation of the string formatting routine "printf()", accessible via the following interfaces: </p>
-<ul> <li> <a href="lang_corefunc#printf">printf()</a> → an SQL function returning the formatted string </li>
+<ul> <li> <a href="lang_corefunc#format">format()</a> → an SQL function returning the formatted string </li>
 <li> <a href="c3ref/mprintf">sqlite3_mprintf()</a> → Store the formatted string in memory obtained <a href="c3ref/free">sqlite3_malloc64()</a>. </li>
 <li> <a href="c3ref/mprintf">sqlite3_snprintf()</a> → Store the formatted string in a static buffer </li>
 <li> <a href="c3ref/str_append">sqlite3_str_appendf()</a> → Append formatted text to a dynamic string </li>
@@ -99,10 +98,10 @@
 </ul> <p>The same core string formatter is also used internally by SQLite. </p>
 <h2 id="advantages">
 <span>1.1. </span>Advantages</h2> <p>Why does SQLite have its own private built-in printf() implementation? Why not use the printf() implementation from the standard C library? Several reasons: </p>
-
-<ol> <li><p> By using its own built-in implementation, SQLite guarantees that the output will be the same on all platforms and in all LOCALEs. This is important for consistency and for testing. It would be problematic if one machine gave and answer of "5.25e+08" and another gave an answer of "5.250e+008". Both answers are correct, but it is better when SQLite always gives the same answer. </p></li>
-<li><p> We know of no way to use the standard library printf() C interface to implement the <a href="lang_corefunc#printf">printf() SQL function</a> feature of SQLite. The built-in printf() implementation can be easily adapted to that task, however. </p></li>
-<li><p> The printf() in SQLite supports new non-standard substitution types (<a href="printf#percentq">%q</a>, <a href="printf#percentq">%Q</a>, <a href="printf#percentw">%w</a>, and <a href="printf#percentz">%z</a>) that are useful both internally to SQLite and to applications using SQLite. Standard library printf()s cannot normally be extended in this way. </p></li>
+<p> </p>
+<ol> <li><p> By using its own built-in implementation, SQLite guarantees that the output will be the same on all platforms and in all LOCALEs. This is important for consistency and for testing. It would be problematic if one machine gave an answer of "5.25e+08" and another gave an answer of "5.250e+008". Both answers are correct, but it is better when SQLite always gives the same answer. </p></li>
+<li><p> We know of no way to use the standard library printf() C interface to implement the <a href="lang_corefunc#format">format() SQL function</a> feature of SQLite. The built-in printf() implementation can be easily adapted to that task, however. </p></li>
+<li><p> The printf() in SQLite supports new non-standard substitution types (<a href="printf#percentq">%q</a>, <a href="printf#percentq">%Q</a>, <a href="printf#percentw">%w</a>, and <a href="printf#percentz">%z</a>), and enhanced substitution behavior (%s and <a href="printf#percentz">%z</a>) that are useful both internally to SQLite and to applications using SQLite. Standard library printf()s cannot normally be extended in this way. </p></li>
 <li><p> Via the <a href="c3ref/mprintf">sqlite3_mprintf()</a> and <a href="c3ref/mprintf">sqlite3_vmprintf()</a> interfaces, the built-in printf() implementation supports the ability to render an arbitrary-length string into a memory buffer obtained from <a href="c3ref/free">sqlite3_malloc64()</a>. This is safer and less error prone than trying to precompute an upper size limit on the result string, allocate an appropriately sized buffer, and then calling snprintf(). </p></li>
 <li><p> The SQLite-specific printf() supports a new flag (!) called the "alternate-form-2" flag. The alternate-form-2 flag changes the processing of floating-point conversions in subtle ways so that the output is always an SQL-compatible text representation of a floating-point number - something that is not possible to achieve with standard-library printf(). For string substitutions, the alternate-form-2 flag causes the width and precision to be measured in characters instead of bytes, which simplifies processing of strings containing multi-byte UTF8 characters. </p></li>
 <li><p> The built-in SQLite has compile-time options such as SQLITE_PRINTF_PRECISION_LIMIT that provide defense against denial-of-service attacks for application that expose the printf() functionality to untrusted users. </p></li>
@@ -147,13 +146,13 @@
 <td>The argument is an integer which is displayed in octal. </td>
 </tr>
 <tr> <td>s, z </td>
-<td>  The argument is a zero-terminated string that is displayed. For the %z type in C-language interfaces, <a href="c3ref/free" id="percentz">sqlite3_free()</a> is invoked on the string after it has be copied into the output. The %s and %z substitutions are identical for the SQL printf() function.<br><br> The %s substitution is universal, but the %z substitution is an SQLite enhancement, not found in other printf() implementations. </td>
+<td>  The argument is either a zero-terminated string that is displayed, or a null pointer which is treated as an empty string. For the %z type in C-language interfaces, <a href="c3ref/free" id="percentz">sqlite3_free()</a> is invoked on the string after it has been copied into the output. The %s and %z substitutions are identical for the SQL printf() function, with a NULL argument treated as an empty string.<br><br> The %s substitution is universal among printf functions, but the %z substitution and safe treatment of null pointers are SQLite enhancements, not found in other printf() implementations. </td>
 </tr>
 <tr> <td>c </td>
-<td>For the C-language interfaces, the argument is an integer which is interpreted as a character. For the <a href="lang_corefunc#printf">printf() SQL function</a> the argument is a string from which the first character is extracted and displayed. </td>
+<td>For the C-language interfaces, the argument is an integer which is interpreted as a character. For the <a href="lang_corefunc#format">format() SQL function</a> the argument is a string from which the first character is extracted and displayed. </td>
 </tr>
 <tr> <td>p </td>
-<td>The argument is a pointer which is displayed as a hexadecimal address. Since the SQL language has no concept of a pointer, the %p substitution for the <a href="lang_corefunc#printf">printf() SQL function</a> works like %x. </td>
+<td>The argument is a pointer which is displayed as a hexadecimal address. Since the SQL language has no concept of a pointer, the %p substitution for the <a href="lang_corefunc#format">format() SQL function</a> works like %x. </td>
 </tr>
 <tr> <td>n </td>
 <td>The argument is a pointer to an integer. Nothing is displayed for this substitution type. Instead, the integer to which the argument points is overwritten with the number of characters in the generated string that result from all format symbols to the left of the %n. </td>
@@ -165,7 +164,7 @@
 <td> This substitution works like %q except that it doubles all double-quote characters (") instead of single-quotes, making the result suitable for using with a double-quoted identifier name in an SQL statement. <br id="percentw"><br> The %w substitution is an SQLite enhancements, not found in most other printf() implementations. </td>
 </tr>
 </table>  <h2 id="the_optional_length_field">
-<span>2.2. </span>The Optional Length Field</h2> <p>The length of the argument value can be specified by one or more letters that occur just prior to the substitution type letter. In SQLite, the length only matter for integer types. The length is ignored for the <a href="lang_corefunc#printf">printf() SQL function</a> which always uses 64-bit values. The following table shows the length specifiers allowed by SQLite: </p> <table cellpadding="10" width="80%"> <tr> <th>Length Specifier </th>
+<span>2.2. </span>The Optional Length Field</h2> <p>The length of the argument value can be specified by one or more letters that occur just prior to the substitution type letter. In SQLite, the length only matter for integer types. The length is ignored for the <a href="lang_corefunc#format">format() SQL function</a> which always uses 64-bit values. The following table shows the length specifiers allowed by SQLite: </p> <table cellpadding="10" width="80%"> <tr> <th>Length Specifier </th>
 <th>Meaning </th>
 </tr>
 <tr> <td>
@@ -190,6 +189,7 @@
 <p>For integer substitutions (%d, %i, %x, %X, %o, and %p) the precision specifies minimum number of digits to display. Leading zeros are added if necessary, to expand the output to the minimum number of digits. </p>
 <p>For floating-point substitutions (%e, %E, %f, %g, %G) the precision specifies the number of digits to display to the right of the decimal point. </p>
 <p>For the character substitution (%c) a precision N greater than 1 causes the character to be repeated N times. This is a non-standard extension found only in SQLite. </p>
+<p>If the precision is a single "*" character instead of a number, then the actual precision value is read as an integer from the argument list. </p>
 <h2 id="the_options_flags_field">
 <span>2.5. </span>The Options Flags Field</h2> <p>Flags consist of zero or more characters that immediately follow the "%" that introduces the substitution. The various flags and their meanings are as follows: </p> <table cellpadding="10" width="80%"> <tr> <th>Flag </th>
 <th>Meaning </th>
@@ -223,10 +223,9 @@
 <td>This is the "alternate-form-2 flag. For string substitutions, this flag causes the width and precision to be understand in terms of characters rather than bytes. For floating point substitutions, the alternate-form-2 flag increases the maximum number of significant digits displayed from 16 to 26, forces the display of the decimal point and causes at least one digit to appear after the decimal point.<br><br> The alternate-form-2 flag is a non-standard extension that appears in no other printf() implementations, as far as we know. </td>
 </tr>
 </table>  <h1 id="implementation_and_history">
-<span>3. </span>Implementation And History</h1> <p> The core string formatting routine is the sqlite3VXPrintf() function found in the <a href="https://sqlite.org/src/file/src/printf.c">printf.c</a> source file. All the various interfaces invoke (sometimes indirectly) this one core function. The sqlite3VXPrintf() function began as code written by the first author of SQLite (<a href="https://sqlite.org/crew.html">Hipp</a>) when he was a graduate student a Duke University in the late 1980s. Hipp kept this printf() implementation in his personal toolbox until he started working on SQLite in 2000. The code was incorporated into the SQLite source tree on <a href="https://sqlite.org/src/timeline?c=f9372072a6">2000-10-08</a> for SQLite version 1.0.9. </p>
+<span>3. </span>Implementation And History</h1> <p> The core string formatting routine is the sqlite3VXPrintf() function found in the <a href="https://sqlite.org/src/file/src/printf.c">printf.c</a> source file. All the various interfaces invoke (sometimes indirectly) this one core function. The sqlite3VXPrintf() function began as code written by the first author of SQLite (<a href="https://sqlite.org/crew.html">Hipp</a>) when he was a graduate student at Duke University in the late 1980s. Hipp kept this printf() implementation in his personal toolbox until he started working on SQLite in 2000. The code was incorporated into the SQLite source tree on <a href="https://sqlite.org/src/timeline?c=f9372072a6">2000-10-08</a> for SQLite version 1.0.9. </p>
 <p> The <a href="https://www.fossil-scm.org/">Fossil Version Control System</a> uses its own printf() implementation that is derived from an early version of the SQLite printf() implementation, but those two implementations have since diverged. </p>
-<p> The reason that the <a href="c3ref/mprintf">sqlite3_snprintf()</a> has its buffer pointer and buffer size arguments reversed from what is found in the standard library snprintf() routine is because there was no snprintf() routine in the standard C library when Hipp was first implementing his version, and he chose a different order than the designers of the standard C library. </p>
-<div class="_attribution">
+<p> The <a href="c3ref/mprintf">sqlite3_snprintf()</a> function has its buffer pointer and buffer size arguments reversed from what is found in the standard C library snprintf() routine. This is because there was no snprintf() routine in the standard C library when Hipp was first implementing his version, and he chose a different order than the designers of the standard C library. </p> <div class="_attribution">
   <p class="_attribution-p">
     SQLite is in the Public Domain.<br>
     <a href="https://sqlite.org/printf.html" class="_attribution-link">https://sqlite.org/printf.html</a>
