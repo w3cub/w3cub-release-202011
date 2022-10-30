@@ -1,0 +1,170 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Pg_walinspect - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="The pg_walinspect module provides SQL functions that allow you to inspect the contents of write-ahead log of a running PostgreSQL database cluster &hellip;">
+  <meta name="keywords" content="f, pg, walinspect, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/pgwalinspect.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>F.37. pg_walinspect</h1>    <div class="toc"> <dl class="toc"> <dt><a href="pgwalinspect#id-1.11.7.46.8">F.37.1. General Functions</a></dt> <dt><a href="pgwalinspect#id-1.11.7.46.9">F.37.2. Author</a></dt> </dl> </div> <p>The <code class="filename">pg_walinspect</code> module provides SQL functions that allow you to inspect the contents of write-ahead log of a running PostgreSQL database cluster at a low level, which is useful for debugging or analytical or reporting or educational purposes. It is similar to <a class="xref" href="pgwaldump" title="pg_waldump">pg_waldump</a>, but accessible through SQL rather than a separate utility.</p> <p>All the functions of this module will provide the WAL information using the current server's timeline ID.</p> <p>All the functions of this module will try to find the first valid WAL record that is at or after the given <code>in_lsn</code> or <code>start_lsn</code> and will emit error if no such record is available. Similarly, the <code>end_lsn</code> must be available, and if it falls in the middle of a record, the entire record must be available.</p> <blockquote class="note"> <h3 class="title">Note</h3> <p>Some functions, such as <code class="function"><a class="link" href="functions-admin#PG-LOGICAL-EMIT-MESSAGE">pg_logical_emit_message</a></code>, return the LSN <span class="emphasis"><em>after</em></span> the record just inserted. Therefore, if you pass that LSN as <code>in_lsn</code> or <code>start_lsn</code> to one of these functions, it will return the <span class="emphasis"><em>next</em></span> record.</p> </blockquote> <p>By default, use of these functions is restricted to superusers and members of the <code class="literal">pg_read_server_files</code> role. Access may be granted by superusers to others using <code class="command">GRANT</code>.</p> <div class="sect2" id="id-1.11.7.46.8">    <h2 class="title">F.37.1. General Functions</h2>    <div class="variablelist"> <dl class="variablelist"> <dt><code class="function">pg_get_wal_record_info(in_lsn pg_lsn, start_lsn OUT pg_lsn, end_lsn OUT pg_lsn, prev_lsn OUT pg_lsn, xid OUT xid, resource_manager OUT text, record_type OUT text, record_length OUT int4, main_data_length OUT int4, fpi_length OUT int4, description OUT text, block_ref OUT text)</code></dt> <dd> <p>Gets WAL record information of a given LSN. If the given LSN isn't at the start of a WAL record, it gives the information of the next available valid WAL record; or an error if no such record is found.</p> </dd> <dt><code class="function">pg_get_wal_records_info(start_lsn pg_lsn, end_lsn pg_lsn, start_lsn OUT pg_lsn, end_lsn OUT pg_lsn, prev_lsn OUT pg_lsn, xid OUT xid, resource_manager OUT text, record_type OUT text, record_length OUT int4, main_data_length OUT int4, fpi_length OUT int4, description OUT text, block_ref OUT text) returns setof record</code></dt> <dd> <p>Gets information of all the valid WAL records between <code>start_lsn</code> and <code>end_lsn</code>. Returns one row per WAL record. If <code>start_lsn</code> or <code>end_lsn</code> are not yet available, the function will raise an error. For example, usage of the function is as follows:</p> <pre>
+postgres=# select start_lsn, end_lsn, prev_lsn, xid, resource_manager, record_type, record_length, main_data_length, fpi_length, description from pg_get_wal_records_info('0/14F9A30', '0/15011D7');
+ start_lsn |  end_lsn  | prev_lsn  | xid | resource_manager | record_type  | record_length | main_data_length | fpi_length |     description
+-----------+-----------+-----------+-----+------------------+--------------+---------------+------------------+------------+---------------------
+ 0/14FA118 | 0/14FB4B0 | 0/14F9958 | 725 | Btree            | INSERT_LEAF  |          5013 |                2 |       4960 | off 246
+ 0/14FB4B0 | 0/14FD050 | 0/14FA118 | 725 | Btree            | INSERT_LEAF  |          7045 |                2 |       6992 | off 130
+ 0/14FD050 | 0/14FD0A8 | 0/14FB4B0 | 725 | Heap2            | MULTI_INSERT |            85 |                6 |          0 | 1 tuples flags 0x02
+ 0/14FD0A8 | 0/14FD0F0 | 0/14FD050 | 725 | Btree            | INSERT_LEAF  |            72 |                2 |          0 | off 155
+ 0/14FD0F0 | 0/14FD138 | 0/14FD0A8 | 725 | Btree            | INSERT_LEAF  |            72 |                2 |          0 | off 134
+ 0/14FD138 | 0/14FD210 | 0/14FD0F0 | 725 | Heap             | INSERT       |           211 |                3 |          0 | off 11 flags 0x00
+ 0/14FD210 | 0/14FD250 | 0/14FD138 | 725 | Btree            | INSERT_LEAF  |            64 |                2 |          0 | off 246
+ 0/14FD250 | 0/14FF260 | 0/14FD210 | 725 | Btree            | INSERT_LEAF  |          8181 |                2 |       8128 | off 47
+ 0/14FF260 | 0/14FF2B8 | 0/14FD250 | 725 | Heap2            | MULTI_INSERT |            85 |                6 |          0 | 1 tuples flags 0x02
+ 0/14FF2B8 | 0/14FF300 | 0/14FF260 | 725 | Btree            | INSERT_LEAF  |            72 |                2 |          0 | off 155
+ 0/14FF300 | 0/15008D8 | 0/14FF2B8 | 725 | Btree            | INSERT_LEAF  |          5565 |                2 |       5512 | off 106
+ 0/15008D8 | 0/1500C48 | 0/14FF300 | 725 | Heap             | INSERT       |           874 |                3 |        820 | off 2 flags 0x01
+(12 rows)
+</pre> </dd> <dt><code class="function">pg_get_wal_records_info_till_end_of_wal(start_lsn pg_lsn, start_lsn OUT pg_lsn, end_lsn OUT pg_lsn, prev_lsn OUT pg_lsn, xid OUT xid, resource_manager OUT text, record_type OUT text, record_length OUT int4, main_data_length OUT int4, fpi_length OUT int4, description OUT text, block_ref OUT text) returns setof record</code></dt> <dd> <p>This function is same as <code class="function">pg_get_wal_records_info()</code> except that it gets information of all the valid WAL records from <code>start_lsn</code> till the end of WAL.</p> </dd> <dt><code class="function">pg_get_wal_stats(start_lsn pg_lsn, end_lsn pg_lsn, per_record boolean DEFAULT false, "resource_manager/record_type" OUT text, count OUT int8, count_percentage OUT float8, record_length OUT int8, record_length_percentage OUT float8, fpi_length OUT int8, fpi_length_percentage OUT float8, combined_size OUT int8, combined_size_percentage OUT float8) returns setof record</code></dt> <dd> <p>Gets statistics of all the valid WAL records between <code>start_lsn</code> and <code>end_lsn</code>. By default, it returns one row per <code>resource_manager</code> type. When <code>per_record</code> is set to <code class="literal">true</code>, it returns one row per <code>record_type</code>. If <code>start_lsn</code> or <code>end_lsn</code> are not yet available, the function will raise an error. For example, usage of the function is as follows:</p> <pre>
+postgres=# select * from pg_get_wal_stats('0/12FBA30', '0/15011D7') where count &gt; 0;
+ resource_manager/record_type | count | count_percentage | record_size | record_size_percentage | fpi_size | fpi_size_percentage | combined_size | combined_size_percentage
+------------------------------+-------+------------------+-------------+------------------------+----------+---------------------+---------------+--------------------------
+ XLOG                         |    10 |       0.10871929 |         796 |            0.052369177 |      352 |         0.061031006 |          1148 |              0.054751817
+ Transaction                  |   187 |        2.0330508 |       62773 |              4.1298623 |        0 |                   0 |         62773 |                2.9938467
+ Storage                      |    13 |       0.14133507 |         546 |            0.035921574 |        0 |                   0 |           546 |                0.0260405
+ Database                     |     2 |      0.021743858 |          84 |            0.005526396 |        0 |                   0 |            84 |             0.0040062307
+ Standby                      |   218 |        2.3700805 |       15908 |              1.0465941 |        0 |                   0 |         15908 |               0.75870377
+ Heap2                        |  1897 |        20.624048 |      383916 |              25.257998 |   364472 |           63.193447 |        748388 |                35.693035
+ Heap                         |  1318 |        14.329202 |      621390 |               40.88151 |   139660 |           24.214746 |        761050 |                 36.29693
+ Btree                        |  5553 |         60.37182 |      434565 |              28.590216 |    72272 |           12.530776 |        506837 |                 24.17269
+(8 rows)
+</pre> <p>With <code>per_record</code> passed as <code class="literal">true</code>:</p> <pre>
+postgres=# select * from pg_get_wal_stats('0/14AFC30', '0/15011D7', true) where count &gt; 0;
+ resource_manager/record_type | count | count_percentage | record_size | record_size_percentage | fpi_size | fpi_size_percentage | combined_size | combined_size_percentage
+------------------------------+-------+------------------+-------------+------------------------+----------+---------------------+---------------+--------------------------
+ XLOG/CHECKPOINT_SHUTDOWN     |     1 |       0.32894737 |         114 |             0.22891566 |        0 |                   0 |           114 |               0.03534489
+ XLOG/CHECKPOINT_ONLINE       |     4 |        1.3157895 |         456 |             0.91566265 |        0 |                   0 |           456 |               0.14137957
+ XLOG/NEXTOID                 |     1 |       0.32894737 |          30 |            0.060240965 |        0 |                   0 |            30 |              0.009301287
+ Transaction/COMMIT           |     9 |        2.9605262 |        1173 |              2.3554218 |        0 |                   0 |          1173 |               0.36368033
+ Storage/CREATE               |     1 |       0.32894737 |          42 |            0.084337346 |        0 |                   0 |            42 |             0.0130218025
+ Database/CREATE_FILE_COPY    |     2 |       0.65789473 |          84 |             0.16867469 |        0 |                   0 |            84 |              0.026043605
+ Standby/RUNNING_XACTS        |     6 |        1.9736842 |         316 |              0.6345382 |        0 |                   0 |           316 |               0.09797356
+ Standby/INVALIDATIONS        |    45 |        14.802631 |        4018 |               8.068274 |        0 |                   0 |          4018 |                1.2457525
+ Heap2/PRUNE                  |     4 |        1.3157895 |         270 |              0.5421687 |        0 |                   0 |           270 |               0.08371159
+ Heap2/FREEZE_PAGE            |    27 |         8.881579 |       20904 |              41.975903 |        0 |                   0 |         20904 |                 6.481137
+ Heap2/VISIBLE                |    29 |         9.539474 |        1756 |              3.5261045 |    73728 |           27.032736 |         75484 |                23.403278
+ Heap2/MULTI_INSERT           |    13 |        4.2763157 |        1049 |              2.1064258 |    12216 |            4.479057 |         13265 |                 4.112719
+ Heap/INSERT                  |    19 |             6.25 |        2324 |              4.6666665 |    43884 |           16.090284 |         46208 |                14.326463
+ Heap/UPDATE                  |     7 |        2.3026316 |         511 |              1.0261045 |    54340 |           19.924028 |         54851 |                17.006165
+ Heap/HOT_UPDATE              |    11 |         3.618421 |        1134 |              2.2771084 |      468 |          0.17159452 |          1602 |               0.49668875
+ Heap/LOCK                    |     8 |         2.631579 |         432 |              0.8674699 |        0 |                   0 |           432 |               0.13393854
+ Heap/INPLACE                 |    45 |        14.802631 |        9123 |              18.319277 |    16076 |            5.894345 |         25199 |                7.8127713
+ Heap/UPDATE+INIT             |     1 |       0.32894737 |         817 |              1.6405623 |        0 |                   0 |           817 |               0.25330505
+ Btree/INSERT_LEAF            |    70 |        23.026316 |        5183 |              10.407631 |    72024 |           26.407955 |         77207 |                23.937483
+ Btree/DEDUP                  |     1 |       0.32894737 |          64 |             0.12851405 |        0 |                   0 |            64 |              0.019842746
+(20 rows)
+</pre> </dd> <dt><code class="function">pg_get_wal_stats_till_end_of_wal(start_lsn pg_lsn, per_record boolean DEFAULT false, "resource_manager/record_type" OUT text, count OUT int8, count_percentage OUT float8, record_length OUT int8, record_length_percentage OUT float8, fpi_length OUT int8, fpi_length_percentage OUT float8, combined_size OUT int8, combined_size_percentage OUT float8) returns setof record</code></dt> <dd> <p>This function is same as <code class="function">pg_get_wal_stats()</code> except that it gets statistics of all the valid WAL records from <code>start_lsn</code> till end of WAL.</p> </dd> </dl> </div> </div> <div class="sect2" id="id-1.11.7.46.9">    <h2 class="title">F.37.2. Author</h2>    <p>Bharath Rupireddy <code class="email">&lt;<a class="email" href="mailto:bharath.rupireddyforpostgres@gmail.com">bharath.rupireddyforpostgres@gmail.com</a>&gt;</code></p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/pgwalinspect.html" class="_attribution-link">https://www.postgresql.org/docs/15/pgwalinspect.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

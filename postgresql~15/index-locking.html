@@ -1,0 +1,115 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Index Access Method&#58; Index Locking Considerations - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="Index access methods must handle concurrent updates of the index by multiple processes. The core PostgreSQL system obtains AccessShareLock on the &hellip;">
+  <meta name="keywords" content="index, locking, considerations, access, method, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/index-locking.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>64.4. Index Locking Considerations</h1>    <p>Index access methods must handle concurrent updates of the index by multiple processes. The core PostgreSQL system obtains <code class="literal">AccessShareLock</code> on the index during an index scan, and <code class="literal">RowExclusiveLock</code> when updating the index (including plain <code class="command">VACUUM</code>). Since these lock types do not conflict, the access method is responsible for handling any fine-grained locking it might need. An <code class="literal">ACCESS EXCLUSIVE</code> lock on the index as a whole will be taken only during index creation, destruction, or <code class="command">REINDEX</code> (<code class="literal">SHARE UPDATE EXCLUSIVE</code> is taken instead with <code class="literal">CONCURRENTLY</code>).</p> <p>Building an index type that supports concurrent updates usually requires extensive and subtle analysis of the required behavior. For the b-tree and hash index types, you can read about the design decisions involved in <code class="filename">src/backend/access/nbtree/README</code> and <code class="filename">src/backend/access/hash/README</code>.</p> <p>Aside from the index's own internal consistency requirements, concurrent updates create issues about consistency between the parent table (the <em class="firstterm">heap</em>) and the index. Because PostgreSQL separates accesses and updates of the heap from those of the index, there are windows in which the index might be inconsistent with the heap. We handle this problem with the following rules:</p>  <ul> <li> <p>A new heap entry is made before making its index entries. (Therefore a concurrent index scan is likely to fail to see the heap entry. This is okay because the index reader would be uninterested in an uncommitted row anyway. But see <a class="xref" href="index-unique-checks" title="64.5. Index Uniqueness Checks">Section 64.5</a>.)</p> </li> <li> <p>When a heap entry is to be deleted (by <code class="command">VACUUM</code>), all its index entries must be removed first.</p> </li> <li> <p>An index scan must maintain a pin on the index page holding the item last returned by <code class="function">amgettuple</code>, and <code class="function">ambulkdelete</code> cannot delete entries from pages that are pinned by other backends. The need for this rule is explained below.</p> </li> </ul>  <p>Without the third rule, it is possible for an index reader to see an index entry just before it is removed by <code class="command">VACUUM</code>, and then to arrive at the corresponding heap entry after that was removed by <code class="command">VACUUM</code>. This creates no serious problems if that item number is still unused when the reader reaches it, since an empty item slot will be ignored by <code class="function">heap_fetch()</code>. But what if a third backend has already re-used the item slot for something else? When using an MVCC-compliant snapshot, there is no problem because the new occupant of the slot is certain to be too new to pass the snapshot test. However, with a non-MVCC-compliant snapshot (such as <code class="literal">SnapshotAny</code>), it would be possible to accept and return a row that does not in fact match the scan keys. We could defend against this scenario by requiring the scan keys to be rechecked against the heap row in all cases, but that is too expensive. Instead, we use a pin on an index page as a proxy to indicate that the reader might still be <span class="quote">“<span class="quote">in flight</span>”</span> from the index entry to the matching heap entry. Making <code class="function">ambulkdelete</code> block on such a pin ensures that <code class="command">VACUUM</code> cannot delete the heap entry before the reader is done with it. This solution costs little in run time, and adds blocking overhead only in the rare cases where there actually is a conflict.</p> <p>This solution requires that index scans be <span class="quote">“<span class="quote">synchronous</span>”</span>: we have to fetch each heap tuple immediately after scanning the corresponding index entry. This is expensive for a number of reasons. An <span class="quote">“<span class="quote">asynchronous</span>”</span> scan in which we collect many TIDs from the index, and only visit the heap tuples sometime later, requires much less index locking overhead and can allow a more efficient heap access pattern. Per the above analysis, we must use the synchronous approach for non-MVCC-compliant snapshots, but an asynchronous scan is workable for a query using an MVCC snapshot.</p> <p>In an <code class="function">amgetbitmap</code> index scan, the access method does not keep an index pin on any of the returned tuples. Therefore it is only safe to use such scans with MVCC-compliant snapshots.</p> <p>When the <code class="structfield">ampredlocks</code> flag is not set, any scan using that index access method within a serializable transaction will acquire a nonblocking predicate lock on the full index. This will generate a read-write conflict with the insert of any tuple into that index by a concurrent serializable transaction. If certain patterns of read-write conflicts are detected among a set of concurrent serializable transactions, one of those transactions may be canceled to protect data integrity. When the flag is set, it indicates that the index access method implements finer-grained predicate locking, which will tend to reduce the frequency of such transaction cancellations.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/index-locking.html" class="_attribution-link">https://www.postgresql.org/docs/15/index-locking.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

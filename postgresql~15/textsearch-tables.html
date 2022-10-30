@@ -1,0 +1,147 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Full Text Search&#58; Tables and Indexes - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="The examples in the previous section illustrated full text matching using simple constant strings. This section shows how to search table data, &hellip;">
+  <meta name="keywords" content="tables, and, indexes, full, text, search, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/textsearch-tables.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>12.2. Tables and Indexes</h1>    <div class="toc"> <dl class="toc"> <dt><a href="textsearch-tables#TEXTSEARCH-TABLES-SEARCH">12.2.1. Searching a Table</a></dt> <dt><a href="textsearch-tables#TEXTSEARCH-TABLES-INDEX">12.2.2. Creating Indexes</a></dt> </dl> </div> <p>The examples in the previous section illustrated full text matching using simple constant strings. This section shows how to search table data, optionally using indexes.</p> <div class="sect2" id="TEXTSEARCH-TABLES-SEARCH">    <h2 class="title">12.2.1. Searching a Table</h2>    <p>It is possible to do a full text search without an index. A simple query to print the <code class="structname">title</code> of each row that contains the word <code class="literal">friend</code> in its <code class="structfield">body</code> field is:</p> <pre data-language="sql">
+SELECT title
+FROM pgweb
+WHERE to_tsvector('english', body) @@ to_tsquery('english', 'friend');
+</pre> <p>This will also find related words such as <code class="literal">friends</code> and <code class="literal">friendly</code>, since all these are reduced to the same normalized lexeme.</p> <p>The query above specifies that the <code class="literal">english</code> configuration is to be used to parse and normalize the strings. Alternatively we could omit the configuration parameters:</p> <pre data-language="sql">
+SELECT title
+FROM pgweb
+WHERE to_tsvector(body) @@ to_tsquery('friend');
+</pre> <p>This query will use the configuration set by <a class="xref" href="runtime-config-client#GUC-DEFAULT-TEXT-SEARCH-CONFIG">default_text_search_config</a>.</p> <p>A more complex example is to select the ten most recent documents that contain <code class="literal">create</code> and <code class="literal">table</code> in the <code class="structname">title</code> or <code class="structname">body</code>:</p> <pre data-language="sql">
+SELECT title
+FROM pgweb
+WHERE to_tsvector(title || ' ' || body) @@ to_tsquery('create &amp; table')
+ORDER BY last_mod_date DESC
+LIMIT 10;
+</pre> <p>For clarity we omitted the <code class="function">coalesce</code> function calls which would be needed to find rows that contain <code class="literal">NULL</code> in one of the two fields.</p> <p>Although these queries will work without an index, most applications will find this approach too slow, except perhaps for occasional ad-hoc searches. Practical use of text searching usually requires creating an index.</p> </div> <div class="sect2" id="TEXTSEARCH-TABLES-INDEX">    <h2 class="title">12.2.2. Creating Indexes</h2>    <p>We can create a GIN index (<a class="xref" href="textsearch-indexes" title="12.9. Preferred Index Types for Text Search">Section 12.9</a>) to speed up text searches:</p> <pre data-language="sql">
+CREATE INDEX pgweb_idx ON pgweb USING GIN (to_tsvector('english', body));
+</pre> <p>Notice that the 2-argument version of <code class="function">to_tsvector</code> is used. Only text search functions that specify a configuration name can be used in expression indexes (<a class="xref" href="indexes-expressional" title="11.7. Indexes on Expressions">Section 11.7</a>). This is because the index contents must be unaffected by <a class="xref" href="runtime-config-client#GUC-DEFAULT-TEXT-SEARCH-CONFIG">default_text_search_config</a>. If they were affected, the index contents might be inconsistent because different entries could contain <code class="type">tsvector</code>s that were created with different text search configurations, and there would be no way to guess which was which. It would be impossible to dump and restore such an index correctly.</p> <p>Because the two-argument version of <code class="function">to_tsvector</code> was used in the index above, only a query reference that uses the 2-argument version of <code class="function">to_tsvector</code> with the same configuration name will use that index. That is, <code class="literal">WHERE to_tsvector('english', body) @@ 'a &amp; b'</code> can use the index, but <code class="literal">WHERE to_tsvector(body) @@ 'a &amp; b'</code> cannot. This ensures that an index will be used only with the same configuration used to create the index entries.</p> <p>It is possible to set up more complex expression indexes wherein the configuration name is specified by another column, e.g.:</p> <pre data-language="sql">
+CREATE INDEX pgweb_idx ON pgweb USING GIN (to_tsvector(config_name, body));
+</pre> <p>where <code class="literal">config_name</code> is a column in the <code class="literal">pgweb</code> table. This allows mixed configurations in the same index while recording which configuration was used for each index entry. This would be useful, for example, if the document collection contained documents in different languages. Again, queries that are meant to use the index must be phrased to match, e.g., <code class="literal">WHERE to_tsvector(config_name, body) @@ 'a &amp; b'</code>.</p> <p>Indexes can even concatenate columns:</p> <pre data-language="sql">
+CREATE INDEX pgweb_idx ON pgweb USING GIN (to_tsvector('english', title || ' ' || body));
+</pre> <p>Another approach is to create a separate <code class="type">tsvector</code> column to hold the output of <code class="function">to_tsvector</code>. To keep this column automatically up to date with its source data, use a stored generated column. This example is a concatenation of <code class="literal">title</code> and <code class="literal">body</code>, using <code class="function">coalesce</code> to ensure that one field will still be indexed when the other is <code class="literal">NULL</code>:</p> <pre data-language="sql">
+ALTER TABLE pgweb
+    ADD COLUMN textsearchable_index_col tsvector
+               GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, ''))) STORED;
+</pre> <p>Then we create a GIN index to speed up the search:</p> <pre data-language="sql">
+CREATE INDEX textsearch_idx ON pgweb USING GIN (textsearchable_index_col);
+</pre> <p>Now we are ready to perform a fast full text search:</p> <pre data-language="sql">
+SELECT title
+FROM pgweb
+WHERE textsearchable_index_col @@ to_tsquery('create &amp; table')
+ORDER BY last_mod_date DESC
+LIMIT 10;
+</pre> <p>One advantage of the separate-column approach over an expression index is that it is not necessary to explicitly specify the text search configuration in queries in order to make use of the index. As shown in the example above, the query can depend on <code class="varname">default_text_search_config</code>. Another advantage is that searches will be faster, since it will not be necessary to redo the <code class="function">to_tsvector</code> calls to verify index matches. (This is more important when using a GiST index than a GIN index; see <a class="xref" href="textsearch-indexes" title="12.9. Preferred Index Types for Text Search">Section 12.9</a>.) The expression-index approach is simpler to set up, however, and it requires less disk space since the <code class="type">tsvector</code> representation is not stored explicitly.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/textsearch-tables.html" class="_attribution-link">https://www.postgresql.org/docs/15/textsearch-tables.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

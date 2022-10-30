@@ -1,0 +1,115 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Generic WAL Records - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="Although all built-in WAL-logged modules have their own types of WAL records, there is also a generic WAL record type, which describes changes to &hellip;">
+  <meta name="keywords" content="chapter, generic, wal, records, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/generic-wal.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>Chapter 65. Generic WAL Records</h1>    <p>Although all built-in WAL-logged modules have their own types of WAL records, there is also a generic WAL record type, which describes changes to pages in a generic way. This is useful for extensions that provide custom access methods.</p> <p>In comparison with <a class="link" href="custom-rmgr" title="Chapter 66. Custom WAL Resource Managers">Custom WAL Resource Managers</a>, Generic WAL is simpler for an extension to implement and does not require the extension library to be loaded in order to apply the records.</p> <blockquote class="note"> <h3 class="title">Note</h3> <p>Generic WAL records are ignored during <a class="link" href="https://www.postgresql.org/docs/15/logicaldecoding.html" title="Chapter 49. Logical Decoding">Logical Decoding</a>. If logical decoding is required for your extension, consider a Custom WAL Resource Manager.</p> </blockquote> <p>The API for constructing generic WAL records is defined in <code class="filename">access/generic_xlog.h</code> and implemented in <code class="filename">access/transam/generic_xlog.c</code>.</p> <p>To perform a WAL-logged data update using the generic WAL record facility, follow these steps:</p> <div class="orderedlist"> <ol class="orderedlist" type="1"> <li> <p><code class="function">state = GenericXLogStart(relation)</code> — start construction of a generic WAL record for the given relation.</p> </li> <li> <p><code class="function">page = GenericXLogRegisterBuffer(state, buffer, flags)</code> — register a buffer to be modified within the current generic WAL record. This function returns a pointer to a temporary copy of the buffer's page, where modifications should be made. (Do not modify the buffer's contents directly.) The third argument is a bit mask of flags applicable to the operation. Currently the only such flag is <code class="literal">GENERIC_XLOG_FULL_IMAGE</code>, which indicates that a full-page image rather than a delta update should be included in the WAL record. Typically this flag would be set if the page is new or has been rewritten completely. <code class="function">GenericXLogRegisterBuffer</code> can be repeated if the WAL-logged action needs to modify multiple pages.</p> </li> <li> <p>Apply modifications to the page images obtained in the previous step.</p> </li> <li> <p><code class="function">GenericXLogFinish(state)</code> — apply the changes to the buffers and emit the generic WAL record.</p> </li> </ol> </div> <p>WAL record construction can be canceled between any of the above steps by calling <code class="function">GenericXLogAbort(state)</code>. This will discard all changes to the page image copies.</p> <p>Please note the following points when using the generic WAL record facility:</p>  <ul> <li> <p>No direct modifications of buffers are allowed! All modifications must be done in copies acquired from <code class="function">GenericXLogRegisterBuffer()</code>. In other words, code that makes generic WAL records should never call <code class="function">BufferGetPage()</code> for itself. However, it remains the caller's responsibility to pin/unpin and lock/unlock the buffers at appropriate times. Exclusive lock must be held on each target buffer from before <code class="function">GenericXLogRegisterBuffer()</code> until after <code class="function">GenericXLogFinish()</code>.</p> </li> <li> <p>Registrations of buffers (step 2) and modifications of page images (step 3) can be mixed freely, i.e., both steps may be repeated in any sequence. Keep in mind that buffers should be registered in the same order in which locks are to be obtained on them during replay.</p> </li> <li> <p>The maximum number of buffers that can be registered for a generic WAL record is <code class="literal">MAX_GENERIC_XLOG_PAGES</code>. An error will be thrown if this limit is exceeded.</p> </li> <li> <p>Generic WAL assumes that the pages to be modified have standard layout, and in particular that there is no useful data between <code class="structfield">pd_lower</code> and <code class="structfield">pd_upper</code>.</p> </li> <li> <p>Since you are modifying copies of buffer pages, <code class="function">GenericXLogStart()</code> does not start a critical section. Thus, you can safely do memory allocation, error throwing, etc. between <code class="function">GenericXLogStart()</code> and <code class="function">GenericXLogFinish()</code>. The only actual critical section is present inside <code class="function">GenericXLogFinish()</code>. There is no need to worry about calling <code class="function">GenericXLogAbort()</code> during an error exit, either.</p> </li> <li> <p><code class="function">GenericXLogFinish()</code> takes care of marking buffers dirty and setting their LSNs. You do not need to do this explicitly.</p> </li> <li> <p>For unlogged relations, everything works the same except that no actual WAL record is emitted. Thus, you typically do not need to do any explicit checks for unlogged relations.</p> </li> <li> <p>The generic WAL redo function will acquire exclusive locks to buffers in the same order as they were registered. After redoing all changes, the locks will be released in the same order.</p> </li> <li> <p>If <code class="literal">GENERIC_XLOG_FULL_IMAGE</code> is not specified for a registered buffer, the generic WAL record contains a delta between the old and the new page images. This delta is based on byte-by-byte comparison. This is not very compact for the case of moving data within a page, and might be improved in the future.</p> </li> </ul>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/generic-wal.html" class="_attribution-link">https://www.postgresql.org/docs/15/generic-wal.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

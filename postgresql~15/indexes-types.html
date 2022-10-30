@@ -1,0 +1,132 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Index Types - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="PostgreSQL provides several index types&#58; B-tree, Hash, GiST, SP-GiST, GIN, BRIN, and the extension bloom. Each index type uses a different &hellip;">
+  <meta name="keywords" content="index, types, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/indexes-types.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>11.2. Index Types</h1>    <div class="toc"> <dl class="toc"> <dt><a href="indexes-types#INDEXES-TYPES-BTREE">11.2.1. B-Tree</a></dt> <dt><a href="indexes-types#INDEXES-TYPES-HASH">11.2.2. Hash</a></dt> <dt><a href="indexes-types#INDEXES-TYPE-GIST">11.2.3. GiST</a></dt> <dt><a href="indexes-types#INDEXES-TYPE-SPGIST">11.2.4. SP-GiST</a></dt> <dt><a href="indexes-types#INDEXES-TYPES-GIN">11.2.5. GIN</a></dt> <dt><a href="indexes-types#INDEXES-TYPES-BRIN">11.2.6. BRIN</a></dt> </dl> </div> <p>PostgreSQL provides several index types: B-tree, Hash, GiST, SP-GiST, GIN, BRIN, and the extension <a class="link" href="bloom" title="F.7. bloom">bloom</a>. Each index type uses a different algorithm that is best suited to different types of queries. By default, the <a class="link" href="sql-createindex" title="CREATE INDEX"><code class="command">CREATE INDEX</code></a> command creates B-tree indexes, which fit the most common situations. The other index types are selected by writing the keyword <code class="literal">USING</code> followed by the index type name. For example, to create a Hash index:</p> <pre data-language="sql">
+CREATE INDEX name ON table USING HASH (column);
+</pre> <div class="sect2" id="id-1.5.10.5.3.3">    <h2 class="title">11.2.1. B-Tree</h2>    <p>B-trees can handle equality and range queries on data that can be sorted into some ordering. In particular, the PostgreSQL query planner will consider using a B-tree index whenever an indexed column is involved in a comparison using one of these operators:</p> <pre data-language="sql">
+&lt;   &lt;=   =   &gt;=   &gt;
+</pre> <p>Constructs equivalent to combinations of these operators, such as <code class="literal">BETWEEN</code> and <code class="literal">IN</code>, can also be implemented with a B-tree index search. Also, an <code class="literal">IS NULL</code> or <code class="literal">IS NOT NULL</code> condition on an index column can be used with a B-tree index.</p> <p>The optimizer can also use a B-tree index for queries involving the pattern matching operators <code class="literal">LIKE</code> and <code class="literal">~</code> <span class="emphasis"><em>if</em></span> the pattern is a constant and is anchored to the beginning of the string — for example, <code class="literal">col LIKE 'foo%'</code> or <code class="literal">col ~ '^foo'</code>, but not <code class="literal">col LIKE '%bar'</code>. However, if your database does not use the C locale you will need to create the index with a special operator class to support indexing of pattern-matching queries; see <a class="xref" href="indexes-opclass" title="11.10. Operator Classes and Operator Families">Section 11.10</a> below. It is also possible to use B-tree indexes for <code class="literal">ILIKE</code> and <code class="literal">~*</code>, but only if the pattern starts with non-alphabetic characters, i.e., characters that are not affected by upper/lower case conversion.</p> <p>B-tree indexes can also be used to retrieve data in sorted order. This is not always faster than a simple scan and sort, but it is often helpful.</p> </div> <div class="sect2" id="id-1.5.10.5.4.3">    <h2 class="title">11.2.2. Hash</h2>    <p>Hash indexes store a 32-bit hash code derived from the value of the indexed column. Hence, such indexes can only handle simple equality comparisons. The query planner will consider using a hash index whenever an indexed column is involved in a comparison using the equal operator:</p> <pre data-language="sql">
+=
+</pre> </div> <div class="sect2" id="id-1.5.10.5.5.3">    <h2 class="title">11.2.3. GiST</h2>    <p>GiST indexes are not a single kind of index, but rather an infrastructure within which many different indexing strategies can be implemented. Accordingly, the particular operators with which a GiST index can be used vary depending on the indexing strategy (the <em class="firstterm">operator class</em>). As an example, the standard distribution of PostgreSQL includes GiST operator classes for several two-dimensional geometric data types, which support indexed queries using these operators:</p> <pre data-language="sql">
+&lt;&lt;   &amp;&lt;   &amp;&gt;   &gt;&gt;   &lt;&lt;|   &amp;&lt;|   |&amp;&gt;   |&gt;&gt;   @&gt;   &lt;@   ~=   &amp;&amp;
+</pre> <p>(See <a class="xref" href="functions-geometry" title="9.11. Geometric Functions and Operators">Section 9.11</a> for the meaning of these operators.) The GiST operator classes included in the standard distribution are documented in <a class="xref" href="gist-builtin-opclasses#GIST-BUILTIN-OPCLASSES-TABLE" title="Table 68.1. Built-in GiST Operator Classes">Table 68.1</a>. Many other GiST operator classes are available in the <code class="literal">contrib</code> collection or as separate projects. For more information see <a class="xref" href="https://www.postgresql.org/docs/15/gist.html" title="Chapter 68. GiST Indexes">Chapter 68</a>.</p> <p>GiST indexes are also capable of optimizing <span class="quote">“<span class="quote">nearest-neighbor</span>”</span> searches, such as</p> <pre data-language="sql">
+SELECT * FROM places ORDER BY location &lt;-&gt; point '(101,456)' LIMIT 10;
+
+</pre> <p>which finds the ten places closest to a given target point. The ability to do this is again dependent on the particular operator class being used. In <a class="xref" href="gist-builtin-opclasses#GIST-BUILTIN-OPCLASSES-TABLE" title="Table 68.1. Built-in GiST Operator Classes">Table 68.1</a>, operators that can be used in this way are listed in the column <span class="quote">“<span class="quote">Ordering Operators</span>”</span>.</p> </div> <div class="sect2" id="id-1.5.10.5.6.3">    <h2 class="title">11.2.4. SP-GiST</h2>    <p>SP-GiST indexes, like GiST indexes, offer an infrastructure that supports various kinds of searches. SP-GiST permits implementation of a wide range of different non-balanced disk-based data structures, such as quadtrees, k-d trees, and radix trees (tries). As an example, the standard distribution of PostgreSQL includes SP-GiST operator classes for two-dimensional points, which support indexed queries using these operators:</p> <pre data-language="sql">
+&lt;&lt;   &gt;&gt;   ~=   &lt;@   &lt;&lt;|   |&gt;&gt;
+</pre> <p>(See <a class="xref" href="functions-geometry" title="9.11. Geometric Functions and Operators">Section 9.11</a> for the meaning of these operators.) The SP-GiST operator classes included in the standard distribution are documented in <a class="xref" href="spgist-builtin-opclasses#SPGIST-BUILTIN-OPCLASSES-TABLE" title="Table 69.1. Built-in SP-GiST Operator Classes">Table 69.1</a>. For more information see <a class="xref" href="https://www.postgresql.org/docs/15/spgist.html" title="Chapter 69. SP-GiST Indexes">Chapter 69</a>.</p> <p>Like GiST, SP-GiST supports <span class="quote">“<span class="quote">nearest-neighbor</span>”</span> searches. For SP-GiST operator classes that support distance ordering, the corresponding operator is listed in the <span class="quote">“<span class="quote">Ordering Operators</span>”</span> column in <a class="xref" href="spgist-builtin-opclasses#SPGIST-BUILTIN-OPCLASSES-TABLE" title="Table 69.1. Built-in SP-GiST Operator Classes">Table 69.1</a>.</p> </div> <div class="sect2" id="id-1.5.10.5.7.3">    <h2 class="title">11.2.5. GIN</h2>    <p>GIN indexes are <span class="quote">“<span class="quote">inverted indexes</span>”</span> which are appropriate for data values that contain multiple component values, such as arrays. An inverted index contains a separate entry for each component value, and can efficiently handle queries that test for the presence of specific component values.</p> <p>Like GiST and SP-GiST, GIN can support many different user-defined indexing strategies, and the particular operators with which a GIN index can be used vary depending on the indexing strategy. As an example, the standard distribution of PostgreSQL includes a GIN operator class for arrays, which supports indexed queries using these operators:</p> <pre data-language="sql">
+&lt;@   @&gt;   =   &amp;&amp;
+</pre> <p>(See <a class="xref" href="functions-array" title="9.19. Array Functions and Operators">Section 9.19</a> for the meaning of these operators.) The GIN operator classes included in the standard distribution are documented in <a class="xref" href="gin-builtin-opclasses#GIN-BUILTIN-OPCLASSES-TABLE" title="Table 70.1. Built-in GIN Operator Classes">Table 70.1</a>. Many other GIN operator classes are available in the <code class="literal">contrib</code> collection or as separate projects. For more information see <a class="xref" href="https://www.postgresql.org/docs/15/gin.html" title="Chapter 70. GIN Indexes">Chapter 70</a>.</p> </div> <div class="sect2" id="id-1.5.10.5.8.3">    <h2 class="title">11.2.6. BRIN</h2>    <p>BRIN indexes (a shorthand for Block Range INdexes) store summaries about the values stored in consecutive physical block ranges of a table. Thus, they are most effective for columns whose values are well-correlated with the physical order of the table rows. Like GiST, SP-GiST and GIN, BRIN can support many different indexing strategies, and the particular operators with which a BRIN index can be used vary depending on the indexing strategy. For data types that have a linear sort order, the indexed data corresponds to the minimum and maximum values of the values in the column for each block range. This supports indexed queries using these operators:</p> <pre data-language="sql">
+&lt;   &lt;=   =   &gt;=   &gt;
+</pre> <p>The BRIN operator classes included in the standard distribution are documented in <a class="xref" href="brin-builtin-opclasses#BRIN-BUILTIN-OPCLASSES-TABLE" title="Table 71.1. Built-in BRIN Operator Classes">Table 71.1</a>. For more information see <a class="xref" href="https://www.postgresql.org/docs/15/brin.html" title="Chapter 71. BRIN Indexes">Chapter 71</a>.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/indexes-types.html" class="_attribution-link">https://www.postgresql.org/docs/15/indexes-types.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

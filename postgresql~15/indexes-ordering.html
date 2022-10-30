@@ -1,0 +1,119 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Indexes and ORDER by - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="In addition to simply finding the rows to be returned by a query, an index may be able to deliver them in a specific sorted order. This allows a &hellip;">
+  <meta name="keywords" content="indexes, and, order, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/indexes-ordering.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>11.4. Indexes and <code class="literal">ORDER BY</code>
+</h1>    <p>In addition to simply finding the rows to be returned by a query, an index may be able to deliver them in a specific sorted order. This allows a query's <code class="literal">ORDER BY</code> specification to be honored without a separate sorting step. Of the index types currently supported by PostgreSQL, only B-tree can produce sorted output — the other index types return matching rows in an unspecified, implementation-dependent order.</p> <p>The planner will consider satisfying an <code class="literal">ORDER BY</code> specification either by scanning an available index that matches the specification, or by scanning the table in physical order and doing an explicit sort. For a query that requires scanning a large fraction of the table, an explicit sort is likely to be faster than using an index because it requires less disk I/O due to following a sequential access pattern. Indexes are more useful when only a few rows need be fetched. An important special case is <code class="literal">ORDER BY</code> in combination with <code class="literal">LIMIT</code> <code>n</code>: an explicit sort will have to process all the data to identify the first <code>n</code> rows, but if there is an index matching the <code class="literal">ORDER BY</code>, the first <code>n</code> rows can be retrieved directly, without scanning the remainder at all.</p> <p>By default, B-tree indexes store their entries in ascending order with nulls last (table TID is treated as a tiebreaker column among otherwise equal entries). This means that a forward scan of an index on column <code class="literal">x</code> produces output satisfying <code class="literal">ORDER BY x</code> (or more verbosely, <code class="literal">ORDER BY x ASC NULLS LAST</code>). The index can also be scanned backward, producing output satisfying <code class="literal">ORDER BY x DESC</code> (or more verbosely, <code class="literal">ORDER BY x DESC NULLS FIRST</code>, since <code class="literal">NULLS FIRST</code> is the default for <code class="literal">ORDER BY DESC</code>).</p> <p>You can adjust the ordering of a B-tree index by including the options <code class="literal">ASC</code>, <code class="literal">DESC</code>, <code class="literal">NULLS FIRST</code>, and/or <code class="literal">NULLS LAST</code> when creating the index; for example:</p> <pre data-language="sql">
+CREATE INDEX test2_info_nulls_low ON test2 (info NULLS FIRST);
+CREATE INDEX test3_desc_index ON test3 (id DESC NULLS LAST);
+</pre> <p>An index stored in ascending order with nulls first can satisfy either <code class="literal">ORDER BY x ASC NULLS FIRST</code> or <code class="literal">ORDER BY x DESC NULLS LAST</code> depending on which direction it is scanned in.</p> <p>You might wonder why bother providing all four options, when two options together with the possibility of backward scan would cover all the variants of <code class="literal">ORDER BY</code>. In single-column indexes the options are indeed redundant, but in multicolumn indexes they can be useful. Consider a two-column index on <code class="literal">(x, y)</code>: this can satisfy <code class="literal">ORDER BY x, y</code> if we scan forward, or <code class="literal">ORDER BY x DESC, y DESC</code> if we scan backward. But it might be that the application frequently needs to use <code class="literal">ORDER BY x ASC, y DESC</code>. There is no way to get that ordering from a plain index, but it is possible if the index is defined as <code class="literal">(x ASC, y DESC)</code> or <code class="literal">(x DESC, y ASC)</code>.</p> <p>Obviously, indexes with non-default sort orderings are a fairly specialized feature, but sometimes they can produce tremendous speedups for certain queries. Whether it's worth maintaining such an index depends on how often you use queries that require a special sort ordering.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/indexes-ordering.html" class="_attribution-link">https://www.postgresql.org/docs/15/indexes-ordering.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

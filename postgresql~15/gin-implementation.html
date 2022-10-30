@@ -1,0 +1,115 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>GIN Indexes&#58; Implementation - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="Internally, a GIN index contains a B-tree index constructed over keys, where each key is an element of one or more indexed items (a member of an &hellip;">
+  <meta name="keywords" content="implementation, gin, indexes, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/gin-implementation.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>70.4. Implementation</h1>    <div class="toc"> <dl class="toc"> <dt><a href="gin-implementation#GIN-FAST-UPDATE">70.4.1. GIN Fast Update Technique</a></dt> <dt><a href="gin-implementation#GIN-PARTIAL-MATCH">70.4.2. Partial Match Algorithm</a></dt> </dl> </div> <p>Internally, a GIN index contains a B-tree index constructed over keys, where each key is an element of one or more indexed items (a member of an array, for example) and where each tuple in a leaf page contains either a pointer to a B-tree of heap pointers (a <span class="quote">“<span class="quote">posting tree</span>”</span>), or a simple list of heap pointers (a <span class="quote">“<span class="quote">posting list</span>”</span>) when the list is small enough to fit into a single index tuple along with the key value. <a class="xref" href="gin-implementation#GIN-INTERNALS-FIGURE" title="Figure 70.1. GIN Internals">Figure 70.1</a> illustrates these components of a GIN index.</p> <p>As of PostgreSQL 9.1, null key values can be included in the index. Also, placeholder nulls are included in the index for indexed items that are null or contain no keys according to <code class="function">extractValue</code>. This allows searches that should find empty items to do so.</p> <p>Multicolumn GIN indexes are implemented by building a single B-tree over composite values (column number, key value). The key values for different columns can be of different types.</p> <div class="figure col-xl-8 col-lg-10 col-md-12" id="GIN-INTERNALS-FIGURE"> <p class="title"><strong>Figure 70.1. GIN Internals</strong></p>  </div> <div class="sect2" id="GIN-FAST-UPDATE">    <h2 class="title">70.4.1. GIN Fast Update Technique</h2>    <p>Updating a GIN index tends to be slow because of the intrinsic nature of inverted indexes: inserting or updating one heap row can cause many inserts into the index (one for each key extracted from the indexed item). GIN is capable of postponing much of this work by inserting new tuples into a temporary, unsorted list of pending entries. When the table is vacuumed or autoanalyzed, or when <code class="function">gin_clean_pending_list</code> function is called, or if the pending list becomes larger than <a class="xref" href="runtime-config-client#GUC-GIN-PENDING-LIST-LIMIT">gin_pending_list_limit</a>, the entries are moved to the main GIN data structure using the same bulk insert techniques used during initial index creation. This greatly improves GIN index update speed, even counting the additional vacuum overhead. Moreover the overhead work can be done by a background process instead of in foreground query processing.</p> <p>The main disadvantage of this approach is that searches must scan the list of pending entries in addition to searching the regular index, and so a large list of pending entries will slow searches significantly. Another disadvantage is that, while most updates are fast, an update that causes the pending list to become <span class="quote">“<span class="quote">too large</span>”</span> will incur an immediate cleanup cycle and thus be much slower than other updates. Proper use of autovacuum can minimize both of these problems.</p> <p>If consistent response time is more important than update speed, use of pending entries can be disabled by turning off the <code class="literal">fastupdate</code> storage parameter for a GIN index. See <a class="xref" href="sql-createindex" title="CREATE INDEX">CREATE INDEX</a> for details.</p> </div> <div class="sect2" id="GIN-PARTIAL-MATCH">    <h2 class="title">70.4.2. Partial Match Algorithm</h2>    <p>GIN can support <span class="quote">“<span class="quote">partial match</span>”</span> queries, in which the query does not determine an exact match for one or more keys, but the possible matches fall within a reasonably narrow range of key values (within the key sorting order determined by the <code class="function">compare</code> support method). The <code class="function">extractQuery</code> method, instead of returning a key value to be matched exactly, returns a key value that is the lower bound of the range to be searched, and sets the <code class="literal">pmatch</code> flag true. The key range is then scanned using the <code class="function">comparePartial</code> method. <code class="function">comparePartial</code> must return zero for a matching index key, less than zero for a non-match that is still within the range to be searched, or greater than zero if the index key is past the range that could match.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/gin-implementation.html" class="_attribution-link">https://www.postgresql.org/docs/15/gin-implementation.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

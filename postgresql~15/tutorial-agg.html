@@ -1,0 +1,158 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>7. Aggregate Functions - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="Like most other relational database products, PostgreSQL supports aggregate functions. An aggregate function computes a single result from multiple &hellip;">
+  <meta name="keywords" content="aggregate, functions, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/tutorial-agg.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>2.7. Aggregate Functions</h1>    <p>Like most other relational database products, PostgreSQL supports <em class="firstterm">aggregate functions</em>. An aggregate function computes a single result from multiple input rows. For example, there are aggregates to compute the <code class="function">count</code>, <code class="function">sum</code>, <code class="function">avg</code> (average), <code class="function">max</code> (maximum) and <code class="function">min</code> (minimum) over a set of rows.</p> <p>As an example, we can find the highest low-temperature reading anywhere with:</p> <pre data-language="sql">
+SELECT max(temp_lo) FROM weather;
+</pre> <pre>
+ max
+-----
+  46
+(1 row)
+</pre> <p id="id-1.4.4.8.5.1"> If we wanted to know what city (or cities) that reading occurred in, we might try:</p> <pre data-language="sql">
+SELECT city FROM weather WHERE temp_lo = max(temp_lo);     <em class="lineannotation">WRONG</em>
+</pre> <p>but this will not work since the aggregate <code class="function">max</code> cannot be used in the <code class="literal">WHERE</code> clause. (This restriction exists because the <code class="literal">WHERE</code> clause determines which rows will be included in the aggregate calculation; so obviously it has to be evaluated before aggregate functions are computed.) However, as is often the case the query can be restated to accomplish the desired result, here by using a <em class="firstterm">subquery</em>:</p> <pre data-language="sql">
+SELECT city FROM weather
+    WHERE temp_lo = (SELECT max(temp_lo) FROM weather);
+</pre> <pre>
+     city
+---------------
+ San Francisco
+(1 row)
+</pre> <p>This is OK because the subquery is an independent computation that computes its own aggregate separately from what is happening in the outer query.</p> <p id="id-1.4.4.8.6.2">  Aggregates are also very useful in combination with <code class="literal">GROUP BY</code> clauses. For example, we can get the maximum low temperature observed in each city with:</p> <pre data-language="sql">
+SELECT city, max(temp_lo)
+    FROM weather
+    GROUP BY city;
+</pre> <pre>
+     city      | max
+---------------+-----
+ Hayward       |  37
+ San Francisco |  46
+(2 rows)
+</pre> <p>which gives us one output row per city. Each aggregate result is computed over the table rows matching that city. We can filter these grouped rows using <code class="literal">HAVING</code> and the output count using <code class="literal">FILTER</code>:</p> <pre data-language="sql">
+SELECT city, max(temp_lo), count(*) FILTER (WHERE temp_lo &lt; 30)
+    FROM weather
+    GROUP BY city
+    HAVING max(temp_lo) &lt; 40;
+</pre> <pre>
+  city   | max | count
+---------+-----+-------
+ Hayward |  37 |     5
+(1 row)
+</pre> <p>which gives us the same results for only the cities that have all <code class="structfield">temp_lo</code> values below 40. Finally, if we only care about cities whose names begin with <span class="quote">“<span class="quote"><code class="literal">S</code></span>”</span>, we might do:</p> <pre data-language="sql">
+SELECT city, max(temp_lo), count(*) FILTER (WHERE temp_lo &lt; 30)
+    FROM weather
+    WHERE city LIKE 'S%'            -- (1)
+    GROUP BY city
+    HAVING max(temp_lo) &lt; 40;
+</pre> <div class="calloutlist"> <table summary="Callout list"> <tr> <td width="5%" align="left"> <p><a href="#co.tutorial-agg-like">(1)</a></p> </td> <td align="left"> <p>The <code class="literal">LIKE</code> operator does pattern matching and is explained in <a class="xref" href="functions-matching" title="9.7. Pattern Matching">Section 9.7</a>.</p> </td> </tr> </table> </div> <p>It is important to understand the interaction between aggregates and SQL's <code class="literal">WHERE</code> and <code class="literal">HAVING</code> clauses. The fundamental difference between <code class="literal">WHERE</code> and <code class="literal">HAVING</code> is this: <code class="literal">WHERE</code> selects input rows before groups and aggregates are computed (thus, it controls which rows go into the aggregate computation), whereas <code class="literal">HAVING</code> selects group rows after groups and aggregates are computed. Thus, the <code class="literal">WHERE</code> clause must not contain aggregate functions; it makes no sense to try to use an aggregate to determine which rows will be inputs to the aggregates. On the other hand, the <code class="literal">HAVING</code> clause always contains aggregate functions. (Strictly speaking, you are allowed to write a <code class="literal">HAVING</code> clause that doesn't use aggregates, but it's seldom useful. The same condition could be used more efficiently at the <code class="literal">WHERE</code> stage.)</p> <p>In the previous example, we can apply the city name restriction in <code class="literal">WHERE</code>, since it needs no aggregate. This is more efficient than adding the restriction to <code class="literal">HAVING</code>, because we avoid doing the grouping and aggregate calculations for all rows that fail the <code class="literal">WHERE</code> check.</p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/tutorial-agg.html" class="_attribution-link">https://www.postgresql.org/docs/15/tutorial-agg.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

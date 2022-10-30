@@ -1,0 +1,192 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Text Search Types - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content="PostgreSQL provides two data types that are designed to support full text search, which is the activity of searching through a collection of natural &hellip;">
+  <meta name="keywords" content="text, search, types, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/datatype-textsearch.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>8.11. Text Search Types</h1>    <div class="toc"> <dl class="toc"> <dt><a href="datatype-textsearch#DATATYPE-TSVECTOR">8.11.1. <code class="type">tsvector</code></a></dt> <dt><a href="datatype-textsearch#DATATYPE-TSQUERY">8.11.2. <code class="type">tsquery</code></a></dt> </dl> </div> <p>PostgreSQL provides two data types that are designed to support full text search, which is the activity of searching through a collection of natural-language <em class="firstterm">documents</em> to locate those that best match a <em class="firstterm">query</em>. The <code class="type">tsvector</code> type represents a document in a form optimized for text search; the <code class="type">tsquery</code> type similarly represents a text query. <a class="xref" href="https://www.postgresql.org/docs/15/textsearch.html" title="Chapter 12. Full Text Search">Chapter 12</a> provides a detailed explanation of this facility, and <a class="xref" href="functions-textsearch" title="9.13. Text Search Functions and Operators">Section 9.13</a> summarizes the related functions and operators.</p> <div class="sect2" id="id-1.5.7.19.5.2">    <h2 class="title">8.11.1. <code class="type" id="tsvector">tsvector</code>
+</h2>    <p>A <code class="type">tsvector</code> value is a sorted list of distinct <em class="firstterm">lexemes</em>, which are words that have been <em class="firstterm">normalized</em> to merge different variants of the same word (see <a class="xref" href="https://www.postgresql.org/docs/15/textsearch.html" title="Chapter 12. Full Text Search">Chapter 12</a> for details). Sorting and duplicate-elimination are done automatically during input, as shown in this example:</p> <pre data-language="sql">
+SELECT 'a fat cat sat on a mat and ate a fat rat'::tsvector;
+                      tsvector
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+</pre> <p>To represent lexemes containing whitespace or punctuation, surround them with quotes:</p> <pre data-language="sql">
+SELECT $$the lexeme '    ' contains spaces$$::tsvector;
+                 tsvector
+-------------------------------------------
+ '    ' 'contains' 'lexeme' 'spaces' 'the'
+</pre> <p>(We use dollar-quoted string literals in this example and the next one to avoid the confusion of having to double quote marks within the literals.) Embedded quotes and backslashes must be doubled:</p> <pre data-language="sql">
+SELECT $$the lexeme 'Joe''s' contains a quote$$::tsvector;
+                    tsvector
+------------------------------------------------
+ 'Joe''s' 'a' 'contains' 'lexeme' 'quote' 'the'
+</pre> <p>Optionally, integer <em class="firstterm">positions</em> can be attached to lexemes:</p> <pre data-language="sql">
+SELECT 'a:1 fat:2 cat:3 sat:4 on:5 a:6 mat:7 and:8 ate:9 a:10 fat:11 rat:12'::tsvector;
+                                  tsvector
+-------------------------------------------------------------------​------------
+ 'a':1,6,10 'and':8 'ate':9 'cat':3 'fat':2,11 'mat':7 'on':5 'rat':12 'sat':4
+</pre> <p>A position normally indicates the source word's location in the document. Positional information can be used for <em class="firstterm">proximity ranking</em>. Position values can range from 1 to 16383; larger numbers are silently set to 16383. Duplicate positions for the same lexeme are discarded.</p> <p>Lexemes that have positions can further be labeled with a <em class="firstterm">weight</em>, which can be <code class="literal">A</code>, <code class="literal">B</code>, <code class="literal">C</code>, or <code class="literal">D</code>. <code class="literal">D</code> is the default and hence is not shown on output:</p> <pre data-language="sql">
+SELECT 'a:1A fat:2B,4C cat:5D'::tsvector;
+          tsvector
+----------------------------
+ 'a':1A 'cat':5 'fat':2B,4C
+</pre> <p>Weights are typically used to reflect document structure, for example by marking title words differently from body words. Text search ranking functions can assign different priorities to the different weight markers.</p> <p>It is important to understand that the <code class="type">tsvector</code> type itself does not perform any word normalization; it assumes the words it is given are normalized appropriately for the application. For example,</p> <pre data-language="sql">
+SELECT 'The Fat Rats'::tsvector;
+      tsvector
+--------------------
+ 'Fat' 'Rats' 'The'
+</pre> <p>For most English-text-searching applications the above words would be considered non-normalized, but <code class="type">tsvector</code> doesn't care. Raw document text should usually be passed through <code class="function">to_tsvector</code> to normalize the words appropriately for searching:</p> <pre data-language="sql">
+SELECT to_tsvector('english', 'The Fat Rats');
+   to_tsvector
+-----------------
+ 'fat':2 'rat':3
+</pre> <p>Again, see <a class="xref" href="https://www.postgresql.org/docs/15/textsearch.html" title="Chapter 12. Full Text Search">Chapter 12</a> for more detail.</p> </div> <div class="sect2" id="id-1.5.7.19.6.2">    <h2 class="title">8.11.2. <code class="type" id="tsquery">tsquery</code>
+</h2>    <p>A <code class="type">tsquery</code> value stores lexemes that are to be searched for, and can combine them using the Boolean operators <code class="literal">&amp;</code> (AND), <code class="literal">|</code> (OR), and <code class="literal">!</code> (NOT), as well as the phrase search operator <code class="literal">&lt;-&gt;</code> (FOLLOWED BY). There is also a variant <code class="literal">&lt;N&gt;</code> of the FOLLOWED BY operator, where <code>N</code> is an integer constant that specifies the distance between the two lexemes being searched for. <code class="literal">&lt;-&gt;</code> is equivalent to <code class="literal">&lt;1&gt;</code>.</p> <p>Parentheses can be used to enforce grouping of these operators. In the absence of parentheses, <code class="literal">!</code> (NOT) binds most tightly, <code class="literal">&lt;-&gt;</code> (FOLLOWED BY) next most tightly, then <code class="literal">&amp;</code> (AND), with <code class="literal">|</code> (OR) binding the least tightly.</p> <p>Here are some examples:</p> <pre data-language="sql">
+SELECT 'fat &amp; rat'::tsquery;
+    tsquery
+---------------
+ 'fat' &amp; 'rat'
+
+SELECT 'fat &amp; (rat | cat)'::tsquery;
+          tsquery
+---------------------------
+ 'fat' &amp; ( 'rat' | 'cat' )
+
+SELECT 'fat &amp; rat &amp; ! cat'::tsquery;
+        tsquery
+------------------------
+ 'fat' &amp; 'rat' &amp; !'cat'
+</pre> <p>Optionally, lexemes in a <code class="type">tsquery</code> can be labeled with one or more weight letters, which restricts them to match only <code class="type">tsvector</code> lexemes with one of those weights:</p> <pre data-language="sql">
+SELECT 'fat:ab &amp; cat'::tsquery;
+    tsquery
+------------------
+ 'fat':AB &amp; 'cat'
+</pre> <p>Also, lexemes in a <code class="type">tsquery</code> can be labeled with <code class="literal">*</code> to specify prefix matching:</p> <pre data-language="sql">
+SELECT 'super:*'::tsquery;
+  tsquery
+-----------
+ 'super':*
+</pre> <p>This query will match any word in a <code class="type">tsvector</code> that begins with <span class="quote">“<span class="quote">super</span>”</span>.</p> <p>Quoting rules for lexemes are the same as described previously for lexemes in <code class="type">tsvector</code>; and, as with <code class="type">tsvector</code>, any required normalization of words must be done before converting to the <code class="type">tsquery</code> type. The <code class="function">to_tsquery</code> function is convenient for performing such normalization:</p> <pre data-language="sql">
+SELECT to_tsquery('Fat:ab &amp; Cats');
+    to_tsquery
+------------------
+ 'fat':AB &amp; 'cat'
+</pre> <p>Note that <code class="function">to_tsquery</code> will process prefixes in the same way as other words, which means this comparison returns true:</p> <pre data-language="sql">
+SELECT to_tsvector( 'postgraduate' ) @@ to_tsquery( 'postgres:*' );
+ ?column?
+----------
+ t
+</pre> <p>because <code class="literal">postgres</code> gets stemmed to <code class="literal">postgr</code>:</p> <pre data-language="sql">
+SELECT to_tsvector( 'postgraduate' ), to_tsquery( 'postgres:*' );
+  to_tsvector  | to_tsquery
+---------------+------------
+ 'postgradu':1 | 'postgr':*
+</pre> <p>which will match the stemmed form of <code class="literal">postgraduate</code>.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/datatype-textsearch.html" class="_attribution-link">https://www.postgresql.org/docs/15/datatype-textsearch.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

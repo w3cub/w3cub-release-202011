@@ -1,0 +1,124 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Type Conversion&#58; Value Storage - PostgreSQL 15 - W3cubDocs</title>
+  
+  <meta name="description" content=" Values to be inserted into a table are converted to the destination column&#39;s data type according to the following steps. ">
+  <meta name="keywords" content="value, storage, type, conversion, postgresql, postgresql~15">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/postgresql~15/typeconv-query.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/postgresql~15.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/postgresql~15/" class="_nav-link" title="" style="margin-left:0;">PostgreSQL 15</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _postgres">
+				
+				
+<h1>10.4. Value Storage</h1>    <p>Values to be inserted into a table are converted to the destination column's data type according to the following steps.</p> <div class="procedure" id="id-1.5.9.9.3"> <p class="title"><strong>Value Storage Type Conversion</strong></p> <ol class="procedure" type="1"> <li> <p>Check for an exact match with the target.</p> </li> <li> <p>Otherwise, try to convert the expression to the target type. This is possible if an <em class="firstterm">assignment cast</em> between the two types is registered in the <code class="structname">pg_cast</code> catalog (see <a class="xref" href="sql-createcast" title="CREATE CAST">CREATE CAST</a>). Alternatively, if the expression is an unknown-type literal, the contents of the literal string will be fed to the input conversion routine for the target type.</p> </li> <li> <p>Check to see if there is a sizing cast for the target type. A sizing cast is a cast from that type to itself. If one is found in the <code class="structname">pg_cast</code> catalog, apply it to the expression before storing into the destination column. The implementation function for such a cast always takes an extra parameter of type <code class="type">integer</code>, which receives the destination column's <code class="structfield">atttypmod</code> value (typically its declared length, although the interpretation of <code class="structfield">atttypmod</code> varies for different data types), and it may take a third <code class="type">boolean</code> parameter that says whether the cast is explicit or implicit. The cast function is responsible for applying any length-dependent semantics such as size checking or truncation.</p> </li> </ol> </div> <div class="example" id="id-1.5.9.9.4"> <p class="title"><strong>Example 10.9. <code class="type">character</code> Storage Type Conversion</strong></p> <div class="example-contents"> <p>For a target column declared as <code class="type">character(20)</code> the following statement shows that the stored value is sized correctly:</p> <pre>
+CREATE TABLE vv (v character(20));
+INSERT INTO vv SELECT 'abc' || 'def';
+SELECT v, octet_length(v) FROM vv;
+
+          v           | octet_length
+----------------------+--------------
+ abcdef               |           20
+(1 row)
+</pre> <p>What has really happened here is that the two unknown literals are resolved to <code class="type">text</code> by default, allowing the <code class="literal">||</code> operator to be resolved as <code class="type">text</code> concatenation. Then the <code class="type">text</code> result of the operator is converted to <code class="type">bpchar</code> (<span class="quote">“<span class="quote">blank-padded char</span>”</span>, the internal name of the <code class="type">character</code> data type) to match the target column type. (Since the conversion from <code class="type">text</code> to <code class="type">bpchar</code> is binary-coercible, this conversion does not insert any real function call.) Finally, the sizing function <code class="literal">bpchar(bpchar, integer, boolean)</code> is found in the system catalog and applied to the operator's result and the stored column length. This type-specific function performs the required length check and addition of padding spaces.</p> </div> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 1996–2022 The PostgreSQL Global Development Group<br>Licensed under the PostgreSQL License.<br>
+    <a href="https://www.postgresql.org/docs/15/typeconv-query.html" class="_attribution-link">https://www.postgresql.org/docs/15/typeconv-query.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
