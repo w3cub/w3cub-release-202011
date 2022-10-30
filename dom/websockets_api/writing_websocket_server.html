@@ -10,13 +10,12 @@
   <meta name="description" content="If you would like to use the WebSocket API, it is useful if you have a server. In this article I will show you how to write one in C#. You can do it &hellip;">
   <meta name="keywords" content="writing, websocket, server, c#, websockets, api, web, apis, dom">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/dom/websockets_api/writing_websocket_server.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
   <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
   <script src="/json/dom.js"></script>
   
@@ -88,198 +87,215 @@
 				
 <h1>Writing a WebSocket server in C#</h1>
 <h2 id="introduction">Introduction</h2>
+<div class="section-content">
 <p>If you would like to use the WebSocket API, it is useful if you have a server. In this article I will show you how to write one in C#. You can do it in any server-side language, but to keep things simple and more understandable, I chose Microsoft's language.</p> <p>This server conforms to <a href="https://datatracker.ietf.org/doc/html/rfc6455" rel=" noopener">RFC 6455</a> so it will only handle connections from Chrome version 16, Firefox 11, IE 10 and over.</p>
+</div>
 <h2 id="first_steps">First steps</h2>
-<p>WebSockets communicate over a <a href="https://en.wikipedia.org/wiki/Transmission_Control_Protocol" rel=" noopener">TCP (Transmission Control Protocol)</a> connection. Luckily, C# has a <a href="https://msdn.microsoft.com/en-us/library/system.net.sockets.tcplistener.aspx" rel=" noopener">TcpListener</a> class which does as the name suggests. It is in the <em>System.Net.Sockets</em> namespace.</p> <div class="notecard note"> <p><strong>Note:</strong> It is a good idea to include the namespace with the <code>using</code> keyword in order to write less. It allows usage of a namespace's classes without typing the full namespace every time.</p> </div>
+<div class="section-content">
+<p>WebSockets communicate over a <a href="https://en.wikipedia.org/wiki/Transmission_Control_Protocol" rel=" noopener">TCP (Transmission Control Protocol)</a> connection. Luckily, C# has a <a href="https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener&amp;view=net-6.0" rel=" noopener">TcpListener</a> class which does as the name suggests. It is in the <em>System.Net.Sockets</em> namespace.</p> <div class="notecard note" id="sect1"> <p><strong>Note:</strong> It is a good idea to include the namespace with the <code>using</code> keyword in order to write less. It allows usage of a namespace's classes without typing the full namespace every time.</p> </div>
+</div>
 <h3 id="tcplistener">TcpListener</h3>
-<p>Constructor:</p> <div class="code-example"><pre data-language="cpp"><span class="token function">TcpListener</span><span class="token punctuation">(</span>System<span class="token punctuation">.</span>Net<span class="token punctuation">.</span>IPAddress localaddr<span class="token punctuation">,</span> <span class="token keyword">int</span> port<span class="token punctuation">)</span>
-</pre></div> <p><code>localaddr</code> specifies the IP of the listener, and <code>port</code> specifies the port.</p> <div class="notecard note"> <p><strong>Note:</strong> To create an <code>IPAddress</code> object from a <code>string</code>, use the <code>Parse</code> static method of <code>IPAddress</code><em>.</em></p> </div> <p>Methods:</p> <ul> <li><code>Start()</code></li> <li> <code>System.Net.Sockets.TcpClient AcceptTcpClient()</code> Waits for a Tcp connection, accepts it and returns it as a TcpClient object. </li> </ul> <p>Here's a barebones server implementation:</p> <div class="code-example"><pre data-language="cpp"><span class="token keyword">using</span> System<span class="token punctuation">.</span>Net<span class="token punctuation">.</span>Sockets<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Net<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">;</span>
+<div class="section-content">
+<p>Constructor:</p> <div class="code-example"><pre data-language="cs">TcpListener(System.Net.IPAddress localaddr, int port)
+</pre></div> <p><code>localaddr</code> specifies the IP of the listener, and <code>port</code> specifies the port.</p> <div class="notecard note" id="sect2"> <p><strong>Note:</strong> To create an <code>IPAddress</code> object from a <code>string</code>, use the <code>Parse</code> static method of <code>IPAddress</code><em>.</em></p> </div> <p>Methods:</p> <ul> <li><code>Start()</code></li> <li> <code>System.Net.Sockets.TcpClient AcceptTcpClient()</code> Waits for a Tcp connection, accepts it and returns it as a TcpClient object. </li> </ul> <p>Here's a barebones server implementation:</p> <div class="code-example"><pre data-language="cs">using System.Net.Sockets;
+using System.Net;
+using System;
 
-<span class="token keyword">class</span> <span class="token class-name">Server</span> <span class="token punctuation">{</span>
-    <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">void</span> <span class="token function">Main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-        TcpListener server <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token function">TcpListener</span><span class="token punctuation">(</span>IPAddress<span class="token punctuation">.</span><span class="token function">Parse</span><span class="token punctuation">(</span><span class="token string">"127.0.0.1"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">80</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+class Server {
+    public static void Main() {
+        TcpListener server = new TcpListener(IPAddress.Parse("127.0.0.1"), 80);
 
-        server<span class="token punctuation">.</span><span class="token function">Start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-        Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"Server has started on 127.0.0.1:80.{0}Waiting for a connection..."</span><span class="token punctuation">,</span> Environment<span class="token punctuation">.</span>NewLine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        server.Start();
+        Console.WriteLine("Server has started on 127.0.0.1:80.{0}Waiting for a connection...", Environment.NewLine);
 
-        TcpClient client <span class="token operator">=</span> server<span class="token punctuation">.</span><span class="token function">AcceptTcpClient</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        TcpClient client = server.AcceptTcpClient();
 
-        Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"A client connected."</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-    <span class="token punctuation">}</span>
-<span class="token punctuation">}</span>
+        Console.WriteLine("A client connected.");
+    }
+}
 </pre></div>
+</div>
 <h3 id="tcpclient">TcpClient</h3>
+<div class="section-content">
 <p>Methods:</p> <ul> <li> <code>System.Net.Sockets.NetworkStream GetStream()</code> Gets the stream which is the communication channel. Both sides of the channel have reading and writing capability. </li> </ul> <p>Properties:</p> <ul> <li> <code>int Available</code> This Property indicates how many bytes of data have been sent. The value is zero until <code>NetworkStream.DataAvailable</code> is <em>true</em>. </li> </ul>
+</div>
 <h3 id="networkstream">NetworkStream</h3>
-<p>Methods:</p> <ul> <li> <div class="code-example"><pre data-language="cpp"><span class="token function">Write</span><span class="token punctuation">(</span>Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> buffer<span class="token punctuation">,</span> <span class="token keyword">int</span> offset<span class="token punctuation">,</span> <span class="token keyword">int</span> size<span class="token punctuation">)</span>
-</pre></div>Writes bytes from buffer, offset and size determine length of message. </li> <li> <div class="code-example"><pre data-language="cpp"><span class="token function">Read</span><span class="token punctuation">(</span>Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> buffer<span class="token punctuation">,</span> <span class="token keyword">int</span> offset<span class="token punctuation">,</span> <span class="token keyword">int</span> size<span class="token punctuation">)</span>
-</pre></div>Reads bytes to <code>buffer</code>. <code>offset</code> and <code>size</code> determine the length of the message. </li> </ul> <p>Let us extend our example.</p> <div class="code-example"><pre data-language="cpp">TcpClient client <span class="token operator">=</span> server<span class="token punctuation">.</span><span class="token function">AcceptTcpClient</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<div class="section-content">
+<p>Methods:</p> <ul> <li> <div class="code-example"><pre data-language="cs">Write(Byte[] buffer, int offset, int size)
+</pre></div>Writes bytes from buffer, offset and size determine length of message. </li> <li> <div class="code-example"><pre data-language="cs">Read(Byte[] buffer, int offset, int size)
+</pre></div>Reads bytes to <code>buffer</code>. <code>offset</code> and <code>size</code> determine the length of the message. </li> </ul> <p>Let us extend our example.</p> <div class="code-example"><pre data-language="cs">TcpClient client = server.AcceptTcpClient();
 
-Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"A client connected."</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+Console.WriteLine("A client connected.");
 
-NetworkStream stream <span class="token operator">=</span> client<span class="token punctuation">.</span><span class="token function">GetStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+NetworkStream stream = client.GetStream();
 
-<span class="token comment">//enter to an infinite cycle to be able to handle every change in stream</span>
-<span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token operator">!</span>stream<span class="token punctuation">.</span>DataAvailable<span class="token punctuation">)</span><span class="token punctuation">;</span>
+//enter to an infinite cycle to be able to handle every change in stream
+while (true) {
+    while (!stream.DataAvailable);
 
-    Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> bytes <span class="token operator">=</span> <span class="token keyword">new</span> Byte<span class="token punctuation">[</span>client<span class="token punctuation">.</span>Available<span class="token punctuation">]</span><span class="token punctuation">;</span>
+    Byte[] bytes = new Byte[client.Available];
 
-    stream<span class="token punctuation">.</span><span class="token function">Read</span><span class="token punctuation">(</span>bytes<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> bytes<span class="token punctuation">.</span>Length<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
+    stream.Read(bytes, 0, bytes.Length);
+}
 </pre></div>
+</div>
 <h2 id="handshaking">Handshaking</h2>
-<p>When a client connects to a server, it sends a GET request to upgrade the connection to a WebSocket from a simple HTTP request. This is known as handshaking.</p> <p>This sample code can detect a GET from the client. Note that this will block until the first 3 bytes of a message are available. Alternative solutions should be investigated for production environments.</p> <div class="code-example"><pre data-language="cpp"><span class="token keyword">using</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">.</span>RegularExpressions<span class="token punctuation">;</span>
+<div class="section-content">
+<p>When a client connects to a server, it sends a GET request to upgrade the connection to a WebSocket from a simple HTTP request. This is known as handshaking.</p> <p>This sample code can detect a GET from the client. Note that this will block until the first 3 bytes of a message are available. Alternative solutions should be investigated for production environments.</p> <div class="code-example"><pre data-language="cs">using System.Text;
+using System.Text.RegularExpressions;
 
-<span class="token keyword">while</span><span class="token punctuation">(</span>client<span class="token punctuation">.</span>Available <span class="token operator">&lt;</span> <span class="token number">3</span><span class="token punctuation">)</span>
-<span class="token punctuation">{</span>
-   <span class="token comment">// wait for enough bytes to be available</span>
-<span class="token punctuation">}</span>
+while(client.Available &lt; 3)
+{
+   // wait for enough bytes to be available
+}
 
-Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> bytes <span class="token operator">=</span> <span class="token keyword">new</span> Byte<span class="token punctuation">[</span>client<span class="token punctuation">.</span>Available<span class="token punctuation">]</span><span class="token punctuation">;</span>
+Byte[] bytes = new Byte[client.Available];
 
-stream<span class="token punctuation">.</span><span class="token function">Read</span><span class="token punctuation">(</span>bytes<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> bytes<span class="token punctuation">.</span>Length<span class="token punctuation">)</span><span class="token punctuation">;</span>
+stream.Read(bytes, 0, bytes.Length);
 
-<span class="token comment">//translate bytes of request to string</span>
-String data <span class="token operator">=</span> Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetString</span><span class="token punctuation">(</span>bytes<span class="token punctuation">)</span><span class="token punctuation">;</span>
+//translate bytes of request to string
+String data = Encoding.UTF8.GetString(bytes);
 
-<span class="token keyword">if</span> <span class="token punctuation">(</span>Regex<span class="token punctuation">.</span><span class="token function">IsMatch</span><span class="token punctuation">(</span>data<span class="token punctuation">,</span> <span class="token string">"^GET"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+if (Regex.IsMatch(data, "^GET")) {
 
-<span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
+} else {
 
-<span class="token punctuation">}</span>
-</pre></div> <p>The response is easy to build, but might be a little bit difficult to understand. The full explanation of the Server handshake can be found in RFC 6455, section 4.2.2. For our purposes, we'll just build a simple response.</p> <p>You must:</p> <ol> <li>Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace</li> <li>Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)</li> <li>Compute SHA-1 and Base64 hash of the new value</li> <li>Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response</li> </ol> <div class="code-example"><pre data-language="cpp"> <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">new</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">.</span>RegularExpressions<span class="token punctuation">.</span><span class="token function">Regex</span><span class="token punctuation">(</span><span class="token string">"^GET"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">IsMatch</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">)</span>
-<span class="token punctuation">{</span>
-    <span class="token keyword">const</span> string eol <span class="token operator">=</span> <span class="token string">"\r\n"</span><span class="token punctuation">;</span> <span class="token comment">// HTTP/1.1 defines the sequence CR LF as the end-of-line marker</span>
+}
+</pre></div> <p>The response is easy to build, but might be a little bit difficult to understand. The full explanation of the Server handshake can be found in RFC 6455, section 4.2.2. For our purposes, we'll just build a simple response.</p> <p>You must:</p> <ol> <li>Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace</li> <li>Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)</li> <li>Compute SHA-1 and Base64 hash of the new value</li> <li>Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response</li> </ol> <div class="code-example"><pre data-language="cs"> if (new System.Text.RegularExpressions.Regex("^GET").IsMatch(data))
+{
+    const string eol = "\r\n"; // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
 
-    Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> response <span class="token operator">=</span> Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetBytes</span><span class="token punctuation">(</span><span class="token string">"HTTP/1.1 101 Switching Protocols"</span> <span class="token operator">+</span> eol
-        <span class="token operator">+</span> <span class="token string">"Connection: Upgrade"</span> <span class="token operator">+</span> eol
-        <span class="token operator">+</span> <span class="token string">"Upgrade: websocket"</span> <span class="token operator">+</span> eol
-        <span class="token operator">+</span> <span class="token string">"Sec-WebSocket-Accept: "</span> <span class="token operator">+</span> Convert<span class="token punctuation">.</span><span class="token function">ToBase64String</span><span class="token punctuation">(</span>
-            System<span class="token punctuation">.</span>Security<span class="token punctuation">.</span>Cryptography<span class="token punctuation">.</span>SHA1<span class="token punctuation">.</span><span class="token function">Create</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">ComputeHash</span><span class="token punctuation">(</span>
-                Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetBytes</span><span class="token punctuation">(</span>
-                    <span class="token keyword">new</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">.</span>RegularExpressions<span class="token punctuation">.</span><span class="token function">Regex</span><span class="token punctuation">(</span><span class="token string">"Sec-WebSocket-Key: (.*)"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">Match</span><span class="token punctuation">(</span>data<span class="token punctuation">)</span><span class="token punctuation">.</span>Groups<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">.</span>Value<span class="token punctuation">.</span><span class="token function">Trim</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> <span class="token string">"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"</span>
-                <span class="token punctuation">)</span>
-            <span class="token punctuation">)</span>
-        <span class="token punctuation">)</span> <span class="token operator">+</span> eol
-        <span class="token operator">+</span> eol<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    Byte[] response = Encoding.UTF8.GetBytes("HTTP/1.1 101 Switching Protocols" + eol
+        + "Connection: Upgrade" + eol
+        + "Upgrade: websocket" + eol
+        + "Sec-WebSocket-Accept: " + Convert.ToBase64String(
+            System.Security.Cryptography.SHA1.Create().ComputeHash(
+                Encoding.UTF8.GetBytes(
+                    new System.Text.RegularExpressions.Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+                )
+            )
+        ) + eol
+        + eol);
 
-    stream<span class="token punctuation">.</span><span class="token function">Write</span><span class="token punctuation">(</span>response<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> response<span class="token punctuation">.</span>Length<span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
+    stream.Write(response, 0, response.Length);
+}
 </pre></div>
+</div>
 <h2 id="decoding_messages">Decoding messages</h2>
+<div class="section-content">
 <p>After a successful handshake, the client will send encoded messages to the server.</p> <p>If we send "MDN", we get these bytes:</p> <pre class="notranslate">129 131 61 84 35 6 112 16 109
-</pre> <p>Let's take a look at what these bytes mean.</p> <p>The first byte, which currently has a value of 129, is a bitfield that breaks down as such:</p> <div class="_table"><table> <thead> <tr> <th>FIN (Bit 0)</th> <th>RSV1 (Bit 1)</th> <th>RSV2 (Bit 2)</th> <th>RSV3 (Bit 3)</th> <th>Opcode (Bit 4:7)</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>0</td> <td>0</td> <td>0</td> <td>0x1=0001</td> </tr> </tbody> </table></div> <ul> <li>FIN bit: This bit indicates whether the full message has been sent from the client. Messages may be sent in frames, but for now we will keep things simple.</li> <li>RSV1, RSV2, RSV3: These bits must be 0 unless an extension is negotiated which supplies a nonzero value to them.</li> <li>Opcode: These bits describe the type of message received. Opcode 0x1 means this is a text message. <a href="https://datatracker.ietf.org/doc/html/rfc6455#section-5.2" rel=" noopener">Full list of Opcodes</a>
-</li> </ul> <p>The second byte, which currently has a value of 131, is another bitfield that breaks down as such:</p> <div class="_table"><table> <thead> <tr> <th>MASK (Bit 0)</th> <th>Payload Length (Bit 1:7)</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>0x83=0000011</td> </tr> </tbody> </table></div> <ul> <li>MASK bit: Defines whether the "Payload data" is masked. If set to 1, a masking key is present in Masking-Key, and this is used to unmask the "Payload data". All messages from the client to the server have this bit set.</li> <li>Payload Length: If this value is between 0 and 125, then it is the length of message. If it is 126, the following 2 bytes (16-bit unsigned integer) are the length. If it is 127, the following 8 bytes (64-bit unsigned integer) are the length.</li> </ul> <div class="notecard note"> <p><strong>Note:</strong> Because the first bit is always 1 for client-to-server messages, you can subtract 128 from this byte to get rid of the MASK bit.</p> </div> <p>Note that the MASK bit is set in our message. This means that the next four bytes (61, 84, 35, and 6) are the mask bytes used to decode the message. These bytes change with every message.</p> <p>The remaining bytes are the encoded message payload.</p>
+</pre> <p>Let's take a look at what these bytes mean.</p> <p>The first byte, which currently has a value of 129, is a bitfield that breaks down as such:</p> <div class="table-scroll"><div class="_table"><table> <thead> <tr> <th>FIN (Bit 0)</th> <th>RSV1 (Bit 1)</th> <th>RSV2 (Bit 2)</th> <th>RSV3 (Bit 3)</th> <th>Opcode (Bit 4:7)</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>0</td> <td>0</td> <td>0</td> <td>0x1=0001</td> </tr> </tbody> </table></div></div> <ul> <li>FIN bit: This bit indicates whether the full message has been sent from the client. Messages may be sent in frames, but for now we will keep things simple.</li> <li>RSV1, RSV2, RSV3: These bits must be 0 unless an extension is negotiated which supplies a nonzero value to them.</li> <li>Opcode: These bits describe the type of message received. Opcode 0x1 means this is a text message. <a href="https://datatracker.ietf.org/doc/html/rfc6455#section-5.2" rel=" noopener">Full list of Opcodes</a>
+</li> </ul> <p>The second byte, which currently has a value of 131, is another bitfield that breaks down as such:</p> <div class="table-scroll"><div class="_table"><table> <thead> <tr> <th>MASK (Bit 0)</th> <th>Payload Length (Bit 1:7)</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>0x83=0000011</td> </tr> </tbody> </table></div></div> <ul> <li>MASK bit: Defines whether the "Payload data" is masked. If set to 1, a masking key is present in Masking-Key, and this is used to unmask the "Payload data". All messages from the client to the server have this bit set.</li> <li>Payload Length: If this value is between 0 and 125, then it is the length of message. If it is 126, the following 2 bytes (16-bit unsigned integer) are the length. If it is 127, the following 8 bytes (64-bit unsigned integer) are the length.</li> </ul> <div class="notecard note" id="sect3"> <p><strong>Note:</strong> Because the first bit is always 1 for client-to-server messages, you can subtract 128 from this byte to get rid of the MASK bit.</p> </div> <p>Note that the MASK bit is set in our message. This means that the next four bytes (61, 84, 35, and 6) are the mask bytes used to decode the message. These bytes change with every message.</p> <p>The remaining bytes are the encoded message payload.</p>
+</div>
 <h3 id="decoding_algorithm">Decoding algorithm</h3>
-<p><em>D_i</em> = <em>E_i</em> XOR <em>M</em>_(<em>i</em> mod 4)</p> <p>where <em>D</em> is the decoded message array, <em>E</em> is the encoded message array, <em>M</em> is the mask byte array, and <em>i</em> is the index of the message byte to decode.</p> <p>Example in C#:</p> <div class="code-example"><pre data-language="cpp">Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> decoded <span class="token operator">=</span> <span class="token keyword">new</span> Byte<span class="token punctuation">[</span><span class="token number">3</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
-Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> encoded <span class="token operator">=</span> <span class="token keyword">new</span> Byte<span class="token punctuation">[</span><span class="token number">3</span><span class="token punctuation">]</span> <span class="token punctuation">{</span><span class="token number">112</span><span class="token punctuation">,</span> <span class="token number">16</span><span class="token punctuation">,</span> <span class="token number">109</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
-Byte<span class="token punctuation">[</span><span class="token punctuation">]</span> mask <span class="token operator">=</span> <span class="token keyword">new</span> Byte<span class="token punctuation">[</span><span class="token number">4</span><span class="token punctuation">]</span> <span class="token punctuation">{</span><span class="token number">61</span><span class="token punctuation">,</span> <span class="token number">84</span><span class="token punctuation">,</span> <span class="token number">35</span><span class="token punctuation">,</span> <span class="token number">6</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<div class="section-content">
+<p><em>D_i</em> = <em>E_i</em> XOR <em>M</em>_(<em>i</em> mod 4)</p> <p>where <em>D</em> is the decoded message array, <em>E</em> is the encoded message array, <em>M</em> is the mask byte array, and <em>i</em> is the index of the message byte to decode.</p> <p>Example in C#:</p> <div class="code-example"><pre data-language="cs">Byte[] decoded = new Byte[3];
+Byte[] encoded = new Byte[3] {112, 16, 109};
+Byte[] mask = new Byte[4] {61, 84, 35, 6};
 
-<span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> encoded<span class="token punctuation">.</span>Length<span class="token punctuation">;</span> i<span class="token operator">++</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-    decoded<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">(</span>Byte<span class="token punctuation">)</span><span class="token punctuation">(</span>encoded<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">^</span> mask<span class="token punctuation">[</span>i <span class="token operator">%</span> <span class="token number">4</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-<span class="token punctuation">}</span>
+for (int i = 0; i &lt; encoded.Length; i++) {
+    decoded[i] = (Byte)(encoded[i] ^ mask[i % 4]);
+}
 </pre></div>
+</div>
 <h2 id="put_together">Put together</h2>
+
 <h3 id="wsserver.cs">wsserver.cs</h3>
-<div class="code-example"><pre data-language="cpp"><span class="token comment">//</span>
-<span class="token comment">// csc wsserver.cs</span>
-<span class="token comment">// wsserver.exe</span>
+<div class="section-content"><div class="code-example"><pre data-language="cs">//
+// csc wsserver.cs
+// wsserver.exe
 
-<span class="token keyword">using</span> System<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Net<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Net<span class="token punctuation">.</span>Sockets<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">;</span>
-<span class="token keyword">using</span> System<span class="token punctuation">.</span>Text<span class="token punctuation">.</span>RegularExpressions<span class="token punctuation">;</span>
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.RegularExpressions;
 
-<span class="token keyword">class</span> <span class="token class-name">Server</span> <span class="token punctuation">{</span>
-    <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">void</span> <span class="token function">Main</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-        string ip <span class="token operator">=</span> <span class="token string">"127.0.0.1"</span><span class="token punctuation">;</span>
-        <span class="token keyword">int</span> port <span class="token operator">=</span> <span class="token number">80</span><span class="token punctuation">;</span>
-        var server <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token function">TcpListener</span><span class="token punctuation">(</span>IPAddress<span class="token punctuation">.</span><span class="token function">Parse</span><span class="token punctuation">(</span>ip<span class="token punctuation">)</span><span class="token punctuation">,</span> port<span class="token punctuation">)</span><span class="token punctuation">;</span>
+class Server {
+    public static void Main() {
+        string ip = "127.0.0.1";
+        int port = 80;
+        var server = new TcpListener(IPAddress.Parse(ip), port);
 
-        server<span class="token punctuation">.</span><span class="token function">Start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-        Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"Server has started on {0}:{1}, Waiting for a connection..."</span><span class="token punctuation">,</span> ip<span class="token punctuation">,</span> port<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        server.Start();
+        Console.WriteLine("Server has started on {0}:{1}, Waiting for a connection...", ip, port);
 
-        TcpClient client <span class="token operator">=</span> server<span class="token punctuation">.</span><span class="token function">AcceptTcpClient</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-        Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"A client connected."</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        TcpClient client = server.AcceptTcpClient();
+        Console.WriteLine("A client connected.");
 
-        NetworkStream stream <span class="token operator">=</span> client<span class="token punctuation">.</span><span class="token function">GetStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        NetworkStream stream = client.GetStream();
 
-        <span class="token comment">// enter to an infinite cycle to be able to handle every change in stream</span>
-        <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-            <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token operator">!</span>stream<span class="token punctuation">.</span>DataAvailable<span class="token punctuation">)</span><span class="token punctuation">;</span>
-            <span class="token keyword">while</span> <span class="token punctuation">(</span>client<span class="token punctuation">.</span>Available <span class="token operator">&lt;</span> <span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// match against "get"</span>
+        // enter to an infinite cycle to be able to handle every change in stream
+        while (true) {
+            while (!stream.DataAvailable);
+            while (client.Available &lt; 3); // match against "get"
 
-            byte<span class="token punctuation">[</span><span class="token punctuation">]</span> bytes <span class="token operator">=</span> <span class="token keyword">new</span> byte<span class="token punctuation">[</span>client<span class="token punctuation">.</span>Available<span class="token punctuation">]</span><span class="token punctuation">;</span>
-            stream<span class="token punctuation">.</span><span class="token function">Read</span><span class="token punctuation">(</span>bytes<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> client<span class="token punctuation">.</span>Available<span class="token punctuation">)</span><span class="token punctuation">;</span>
-            string s <span class="token operator">=</span> Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetString</span><span class="token punctuation">(</span>bytes<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            byte[] bytes = new byte[client.Available];
+            stream.Read(bytes, 0, client.Available);
+            string s = Encoding.UTF8.GetString(bytes);
 
-            <span class="token keyword">if</span> <span class="token punctuation">(</span>Regex<span class="token punctuation">.</span><span class="token function">IsMatch</span><span class="token punctuation">(</span>s<span class="token punctuation">,</span> <span class="token string">"^GET"</span><span class="token punctuation">,</span> RegexOptions<span class="token punctuation">.</span>IgnoreCase<span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-                Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"=====Handshaking from client=====\n{0}"</span><span class="token punctuation">,</span> s<span class="token punctuation">)</span><span class="token punctuation">;</span>
+            if (Regex.IsMatch(s, "^GET", RegexOptions.IgnoreCase)) {
+                Console.WriteLine("=====Handshaking from client=====\n{0}", s);
 
-                <span class="token comment">// 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace</span>
-                <span class="token comment">// 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)</span>
-                <span class="token comment">// 3. Compute SHA-1 and Base64 hash of the new value</span>
-                <span class="token comment">// 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response</span>
-                string swk <span class="token operator">=</span> Regex<span class="token punctuation">.</span><span class="token function">Match</span><span class="token punctuation">(</span>s<span class="token punctuation">,</span> <span class="token string">"Sec-WebSocket-Key: (.*)"</span><span class="token punctuation">)</span><span class="token punctuation">.</span>Groups<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">.</span>Value<span class="token punctuation">.</span><span class="token function">Trim</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-                string swka <span class="token operator">=</span> swk <span class="token operator">+</span> <span class="token string">"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"</span><span class="token punctuation">;</span>
-                byte<span class="token punctuation">[</span><span class="token punctuation">]</span> swkaSha1 <span class="token operator">=</span> System<span class="token punctuation">.</span>Security<span class="token punctuation">.</span>Cryptography<span class="token punctuation">.</span>SHA1<span class="token punctuation">.</span><span class="token function">Create</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">ComputeHash</span><span class="token punctuation">(</span>Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetBytes</span><span class="token punctuation">(</span>swka<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-                string swkaSha1Base64 <span class="token operator">=</span> Convert<span class="token punctuation">.</span><span class="token function">ToBase64String</span><span class="token punctuation">(</span>swkaSha1<span class="token punctuation">)</span><span class="token punctuation">;</span>
+                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                // 3. Compute SHA-1 and Base64 hash of the new value
+                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+                string swk = Regex.Match(s, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
+                string swka = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                byte[] swkaSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swka));
+                string swkaSha1Base64 = Convert.ToBase64String(swkaSha1);
 
-                <span class="token comment">// HTTP/1.1 defines the sequence CR LF as the end-of-line marker</span>
-                byte<span class="token punctuation">[</span><span class="token punctuation">]</span> response <span class="token operator">=</span> Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetBytes</span><span class="token punctuation">(</span>
-                    <span class="token string">"HTTP/1.1 101 Switching Protocols\r\n"</span> <span class="token operator">+</span>
-                    <span class="token string">"Connection: Upgrade\r\n"</span> <span class="token operator">+</span>
-                    <span class="token string">"Upgrade: websocket\r\n"</span> <span class="token operator">+</span>
-                    <span class="token string">"Sec-WebSocket-Accept: "</span> <span class="token operator">+</span> swkaSha1Base64 <span class="token operator">+</span> <span class="token string">"\r\n\r\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+                // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+                byte[] response = Encoding.UTF8.GetBytes(
+                    "HTTP/1.1 101 Switching Protocols\r\n" +
+                    "Connection: Upgrade\r\n" +
+                    "Upgrade: websocket\r\n" +
+                    "Sec-WebSocket-Accept: " + swkaSha1Base64 + "\r\n\r\n");
 
-                stream<span class="token punctuation">.</span><span class="token function">Write</span><span class="token punctuation">(</span>response<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">,</span> response<span class="token punctuation">.</span>Length<span class="token punctuation">)</span><span class="token punctuation">;</span>
-            <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
-                <span class="token keyword">bool</span> fin <span class="token operator">=</span> <span class="token punctuation">(</span>bytes<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">&amp;</span> <span class="token number">0b10000000</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">0</span><span class="token punctuation">,</span>
-                    mask <span class="token operator">=</span> <span class="token punctuation">(</span>bytes<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token operator">&amp;</span> <span class="token number">0b10000000</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token number">0</span><span class="token punctuation">;</span> <span class="token comment">// must be true, "All messages from the client to the server have this bit set"</span>
+                stream.Write(response, 0, response.Length);
+            } else {
+                bool fin = (bytes[0] &amp; 0b10000000) != 0,
+                    mask = (bytes[1] &amp; 0b10000000) != 0; // must be true, "All messages from the client to the server have this bit set"
 
-                <span class="token keyword">int</span> opcode <span class="token operator">=</span> bytes<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token operator">&amp;</span> <span class="token number">0b00001111</span><span class="token punctuation">,</span> <span class="token comment">// expecting 1 - text message</span>
-                    msglen <span class="token operator">=</span> bytes<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span> <span class="token operator">-</span> <span class="token number">128</span><span class="token punctuation">,</span> <span class="token comment">// &amp; 0111 1111</span>
-                    offset <span class="token operator">=</span> <span class="token number">2</span><span class="token punctuation">;</span>
+                int opcode = bytes[0] &amp; 0b00001111, // expecting 1 - text message
+                    msglen = bytes[1] - 128, // &amp; 0111 1111
+                    offset = 2;
 
-                <span class="token keyword">if</span> <span class="token punctuation">(</span>msglen <span class="token operator">==</span> <span class="token number">126</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-                    <span class="token comment">// was ToUInt16(bytes, offset) but the result is incorrect</span>
-                    msglen <span class="token operator">=</span> BitConverter<span class="token punctuation">.</span><span class="token function">ToUInt16</span><span class="token punctuation">(</span><span class="token keyword">new</span> byte<span class="token punctuation">[</span><span class="token punctuation">]</span> <span class="token punctuation">{</span> bytes<span class="token punctuation">[</span><span class="token number">3</span><span class="token punctuation">]</span><span class="token punctuation">,</span> bytes<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span> <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-                    offset <span class="token operator">=</span> <span class="token number">4</span><span class="token punctuation">;</span>
-                <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>msglen <span class="token operator">==</span> <span class="token number">127</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
-                    Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"TODO: msglen == 127, needs qword to store msglen"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-                    <span class="token comment">// i don't really know the byte order, please edit this</span>
-                    <span class="token comment">// msglen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);</span>
-                    <span class="token comment">// offset = 10;</span>
-                <span class="token punctuation">}</span>
+                if (msglen == 126) {
+                    // was ToUInt16(bytes, offset) but the result is incorrect
+                    msglen = BitConverter.ToUInt16(new byte[] { bytes[3], bytes[2] }, 0);
+                    offset = 4;
+                } else if (msglen == 127) {
+                    Console.WriteLine("TODO: msglen == 127, needs qword to store msglen");
+                    // i don't really know the byte order, please edit this
+                    // msglen = BitConverter.ToUInt64(new byte[] { bytes[5], bytes[4], bytes[3], bytes[2], bytes[9], bytes[8], bytes[7], bytes[6] }, 0);
+                    // offset = 10;
+                }
 
-                <span class="token keyword">if</span> <span class="token punctuation">(</span>msglen <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span>
-                    Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"msglen == 0"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-                <span class="token keyword">else</span> <span class="token keyword">if</span> <span class="token punctuation">(</span>mask<span class="token punctuation">)</span> <span class="token punctuation">{</span>
-                    byte<span class="token punctuation">[</span><span class="token punctuation">]</span> decoded <span class="token operator">=</span> <span class="token keyword">new</span> byte<span class="token punctuation">[</span>msglen<span class="token punctuation">]</span><span class="token punctuation">;</span>
-                    byte<span class="token punctuation">[</span><span class="token punctuation">]</span> masks <span class="token operator">=</span> <span class="token keyword">new</span> byte<span class="token punctuation">[</span><span class="token number">4</span><span class="token punctuation">]</span> <span class="token punctuation">{</span> bytes<span class="token punctuation">[</span>offset<span class="token punctuation">]</span><span class="token punctuation">,</span> bytes<span class="token punctuation">[</span>offset <span class="token operator">+</span> <span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span> bytes<span class="token punctuation">[</span>offset <span class="token operator">+</span> <span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">,</span> bytes<span class="token punctuation">[</span>offset <span class="token operator">+</span> <span class="token number">3</span><span class="token punctuation">]</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
-                    offset <span class="token operator">+=</span> <span class="token number">4</span><span class="token punctuation">;</span>
+                if (msglen == 0)
+                    Console.WriteLine("msglen == 0");
+                else if (mask) {
+                    byte[] decoded = new byte[msglen];
+                    byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
+                    offset += 4;
 
-                    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> msglen<span class="token punctuation">;</span> <span class="token operator">++</span>i<span class="token punctuation">)</span>
-                        decoded<span class="token punctuation">[</span>i<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">(</span>byte<span class="token punctuation">)</span><span class="token punctuation">(</span>bytes<span class="token punctuation">[</span>offset <span class="token operator">+</span> i<span class="token punctuation">]</span> <span class="token operator">^</span> masks<span class="token punctuation">[</span>i <span class="token operator">%</span> <span class="token number">4</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+                    for (int i = 0; i &lt; msglen; ++i)
+                        decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
 
-                    string text <span class="token operator">=</span> Encoding<span class="token punctuation">.</span>UTF8<span class="token punctuation">.</span><span class="token function">GetString</span><span class="token punctuation">(</span>decoded<span class="token punctuation">)</span><span class="token punctuation">;</span>
-                    Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"{0}"</span><span class="token punctuation">,</span> text<span class="token punctuation">)</span><span class="token punctuation">;</span>
-                <span class="token punctuation">}</span> <span class="token keyword">else</span>
-                    Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token string">"mask bit not set"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+                    string text = Encoding.UTF8.GetString(decoded);
+                    Console.WriteLine("{0}", text);
+                } else
+                    Console.WriteLine("mask bit not set");
 
-                Console<span class="token punctuation">.</span><span class="token function">WriteLine</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-            <span class="token punctuation">}</span>
-        <span class="token punctuation">}</span>
-    <span class="token punctuation">}</span>
-<span class="token punctuation">}</span>
-</pre></div>
+                Console.WriteLine();
+            }
+        }
+    }
+}
+</pre></div></div>
 <h3 id="client.html">client.html</h3>
-<div class="code-example"><pre data-language="html"><span class="token doctype"><span class="token punctuation">&lt;!</span><span class="token doctype-tag">doctype</span> <span class="token name">html</span><span class="token punctuation">&gt;</span></span>
+<div class="section-content"><div class="code-example"><pre data-language="html"><span class="token doctype"><span class="token punctuation">&lt;!</span><span class="token doctype-tag">doctype</span> <span class="token name">html</span><span class="token punctuation">&gt;</span></span>
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>style</span><span class="token punctuation">&gt;</span></span><span class="token style"><span class="token language-css">
     <span class="token selector">textarea</span> <span class="token punctuation">{</span> <span class="token property">vertical-align</span><span class="token punctuation">:</span> bottom<span class="token punctuation">;</span> <span class="token punctuation">}</span>
     <span class="token selector">#output</span> <span class="token punctuation">{</span> <span class="token property">overflow</span><span class="token punctuation">:</span> auto<span class="token punctuation">;</span> <span class="token punctuation">}</span>
@@ -337,10 +353,21 @@ Byte<span class="token punctuation">[</span><span class="token punctuation">]</s
         textarea<span class="token punctuation">.</span><span class="token function">focus</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
 </span></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
-</pre></div>
+</pre></div></div>
 <h2 id="related">Related</h2>
-<ul> <li><a href="writing_websocket_servers">Writing WebSocket servers</a></li> </ul>
-<div class="_attribution">
+<div class="section-content"><ul> <li><a href="writing_websocket_servers">Writing WebSocket servers</a></li> </ul></div>
+<aside class="metadata"><div class="metadata-content-container">
+<div id="on-github" class="on-github">
+<h3>Found a problem with this page?</h3>
+<ul>
+<li><a href="https://github.com/mdn/content/edit/main/files/en-us/web/api/websockets_api/writing_websocket_server/index.md" target="_blank" rel="noopener noreferrer">Edit on <b>GitHub</b></a></li>
+<li><a href="https://github.com/mdn/content/blob/main/files/en-us/web/api/websockets_api/writing_websocket_server/index.md?plain=1" target="_blank" rel="noopener noreferrer">Source on <b>GitHub</b></a></li>
+<li><a href="https://github.com/mdn/content/issues/new?template=page-report.yml&amp;mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API%2FWriting_WebSocket_server&amp;metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fwebsockets_api%2Fwriting_websocket_server%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API%2FWriting_WebSocket_server%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fwebsockets_api%2Fwriting_websocket_server%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F0872b73731bb333479087e069e0ba94009587fb7%0A*+Document+last+modified%3A+2022-04-22T06%3A07%3A10.000Z%0A%0A%3C%2Fdetails%3E" target="_blank" rel="noopener noreferrer">Report a problem with this content on <b>GitHub</b></a></li>
+<li>Want to fix the problem yourself? See <a href="https://github.com/mdn/content/blob/main/README.md" target="_blank" rel="noopener noreferrer">our Contribution guide</a>.</li>
+</ul>
+</div>
+<p class="last-modified-date"><b>Last modified:</b> <time datetime="2022-04-22T06:07:10.000Z">Apr 22, 2022</time>, <a href="writing_websocket_server/contributors.txt">by MDN contributors</a></p>
+</div></aside><div class="_attribution">
   <p class="_attribution-p">
     © 2005–2021 MDN contributors.<br>Licensed under the Creative Commons Attribution-ShareAlike License v2.5 or later.<br>
     <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server" class="_attribution-link">https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server</a>
