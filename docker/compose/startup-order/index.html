@@ -1,0 +1,145 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Control Startup and Shutdown Order in Compose - Docker - W3cubDocs</title>
+  
+  <meta name="description" content="You can control the order of service startup and shutdown with the depends_on option. Compose always starts and stops containers in dependency order &hellip;">
+  <meta name="keywords" content="control, startup, and, shutdown, order, compose, docker">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/docker/compose/startup-order/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-f16eecbe420d8b2925d31ffbb21d05646497ecbd9515f08ffe69e9bba7332f5657accc7003c7f6c72cb4a132171acf171b359ae3bae4ae5660ddfb1718f88c67.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/docker.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/docker/" class="_nav-link" title="" style="margin-left:0;">Docker</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Control startup and shutdown order in Compose</h1>
+
+<p>You can control the order of service startup and shutdown with the <a href="../compose-file/compose-file-v3/index#depends_on">depends_on</a> option. Compose always starts and stops containers in dependency order, where dependencies are determined by <code class="language-plaintext highlighter-rouge">depends_on</code>, <code class="language-plaintext highlighter-rouge">links</code>, <code class="language-plaintext highlighter-rouge">volumes_from</code>, and <code class="language-plaintext highlighter-rouge">network_mode: "service:..."</code>.</p> <p>However, for startup Compose does not wait until a container is “ready” (whatever that means for your particular application) - only until it’s running. There’s a good reason for this.</p> <p>The problem of waiting for a database (for example) to be ready is really just a subset of a much larger problem of distributed systems. In production, your database could become unavailable or move hosts at any time. Your application needs to be resilient to these types of failures.</p> <p>To handle this, design your application to attempt to re-establish a connection to the database after a failure. If the application retries the connection, it can eventually connect to the database.</p> <p>The best solution is to perform this check in your application code, both at startup and whenever a connection is lost for any reason. However, if you don’t need this level of resilience, you can work around the problem with a wrapper script:</p> <ul> <li> <p>Use a tool such as <a href="https://github.com/vishnubob/wait-for-it">wait-for-it</a>, <a href="https://github.com/powerman/dockerize">dockerize</a>, sh-compatible <a href="https://github.com/Eficode/wait-for">wait-for</a>, or <a href="https://github.com/jasonsychau/RelayAndContainers">RelayAndContainers</a> template. These are small wrapper scripts which you can include in your application’s image to poll a given host and port until it’s accepting TCP connections.</p> <p>For example, to use <code class="language-plaintext highlighter-rouge">wait-for-it.sh</code> or <code class="language-plaintext highlighter-rouge">wait-for</code> to wrap your service’s command:</p> <div class="highlight"><pre class="highlight" data-language="">version: "2"
+services:
+  web:
+    build: .
+    ports:
+      - "80:8000"
+    depends_on:
+      - "db"
+    command: ["./wait-for-it.sh", "db:5432", "--", "python", "app.py"]
+  db:
+    image: postgres
+</pre></div>  <blockquote> <p><strong>Tip</strong></p> <p>There are limitations to this first solution. For example, it doesn’t verify when a specific service is really ready. If you add more arguments to the command, use the <code class="language-plaintext highlighter-rouge">bash shift</code> command with a loop, as shown in the next example.</p> </blockquote> </li> <li> <p>Alternatively, write your own wrapper script to perform a more application-specific health check. For example, you might want to wait until Postgres is ready to accept commands:</p> <div class="highlight"><pre class="highlight" data-language="">#!/bin/sh
+# wait-for-postgres.sh
+
+set -e
+  
+host="$1"
+shift
+  
+until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$host" -U "postgres" -c '\q'; do
+  &gt;&amp;2 echo "Postgres is unavailable - sleeping"
+  sleep 1
+done
+  
+&gt;&amp;2 echo "Postgres is up - executing command"
+exec "$@"
+</pre></div>  <p>You can use this as a wrapper script as in the previous example, by setting:</p> <div class="highlight"><pre class="highlight" data-language="">command: ["./wait-for-postgres.sh", "db", "python", "app.py"]
+</pre></div>  </li> </ul> <h2 id="compose-documentation">Compose documentation</h2> <ul> <li><a href="../index">User guide</a></li> <li><a href="../install/index">Installing Compose</a></li> <li><a href="../gettingstarted/index">Getting Started</a></li> <li><a href="../reference/index">Command line reference</a></li> <li><a href="../compose-file/index">Compose file reference</a></li> <li><a href="../samples-for-compose/index">Sample apps with Compose</a></li> </ul> 
+<p><a href="https://docs.docker.com/search/?q=documentation">documentation</a>, <a href="https://docs.docker.com/search/?q=docs">docs</a>, <a href="https://docs.docker.com/search/?q=docker">docker</a>, <a href="https://docs.docker.com/search/?q=compose">compose</a>, <a href="https://docs.docker.com/search/?q=startup">startup</a>, <a href="https://docs.docker.com/search/?q=shutdown">shutdown</a>, <a href="https://docs.docker.com/search/?q=order">order</a></p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 Docker, Inc.<br>Licensed under the Apache License, Version 2.0.<br>Docker and the Docker logo are trademarks or registered trademarks of Docker, Inc. in the United States and/or other countries.<br>Docker, Inc. and other parties may also have trademark rights in other terms used herein.<br>
+    <a href="https://docs.docker.com/compose/startup-order/" class="_attribution-link">https://docs.docker.com/compose/startup-order/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

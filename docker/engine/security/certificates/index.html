@@ -1,0 +1,132 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Verify Repository Client With Certificates - Docker - W3cubDocs</title>
+  
+  <meta name="description" content="In Running Docker with HTTPS, you learned that, by default, Docker runs via a non-networked Unix socket and TLS must be enabled in order to have the &hellip;">
+  <meta name="keywords" content="verify, repository, client, with, certificates, docker">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/docker/engine/security/certificates/">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-f16eecbe420d8b2925d31ffbb21d05646497ecbd9515f08ffe69e9bba7332f5657accc7003c7f6c72cb4a132171acf171b359ae3bae4ae5660ddfb1718f88c67.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/docker.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/docker/" class="_nav-link" title="" style="margin-left:0;">Docker</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1>Verify repository client with certificates</h1>
+
+<p>In <a href="../protect-access/index">Running Docker with HTTPS</a>, you learned that, by default, Docker runs via a non-networked Unix socket and TLS must be enabled in order to have the Docker client and the daemon communicate securely over HTTPS. TLS ensures authenticity of the registry endpoint and that traffic to/from registry is encrypted.</p> <p>This article demonstrates how to ensure the traffic between the Docker registry server and the Docker daemon (a client of the registry server) is encrypted and properly authenticated using <em>certificate-based client-server authentication</em>.</p> <p>We show you how to install a Certificate Authority (CA) root certificate for the registry and how to set the client TLS certificate for verification.</p> <h2 id="understand-the-configuration">Understand the configuration</h2> <p>A custom certificate is configured by creating a directory under <code class="language-plaintext highlighter-rouge">/etc/docker/certs.d</code> using the same name as the registry’s hostname, such as <code class="language-plaintext highlighter-rouge">localhost</code>. All <code class="language-plaintext highlighter-rouge">*.crt</code> files are added to this directory as CA roots.</p> <blockquote> <p><strong>Note</strong></p> <p>On Linux any root certificates authorities are merged with the system defaults, including the host’s root CA set. If you are running Docker on Windows Server, or Docker Desktop for Windows with Windows containers, the system default certificates are only used when no custom root certificates are configured.</p> </blockquote> <p>The presence of one or more <code class="language-plaintext highlighter-rouge">&lt;filename&gt;.key/cert</code> pairs indicates to Docker that there are custom certificates required for access to the desired repository.</p> <blockquote> <p><strong>Note</strong>: If multiple certificates exist, each is tried in alphabetical order. If there is a 4xx-level or 5xx-level authentication error, Docker continues to try with the next certificate.</p> </blockquote> <p>The following illustrates a configuration with custom certificates:</p> <div class="highlight"><pre class="highlight" data-language="">    /etc/docker/certs.d/        &lt;-- Certificate directory
+    └── localhost:5000          &lt;-- Hostname:port
+       ├── client.cert          &lt;-- Client certificate
+       ├── client.key           &lt;-- Client key
+       └── ca.crt               &lt;-- Certificate authority that signed
+                                    the registry certificate
+</pre></div> <p>The preceding example is operating-system specific and is for illustrative purposes only. You should consult your operating system documentation for creating an os-provided bundled certificate chain.</p> <h2 id="create-the-client-certificates">Create the client certificates</h2> <p>Use OpenSSL’s <code class="language-plaintext highlighter-rouge">genrsa</code> and <code class="language-plaintext highlighter-rouge">req</code> commands to first generate an RSA key and then use the key to create the certificate.</p> <div class="highlight"><pre class="highlight" data-language="">$ openssl genrsa -out client.key 4096
+$ openssl req -new -x509 -text -key client.key -out client.cert
+</pre></div> <blockquote> <p><strong>Note</strong>: These TLS commands only generate a working set of certificates on Linux. The version of OpenSSL in macOS is incompatible with the type of certificate Docker requires.</p> </blockquote> <h2 id="troubleshooting-tips">Troubleshooting tips</h2> <p>The Docker daemon interprets <code class="language-plaintext highlighter-rouge">.crt</code> files as CA certificates and <code class="language-plaintext highlighter-rouge">.cert</code> files as client certificates. If a CA certificate is accidentally given the extension <code class="language-plaintext highlighter-rouge">.cert</code> instead of the correct <code class="language-plaintext highlighter-rouge">.crt</code> extension, the Docker daemon logs the following error message:</p> <div class="highlight"><pre class="highlight" data-language="">Missing key KEY_NAME for client certificate CERT_NAME. CA certificates should use the extension .crt.
+</pre></div> <p>If the Docker registry is accessed without a port number, do not add the port to the directory name. The following shows the configuration for a registry on default port 443 which is accessed with <code class="language-plaintext highlighter-rouge">docker login my-https.registry.example.com</code>:</p> <div class="highlight"><pre class="highlight" data-language="">    /etc/docker/certs.d/
+    └── my-https.registry.example.com          &lt;-- Hostname without port
+       ├── client.cert
+       ├── client.key
+       └── ca.crt
+</pre></div> <h2 id="related-information">Related information</h2> <ul> <li><a href="../trust/index">Use trusted images</a></li> <li><a href="../protect-access/index">Protect the Docker daemon socket</a></li> </ul> 
+<p><a href="https://docs.docker.com/search/?q=Usage">Usage</a>, <a href="https://docs.docker.com/search/?q=registry">registry</a>, <a href="https://docs.docker.com/search/?q=repository">repository</a>, <a href="https://docs.docker.com/search/?q=client">client</a>, <a href="https://docs.docker.com/search/?q=root">root</a>, <a href="https://docs.docker.com/search/?q=certificate">certificate</a>, <a href="https://docs.docker.com/search/?q=docker">docker</a>, <a href="https://docs.docker.com/search/?q=apache">apache</a>, <a href="https://docs.docker.com/search/?q=ssl">ssl</a>, <a href="https://docs.docker.com/search/?q=tls">tls</a>, <a href="https://docs.docker.com/search/?q=documentation">documentation</a>, <a href="https://docs.docker.com/search/?q=examples">examples</a>, <a href="https://docs.docker.com/search/?q=articles">articles</a>, <a href="https://docs.docker.com/search/?q=tutorials">tutorials</a></p>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2019 Docker, Inc.<br>Licensed under the Apache License, Version 2.0.<br>Docker and the Docker logo are trademarks or registered trademarks of Docker, Inc. in the United States and/or other countries.<br>Docker, Inc. and other parties may also have trademark rights in other terms used herein.<br>
+    <a href="https://docs.docker.com/engine/security/certificates/" class="_attribution-link">https://docs.docker.com/engine/security/certificates/</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
