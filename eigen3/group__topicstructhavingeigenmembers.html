@@ -1,0 +1,212 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Structures Having Eigen Members - Eigen3 - W3cubDocs</title>
+  
+  <meta name="description" content="If you define a structure having members of fixed-size vectorizable Eigen types, you must ensure that calling operator new on it allocates properly &hellip;">
+  <meta name="keywords" content="structures, having, eigen, members, executive, summary, what, kind, code, needs, be, changed, how, should, such, modified, why, is, this, needed, i, then, put, all, types, at, beginning, my, class, about, dynamic-size, matrices, and, vectors, so, bug, if, want, do, conditionally, depending, on, template, parameters, other, solutions, eigen3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/eigen3/group__topicstructhavingeigenmembers.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-f16eecbe420d8b2925d31ffbb21d05646497ecbd9515f08ffe69e9bba7332f5657accc7003c7f6c72cb4a132171acf171b359ae3bae4ae5660ddfb1718f88c67.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/eigen3.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/eigen3/" class="_nav-link" title="" style="margin-left:0;">Eigen3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _eigen3">
+				
+				
+<h1>Structures Having Eigen Members</h1>      <div> <h1>
+<a id="StructHavingEigenMembers_summary"></a> Executive Summary</h1> <p>If you define a structure having members of <a href="group__topicfixedsizevectorizable">fixed-size vectorizable Eigen types</a>, you must ensure that calling operator new on it allocates properly aligned buffers. If you're compiling in <span>[c++17]</span> mode only with a sufficiently recent compiler (e.g., GCC&gt;=7, clang&gt;=5, MSVC&gt;=19.12), then everything is taken care by the compiler and you can stop reading.</p> <p>Otherwise, you have to overload its <code>operator new</code> so that it generates properly aligned pointers (e.g., 32-bytes-aligned for Vector4d and AVX). Fortunately, Eigen provides you with a macro <code>EIGEN_MAKE_ALIGNED_OPERATOR_NEW</code> that does that for you.</p> <h1>
+<a id="StructHavingEigenMembers_what"></a> What kind of code needs to be changed?</h1> <p>The kind of code that needs to be changed is this:</p> <pre data-language="cpp"><span>class </span>Foo
+{
+  ...
+  <a href="classeigen_1_1matrix">Eigen::Vector2d</a> v;
+  ...
+};
+ 
+...
+ 
+Foo *foo = <span>new</span> Foo;</pre>
+<p>In other words: you have a class that has as a member a <a href="group__topicfixedsizevectorizable">fixed-size vectorizable Eigen object</a>, and then you dynamically create an object of that class.</p> <h1>
+<a id="StructHavingEigenMembers_how"></a> How should such code be modified?</h1> <p>Very easy, you just need to put a <code>EIGEN_MAKE_ALIGNED_OPERATOR_NEW</code> macro in a public part of your class, like this:</p> <pre data-language="cpp"><span>class </span>Foo
+{
+  ...
+  <a href="classeigen_1_1matrix">Eigen::Vector4d</a> v;
+  ...
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+ 
+...
+ 
+Foo *foo = <span>new</span> Foo;
+</pre>
+<p>This macro makes <code>new Foo</code> always return an aligned pointer.</p> <p>In <span>[c++17]</span>, this macro is empty.</p> <p>If this approach is too intrusive, see also the <a href="group__topicstructhavingeigenmembers#StructHavingEigenMembers_othersolutions">other solutions</a>.</p> <h1>
+<a id="StructHavingEigenMembers_why"></a> Why is this needed?</h1> <p>OK let's say that your code looks like this:</p> <pre data-language="cpp"><span>class </span>Foo
+{
+  ...
+  <a href="classeigen_1_1matrix">Eigen::Vector4d</a> v;
+  ...
+};
+ 
+...
+ 
+Foo *foo = <span>new</span> Foo;
+</pre>
+<p>A Eigen::Vector4d consists of 4 doubles, which is 256 bits. This is exactly the size of an AVX register, which makes it possible to use AVX for all sorts of operations on this vector. But AVX instructions (at least the ones that Eigen uses, which are the fast ones) require 256-bit alignment. Otherwise you get a segmentation fault.</p> <p>For this reason, Eigen takes care by itself to require 256-bit alignment for Eigen::Vector4d, by doing two things: </p>
+<ul> <li>Eigen requires 256-bit alignment for the Eigen::Vector4d's array (of 4 doubles). With <span>[c++11]</span> this is done with the <a href="https://en.cppreference.com/w/cpp/keyword/alignas">alignas</a> keyword, or compiler's extensions for c++98/03. </li> <li>Eigen overloads the <code>operator new</code> of Eigen::Vector4d so it will always return 256-bit aligned pointers. (removed in <span>[c++17]</span>)</li> </ul> <p>Thus, normally, you don't have to worry about anything, Eigen handles alignment of operator new for you...</p> <p>... except in one case. When you have a <code>class Foo</code> like above, and you dynamically allocate a new <code>Foo</code> as above, then, since <code>Foo</code> doesn't have aligned <code>operator new</code>, the returned pointer foo is not necessarily 256-bit aligned.</p> <p>The alignment attribute of the member <code>v</code> is then relative to the start of the class <code>Foo</code>. If the <code>foo</code> pointer wasn't aligned, then <code>foo-&gt;v</code> won't be aligned either!</p> <p>The solution is to let <code>class Foo</code> have an aligned <code>operator new</code>, as we showed in the previous section.</p> <p>This explanation also holds for SSE/NEON/MSA/Altivec/VSX targets, which require 16-bytes alignment, and AVX512 which requires 64-bytes alignment for fixed-size objects multiple of 64 bytes (e.g., Eigen::Matrix4d).</p> <h1>
+<a id="StructHavingEigenMembers_movetotop"></a> Should I then put all the members of Eigen types at the beginning of my class?</h1> <p>That's not required. Since Eigen takes care of declaring adequate alignment, all members that need it are automatically aligned relatively to the class. So code like this works fine:</p> <pre data-language="cpp"><span>class </span>Foo
+{
+  <span>double</span> x;
+  <a href="classeigen_1_1matrix">Eigen::Vector4d</a> v;
+<span>public</span>:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+</pre>
+<p>That said, as usual, it is recommended to sort the members so that alignment does not waste memory. In the above example, with AVX, the compiler will have to reserve 24 empty bytes between <code>x</code> and <code>v</code>.</p> <h1>
+<a id="StructHavingEigenMembers_dynamicsize"></a> What about dynamic-size matrices and vectors?</h1> <p>Dynamic-size matrices and vectors, such as Eigen::VectorXd, allocate dynamically their own array of coefficients, so they take care of requiring absolute alignment automatically. So they don't cause this issue. The issue discussed here is only with <a href="group__topicfixedsizevectorizable">fixed-size vectorizable matrices and vectors</a>.</p> <h1>
+<a id="StructHavingEigenMembers_bugineigen"></a> So is this a bug in Eigen?</h1> <p>No, it's not our bug. It's more like an inherent problem of the c++ language specification that has been solved in c++17 through the feature known as <a href="http://wg21.link/p0035r4">dynamic memory allocation for over-aligned data</a>.</p> <h1>
+<a id="StructHavingEigenMembers_conditional"></a> What if I want to do this conditionally (depending on template parameters) ?</h1> <p>For this situation, we offer the macro <code>EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF(NeedsToAlign)</code>. It will generate aligned operators like <code>EIGEN_MAKE_ALIGNED_OPERATOR_NEW</code> if <code>NeedsToAlign</code> is true. It will generate operators with the default alignment if <code>NeedsToAlign</code> is false. In <span>[c++17]</span>, this macro is empty.</p> <p>Example:</p> <pre data-language="cpp"><span>template</span>&lt;<span>int</span> n&gt; <span>class </span>Foo
+{
+  <span>typedef</span> <a href="classeigen_1_1matrix">Eigen::Matrix&lt;float,n,1&gt;</a> <a href="group__matrixtypedefs#ga2623c0d4641dda067fbdb9a009ef0c91">Vector</a>;
+  <span>enum</span> { NeedsToAlign = (<span>sizeof</span>(<a href="group__matrixtypedefs#ga2623c0d4641dda067fbdb9a009ef0c91">Vector</a>)%16)==0 };
+  ...
+  <a href="group__matrixtypedefs#ga2623c0d4641dda067fbdb9a009ef0c91">Vector</a> v;
+  ...
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF(NeedsToAlign)
+};
+ 
+...
+ 
+Foo&lt;4&gt; *foo4 = <span>new</span> Foo&lt;4&gt;; <span>// foo4 is guaranteed to be 128bit-aligned</span>
+Foo&lt;3&gt; *foo3 = <span>new</span> Foo&lt;3&gt;; <span>// foo3 has only the system default alignment guarantee</span></pre>
+<h1>
+<a id="StructHavingEigenMembers_othersolutions"></a> Other solutions</h1> <p>In case putting the <code>EIGEN_MAKE_ALIGNED_OPERATOR_NEW</code> macro everywhere is too intrusive, there exists at least two other solutions.</p> <h2>
+<a id="othersolutions1"></a> Disabling alignment</h2> <p>The first is to disable alignment requirement for the fixed size members: </p>
+<pre data-language="cpp"><span>class </span>Foo
+{
+  ...
+  <a href="classeigen_1_1matrix">Eigen::Matrix&lt;double,4,1,Eigen::DontAlign&gt;</a> v;
+  ...
+};
+</pre>
+<p> This <code>v</code> is fully compatible with aligned Eigen::Vector4d. This has only for effect to make load/stores to <code>v</code> more expensive (usually slightly, but that's hardware dependent).</p> <h2>
+<a id="othersolutions2"></a> Private structure</h2> <p>The second consist in storing the fixed-size objects into a private struct which will be dynamically allocated at the construction time of the main object:</p> <pre data-language="cpp"><span>struct </span>Foo_d
+{
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  Vector4d v;
+  ...
+};
+ 
+ 
+<span>struct </span>Foo {
+  Foo() { init_d(); }
+  ~Foo() { <span>delete</span> d; }
+  <span>void</span> bar()
+  {
+    <span>// use d-&gt;v instead of v</span>
+    ...
+  }
+<span>private</span>:
+  <span>void</span> init_d() { d = <span>new</span> Foo_d; }
+  Foo_d* d;
+};
+</pre>
+<p>The clear advantage here is that the class <code>Foo</code> remains unchanged regarding alignment issues. The drawback is that an additional heap allocation will be required whatsoever. </p> </div> <div class="_attribution">
+  <p class="_attribution-p">
+    © Eigen.<br>Licensed under the MPL2 License.<br>
+    <a href="https://eigen.tuxfamily.org/dox/group__TopicStructHavingEigenMembers.html" class="_attribution-link">https://eigen.tuxfamily.org/dox/group__TopicStructHavingEigenMembers.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

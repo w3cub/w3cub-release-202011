@@ -1,0 +1,135 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Lazy Evaluation and Aliasing - Eigen3 - W3cubDocs</title>
+  
+  <meta name="description" content="Executive summary&#58; Eigen has intelligent compile-time mechanisms to enable lazy evaluation and removing temporaries where appropriate. It will &hellip;">
+  <meta name="keywords" content="lazy, evaluation, and, aliasing, which, sub-expressions, are, evaluated, into, temporaries, eigen, eigen3">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/eigen3/topiclazyevaluation.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-f16eecbe420d8b2925d31ffbb21d05646497ecbd9515f08ffe69e9bba7332f5657accc7003c7f6c72cb4a132171acf171b359ae3bae4ae5660ddfb1718f88c67.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/eigen3.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/eigen3/" class="_nav-link" title="" style="margin-left:0;">Eigen3</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _eigen3">
+				
+				
+<h1>Lazy Evaluation and Aliasing</h1>     <div> <div> <div>
+<p>Executive summary: Eigen has intelligent compile-time mechanisms to enable lazy evaluation and removing temporaries where appropriate. It will handle aliasing automatically in most cases, for example with matrix products. The automatic behavior can be overridden manually by using the <a href="classeigen_1_1densebase#aa73e57a2f0f7cfcb4ad4d55ea0b6414b">MatrixBase::eval()</a> and <a href="classeigen_1_1matrixbase#a2c1085de7645f23f240876388457da0b">MatrixBase::noalias()</a> methods.</p> <p>When you write a line of code involving a complex expression such as</p> <pre data-language="cpp">mat1 = mat2 + mat3 * (mat4 + mat5);
+</pre>
+<p>Eigen determines automatically, for each sub-expression, whether to evaluate it into a temporary variable. Indeed, in certain cases it is better to evaluate a sub-expression into a temporary variable, while in other cases it is better to avoid that.</p> <p>A traditional math library without expression templates always evaluates all sub-expressions into temporaries. So with this code,</p> <pre data-language="cpp">vec1 = vec2 + vec3;
+</pre>
+<p>a traditional library would evaluate <code>vec2</code> + vec3 into a temporary <code>vec4</code> and then copy <code>vec4</code> into <code>vec1</code>. This is of course inefficient: the arrays are traversed twice, so there are a lot of useless load/store operations.</p> <p>Expression-templates-based libraries can avoid evaluating sub-expressions into temporaries, which in many cases results in large speed improvements. This is called <em>lazy evaluation</em> as an expression is getting evaluated as late as possible. In Eigen <b>all expressions are lazy-evaluated</b>. More precisely, an expression starts to be evaluated once it is assigned to a matrix. Until then nothing happens beyond constructing the abstract expression tree. In contrast to most other expression-templates-based libraries, however, <b>Eigen might choose to evaluate some sub-expressions into temporaries</b>. There are two reasons for that: first, pure lazy evaluation is not always a good choice for performance; second, pure lazy evaluation can be very dangerous, for example with matrix products: doing <code>mat = mat*mat</code> gives a wrong result if the matrix product is directly evaluated within the destination matrix, because of the way matrix product works.</p> <p>For these reasons, Eigen has intelligent compile-time mechanisms to determine automatically which sub-expression should be evaluated into a temporary variable.</p> <p>So in the basic example,</p> <pre data-language="cpp">mat1 = mat2 + mat3;
+</pre>
+<p>Eigen chooses not to introduce any temporary. Thus the arrays are traversed only once, producing optimized code. If you really want to force immediate evaluation, use <a href="classeigen_1_1densebase#aa73e57a2f0f7cfcb4ad4d55ea0b6414b">eval()</a>:</p> <pre data-language="cpp">mat1 = (mat2 + mat3).eval();
+</pre>
+<p>Here is now a more involved example:</p> <pre data-language="cpp">mat1 = -mat2 + mat3 + 5 * mat4;
+</pre>
+<p>Here again Eigen won't introduce any temporary, thus producing a single <b>fused</b> evaluation loop, which is clearly the correct choice.</p> <h1>
+<a id="TopicLazyEvaluationWhichExpr"></a> Which sub-expressions are evaluated into temporaries?</h1> <p>The default evaluation strategy is to fuse the operations in a single loop, and Eigen will choose it except in a few circumstances.</p> <p><b>The first circumstance</b> in which Eigen chooses to evaluate a sub-expression is when it sees an assignment <code>a = b;</code> and the expression <code>b</code> has the evaluate-before-assigning <a href="group__flags">flag</a>. The most important example of such an expression is the <a href="classeigen_1_1product">matrix product expression</a>. For example, when you do</p> <pre data-language="cpp">mat = mat * mat;
+</pre>
+<p>Eigen will evaluate <code>mat * mat</code> into a temporary matrix, and then copies it into the original <code>mat</code>. This guarantees a correct result as we saw above that lazy evaluation gives wrong results with matrix products. It also doesn't cost much, as the cost of the matrix product itself is much higher. Note that this temporary is introduced at evaluation time only, that is, within operator= in this example. The expression <code>mat * mat</code> still return a abstract product type.</p> <p>What if you know that the result does no alias the operand of the product and want to force lazy evaluation? Then use <a href="classeigen_1_1matrixbase#a2c1085de7645f23f240876388457da0b">.noalias()</a> instead. Here is an example:</p> <pre data-language="cpp">mat1.noalias() = mat2 * mat2;
+</pre>
+<p>Here, since we know that mat2 is not the same matrix as mat1, we know that lazy evaluation is not dangerous, so we may force lazy evaluation. Concretely, the effect of noalias() here is to bypass the evaluate-before-assigning <a href="group__flags">flag</a>.</p> <p><b>The second circumstance</b> in which Eigen chooses to evaluate a sub-expression, is when it sees a nested expression such as <code>a + b</code> where <code>b</code> is already an expression having the evaluate-before-nesting <a href="group__flags">flag</a>. Again, the most important example of such an expression is the <a href="classeigen_1_1product">matrix product expression</a>. For example, when you do</p> <pre data-language="cpp">mat1 = mat2 * mat3 + mat4 * mat5;
+</pre>
+<p>the products <code>mat2 * mat3</code> and <code>mat4 * mat5</code> gets evaluated separately into temporary matrices before being summed up in <code>mat1</code>. Indeed, to be efficient matrix products need to be evaluated within a destination matrix at hand, and not as simple "dot products". For small matrices, however, you might want to enforce a "dot-product" based lazy evaluation with lazyProduct(). Again, it is important to understand that those temporaries are created at evaluation time only, that is in operator =. See TopicPitfalls_auto_keyword for common pitfalls regarding this remark.</p> <p><b>The third circumstance</b> in which Eigen chooses to evaluate a sub-expression, is when its cost model shows that the total cost of an operation is reduced if a sub-expression gets evaluated into a temporary. Indeed, in certain cases, an intermediate result is sufficiently costly to compute and is reused sufficiently many times, that is worth "caching". Here is an example:</p> <pre data-language="cpp">mat1 = mat2 * (mat3 + mat4);
+</pre>
+<p>Here, provided the matrices have at least 2 rows and 2 columns, each coefficient of the expression <code>mat3 + mat4</code> is going to be used several times in the matrix product. Instead of computing the sum every time, it is much better to compute it once and store it in a temporary variable. Eigen understands this and evaluates <code>mat3 + mat4</code> into a temporary variable before evaluating the product. </p> </div>
+</div> </div> <div class="_attribution">
+  <p class="_attribution-p">
+    © Eigen.<br>Licensed under the MPL2 License.<br>
+    <a href="https://eigen.tuxfamily.org/dox/TopicLazyEvaluation.html" class="_attribution-link">https://eigen.tuxfamily.org/dox/TopicLazyEvaluation.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
