@@ -1,0 +1,920 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Mocking - Vitest - W3cubDocs</title>
+  
+  <meta name="description" content="When writing tests it&#39;s only a matter of time before you need to create a &#34;fake&#34; version of an internal — or external — service. This is &hellip;">
+  <meta name="keywords" content="mocking, vitest">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/vitest/guide/mocking.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-f16eecbe420d8b2925d31ffbb21d05646497ecbd9515f08ffe69e9bba7332f5657accc7003c7f6c72cb4a132171acf171b359ae3bae4ae5660ddfb1718f88c67.css">
+  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <script src="/json/vitest.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vitest/" class="_nav-link" title="" style="margin-left:0;">Vitest</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _simple">
+				
+				
+<h1 id="mocking" tabindex="-1">Mocking </h1>
+<p>When writing tests it's only a matter of time before you need to create a "fake" version of an internal — or external — service. This is commonly referred to as <strong>mocking</strong>. Vitest provides utility functions to help you out through its <strong>vi</strong> helper. You can <code>import { vi } from 'vitest'</code> or access it <strong>globally</strong> (when <a href="../config/index#globals">global configuration</a> is <strong>enabled</strong>).</p>
+<div class="warning custom-block">
+<strong class="custom-block-title">WARNING</strong><p>Always remember to clear or restore mocks before or after each test run to undo mock state changes between runs! See <a href="../api/index#mockreset"><code>mockReset</code></a> docs for more info.</p>
+</div>
+<p>If you wanna dive in head first, check out the <a href="../api/index#vi">API section</a> otherwise keep reading to take a deeper dive into the world of mocking.</p>
+<h2 id="dates" tabindex="-1">Dates </h2>
+<p>Sometimes you need to be in control of the date to ensure consistency when testing. Vitest uses <a href="https://github.com/sinonjs/fake-timers" target="_blank" rel="noreferrer"><code>@sinonjs/fake-timers</code></a> package for manipulating timers, as well as system date. You can find more about the specific API in detail <a href="../api/index#vi-setsystemtime">here</a>.</p>
+<h3 id="example" tabindex="-1">Example </h3>
+<div class="language-js">
+<span class="lang">js</span><pre class="vp-code-dark" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const businessHours = [9, 17]
+
+const purchase = () =&gt; {
+  const currentHour = new Date().getHours()
+  const [open, close] = businessHours
+
+  if (currentHour &gt; open &amp;&amp; currentHour &lt; close)
+    return { message: 'Success' }
+
+  return { message: 'Error' }
+}
+
+describe('purchasing flow', () =&gt; {
+  beforeEach(() =&gt; {
+    // tell vitest we use mocked time
+    vi.useFakeTimers()
+  })
+
+  afterEach(() =&gt; {
+    // restoring date after each test run
+    vi.useRealTimers()
+  })
+
+  it('allows purchases within business hours', () =&gt; {
+    // set hour within business hours
+    const date = new Date(2000, 1, 1, 13)
+    vi.setSystemTime(date)
+
+    // access Date.now() will result in the date set above
+    expect(purchase()).toEqual({ message: 'Success' })
+  })
+
+  it('disallows purchases outside of business hours', () =&gt; {
+    // set hour outside business hours
+    const date = new Date(2000, 1, 1, 19)
+    vi.setSystemTime(date)
+
+    // access Date.now() will result in the date set above
+    expect(purchase()).toEqual({ message: 'Error' })
+  })
+})</pre>
+<pre class="vp-code-light" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const businessHours = [9, 17]
+
+const purchase = () =&gt; {
+  const currentHour = new Date().getHours()
+  const [open, close] = businessHours
+
+  if (currentHour &gt; open &amp;&amp; currentHour &lt; close)
+    return { message: 'Success' }
+
+  return { message: 'Error' }
+}
+
+describe('purchasing flow', () =&gt; {
+  beforeEach(() =&gt; {
+    // tell vitest we use mocked time
+    vi.useFakeTimers()
+  })
+
+  afterEach(() =&gt; {
+    // restoring date after each test run
+    vi.useRealTimers()
+  })
+
+  it('allows purchases within business hours', () =&gt; {
+    // set hour within business hours
+    const date = new Date(2000, 1, 1, 13)
+    vi.setSystemTime(date)
+
+    // access Date.now() will result in the date set above
+    expect(purchase()).toEqual({ message: 'Success' })
+  })
+
+  it('disallows purchases outside of business hours', () =&gt; {
+    // set hour outside business hours
+    const date = new Date(2000, 1, 1, 19)
+    vi.setSystemTime(date)
+
+    // access Date.now() will result in the date set above
+    expect(purchase()).toEqual({ message: 'Error' })
+  })
+})</pre>
+</div>
+<h2 id="functions" tabindex="-1">Functions </h2>
+<p>Mocking functions can be split up into two different categories; <em>spying &amp; mocking</em>.</p>
+<p>Sometimes all you need is to validate whether or not a specific function has been called (and possibly which arguments were passed). In these cases a spy would be all we need which you can use directly with <code>vi.spyOn()</code> (<a href="../api/index#vi-spyon">read more here</a>).</p>
+<p>However spies can only help you <strong>spy</strong> on functions, they are not able to alter the implementation of those functions. In the case where we do need to create a fake (or mocked) version of a function we can use <code>vi.fn()</code> (<a href="../api/index#vi-fn">read more here</a>).</p>
+<p>We use <a href="https://github.com/tinylibs/tinyspy" target="_blank" rel="noreferrer">Tinyspy</a> as a base for mocking functions, but we have our own wrapper to make it <code>jest</code> compatible. Both <code>vi.fn()</code> and <code>vi.spyOn()</code> share the same methods, however only the return result of <code>vi.fn()</code> is callable.</p>
+<h3 id="example-1" tabindex="-1">Example </h3>
+<div class="language-js">
+<span class="lang">js</span><pre class="vp-code-dark" data-language="javascript">import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const getLatest = (index = messages.items.length - 1) =&gt; messages.items[index]
+
+const messages = {
+  items: [
+    { message: 'Simple test message', from: 'Testman' },
+    // ...
+  ],
+  getLatest, // can also be a `getter or setter if supported`
+}
+
+describe('reading messages', () =&gt; {
+  afterEach(() =&gt; {
+    vi.restoreAllMocks()
+  })
+
+  it('should get the latest message with a spy', () =&gt; {
+    const spy = vi.spyOn(messages, 'getLatest')
+    expect(spy.getMockName()).toEqual('getLatest')
+
+    expect(messages.getLatest()).toEqual(
+      messages.items[messages.items.length - 1],
+    )
+
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockImplementationOnce(() =&gt; 'access-restricted')
+    expect(messages.getLatest()).toEqual('access-restricted')
+
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('should get with a mock', () =&gt; {
+    const mock = vi.fn().mockImplementation(getLatest)
+
+    expect(mock()).toEqual(messages.items[messages.items.length - 1])
+    expect(mock).toHaveBeenCalledTimes(1)
+
+    mock.mockImplementationOnce(() =&gt; 'access-restricted')
+    expect(mock()).toEqual('access-restricted')
+
+    expect(mock).toHaveBeenCalledTimes(2)
+
+    expect(mock()).toEqual(messages.items[messages.items.length - 1])
+    expect(mock).toHaveBeenCalledTimes(3)
+  })
+})</pre>
+<pre class="vp-code-light" data-language="javascript">import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const getLatest = (index = messages.items.length - 1) =&gt; messages.items[index]
+
+const messages = {
+  items: [
+    { message: 'Simple test message', from: 'Testman' },
+    // ...
+  ],
+  getLatest, // can also be a `getter or setter if supported`
+}
+
+describe('reading messages', () =&gt; {
+  afterEach(() =&gt; {
+    vi.restoreAllMocks()
+  })
+
+  it('should get the latest message with a spy', () =&gt; {
+    const spy = vi.spyOn(messages, 'getLatest')
+    expect(spy.getMockName()).toEqual('getLatest')
+
+    expect(messages.getLatest()).toEqual(
+      messages.items[messages.items.length - 1],
+    )
+
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    spy.mockImplementationOnce(() =&gt; 'access-restricted')
+    expect(messages.getLatest()).toEqual('access-restricted')
+
+    expect(spy).toHaveBeenCalledTimes(2)
+  })
+
+  it('should get with a mock', () =&gt; {
+    const mock = vi.fn().mockImplementation(getLatest)
+
+    expect(mock()).toEqual(messages.items[messages.items.length - 1])
+    expect(mock).toHaveBeenCalledTimes(1)
+
+    mock.mockImplementationOnce(() =&gt; 'access-restricted')
+    expect(mock()).toEqual('access-restricted')
+
+    expect(mock).toHaveBeenCalledTimes(2)
+
+    expect(mock()).toEqual(messages.items[messages.items.length - 1])
+    expect(mock).toHaveBeenCalledTimes(3)
+  })
+})</pre>
+</div>
+<h3 id="more" tabindex="-1">More </h3>
+<ul><li><a href="https://jestjs.io/docs/mock-function-api" target="_blank" rel="noreferrer">Jest's Mock Functions</a></li></ul>
+<h2 id="globals" tabindex="-1">Globals </h2>
+<p>You can mock global variables that are not present with <code>jsdom</code> or <code>node</code> by using <a href="../api/index#vi-stubglobal"><code>vi.stubGlobal</code></a> helper. It will put the value of the global variable into a <code>globalThis</code> object.</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import { vi } from 'vitest'
+
+const IntersectionObserverMock = vi.fn(() =&gt; ({
+  disconnect: vi.fn(),
+  observe: vi.fn(),
+  takeRecords: vi.fn(),
+  unobserve: vi.fn(),
+}))
+
+vi.stubGlobal('IntersectionObserver', IntersectionObserverMock)
+
+// now you can access it as `IntersectionObserver` or `window.IntersectionObserver`</pre>
+<pre class="vp-code-light" data-language="javascript">import { vi } from 'vitest'
+
+const IntersectionObserverMock = vi.fn(() =&gt; ({
+  disconnect: vi.fn(),
+  observe: vi.fn(),
+  takeRecords: vi.fn(),
+  unobserve: vi.fn(),
+}))
+
+vi.stubGlobal('IntersectionObserver', IntersectionObserverMock)
+
+// now you can access it as `IntersectionObserver` or `window.IntersectionObserver`</pre>
+</div>
+<h2 id="modules" tabindex="-1">Modules </h2>
+<p>Mock modules observe third-party-libraries, that are invoked in some other code, allowing you to test arguments, output or even redeclare its implementation.</p>
+<p>See the <a href="../api/index#vi-mock"><code>vi.mock()</code> api section</a> for a more in-depth detailed API description.</p>
+<h3 id="automocking-algorithm" tabindex="-1">Automocking algorithm </h3>
+<p>If your code is importing a mocked module, without any associated <code>__mocks__</code> file or <code>factory</code> for this module, Vitest will mock the module itself by invoking it and mocking every export.</p>
+<p>The following principles apply</p>
+<ul>
+<li>All arrays will be emptied</li>
+<li>All primitives and collections will stay the same</li>
+<li>All objects will be deeply cloned</li>
+<li>All instances of classes and their prototypes will be deeply cloned</li>
+</ul>
+<h3 id="example-2" tabindex="-1">Example </h3>
+<div class="language-js">
+<span class="lang">js</span><pre class="vp-code-dark" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Client } from 'pg'
+import { failure, success } from './handlers'
+
+// handlers
+export function success(data) {}
+export function failure(data) {}
+
+// get todos
+export const getTodos = async (event, context) =&gt; {
+  const client = new Client({
+    // ...clientOptions
+  })
+
+  await client.connect()
+
+  try {
+    const result = await client.query('SELECT * FROM todos;')
+
+    client.end()
+
+    return success({
+      message: `${result.rowCount} item(s) returned`,
+      data: result.rows,
+      status: true,
+    })
+  }
+  catch (e) {
+    console.error(e.stack)
+
+    client.end()
+
+    return failure({ message: e, status: false })
+  }
+}
+
+vi.mock('pg', () =&gt; {
+  const Client = vi.fn()
+  Client.prototype.connect = vi.fn()
+  Client.prototype.query = vi.fn()
+  Client.prototype.end = vi.fn()
+
+  return { Client }
+})
+
+vi.mock('./handlers', () =&gt; {
+  return {
+    success: vi.fn(),
+    failure: vi.fn(),
+  }
+})
+
+describe('get a list of todo items', () =&gt; {
+  let client
+
+  beforeEach(() =&gt; {
+    client = new Client()
+  })
+
+  afterEach(() =&gt; {
+    vi.clearAllMocks()
+  })
+
+  it('should return items successfully', async () =&gt; {
+    client.query.mockResolvedValueOnce({ rows: [], rowCount: 0 })
+
+    await getTodos()
+
+    expect(client.connect).toBeCalledTimes(1)
+    expect(client.query).toBeCalledWith('SELECT * FROM todos;')
+    expect(client.end).toBeCalledTimes(1)
+
+    expect(success).toBeCalledWith({
+      message: '0 item(s) returned',
+      data: [],
+      status: true,
+    })
+  })
+
+  it('should throw an error', async () =&gt; {
+    const mError = new Error('Unable to retrieve rows')
+    client.query.mockRejectedValueOnce(mError)
+
+    await getTodos()
+
+    expect(client.connect).toBeCalledTimes(1)
+    expect(client.query).toBeCalledWith('SELECT * FROM todos;')
+    expect(client.end).toBeCalledTimes(1)
+    expect(failure).toBeCalledWith({ message: mError, status: false })
+  })
+})</pre>
+<pre class="vp-code-light" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { Client } from 'pg'
+import { failure, success } from './handlers'
+
+// handlers
+export function success(data) {}
+export function failure(data) {}
+
+// get todos
+export const getTodos = async (event, context) =&gt; {
+  const client = new Client({
+    // ...clientOptions
+  })
+
+  await client.connect()
+
+  try {
+    const result = await client.query('SELECT * FROM todos;')
+
+    client.end()
+
+    return success({
+      message: `${result.rowCount} item(s) returned`,
+      data: result.rows,
+      status: true,
+    })
+  }
+  catch (e) {
+    console.error(e.stack)
+
+    client.end()
+
+    return failure({ message: e, status: false })
+  }
+}
+
+vi.mock('pg', () =&gt; {
+  const Client = vi.fn()
+  Client.prototype.connect = vi.fn()
+  Client.prototype.query = vi.fn()
+  Client.prototype.end = vi.fn()
+
+  return { Client }
+})
+
+vi.mock('./handlers', () =&gt; {
+  return {
+    success: vi.fn(),
+    failure: vi.fn(),
+  }
+})
+
+describe('get a list of todo items', () =&gt; {
+  let client
+
+  beforeEach(() =&gt; {
+    client = new Client()
+  })
+
+  afterEach(() =&gt; {
+    vi.clearAllMocks()
+  })
+
+  it('should return items successfully', async () =&gt; {
+    client.query.mockResolvedValueOnce({ rows: [], rowCount: 0 })
+
+    await getTodos()
+
+    expect(client.connect).toBeCalledTimes(1)
+    expect(client.query).toBeCalledWith('SELECT * FROM todos;')
+    expect(client.end).toBeCalledTimes(1)
+
+    expect(success).toBeCalledWith({
+      message: '0 item(s) returned',
+      data: [],
+      status: true,
+    })
+  })
+
+  it('should throw an error', async () =&gt; {
+    const mError = new Error('Unable to retrieve rows')
+    client.query.mockRejectedValueOnce(mError)
+
+    await getTodos()
+
+    expect(client.connect).toBeCalledTimes(1)
+    expect(client.query).toBeCalledWith('SELECT * FROM todos;')
+    expect(client.end).toBeCalledTimes(1)
+    expect(failure).toBeCalledWith({ message: mError, status: false })
+  })
+})</pre>
+</div>
+<h2 id="requests" tabindex="-1">Requests </h2>
+<p>Because Vitest runs in Node, mocking network requests is tricky; web APIs are not available, so we need something that will mimic network behavior for us. We recommend <a href="https://mswjs.io/" target="_blank" rel="noreferrer">Mock Service Worker</a> to accomplish this. It will let you mock both <code>REST</code> and <code>GraphQL</code> network requests, and is framework agnostic.</p>
+<p>Mock Service Worker (MSW) works by intercepting the requests your tests make, allowing you to use it without changing any of your application code. In-browser, this uses the <a href="https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API" target="_blank" rel="noreferrer">Service Worker API</a>. In Node.js, and for Vitest, it uses <a href="https://mswjs.io/docs/api/setup-server#operation" target="_blank" rel="noreferrer">node-request-interceptor</a>. To learn more about MSW, read their <a href="https://mswjs.io/docs/" target="_blank" rel="noreferrer">introduction</a></p>
+<h3 id="configuration" tabindex="-1">Configuration </h3>
+<p>You can use it like below in your <a href="../config/index#setupfiles">setup file</a></p>
+<div class="language-js">
+<span class="lang">js</span><pre class="vp-code-dark" data-language="javascript">import { afterAll, afterEach, beforeAll } from 'vitest'
+import { setupServer } from 'msw/node'
+import { graphql, rest } from 'msw'
+
+const posts = [
+  {
+    userId: 1,
+    id: 1,
+    title: 'first post title',
+    body: 'first post body',
+  },
+  // ...
+]
+
+export const restHandlers = [
+  rest.get('https://rest-endpoint.example/path/to/posts', (req, res, ctx) =&gt; {
+    return res(ctx.status(200), ctx.json(posts))
+  }),
+]
+
+const graphqlHandlers = [
+  graphql.query('https://graphql-endpoint.example/api/v1/posts', (req, res, ctx) =&gt; {
+    return res(ctx.data(posts))
+  }),
+]
+
+const server = setupServer(...restHandlers, ...graphqlHandlers)
+
+// Start server before all tests
+beforeAll(() =&gt; server.listen({ onUnhandledRequest: 'error' }))
+
+//  Close server after all tests
+afterAll(() =&gt; server.close())
+
+// Reset handlers after each test `important for test isolation`
+afterEach(() =&gt; server.resetHandlers())</pre>
+<pre class="vp-code-light" data-language="javascript">import { afterAll, afterEach, beforeAll } from 'vitest'
+import { setupServer } from 'msw/node'
+import { graphql, rest } from 'msw'
+
+const posts = [
+  {
+    userId: 1,
+    id: 1,
+    title: 'first post title',
+    body: 'first post body',
+  },
+  // ...
+]
+
+export const restHandlers = [
+  rest.get('https://rest-endpoint.example/path/to/posts', (req, res, ctx) =&gt; {
+    return res(ctx.status(200), ctx.json(posts))
+  }),
+]
+
+const graphqlHandlers = [
+  graphql.query('https://graphql-endpoint.example/api/v1/posts', (req, res, ctx) =&gt; {
+    return res(ctx.data(posts))
+  }),
+]
+
+const server = setupServer(...restHandlers, ...graphqlHandlers)
+
+// Start server before all tests
+beforeAll(() =&gt; server.listen({ onUnhandledRequest: 'error' }))
+
+//  Close server after all tests
+afterAll(() =&gt; server.close())
+
+// Reset handlers after each test `important for test isolation`
+afterEach(() =&gt; server.resetHandlers())</pre>
+</div>
+<blockquote><p>Configuring the server with <code>onUnhandleRequest: 'error'</code> ensures that an error is thrown whenever there is a request that does not have a corresponding request handler.</p></blockquote>
+<h3 id="example-3" tabindex="-1">Example </h3>
+<p>We have a full working example which uses MSW: <a href="https://github.com/vitest-dev/vitest/tree/main/examples/react-testing-lib-msw" target="_blank" rel="noreferrer">React Testing with MSW</a>.</p>
+<h3 id="more-1" tabindex="-1">More </h3>
+<p>There is much more to MSW. You can access cookies and query parameters, define mock error responses, and much more! To see all you can do with MSW, read <a href="https://mswjs.io/docs/recipes" target="_blank" rel="noreferrer">their documentation</a>.</p>
+<h2 id="timers" tabindex="-1">Timers </h2>
+<p>Whenever we test code that involves timeouts or intervals, instead of having our tests wait it out or timeout. We can speed up our tests by using "fake" timers by mocking calls to <code>setTimeout</code> and <code>setInterval</code>, too.</p>
+<p>See the <a href="../api/index#vi-usefaketimers"><code>vi.usefaketimers</code> api section</a> for a more in depth detailed API description.</p>
+<h3 id="example-4" tabindex="-1">Example </h3>
+<div class="language-js">
+<span class="lang">js</span><pre class="vp-code-dark" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const executeAfterTwoHours = (func) =&gt; {
+  setTimeout(func, 1000 * 60 * 60 * 2) // 2 hours
+}
+
+const executeEveryMinute = (func) =&gt; {
+  setInterval(func, 1000 * 60) // 1 minute
+}
+
+const mock = vi.fn(() =&gt; console.log('executed'))
+
+describe('delayed execution', () =&gt; {
+  beforeEach(() =&gt; {
+    vi.useFakeTimers()
+  })
+  afterEach(() =&gt; {
+    vi.restoreAllMocks()
+  })
+  it('should execute the function', () =&gt; {
+    executeAfterTwoHours(mock)
+    vi.runAllTimers()
+    expect(mock).toHaveBeenCalledTimes(1)
+  })
+  it('should not execute the function', () =&gt; {
+    executeAfterTwoHours(mock)
+    // advancing by 2ms won't trigger the func
+    vi.advanceTimersByTime(2)
+    expect(mock).not.toHaveBeenCalled()
+  })
+  it('should execute every minute', () =&gt; {
+    executeEveryMinute(mock)
+    vi.advanceTimersToNextTimer()
+    expect(mock).toHaveBeenCalledTimes(1)
+    vi.advanceTimersToNextTimer()
+    expect(mock).toHaveBeenCalledTimes(2)
+  })
+})</pre>
+<pre class="vp-code-light" data-language="javascript">import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const executeAfterTwoHours = (func) =&gt; {
+  setTimeout(func, 1000 * 60 * 60 * 2) // 2 hours
+}
+
+const executeEveryMinute = (func) =&gt; {
+  setInterval(func, 1000 * 60) // 1 minute
+}
+
+const mock = vi.fn(() =&gt; console.log('executed'))
+
+describe('delayed execution', () =&gt; {
+  beforeEach(() =&gt; {
+    vi.useFakeTimers()
+  })
+  afterEach(() =&gt; {
+    vi.restoreAllMocks()
+  })
+  it('should execute the function', () =&gt; {
+    executeAfterTwoHours(mock)
+    vi.runAllTimers()
+    expect(mock).toHaveBeenCalledTimes(1)
+  })
+  it('should not execute the function', () =&gt; {
+    executeAfterTwoHours(mock)
+    // advancing by 2ms won't trigger the func
+    vi.advanceTimersByTime(2)
+    expect(mock).not.toHaveBeenCalled()
+  })
+  it('should execute every minute', () =&gt; {
+    executeEveryMinute(mock)
+    vi.advanceTimersToNextTimer()
+    expect(mock).toHaveBeenCalledTimes(1)
+    vi.advanceTimersToNextTimer()
+    expect(mock).toHaveBeenCalledTimes(2)
+  })
+})</pre>
+</div>
+<h2 id="cheat-sheet" tabindex="-1">Cheat Sheet </h2>
+<div class="info custom-block">
+<strong class="custom-block-title">INFO</strong><p><code>vi</code> in the examples below is imported directly from <code>vitest</code>. You can also use it globally, if you set <code>globals</code> to <code>true</code> in your <a href="../config/index">config</a>.</p>
+</div>
+<p>I want to…</p>
+<ul><li>Spy on a <code>method</code>
+</li></ul>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">const instance = new SomeClass()
+vi.spyOn(instance, 'method')</pre>
+<pre class="vp-code-light" data-language="javascript">const instance = new SomeClass()
+vi.spyOn(instance, 'method')</pre>
+</div>
+<ul><li>Mock exported variables</li></ul>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// some-path.ts
+export const getter = 'variable'</pre>
+<pre class="vp-code-light" data-language="javascript">// some-path.ts
+export const getter = 'variable'</pre>
+</div>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// some-path.test.ts
+import * as exports from 'some-path'
+vi.spyOn(exports, 'getter', 'get').mockReturnValue('mocked')</pre>
+<pre class="vp-code-light" data-language="javascript">// some-path.test.ts
+import * as exports from 'some-path'
+vi.spyOn(exports, 'getter', 'get').mockReturnValue('mocked')</pre>
+</div>
+<ul><li>Mock exported function</li></ul>
+<p>Example with <code>vi.mock</code>:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// some-path.ts
+export function method() {}</pre>
+<pre class="vp-code-light" data-language="javascript">// some-path.ts
+export function method() {}</pre>
+</div>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import { method } from 'some-path'
+vi.mock('some-path', () =&gt; ({
+  method: vi.fn()
+}))</pre>
+<pre class="vp-code-light" data-language="javascript">import { method } from 'some-path'
+vi.mock('some-path', () =&gt; ({
+  method: vi.fn()
+}))</pre>
+</div>
+<p>Example with <code>vi.spyOn</code>:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import * as exports from 'some-path'
+vi.spyOn(exports, 'method').mockImplementation(() =&gt; {})</pre>
+<pre class="vp-code-light" data-language="javascript">import * as exports from 'some-path'
+vi.spyOn(exports, 'method').mockImplementation(() =&gt; {})</pre>
+</div>
+<ul><li>Mock exported class implementation</li></ul>
+<p>Example with <code>vi.mock</code> and prototype:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// some-path.ts
+export class SomeClass {}</pre>
+<pre class="vp-code-light" data-language="javascript">// some-path.ts
+export class SomeClass {}</pre>
+</div>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import { SomeClass } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  const SomeClass = vi.fn()
+  SomeClass.prototype.someMethod = vi.fn()
+  return { SomeClass }
+})
+// SomeClass.mock.instances will have SomeClass</pre>
+<pre class="vp-code-light" data-language="javascript">import { SomeClass } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  const SomeClass = vi.fn()
+  SomeClass.prototype.someMethod = vi.fn()
+  return { SomeClass }
+})
+// SomeClass.mock.instances will have SomeClass</pre>
+</div>
+<p>Example with <code>vi.mock</code> and return value:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import { SomeClass } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  const SomeClass = vi.fn(() =&gt; ({
+    someMethod: vi.fn()
+  }))
+  return { SomeClass }
+})
+// SomeClass.mock.returns will have returned object</pre>
+<pre class="vp-code-light" data-language="javascript">import { SomeClass } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  const SomeClass = vi.fn(() =&gt; ({
+    someMethod: vi.fn()
+  }))
+  return { SomeClass }
+})
+// SomeClass.mock.returns will have returned object</pre>
+</div>
+<p>Example with <code>vi.spyOn</code>:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import * as exports from 'some-path'
+vi.spyOn(exports, 'SomeClass').mockImplementation(() =&gt; {
+  // whatever suites you from first two examples
+})</pre>
+<pre class="vp-code-light" data-language="javascript">import * as exports from 'some-path'
+vi.spyOn(exports, 'SomeClass').mockImplementation(() =&gt; {
+  // whatever suites you from first two examples
+})</pre>
+</div>
+<ul><li>Spy on an object returned from a function</li></ul>
+<p>Example using cache:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// some-path.ts
+export function useObject() {
+  return { method: () =&gt; true }
+}</pre>
+<pre class="vp-code-light" data-language="javascript">// some-path.ts
+export function useObject() {
+  return { method: () =&gt; true }
+}</pre>
+</div>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// useObject.js
+import { useObject } from 'some-path'
+const obj = useObject()
+obj.method()</pre>
+<pre class="vp-code-light" data-language="javascript">// useObject.js
+import { useObject } from 'some-path'
+const obj = useObject()
+obj.method()</pre>
+</div>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">// useObject.test.js
+import { useObject } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  let _cache
+  const useObject = () =&gt; {
+    if (!_cache) {
+      _cache = {
+        method: vi.fn(),
+      }
+    }
+    // now everytime useObject() is called it will
+    // return the same object reference
+    return _cache
+  }
+  return { useObject }
+})
+
+const obj = useObject()
+// obj.method was called inside some-path
+expect(obj.method).toHaveBeenCalled()</pre>
+<pre class="vp-code-light" data-language="javascript">// useObject.test.js
+import { useObject } from 'some-path'
+vi.mock('some-path', () =&gt; {
+  let _cache
+  const useObject = () =&gt; {
+    if (!_cache) {
+      _cache = {
+        method: vi.fn(),
+      }
+    }
+    // now everytime useObject() is called it will
+    // return the same object reference
+    return _cache
+  }
+  return { useObject }
+})
+
+const obj = useObject()
+// obj.method was called inside some-path
+expect(obj.method).toHaveBeenCalled()</pre>
+</div>
+<ul><li>Mock part of a module</li></ul>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">import { mocked, original } from 'some-path'
+vi.mock('some-path', async () =&gt; {
+  const mod = await vi.importActual&lt;typeof import('some-path')&gt;('some-path')
+  return {
+    ...mod,
+    mocked: vi.fn()
+  }
+})
+original() // has original behaviour
+mocked() // is a spy function</pre>
+<pre class="vp-code-light" data-language="javascript">import { mocked, original } from 'some-path'
+vi.mock('some-path', async () =&gt; {
+  const mod = await vi.importActual&lt;typeof import('some-path')&gt;('some-path')
+  return {
+    ...mod,
+    mocked: vi.fn()
+  }
+})
+original() // has original behaviour
+mocked() // is a spy function</pre>
+</div>
+<ul><li>Mock current date</li></ul>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">const mockDate = new Date(2022, 0, 1)
+vi.setSystemTime(mockDate)
+const now = new Date()
+expect(now.valueOf()).toBe(mockDate.valueOf())</pre>
+<pre class="vp-code-light" data-language="javascript">const mockDate = new Date(2022, 0, 1)
+vi.setSystemTime(mockDate)
+const now = new Date()
+expect(now.valueOf()).toBe(mockDate.valueOf())</pre>
+</div>
+<ul><li>Mock global variable</li></ul>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="vp-code-dark" data-language="javascript">vi.stubGlobal('__VERSION__', '1.0.0')
+expect(__VERSION__).toBe('1.0.0')</pre>
+<pre class="vp-code-light" data-language="javascript">vi.stubGlobal('__VERSION__', '1.0.0')
+expect(__VERSION__).toBe('1.0.0')</pre>
+</div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2021-Present Anthony Fu<br>© 2021-Present Matias Capeletto<br>Licensed under the MIT License.<br>
+    <a href="https://vitest.dev/guide/mocking.html" class="_attribution-link">https://vitest.dev/guide/mocking.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
