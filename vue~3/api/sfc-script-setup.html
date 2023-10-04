@@ -5,18 +5,18 @@
 
 <head>
   <meta charset="utf-8">
-  <title>&#60;script Setup&#62; - Vue.js 3 - W3cubDocs</title>
+  <title>&#60;script Setup&#62; - Vue 3 - W3cubDocs</title>
   
   <meta name="description" content="&#60;script setup&#62; is a compile-time syntactic sugar for using Composition API inside Single-File Components (SFCs). It is the recommended &hellip;">
-  <meta name="keywords" content="script, setup, vue, js, vue~3">
+  <meta name="keywords" content="script, setup, vue, vue~3">
   <meta name="HandheldFriendly" content="True">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/api/sfc-script-setup.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -49,7 +49,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue.js 3</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue 3</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -202,7 +202,49 @@ const emit = defineEmits(['change', 'delete'])
 <li><p><code>defineProps</code> and <code>defineEmits</code> provide proper type inference based on the options passed.</p></li>
 <li><p>The options passed to <code>defineProps</code> and <code>defineEmits</code> will be hoisted out of setup into module scope. Therefore, the options cannot reference local variables declared in setup scope. Doing so will result in a compile error. However, it <em>can</em> reference imported bindings since they are in the module scope as well.</p></li>
 </ul>
-<p>If you are using TypeScript, it is also possible to <a href="#typescript-only-features">declare props and emits using pure type annotations</a>.</p>
+<h3 id="type-only-props-emit-declarations" tabindex="-1">Type-only props/emit declarations </h3>
+<p>Props and emits can also be declared using pure-type syntax by passing a literal type argument to <code>defineProps</code> or <code>defineEmits</code>:</p>
+<pre data-language="ts">const props = defineProps&lt;{
+  foo: string
+  bar?: number
+}&gt;()
+
+const emit = defineEmits&lt;{
+  (e: 'change', id: number): void
+  (e: 'update', value: string): void
+}&gt;()
+
+// 3.3+: alternative, more succinct syntax
+const emit = defineEmits&lt;{
+  change: [id: number] // named tuple syntax
+  update: [value: string]
+}&gt;()</pre>
+<ul>
+<li><p><code>defineProps</code> or <code>defineEmits</code> can only use either runtime declaration OR type declaration. Using both at the same time will result in a compile error.</p></li>
+<li>
+<p>When using type declaration, the equivalent runtime declaration is automatically generated from static analysis to remove the need for double declaration and still ensure correct runtime behavior.</p>
+<ul>
+<li><p>In dev mode, the compiler will try to infer corresponding runtime validation from the types. For example here <code>foo: String</code> is inferred from the <code>foo: string</code> type. If the type is a reference to an imported type, the inferred result will be <code>foo: null</code> (equal to <code>any</code> type) since the compiler does not have information of external files.</p></li>
+<li><p>In prod mode, the compiler will generate the array format declaration to reduce bundle size (the props here will be compiled into <code>['foo', 'bar']</code>)</p></li>
+</ul>
+</li>
+<li>
+<p>In version 3.2 and below, the generic type parameter for <code>defineProps()</code> were limited to a type literal or a reference to a local interface.</p>
+<p>This limitation has been resolved in 3.3. The latest version of Vue supports referencing imported and a limited set of complex types in the type parameter position. However, because the type to runtime conversion is still AST-based, some complex types that require actual type analysis, e.g. conditional types, are not supported. You can use conditional types for the type of a single prop, but not the entire props object.</p>
+</li>
+</ul>
+<h3 id="default-props-values-when-using-type-declaration" tabindex="-1">Default props values when using type declaration </h3>
+<p>One drawback of the type-only <code>defineProps</code> declaration is that it doesn't have a way to provide default values for the props. To resolve this problem, a <code>withDefaults</code> compiler macro is also provided:</p>
+<pre data-language="ts">export interface Props {
+  msg?: string
+  labels?: string[]
+}
+
+const props = withDefaults(defineProps&lt;Props&gt;(), {
+  msg: 'hello',
+  labels: () =&gt; ['one', 'two']
+})</pre>
+<p>This will be compiled to equivalent runtime props <code>default</code> options. In addition, the <code>withDefaults</code> helper provides type checks for the default values, and ensures the returned <code>props</code> type has the optional flags removed for properties that do have default values declared.</p>
 <h2 id="defineexpose" tabindex="-1">defineExpose() </h2>
 <p>Components using <code>&lt;script setup&gt;</code> are <strong>closed by default</strong> - i.e. the public instance of the component, which is retrieved via template refs or <code>$parent</code> chains, will <strong>not</strong> expose any of the bindings declared inside <code>&lt;script setup&gt;</code>.</p>
 <p>To explicitly expose properties in a <code>&lt;script setup&gt;</code> component, use the <code>defineExpose</code> compiler macro:</p>
@@ -218,6 +260,30 @@ defineExpose({
 })
 &lt;/script&gt;</pre>
 <p>When a parent gets an instance of this component via template refs, the retrieved instance will be of the shape <code>{ a: number, b: number }</code> (refs are automatically unwrapped just like on normal instances).</p>
+<h2 id="defineoptions" tabindex="-1">defineOptions() </h2>
+<p>This macro can be used to declare component options directly inside <code>&lt;script setup&gt;</code> without having to use a separate <code>&lt;script&gt;</code> block:</p>
+<pre data-language="javascript">&lt;script setup&gt;
+defineOptions({
+  inheritAttrs: false,
+  customOptions: {
+    /* ... */
+  }
+})
+&lt;/script&gt;</pre>
+<ul>
+<li>Only supported in 3.3+.</li>
+<li>This is a macro. The options will be hoisted to module scope and cannot access local variables in <code>&lt;script setup&gt;</code> that are not literal constants.</li>
+</ul>
+<h2 id="defineslots" tabindex="-1">defineSlots() </h2>
+<p>This macro can be used to provide type hints to IDEs for slot name and props type checking.</p>
+<p><code>defineSlots()</code> only accepts a type parameter and no runtime arguments. The type parameter should be a type literal where the property key is the slot name, and the value type is the slot function. The first argument of the function is the props the slot expects to receive, and its type will be used for slot props in the template. The return type is currently ignored and can be <code>any</code>, but we may leverage it for slot content checking in the future.</p>
+<p>It also returns the <code>slots</code> object, which is equivalent to the <code>slots</code> object exposed on the setup context or returned by <code>useSlots()</code>.</p>
+<pre data-language="javascript">&lt;script setup lang="ts"&gt;
+const slots = defineSlots&lt;{
+  default(props: { msg: string }): any
+}&gt;()
+&lt;/script&gt;</pre>
+<ul><li>Only supported in 3.3+.</li></ul>
 <h2 id="useslots-useattrs" tabindex="-1">
 <code>useSlots()</code> &amp; <code>useAttrs()</code> </h2>
 <p>Usage of <code>slots</code> and <code>attrs</code> inside <code>&lt;script setup&gt;</code> should be relatively rare, since you can access them directly as <code>$slots</code> and <code>$attrs</code> in the template. In the rare case where you do need them, use the <code>useSlots</code> and <code>useAttrs</code> helpers respectively:</p>
@@ -249,6 +315,12 @@ export default {
 &lt;script setup&gt;
 // executed in setup() scope (for each instance)
 &lt;/script&gt;</pre>
+<p>Support for combining <code>&lt;script setup&gt;</code> and <code>&lt;script&gt;</code> in the same component is limited to the scenarios described above. Specifically:</p>
+<ul>
+<li>Do <strong>NOT</strong> use a separate <code>&lt;script&gt;</code> section for options that can already be defined using <code>&lt;script setup&gt;</code>, such as <code>props</code> and <code>emits</code>.</li>
+<li>Variables created inside <code>&lt;script setup&gt;</code> are not added as properties to the component instance, making them inaccessible from the Options API. Mixing APIs in this way is strongly discouraged.</li>
+</ul>
+<p>If you find yourself in one of the scenarios that is not supported then you should consider switching to an explicit <a href="composition-api-setup"><code>setup()</code></a> function, instead of using <code>&lt;script setup&gt;</code>.</p>
 <h2 id="top-level-await" tabindex="-1">Top-level <code>await</code> </h2>
 <p>Top-level <code>await</code> can be used inside <code>&lt;script setup&gt;</code>. The resulting code will be compiled as <code>async setup()</code>:</p>
 <pre data-language="javascript">&lt;script setup&gt;
@@ -258,49 +330,26 @@ const post = await fetch(`/api/post/1`).then((r) =&gt; r.json())
 <div class="warning custom-block">
 <strong class="custom-block-title">Note</strong><p><code>async setup()</code> must be used in combination with <code>Suspense</code>, which is currently still an experimental feature. We plan to finalize and document it in a future release - but if you are curious now, you can refer to its <a href="https://github.com/vuejs/core/blob/main/packages/runtime-core/__tests__/components/Suspense.spec.ts" target="_blank" rel="noreferrer">tests</a> to see how it works.</p>
 </div>
-<h2 id="typescript-only-features" tabindex="-1">TypeScript-only Features  </h2>
-<h3 id="type-only-props-emit-declarations" tabindex="-1">Type-only props/emit declarations </h3>
-<p>Props and emits can also be declared using pure-type syntax by passing a literal type argument to <code>defineProps</code> or <code>defineEmits</code>:</p>
-<pre data-language="ts">const props = defineProps&lt;{
-  foo: string
-  bar?: number
+<h2 id="generics" tabindex="-1">Generics  </h2>
+<p>Generic type parameters can be declared using the <code>generic</code> attribute on the <code>&lt;script&gt;</code> tag:</p>
+<pre data-language="javascript">&lt;script setup lang="ts" generic="T"&gt;
+defineProps&lt;{
+  items: T[]
+  selected: T
 }&gt;()
-
-const emit = defineEmits&lt;{
-  (e: 'change', id: number): void
-  (e: 'update', value: string): void
-}&gt;()</pre>
-<ul>
-<li><p><code>defineProps</code> or <code>defineEmits</code> can only use either runtime declaration OR type declaration. Using both at the same time will result in a compile error.</p></li>
-<li>
-<p>When using type declaration, the equivalent runtime declaration is automatically generated from static analysis to remove the need for double declaration and still ensure correct runtime behavior.</p>
-<ul>
-<li><p>In dev mode, the compiler will try to infer corresponding runtime validation from the types. For example here <code>foo: String</code> is inferred from the <code>foo: string</code> type. If the type is a reference to an imported type, the inferred result will be <code>foo: null</code> (equal to <code>any</code> type) since the compiler does not have information of external files.</p></li>
-<li><p>In prod mode, the compiler will generate the array format declaration to reduce bundle size (the props here will be compiled into <code>['foo', 'bar']</code>)</p></li>
-<li><p>The emitted code is still TypeScript with valid typing, which can be further processed by other tools.</p></li>
-</ul>
-</li>
-<li>
-<p>As of now, the type declaration argument must be one of the following to ensure correct static analysis:</p>
-<ul>
-<li>A type literal</li>
-<li>A reference to an interface or a type literal in the same file</li>
-</ul>
-<p>Currently complex types and type imports from other files are not supported. It is possible to support type imports in the future.</p>
-</li>
-</ul>
-<h3 id="default-props-values-when-using-type-declaration" tabindex="-1">Default props values when using type declaration </h3>
-<p>One drawback of the type-only <code>defineProps</code> declaration is that it doesn't have a way to provide default values for the props. To resolve this problem, a <code>withDefaults</code> compiler macro is also provided:</p>
-<pre data-language="ts">export interface Props {
-  msg?: string
-  labels?: string[]
-}
-
-const props = withDefaults(defineProps&lt;Props&gt;(), {
-  msg: 'hello',
-  labels: () =&gt; ['one', 'two']
-})</pre>
-<p>This will be compiled to equivalent runtime props <code>default</code> options. In addition, the <code>withDefaults</code> helper provides type checks for the default values, and ensures the returned <code>props</code> type has the optional flags removed for properties that do have default values declared.</p>
+&lt;/script&gt;</pre>
+<p>The value of <code>generic</code> works exactly the same as the parameter list between <code>&lt;...&gt;</code> in TypeScript. For example, you can use multiple parameters, <code>extends</code> constraints, default types, and reference imported types:</p>
+<pre data-language="javascript">&lt;script
+  setup
+  lang="ts"
+  generic="T extends string | number, U extends Item"
+&gt;
+import type { Item } from './types'
+defineProps&lt;{
+  id: T
+  list: U[]
+}&gt;()
+&lt;/script&gt;</pre>
 <h2 id="restrictions" tabindex="-1">Restrictions </h2>
 <p>Due to the difference in module execution semantics, code inside <code>&lt;script setup&gt;</code> relies on the context of an SFC. When moved into external <code>.js</code> or <code>.ts</code> files, it may lead to confusion for both developers and tools. Therefore, <strong><code>&lt;script setup&gt;</code></strong> cannot be used with the <code>src</code> attribute.</p>
 <div class="_attribution">

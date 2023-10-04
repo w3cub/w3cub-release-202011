@@ -5,18 +5,18 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Reactivity API&#58; Utilities - Vue.js 3 - W3cubDocs</title>
+  <title>Reactivity API&#58; Utilities - Vue 3 - W3cubDocs</title>
   
   <meta name="description" content=" Checks if a value is a ref object. ">
-  <meta name="keywords" content="reactivity, api, utilities, vue, js, vue~3">
+  <meta name="keywords" content="reactivity, api, utilities, vue, vue~3">
   <meta name="HandheldFriendly" content="True">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/api/reactivity-utilities.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -49,7 +49,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue.js 3</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue 3</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -114,11 +114,22 @@ if (isRef(foo)) {
 </li>
 </ul>
 <h2 id="toref" tabindex="-1">toRef() </h2>
-<p>Can be used to create a ref for a property on a source reactive object. The created ref is synced with its source property: mutating the source property will update the ref, and vice-versa.</p>
+<p>Can be used to normalize values / refs / getters into refs (3.3+).</p>
+<p>Can also be used to create a ref for a property on a source reactive object. The created ref is synced with its source property: mutating the source property will update the ref, and vice-versa.</p>
 <ul>
 <li>
 <p><strong>Type</strong></p>
-<pre data-language="ts">function toRef&lt;T extends object, K extends keyof T&gt;(
+<pre data-language="ts">// normalization signature (3.3+)
+function toRef&lt;T&gt;(
+  value: T
+): T extends () =&gt; infer R
+  ? Readonly&lt;Ref&lt;R&gt;&gt;
+  : T extends Ref
+  ? T
+  : Ref&lt;UnwrapRef&lt;T&gt;&gt;
+
+// object property signature
+function toRef&lt;T extends object, K extends keyof T&gt;(
   object: T,
   key: K,
   defaultValue?: T[K]
@@ -128,11 +139,23 @@ type ToRef&lt;T&gt; = T extends Ref ? T : Ref&lt;T&gt;</pre>
 </li>
 <li>
 <p><strong>Example</strong></p>
+<p>Normalization signature (3.3+):</p>
+<pre data-language="js">// returns existing refs as-is
+toRef(existingRef)
+
+// creates a readonly ref that calls the getter on .value access
+toRef(() =&gt; props.foo)
+
+// creates normal refs from non-function values
+// equivalent to ref(1)
+toRef(1)</pre>
+<p>Object property signature:</p>
 <pre data-language="js">const state = reactive({
   foo: 1,
   bar: 2
 })
 
+// a two-way ref that syncs with the original property
 const fooRef = toRef(state, 'foo')
 
 // mutating the ref updates the original
@@ -154,9 +177,40 @@ const props = defineProps(/* ... */)
 // convert `props.foo` into a ref, then pass into
 // a composable
 useSomeFeature(toRef(props, 'foo'))
+
+// getter syntax - recommended in 3.3+
+useSomeFeature(toRef(() =&gt; props.foo))
 &lt;/script&gt;</pre>
-<p>When <code>toRef</code> is used with component props, the usual restrictions around mutating the props still apply. Attempting to assign a new value to the ref is equivalent to trying to modify the prop directly and is not allowed. In that scenario you may want to consider using <a href="reactivity-core#computed"><code>computed</code></a> with <code>get</code> and <code>set</code> instead. See the guide to <a href="../guide/components/events#usage-with-v-model">using <code>v-model</code> with components</a> for more information.</p>
-<p><code>toRef()</code> will return a usable ref even if the source property doesn't currently exist. This makes it possible to work with optional properties, which wouldn't be picked up by <a href="#torefs"><code>toRefs</code></a>.</p>
+<p>When <code>toRef</code> is used with component props, the usual restrictions around mutating the props still apply. Attempting to assign a new value to the ref is equivalent to trying to modify the prop directly and is not allowed. In that scenario you may want to consider using <a href="reactivity-core#computed"><code>computed</code></a> with <code>get</code> and <code>set</code> instead. See the guide to <a href="../guide/components/v-model">using <code>v-model</code> with components</a> for more information.</p>
+<p>When using the object property signature, <code>toRef()</code> will return a usable ref even if the source property doesn't currently exist. This makes it possible to work with optional properties, which wouldn't be picked up by <a href="#torefs"><code>toRefs</code></a>.</p>
+</li>
+</ul>
+<h2 id="tovalue" tabindex="-1">toValue()  </h2>
+<p>Normalizes values / refs / getters to values. This is similar to <a href="#unref">unref()</a>, except that it also normalizes getters. If the argument is a getter, it will be invoked and its return value will be returned.</p>
+<p>This can be used in <a href="../guide/reusability/composables">Composables</a> to normalize an argument that can be either a value, a ref, or a getter.</p>
+<ul>
+<li>
+<p><strong>Type</strong></p>
+<pre data-language="ts">function toValue&lt;T&gt;(source: T | Ref&lt;T&gt; | (() =&gt; T)): T</pre>
+</li>
+<li>
+<p><strong>Example</strong></p>
+<pre data-language="js">toValue(1) //       --&gt; 1
+toValue(ref(1)) //  --&gt; 1
+toValue(() =&gt; 1) // --&gt; 1</pre>
+<p>Normalizing arguments in composables:</p>
+<pre data-language="ts">import type { MaybeRefOrGetter } from 'vue'
+
+function useFeature(id: MaybeRefOrGetter&lt;number&gt;) {
+  watch(() =&gt; toValue(id), id =&gt; {
+    // react to id changes
+  })
+}
+
+// this composable supports any of the following:
+useFeature(1)
+useFeature(ref(1))
+useFeature(() =&gt; 1)</pre>
 </li>
 </ul>
 <h2 id="torefs" tabindex="-1">toRefs() </h2>
@@ -224,7 +278,8 @@ const { foo, bar } = useFeatureX()</pre>
 <pre data-language="ts">function isReactive(value: unknown): boolean</pre>
 </li></ul>
 <h2 id="isreadonly" tabindex="-1">isReadonly() </h2>
-<p>Checks if an object is a proxy created by <a href="reactivity-core#readonly"><code>readonly()</code></a> or <a href="reactivity-advanced#shallowreadonly"><code>shallowReadonly()</code></a>.</p>
+<p>Checks whether the passed value is a readonly object. The properties of a readonly object can change, but they can't be assigned directly via the passed object.</p>
+<p>The proxies created by <a href="reactivity-core#readonly"><code>readonly()</code></a> and <a href="reactivity-advanced#shallowreadonly"><code>shallowReadonly()</code></a> are both considered readonly, as is a <a href="reactivity-core#computed"><code>computed()</code></a> ref without a <code>set</code> function.</p>
 <ul><li>
 <p><strong>Type</strong></p>
 <pre data-language="ts">function isReadonly(value: unknown): boolean</pre>

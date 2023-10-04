@@ -5,18 +5,18 @@
 
 <head>
   <meta charset="utf-8">
-  <title>42. TypeScript With Composition API (TypeScript) - Vue.js 3 - W3cubDocs</title>
+  <title>43. TypeScript With Composition API (TypeScript) - Vue 3 - W3cubDocs</title>
   
   <meta name="description" content=" This page assumes you&#39;ve already read the overview on Using Vue with TypeScript. ">
-  <meta name="keywords" content="typescript, with, composition, api, vue, js, vue~3">
+  <meta name="keywords" content="typescript, with, composition, api, vue, vue~3">
   <meta name="HandheldFriendly" content="True">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/guide/typescript/composition-api.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -49,7 +49,7 @@
     <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
   </h1>
   
-  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue.js 3</a></span>
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/vue~3/" class="_nav-link" title="" style="margin-left:0;">Vue 3</a></span>
   
   <nav class="_nav">
     <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
@@ -119,25 +119,8 @@ interface Props {
 const props = defineProps&lt;Props&gt;()
 &lt;/script&gt;</pre>
 <h4 id="syntax-limitations" tabindex="-1">Syntax Limitations </h4>
-<p>In order to generate the correct runtime code, the generic argument for <code>defineProps()</code> must be one of the following:</p>
-<ul>
-<li>
-<p>An object literal type:</p>
-<pre data-language="ts">defineProps&lt;{ /*... */ }&gt;()</pre>
-</li>
-<li>
-<p>A reference to an interface or object literal type <strong>in the same file</strong>:</p>
-<pre data-language="ts">interface Props {/* ... */}
-
-defineProps&lt;Props&gt;()</pre>
-</li>
-</ul>
-<p>The interface or object literal type can contain references to types imported from other files, however, the generic argument itself passed to <code>defineProps</code> <strong>cannot</strong> be an imported type:</p>
-<pre data-language="ts">import { Props } from './other-file'
-
-// NOT supported
-defineProps&lt;Props&gt;()</pre>
-<p>This is because Vue components are compiled in isolation and the compiler currently does not crawl imported files in order to analyze the source type. This limitation could be removed in a future release.</p>
+<p>In version 3.2 and below, the generic type parameter for <code>defineProps()</code> were limited to a type literal or a reference to a local interface.</p>
+<p>This limitation has been resolved in 3.3. The latest version of Vue supports referencing imported and a limited set of complex types in the type parameter position. However, because the type to runtime conversion is still AST-based, some complex types that require actual type analysis, e.g. conditional types, are not supported. You can use conditional types for the type of a single prop, but not the entire props object.</p>
 <h3 id="props-default-values" tabindex="-1">Props Default Values </h3>
 <p>When using type-based declaration, we lose the ability to declare default values for the props. This can be resolved by the <code>withDefaults</code> compiler macro:</p>
 <pre data-language="ts">export interface Props {
@@ -150,18 +133,6 @@ const props = withDefaults(defineProps&lt;Props&gt;(), {
   labels: () =&gt; ['one', 'two']
 })</pre>
 <p>This will be compiled to equivalent runtime props <code>default</code> options. In addition, the <code>withDefaults</code> helper provides type checks for the default values, and ensures the returned <code>props</code> type has the optional flags removed for properties that do have default values declared.</p>
-<p>Alternatively, you can use the currently experimental <a href="../extras/reactivity-transform">Reactivity Transform</a>:</p>
-<pre data-language="javascript">&lt;script setup lang="ts"&gt;
-interface Props {
-  name: string
-  count?: number
-}
-
-// reactive destructure for defineProps()
-// default value is compiled to equivalent runtime option
-const { name, count = 100 } = defineProps&lt;Props&gt;()
-&lt;/script&gt;</pre>
-<p>This behavior currently requires <a href="../extras/reactivity-transform#explicit-opt-in">explicit opt-in</a>.</p>
 <h3 id="without-script-setup" tabindex="-1">Without <code>&lt;script setup&gt;</code> </h3>
 <p>If not using <code>&lt;script setup&gt;</code>, it is necessary to use <code>defineComponent()</code> to enable props type inference. The type of the props object passed to <code>setup()</code> is inferred from the <code>props</code> option.</p>
 <pre data-language="ts">import { defineComponent } from 'vue'
@@ -174,6 +145,35 @@ export default defineComponent({
     props.message // &lt;-- type: string
   }
 })</pre>
+<h3 id="complex-prop-types" tabindex="-1">Complex prop types </h3>
+<p>With type-based declaration, a prop can use a complex type much like any other type:</p>
+<pre data-language="javascript">&lt;script setup lang="ts"&gt;
+interface Book {
+  title: string
+  author: string
+  year: number
+}
+
+const props = defineProps&lt;{
+  book: Book
+}&gt;()
+&lt;/script&gt;</pre>
+<p>For runtime declaration, we can use the <code>PropType</code> utility type:</p>
+<pre data-language="ts">import type { PropType } from 'vue'
+
+const props = defineProps({
+  book: Object as PropType&lt;Book&gt;
+})</pre>
+<p>This works in much the same way if we're specifying the <code>props</code> option directly:</p>
+<pre data-language="ts">import { defineComponent } from 'vue'
+import type { PropType } from 'vue'
+
+export default defineComponent({
+  props: {
+    book: Object as PropType&lt;Book&gt;
+  }
+})</pre>
+<p>The <code>props</code> option is more commonly used with the Options API, so you'll find more detailed examples in the guide to <a href="options-api#typing-component-props">TypeScript with Options API</a>. The techniques shown in those examples also apply to runtime declarations using <code>defineProps()</code>.</p>
 <h2 id="typing-component-emits" tabindex="-1">Typing Component Emits </h2>
 <p>In <code>&lt;script setup&gt;</code>, the <code>emit</code> function can also be typed using either runtime declaration OR type declaration:</p>
 <pre data-language="javascript">&lt;script setup lang="ts"&gt;
@@ -265,7 +265,7 @@ function handleChange(event) {
 &lt;template&gt;
   &lt;input type="text" @change="handleChange" /&gt;
 &lt;/template&gt;</pre>
-<p>Without type annotation, the <code>event</code> argument will implicitly have a type of <code>any</code>. This will also result in a TS error if <code>"strict": true</code> or <code>"noImplicitAny": true</code> are used in <code>tsconfig.json</code>. It is therefore recommended to explicitly annotate the argument of event handlers. In addition, you may need to explicitly cast properties on <code>event</code>:</p>
+<p>Without type annotation, the <code>event</code> argument will implicitly have a type of <code>any</code>. This will also result in a TS error if <code>"strict": true</code> or <code>"noImplicitAny": true</code> are used in <code>tsconfig.json</code>. It is therefore recommended to explicitly annotate the argument of event handlers. In addition, you may need to use type assertions when accessing the properties of <code>event</code>:</p>
 <pre data-language="ts">function handleChange(event: Event) {
   console.log((event.target as HTMLInputElement).value)
 }</pre>
@@ -328,6 +328,11 @@ const openModal = () =&gt; {
 }
 &lt;/script&gt;</pre>
 <p>Note if you want to use this technique in TypeScript files instead of Vue SFCs, you need to enable Volar's <a href="overview#volar-takeover-mode">Takeover Mode</a>.</p>
+<p>In cases where the exact type of the component isn't available or isn't important, <code>ComponentPublicInstance</code> can be used instead. This will only include properties that are shared by all components, such as <code>$el</code>:</p>
+<pre data-language="ts">import { ref } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
+
+const child = ref&lt;ComponentPublicInstance | null&gt;(null)</pre>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
