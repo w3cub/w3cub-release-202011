@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/angular/guide/testing-components-scenarios.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/angular.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -140,7 +140,7 @@ it('should display updated title after detectChanges', () =&gt; {
 });</pre> <p>The first test shows the benefit of automatic change detection.</p> <p>The second and third test reveal an important limitation. The Angular testing environment does <em>not</em> know that the test changed the component's <code>title</code>. The <code><a href="../api/core/testing/componentfixtureautodetect" class="code-anchor">ComponentFixtureAutoDetect</a></code> service responds to <em>asynchronous activities</em> such as promise resolution, timers, and DOM events. But a direct, synchronous update of the component property is invisible. The test must call <code>fixture.detectChanges()</code> manually to trigger another cycle of change detection.</p> <blockquote class="alert is-helpful"> <p>Rather than wonder when the test fixture will or won't perform change detection, the samples in this guide <em>always call</em> <code>detectChanges()</code> <em>explicitly</em>. There is no harm in calling <code>detectChanges()</code> more often than is strictly necessary.</p> </blockquote>  <h4 id="change-an-input-value-with-dispatchevent">Change an input value with <code>dispatchEvent()</code>
 </h4> <p>To simulate user input, find the input element and set its <code>value</code> property.</p> <p>You will call <code>fixture.detectChanges()</code> to trigger Angular's change detection. But there is an essential, intermediate step.</p> <p>Angular doesn't know that you set the input element's <code>value</code> property. It won't read that property until you raise the element's <code>input</code> event by calling <code>dispatchEvent()</code>. <em>Then</em> you call <code>detectChanges()</code>.</p> <p>The following example demonstrates the proper sequence.</p> <pre header="app/hero/hero-detail.component.spec.ts (pipe test)" data-language="typescript">it('should convert hero name to Title Case', () =&gt; {
   // get the name's input and display elements from the DOM
-  const hostElement: HTMLElement = fixture.nativeElement;
+  const hostElement: HTMLElement = harness.routeNativeElement!;
   const nameInput: HTMLInputElement = hostElement.querySelector('input')!;
   const nameDisplay: HTMLElement = hostElement.querySelector('span')!;
 
@@ -151,7 +151,7 @@ it('should display updated title after detectChanges', () =&gt; {
   nameInput.dispatchEvent(new Event('input'));
 
   // Tell Angular to update the display binding through the title pipe
-  fixture.detectChanges();
+  harness.detectChanges();
 
   expect(nameDisplay.textContent).toBe('Quick Brown  Fox');
 });</pre> <h2 id="component-with-external-files">Component with external files</h2> <p>The preceding <code>BannerComponent</code> is defined with an <em>inline template</em> and <em>inline css</em>, specified in the <code>@<a href="../api/core/component#template" class="code-anchor">Component.template</a></code> and <code>@<a href="../api/core/component#styles" class="code-anchor">Component.styles</a></code> properties respectively.</p> <p>Many components specify <em>external templates</em> and <em>external css</em> with the <code>@<a href="../api/core/component#templateUrl" class="code-anchor">Component.templateUrl</a></code> and <code>@<a href="../api/core/component#styleUrls" class="code-anchor">Component.styleUrls</a></code> properties respectively, as the following variant of <code>BannerComponent</code> does.</p> <pre header="app/banner/banner-external.component.ts (metadata)" data-language="typescript">@Component({
@@ -160,7 +160,7 @@ it('should display updated title after detectChanges', () =&gt; {
   styleUrls:  ['./banner-external.component.css']
 })</pre> <p>This syntax tells the Angular compiler to read the external files during component compilation.</p> <p>That's not a problem when you run the CLI <code>ng test</code> command because it <em>compiles the application before running the tests</em>.</p> <p>However, if you run the tests in a <strong>non-CLI environment</strong>, tests of this component might fail. For example, if you run the <code>BannerComponent</code> tests in a web coding environment such as <a href="https://plnkr.co">plunker</a>, you'll see a message like this one:</p> <pre format="output" data-language="shell">Error: This test module uses the component BannerComponent
 which is using a "templateUrl" or "styleUrls", but they were never compiled.
-Please call "TestBed.compileComponents" before your test.</pre> <p>You get this test failure message when the runtime environment compiles the source code <em>during the tests themselves</em>.</p> <p>To correct the problem, call <code>compileComponents()</code> as explained in the following <a href="testing-components-scenarios#compile-components">Calling compileComponents</a> section.</p>  <h2 id="component-with-a-dependency">Component with a dependency</h2> <p>Components often have service dependencies.</p> <p>The <code>WelcomeComponent</code> displays a welcome message to the logged in user. It knows who the user is based on a property of the injected <code>UserService</code>:</p> <pre header="app/welcome/welcome.component.ts" data-language="typescript">import { Component, OnInit } from '@angular/core';
+Please call "TestBed.compileComponents" before your test.</pre> <p>You get this test failure message when the runtime environment compiles the source code <em>during the tests themselves</em>.</p> <p>To correct the problem, call <code>compileComponents()</code> as explained in the following <a href="testing-components-scenarios#compile-components">Calling compileComponents</a> section.</p>  <h2 id="component-with-a-dependency">Component with a dependency</h2> <p>Components often have service dependencies.</p> <p>The <code>WelcomeComponent</code> displays a welcome message to the logged-in user. It knows who the user is based on a property of the injected <code>UserService</code>:</p> <pre header="app/welcome/welcome.component.ts" data-language="typescript">import { Component, OnInit } from '@angular/core';
 import { UserService } from '../model/user.service';
 
 @Component({
@@ -527,9 +527,9 @@ export function asyncError&lt;T&gt;(errorObject: any) {
   expect(quoteEl.textContent)
     .withContext('should show placeholder')
     .toBe('...');
-}));</pre> <p>It's still an async test, calling <code><a href="../api/core/testing/fakeasync" class="code-anchor">fakeAsync</a>()</code> and <a href="../api/core/testing/tick">tick()</a>, because the component itself calls <code>setTimeout()</code> when processing errors.</p> <p>Look at the marble observable definition.</p> <pre data-language="typescript">const q$ = cold('---#|', null, new Error('TwainService test failure'));</pre> <p>This is a <em>cold</em> observable that waits three frames and then emits an error, the hash (<code>#</code>) character indicates the timing of the error that is specified in the third argument. The second argument is null because the observable never emits a value.</p> <h4 id="learn-about-marble-testing">Learn about marble testing</h4>  <p>A <em>marble frame</em> is a virtual unit of testing time. Each symbol (<code>-</code>, <code>x</code>, <code>|</code>, <code>#</code>) marks the passing of one frame.</p>  <p>A <em>cold</em> observable doesn't produce values until you subscribe to it. Most of your application observables are cold. All <a href="http"><em>HttpClient</em></a> methods return cold observables.</p> <p>A <em>hot</em> observable is already producing values <em>before</em> you subscribe to it. The <a href="../api/router/router#events"><code>Router.events</code></a> observable, which reports router activity, is a <em>hot</em> observable.</p> <p>RxJS marble testing is a rich subject, beyond the scope of this guide. Learn about it on the web, starting with the <a href="https://rxjs.dev/guide/testing/marble-testing">official documentation</a>.</p>  <h2 id="component-with-inputs-and-outputs">Component with inputs and outputs</h2> <p>A component with inputs and outputs typically appears inside the view template of a host component. The host uses a property binding to set the input property and an event binding tolisten to events raised by the output property.</p> <p>The testing goal is to verify that such bindings work as expected. The tests should set input values and listen for output events.</p> <p>The <code>DashboardHeroComponent</code> is a tiny example of a component in this role. It displays an individual hero provided by the <code>DashboardComponent</code>. Clicking that hero tells the <code>DashboardComponent</code> that the user has selected the hero.</p> <p>The <code>DashboardHeroComponent</code> is embedded in the <code>DashboardComponent</code> template like this:</p> <pre header="app/dashboard/dashboard.component.html (excerpt)" data-language="html">&lt;dashboard-hero *ngFor="let hero of heroes"  class="col-1-4"
+}));</pre> <p>It's still an async test, calling <code><a href="../api/core/testing/fakeasync" class="code-anchor">fakeAsync</a>()</code> and <a href="../api/core/testing/tick">tick()</a>, because the component itself calls <code>setTimeout()</code> when processing errors.</p> <p>Look at the marble observable definition.</p> <pre data-language="typescript">const q$ = cold('---#|', null, new Error('TwainService test failure'));</pre> <p>This is a <em>cold</em> observable that waits three frames and then emits an error, the hash (<code>#</code>) character indicates the timing of the error that is specified in the third argument. The second argument is null because the observable never emits a value.</p> <h4 id="learn-about-marble-testing">Learn about marble testing</h4>  <p>A <em>marble frame</em> is a virtual unit of testing time. Each symbol (<code>-</code>, <code>x</code>, <code>|</code>, <code>#</code>) marks the passing of one frame.</p>  <p>A <em>cold</em> observable doesn't produce values until you subscribe to it. Most of your application observables are cold. All <a href="understanding-communicating-with-http"><em>HttpClient</em></a> methods return cold observables.</p> <p>A <em>hot</em> observable is already producing values <em>before</em> you subscribe to it. The <a href="../api/router/router#events"><code>Router.events</code></a> observable, which reports router activity, is a <em>hot</em> observable.</p> <p>RxJS marble testing is a rich subject, beyond the scope of this guide. Learn about it on the web, starting with the <a href="https://rxjs.dev/guide/testing/marble-testing">official documentation</a>.</p>  <h2 id="component-with-inputs-and-outputs">Component with inputs and outputs</h2> <p>A component with inputs and outputs typically appears inside the view template of a host component. The host uses a property binding to set the input property and an event binding to listen to events raised by the output property.</p> <p>The testing goal is to verify that such bindings work as expected. The tests should set input values and listen for output events.</p> <p>The <code>DashboardHeroComponent</code> is a tiny example of a component in this role. It displays an individual hero provided by the <code>DashboardComponent</code>. Clicking that hero tells the <code>DashboardComponent</code> that the user has selected the hero.</p> <p>The <code>DashboardHeroComponent</code> is embedded in the <code>DashboardComponent</code> template like this:</p> <pre header="app/dashboard/dashboard.component.html (excerpt)" data-language="html">&lt;dashboard-hero *ngFor="let hero of heroes"  class="col-1-4"
   [hero]=hero  (selected)="gotoDetail($event)" &gt;
-&lt;/dashboard-hero&gt;</pre> <p>The <code>DashboardHeroComponent</code> appears in an <code>*<a href="../api/common/ngforof" class="code-anchor">ngFor</a></code> repeater, which sets each component's <code>hero</code> input property to the looping value and listens for the component's <code>selected</code> event.</p> <p>Here's the component's full definition:</p>  <pre header="app/dashboard/dashboard-hero.component.ts (component)" data-language="typescript">@Component({
+&lt;/dashboard-hero&gt;</pre> <p>The <code>DashboardHeroComponent</code> appears in an <code>*<a href="../api/common/ngfor" class="code-anchor">ngFor</a></code> repeater, which sets each component's <code>hero</code> input property to the looping value and listens for the component's <code>selected</code> event.</p> <p>Here's the component's full definition:</p>  <pre header="app/dashboard/dashboard-hero.component.ts (component)" data-language="typescript">@Component({
   selector: 'dashboard-hero',
   template: `
     &lt;button type="button" (click)="click()" class="hero"&gt;
@@ -544,10 +544,7 @@ export class DashboardHeroComponent {
   click() { this.selected.emit(this.hero); }
 }</pre> <p>While testing a component this simple has little intrinsic value, it's worth knowing how. Use one of these approaches:</p> <ul> <li>Test it as used by <code>DashboardComponent</code>
 </li> <li>Test it as a stand-alone component</li> <li>Test it as used by a substitute for <code>DashboardComponent</code>
-</li> </ul> <p>A quick look at the <code>DashboardComponent</code> constructor discourages the first approach:</p> <pre header="app/dashboard/dashboard.component.ts (constructor)" data-language="typescript">constructor(
-  private router: Router,
-  private heroService: HeroService) {
-}</pre> <p>The <code>DashboardComponent</code> depends on the Angular router and the <code>HeroService</code>. You'd probably have to replace them both with test doubles, which is a lot of work. The router seems particularly challenging.</p> <blockquote class="alert is-helpful"> <p>The <a href="testing-components-scenarios#routing-component">following discussion</a> covers testing components that require the router.</p> </blockquote> <p>The immediate goal is to test the <code>DashboardHeroComponent</code>, not the <code>DashboardComponent</code>, so, try the second and third options.</p>  <h4 id="test-dashboardherocomponent-stand-alone">Test <code>DashboardHeroComponent</code> stand-alone</h4> <p>Here's the meat of the spec file setup.</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (setup)" data-language="typescript">TestBed
+</li> </ul> <p>A quick look at the <code>DashboardComponent</code> constructor discourages the first approach:</p> <pre header="app/dashboard/dashboard.component.ts (constructor)" data-language="typescript">constructor(private router: Router, private heroService: HeroService) {}</pre> <p>The <code>DashboardComponent</code> depends on the Angular router and the <code>HeroService</code>. You'd probably have to replace them both with test doubles, which is a lot of work. The router seems particularly challenging.</p> <blockquote class="alert is-helpful"> <p>The <a href="testing-components-scenarios#routing-component">following discussion</a> covers testing components that require the router.</p> </blockquote> <p>The immediate goal is to test the <code>DashboardHeroComponent</code>, not the <code>DashboardComponent</code>, so, try the second and third options.</p>  <h4 id="test-dashboardherocomponent-stand-alone">Test <code>DashboardHeroComponent</code> stand-alone</h4> <p>Here's the meat of the spec file setup.</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (setup)" data-language="typescript">TestBed
     .configureTestingModule({declarations: [DashboardHeroComponent]})
 fixture = TestBed.createComponent(DashboardHeroComponent);
 comp = fixture.componentInstance;
@@ -581,12 +578,12 @@ fixture.detectChanges();</pre> <p>Notice how the setup code assigns a test hero 
 });</pre>  <h4 id="click-helper">
 <code>click()</code> helper</h4> <p>Clicking a button, an anchor, or an arbitrary HTML element is a common test task.</p> <p>Make that consistent and straightforward by encapsulating the <em>click-triggering</em> process in a helper such as the following <code>click()</code> function:</p> <pre header="testing/index.ts (click helper)" data-language="typescript">/** Button events to pass to `DebugElement.triggerEventHandler` for RouterLink event handler */
 export const ButtonClickEvents = {
-   left:  { button: 0 },
-   right: { button: 2 }
+  left: {button: 0},
+  right: {button: 2}
 };
 
 /** Simulate element click. Defaults to mouse left-button click event. */
-export function click(el: DebugElement | HTMLElement, eventObj: any = ButtonClickEvents.left): void {
+export function click(el: DebugElement|HTMLElement, eventObj: any = ButtonClickEvents.left): void {
   if (el instanceof HTMLElement) {
     el.click();
   } else {
@@ -599,7 +596,7 @@ export function click(el: DebugElement | HTMLElement, eventObj: any = ButtonClic
   click(heroDe);  // click helper with DebugElement
 
   expect(selectedHero).toBe(expectedHero);
-});</pre>  <h2 id="component-inside-a-test-host">Component inside a test host</h2> <p>The previous tests played the role of the host <code>DashboardComponent</code> themselves. But does the <code>DashboardHeroComponent</code> work correctly when properly data-bound to a host component?</p> <p>You could test with the actual <code>DashboardComponent</code>. But doing so could require a lot of setup, especially when its template features an <code>*<a href="../api/common/ngforof" class="code-anchor">ngFor</a></code> repeater, other components, layout HTML, additional bindings, a constructor that injects multiple services, and it starts interacting with those services right away.</p> <p>Imagine the effort to disable these distractions, just to prove a point that can be made satisfactorily with a <em>test host</em> like this one:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test host)" data-language="typescript">@Component({
+});</pre>  <h2 id="component-inside-a-test-host">Component inside a test host</h2> <p>The previous tests played the role of the host <code>DashboardComponent</code> themselves. But does the <code>DashboardHeroComponent</code> work correctly when properly data-bound to a host component?</p> <p>You could test with the actual <code>DashboardComponent</code>. But doing so could require a lot of setup, especially when its template features an <code>*<a href="../api/common/ngfor" class="code-anchor">ngFor</a></code> repeater, other components, layout HTML, additional bindings, a constructor that injects multiple services, and it starts interacting with those services right away.</p> <p>Imagine the effort to disable these distractions, just to prove a point that can be made satisfactorily with a <em>test host</em> like this one:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test host)" data-language="typescript">@Component({
   template: `
     &lt;dashboard-hero
       [hero]="hero" (selected)="onSelected($event)"&gt;
@@ -611,7 +608,7 @@ class TestHostComponent {
   onSelected(hero: Hero) {
     this.selectedHero = hero;
   }
-}</pre> <p>This test host binds to <code>DashboardHeroComponent</code> as the <code>DashboardComponent</code> would but without the noise of the <code><a href="../api/router/router" class="code-anchor">Router</a></code>, the <code>HeroService</code>, or the <code>*<a href="../api/common/ngforof" class="code-anchor">ngFor</a></code> repeater.</p> <p>The test host sets the component's <code>hero</code> input property with its test hero. It binds the component's <code>selected</code> event with its <code>onSelected</code> handler, which records the emitted hero in its <code>selectedHero</code> property.</p> <p>Later, the tests will be able to check <code>selectedHero</code> to verify that the <code>DashboardHeroComponent.selected</code> event emitted the expected hero.</p> <p>The setup for the <code>test-host</code> tests is similar to the setup for the stand-alone tests:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test host setup)" data-language="typescript">TestBed
+}</pre> <p>This test host binds to <code>DashboardHeroComponent</code> as the <code>DashboardComponent</code> would but without the noise of the <code><a href="../api/router/router" class="code-anchor">Router</a></code>, the <code>HeroService</code>, or the <code>*<a href="../api/common/ngfor" class="code-anchor">ngFor</a></code> repeater.</p> <p>The test host sets the component's <code>hero</code> input property with its test hero. It binds the component's <code>selected</code> event with its <code>onSelected</code> handler, which records the emitted hero in its <code>selectedHero</code> property.</p> <p>Later, the tests will be able to check <code>selectedHero</code> to verify that the <code>DashboardHeroComponent.selected</code> event emitted the expected hero.</p> <p>The setup for the <code>test-host</code> tests is similar to the setup for the stand-alone tests:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test host setup)" data-language="typescript">TestBed
     .configureTestingModule({declarations: [DashboardHeroComponent, TestHostComponent]})
 // create TestHostComponent instead of DashboardHeroComponent
 fixture = TestBed.createComponent(TestHostComponent);
@@ -619,7 +616,7 @@ testHost = fixture.componentInstance;
 heroEl = fixture.nativeElement.querySelector('.hero');
 fixture.detectChanges();  // trigger initial data binding</pre> <p>This testing module configuration shows three important differences:</p> <ul> <li>It <em>declares</em> both the <code>DashboardHeroComponent</code> and the <code>TestHostComponent</code>
 </li> <li>It <em>creates</em> the <code>TestHostComponent</code> instead of the <code>DashboardHeroComponent</code>
-</li> <li>The <code>TestHostComponent</code> sets the <code>DashboardHeroComponent.hero</code> with a binding</li> </ul> <p>The <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a></code> returns a <code>fixture</code> that holds an instance of <code>TestHostComponent</code> instead of an instance of <code>DashboardHeroComponent</code>.</p> <p>Creating the <code>TestHostComponent</code> has the side-effect of creating a <code>DashboardHeroComponent</code> because the latter appears within the template of the former. The query for the hero element (<code>heroEl</code>) still finds it in the test DOM, albeit at greater depth in the element tree than before.</p> <p>The tests themselves are almost identical to the stand-alone version:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test-host)" data-language="typescript">it('should display hero name', () =&gt; {
+</li> <li>The <code>TestHostComponent</code> sets the <code>DashboardHeroComponent.hero</code> with a binding</li> </ul> <p>The <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a></code> returns a <code>fixture</code> that holds an instance of <code>TestHostComponent</code> instead of an instance of <code>DashboardHeroComponent</code>.</p> <p>Creating the <code>TestHostComponent</code> has the side effect of creating a <code>DashboardHeroComponent</code> because the latter appears within the template of the former. The query for the hero element (<code>heroEl</code>) still finds it in the test DOM, albeit at greater depth in the element tree than before.</p> <p>The tests themselves are almost identical to the stand-alone version:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (test-host)" data-language="typescript">it('should display hero name', () =&gt; {
   const expectedPipedName = testHost.hero.name.toUpperCase();
   expect(heroEl.textContent).toContain(expectedPipedName);
 });
@@ -628,32 +625,31 @@ it('should raise selected event when clicked', () =&gt; {
   click(heroEl);
   // selected hero should be the same data bound hero
   expect(testHost.selectedHero).toBe(testHost.hero);
-});</pre> <p>Only the selected event test differs. It confirms that the selected <code>DashboardHeroComponent</code> hero really does find its way up through the event binding to the host component.</p>  <h2 id="routing-component">Routing component</h2> <p>A <em>routing component</em> is a component that tells the <code><a href="../api/router/router" class="code-anchor">Router</a></code> to navigate to another component. The <code>DashboardComponent</code> is a <em>routing component</em> because the user can navigate to the <code>HeroDetailComponent</code> by clicking on one of the <em>hero buttons</em> on the dashboard.</p> <p>Routing is pretty complicated. Testing the <code>DashboardComponent</code> seemed daunting in part because it involves the <code><a href="../api/router/router" class="code-anchor">Router</a></code>, which it injects together with the <code>HeroService</code>.</p> <pre header="app/dashboard/dashboard.component.ts (constructor)" data-language="typescript">constructor(
-  private router: Router,
-  private heroService: HeroService) {
-}</pre> <p>Mocking the <code>HeroService</code> with a spy is a <a href="testing-components-scenarios#component-with-async-service">familiar story</a>. But the <code><a href="../api/router/router" class="code-anchor">Router</a></code> has a complicated API and is entwined with other services and application preconditions. Might it be difficult to mock?</p> <p>Fortunately, not in this case because the <code>DashboardComponent</code> isn't doing much with the <code><a href="../api/router/router" class="code-anchor">Router</a></code></p> <pre header="app/dashboard/dashboard.component.ts (goToDetail)" data-language="typescript">gotoDetail(hero: Hero) {
+});</pre> <p>Only the selected event test differs. It confirms that the selected <code>DashboardHeroComponent</code> hero really does find its way up through the event binding to the host component.</p>  <h2 id="routing-component">Routing component</h2> <p>A <em>routing component</em> is a component that tells the <code><a href="../api/router/router" class="code-anchor">Router</a></code> to navigate to another component. The <code>DashboardComponent</code> is a <em>routing component</em> because the user can navigate to the <code>HeroDetailComponent</code> by clicking on one of the <em>hero buttons</em> on the dashboard.</p> <p>Routing is pretty complicated. Testing the <code>DashboardComponent</code> seemed daunting in part because it involves the <code><a href="../api/router/router" class="code-anchor">Router</a></code>, which it injects together with the <code>HeroService</code>.</p> <pre header="app/dashboard/dashboard.component.ts (constructor)" data-language="typescript">constructor(private router: Router, private heroService: HeroService) {}</pre> <pre header="app/dashboard/dashboard.component.ts (goToDetail)" data-language="typescript">gotoDetail(hero: Hero) {
   const url = `/heroes/${hero.id}`;
   this.router.navigateByUrl(url);
-}</pre> <p>This is often the case with <em>routing components</em>. As a rule you test the component, not the router, and care only if the component navigates with the right address under the given conditions.</p> <p>Providing a router spy for <em>this component</em> test suite happens to be as easy as providing a <code>HeroService</code> spy.</p> <pre header="app/dashboard/dashboard.component.spec.ts (spies)" data-language="typescript">const routerSpy = jasmine.createSpyObj('Router', ['navigateByUrl']);
-const heroServiceSpy = jasmine.createSpyObj('HeroService', ['getHeroes']);
-
-TestBed
+}</pre> <p>Angular provides test helpers to reduce boilerplate and more effectively test code which depends on the Router and HttpClient.</p> <pre header="app/dashboard/dashboard.component.spec.ts" data-language="typescript">TestBed
     .configureTestingModule({
       providers: [
-        {provide: HeroService, useValue: heroServiceSpy}, {provide: Router, useValue: routerSpy}
+        provideRouter([{path: '**', component: DashboardComponent}]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        HeroService,
       ]
-    })</pre> <p>The following test clicks the displayed hero and confirms that <code>Router.navigateByUrl</code> is called with the expected url.</p> <pre header="app/dashboard/dashboard.component.spec.ts (navigate test)" data-language="typescript">it('should tell ROUTER to navigate when hero clicked', () =&gt; {
-  heroClick();  // trigger click on first inner &lt;div class="hero"&gt;
-
-  // args passed to router.navigateByUrl() spy
-  const spy = router.navigateByUrl as jasmine.Spy;
-  const navArgs = spy.calls.first().args[0];
+    })
+    .compileComponents()
+    .then(async () =&gt; {
+      harness = await RouterTestingHarness.create();
+      comp = await harness.navigateByUrl('/', DashboardComponent);
+      TestBed.inject(HttpTestingController).expectOne('api/heroes').flush(getTestHeroes());
+    });</pre> <p>The following test clicks the displayed hero and confirms that we navigate to the expected URL.</p> <pre header="app/dashboard/dashboard.component.spec.ts (navigate test)" data-language="typescript">it('should tell navigate when hero clicked', async () =&gt; {
+  await heroClick();  // trigger click on first inner &lt;div class="hero"&gt;
 
   // expecting to navigate to id of the component's first hero
   const id = comp.heroes[0].id;
-  expect(navArgs)
-    .withContext('should nav to HeroDetail for first hero')
-    .toBe('/heroes/' + id);
+  expect(TestBed.inject(Router).url)
+      .withContext('should nav to HeroDetail for first hero')
+      .toEqual(`/heroes/${id}`);
 });</pre>  <h2 id="routed-components">Routed components</h2> <p>A <em>routed component</em> is the destination of a <code><a href="../api/router/router" class="code-anchor">Router</a></code> navigation. It can be trickier to test, especially when the route to the component <em>includes parameters</em>. The <code>HeroDetailComponent</code> is a <em>routed component</em> that is the destination of such a route.</p> <p>When a user clicks a <em>Dashboard</em> hero, the <code>DashboardComponent</code> tells the <code><a href="../api/router/router" class="code-anchor">Router</a></code> to navigate to <code>heroes/:id</code>. The <code>:id</code> is a route parameter whose value is the <code>id</code> of the hero to edit.</p> <p>The <code><a href="../api/router/router" class="code-anchor">Router</a></code> matches that URL to a route to the <code>HeroDetailComponent</code>. It creates an <code><a href="../api/router/activatedroute" class="code-anchor">ActivatedRoute</a></code> object with the routing information and injects it into a new instance of the <code>HeroDetailComponent</code>.</p> <p>Here's the <code>HeroDetailComponent</code> constructor:</p> <pre header="app/hero/hero-detail.component.ts (constructor)" data-language="typescript">constructor(
   private heroDetailService: HeroDetailService,
   private route: ActivatedRoute,
@@ -661,70 +657,23 @@ TestBed
 }</pre> <p>The <code>HeroDetail</code> component needs the <code>id</code> parameter so it can fetch the corresponding hero using the <code>HeroDetailService</code>. The component has to get the <code>id</code> from the <code><a href="../api/router/activatedroute#paramMap" class="code-anchor">ActivatedRoute.paramMap</a></code> property which is an <code>Observable</code>.</p> <p>It can't just reference the <code>id</code> property of the <code><a href="../api/router/activatedroute#paramMap" class="code-anchor">ActivatedRoute.paramMap</a></code>. The component has to <em>subscribe</em> to the <code><a href="../api/router/activatedroute#paramMap" class="code-anchor">ActivatedRoute.paramMap</a></code> observable and be prepared for the <code>id</code> to change during its lifetime.</p> <pre header="app/hero/hero-detail.component.ts (ngOnInit)" data-language="typescript">ngOnInit(): void {
   // get hero when `id` param changes
   this.route.paramMap.subscribe(pmap =&gt; this.getHero(pmap.get('id')));
-}</pre> <blockquote class="alert is-helpful"> <p>The <a href="router-tutorial-toh#activated-route-in-action">ActivatedRoute in action</a> section of the <a href="router-tutorial-toh">Router tutorial: tour of heroes</a> guide covers <code><a href="../api/router/activatedroute#paramMap" class="code-anchor">ActivatedRoute.paramMap</a></code> in more detail.</p> </blockquote> <p>Tests can explore how the <code>HeroDetailComponent</code> responds to different <code>id</code> parameter values by manipulating the <code><a href="../api/router/activatedroute" class="code-anchor">ActivatedRoute</a></code> injected into the component's constructor.</p> <p>You know how to spy on the <code><a href="../api/router/router" class="code-anchor">Router</a></code> and a data service.</p> <p>You'll take a different approach with <code><a href="../api/router/activatedroute" class="code-anchor">ActivatedRoute</a></code> because</p> <ul> <li>
-<code>paramMap</code> returns an <code>Observable</code> that can emit more than one value during a test</li> <li>You need the router helper function, <code><a href="../api/router/converttoparammap" class="code-anchor">convertToParamMap</a>()</code>, to create a <code><a href="../api/router/parammap" class="code-anchor">ParamMap</a></code>
-</li> <li>Other <em>routed component</em> tests need a test double for <code><a href="../api/router/activatedroute" class="code-anchor">ActivatedRoute</a></code>
-</li> </ul> <p>These differences argue for a re-usable stub class.</p> <h4 id="activatedroutestub"><code>ActivatedRouteStub</code></h4> <p>The following <code>ActivatedRouteStub</code> class serves as a test double for <code><a href="../api/router/activatedroute" class="code-anchor">ActivatedRoute</a></code>.</p> <pre header="testing/activated-route-stub.ts (ActivatedRouteStub)" data-language="typescript">import { convertToParamMap, ParamMap, Params } from '@angular/router';
-import { ReplaySubject } from 'rxjs';
-
-/**
- * An ActivateRoute test double with a `paramMap` observable.
- * Use the `setParamMap()` method to add the next `paramMap` value.
- */
-export class ActivatedRouteStub {
-  // Use a ReplaySubject to share previous values with subscribers
-  // and pump new values into the `paramMap` observable
-  private subject = new ReplaySubject&lt;ParamMap&gt;();
-
-  constructor(initialParams?: Params) {
-    this.setParamMap(initialParams);
-  }
-
-  /** The mock paramMap observable */
-  readonly paramMap = this.subject.asObservable();
-
-  /** Set the paramMap observable's next value */
-  setParamMap(params: Params = {}) {
-    this.subject.next(convertToParamMap(params));
-  }
-}</pre> <p>Consider placing such helpers in a <code>testing</code> folder sibling to the <code>app</code> folder. This sample puts <code>ActivatedRouteStub</code> in <code>testing/activated-route-stub.ts</code>.</p> <blockquote class="alert is-helpful"> <p>Consider writing a more capable version of this stub class with the <a href="testing-components-scenarios#marble-testing"><em>marble testing library</em></a>.</p> </blockquote>  <h4 id="testing-with-activatedroutestub">Testing with <code>ActivatedRouteStub</code>
+}</pre> <blockquote class="alert is-helpful"> <p>The <a href="router-tutorial-toh#activated-route-in-action">ActivatedRoute in action</a> section of the <a href="router-tutorial-toh">Router tutorial: tour of heroes</a> guide covers <code><a href="../api/router/activatedroute#paramMap" class="code-anchor">ActivatedRoute.paramMap</a></code> in more detail.</p> </blockquote> <p>Tests can explore how the <code>HeroDetailComponent</code> responds to different <code>id</code> parameter values by navigating to different routes.</p> <h4 id="testing-with-the-routertestingharness">Testing with the <code><a href="../api/router/testing/routertestingharness" class="code-anchor">RouterTestingHarness</a></code>
 </h4> <p>Here's a test demonstrating the component's behavior when the observed <code>id</code> refers to an existing hero:</p> <pre header="app/hero/hero-detail.component.spec.ts (existing id)" data-language="typescript">describe('when navigate to existing hero', () =&gt; {
   let expectedHero: Hero;
 
   beforeEach(async () =&gt; {
     expectedHero = firstHero;
-    activatedRoute.setParamMap({id: expectedHero.id});
-    await createComponent();
+    await createComponent(expectedHero.id);
   });
-
-  it("should display that hero's name", () =&gt; {
+  it('should display that hero\'s name', () =&gt; {
     expect(page.nameDisplay.textContent).toBe(expectedHero.name);
-  });
-});</pre> <blockquote class="alert is-helpful"> <p>In the following section, the <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a>()</code> method and <code>page</code> object are discussed. Rely on your intuition for now.</p> </blockquote> <p>When the <code>id</code> cannot be found, the component should re-route to the <code>HeroListComponent</code>.</p> <p>The test suite setup provided the same router spy <a href="testing-components-scenarios#routing-component">described above</a> which spies on the router without actually navigating.</p> <p>This test expects the component to try to navigate to the <code>HeroListComponent</code>.</p> <pre header="app/hero/hero-detail.component.spec.ts (bad id)" data-language="typescript">describe('when navigate to non-existent hero id', () =&gt; {
+  });</pre> <blockquote class="alert is-helpful"> <p>In the following section, the <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a>()</code> method and <code>page</code> object are discussed. Rely on your intuition for now.</p> </blockquote> <p>When the <code>id</code> cannot be found, the component should re-route to the <code>HeroListComponent</code>.</p> <p>The test suite setup provided the same router harness <a href="testing-components-scenarios#routing-component">described above</a>.</p> <p>This test expects the component to try to navigate to the <code>HeroListComponent</code>.</p> <pre header="app/hero/hero-detail.component.spec.ts (bad id)" data-language="typescript">describe('when navigate to non-existent hero id', () =&gt; {
   beforeEach(async () =&gt; {
-    activatedRoute.setParamMap({id: 99999});
-    await createComponent();
+    await createComponent(999);
   });
 
   it('should try to navigate back to hero list', () =&gt; {
-    expect(page.gotoListSpy.calls.any())
-      .withContext('comp.gotoList called')
-      .toBe(true);
-    expect(page.navigateSpy.calls.any())
-      .withContext('router.navigate called')
-      .toBe(true);
-  });
-});</pre> <p>While this application doesn't have a route to the <code>HeroDetailComponent</code> that omits the <code>id</code> parameter, it might add such a route someday. The component should do something reasonable when there is no <code>id</code>.</p> <p>In this implementation, the component should create and display a new hero. New heroes have <code>id=0</code> and a blank <code>name</code>. This test confirms that the component behaves as expected:</p> <pre header="app/hero/hero-detail.component.spec.ts (no id)" data-language="typescript">describe('when navigate with no hero id', () =&gt; {
-  beforeEach(async () =&gt; {
-    await createComponent();
-  });
-
-  it('should have hero.id === 0', () =&gt; {
-    expect(component.hero.id).toBe(0);
-  });
-
-  it('should display empty hero name', () =&gt; {
-    expect(page.nameDisplay.textContent).toBe('');
+    expect(TestBed.inject(Router).url).toEqual('/heroes');
   });
 });</pre> <h2 id="nested-component-tests">Nested component tests</h2> <p>Component templates often have nested components, whose templates might contain more components.</p> <p>The component tree can be very deep and, most of the time, the nested components play no role in testing the component at the top of the tree.</p> <p>The <code>AppComponent</code>, for example, displays a navigation bar with anchors and their <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> directives.</p> <pre header="app/app.component.html" data-language="html">&lt;app-banner&gt;&lt;/app-banner&gt;
 &lt;app-welcome&gt;&lt;/app-welcome&gt;
@@ -733,7 +682,7 @@ export class ActivatedRouteStub {
   &lt;a routerLink="/heroes"&gt;Heroes&lt;/a&gt;
   &lt;a routerLink="/about"&gt;About&lt;/a&gt;
 &lt;/nav&gt;
-&lt;router-outlet&gt;&lt;/router-outlet&gt;</pre> <p>While the <code>AppComponent</code> <em>class</em> is empty, you might want to write unit tests to confirm that the links are wired properly to the <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> directives, perhaps for the reasons as explained in the <a href="testing-components-scenarios#why-stubbed-routerlink-tests">following section</a>.</p> <p>To validate the links, you don't need the <code><a href="../api/router/router" class="code-anchor">Router</a></code> to navigate and you don't need the <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> to mark where the <code><a href="../api/router/router" class="code-anchor">Router</a></code> inserts <em>routed components</em>.</p> <p>The <code>BannerComponent</code> and <code>WelcomeComponent</code> (indicated by <code>&lt;app-banner&gt;</code> and <code>&lt;app-welcome&gt;</code>) are also irrelevant.</p> <p>Yet any test that creates the <code>AppComponent</code> in the DOM also creates instances of these three components and, if you let that happen, you'll have to configure the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> to create them.</p> <p>If you neglect to declare them, the Angular compiler won't recognize the <code>&lt;app-banner&gt;</code>, <code>&lt;app-welcome&gt;</code>, and <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> tags in the <code>AppComponent</code> template and will throw an error.</p> <p>If you declare the real components, you'll also have to declare <em>their</em> nested components and provide for <em>all</em> services injected in <em>any</em> component in the tree.</p> <p>That's too much effort just to answer a few simple questions about links.</p> <p>This section describes two techniques for minimizing the setup. Use them, alone or in combination, to stay focused on testing the primary component.</p>  <h5 id="stubbing-unneeded-components">Stubbing unneeded components</h5> <p>In the first technique, you create and declare stub versions of the components and directive that play little or no role in the tests.</p> <pre header="app/app.component.spec.ts (stub declaration)" data-language="typescript">@Component({selector: 'app-banner', template: ''})
+&lt;router-outlet&gt;&lt;/router-outlet&gt;</pre> <p>To validate the links, you don't need the <code><a href="../api/router/router" class="code-anchor">Router</a></code> to navigate and you don't need the <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> to mark where the <code><a href="../api/router/router" class="code-anchor">Router</a></code> inserts <em>routed components</em>.</p> <p>The <code>BannerComponent</code> and <code>WelcomeComponent</code> (indicated by <code>&lt;app-banner&gt;</code> and <code>&lt;app-welcome&gt;</code>) are also irrelevant.</p> <p>Yet any test that creates the <code>AppComponent</code> in the DOM also creates instances of these three components and, if you let that happen, you'll have to configure the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> to create them.</p> <p>If you neglect to declare them, the Angular compiler won't recognize the <code>&lt;app-banner&gt;</code>, <code>&lt;app-welcome&gt;</code>, and <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> tags in the <code>AppComponent</code> template and will throw an error.</p> <p>If you declare the real components, you'll also have to declare <em>their</em> nested components and provide for <em>all</em> services injected in <em>any</em> component in the tree.</p> <p>That's too much effort just to answer a few simple questions about links.</p> <p>This section describes two techniques for minimizing the setup. Use them, alone or in combination, to stay focused on testing the primary component.</p>  <h5 id="stubbing-unneeded-components">Stubbing unneeded components</h5> <p>In the first technique, you create and declare stub versions of the components and directive that play little or no role in the tests.</p> <pre header="app/app.component.spec.ts (stub declaration)" data-language="typescript">@Component({selector: 'app-banner', template: ''})
 class BannerStubComponent {
 }
 
@@ -745,74 +694,59 @@ class RouterOutletStubComponent {
 class WelcomeStubComponent {
 }</pre> <p>The stub selectors match the selectors for the corresponding real components. But their templates and classes are empty.</p> <p>Then declare them in the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> configuration next to the components, directives, and pipes that need to be real.</p> <pre header="app/app.component.spec.ts (TestBed stubs)" data-language="typescript">TestBed
     .configureTestingModule({
-      declarations: [
-        AppComponent, RouterLinkDirectiveStub, BannerStubComponent, RouterOutletStubComponent,
-        WelcomeStubComponent
-      ]
-    })</pre> <p>The <code>AppComponent</code> is the test subject, so of course you declare the real version.</p> <p>The <code>RouterLinkDirectiveStub</code>, <a href="testing-components-scenarios#routerlink">described later</a>, is a test version of the real <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> that helps with the link tests.</p> <p>The rest are stubs.</p>  <h4 id="no_errors_schema"><code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code></h4> <p>In the second approach, add <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> to the <code>TestBed.schemas</code> metadata.</p> <pre header="app/app.component.spec.ts (NO_ERRORS_SCHEMA)" data-language="typescript">TestBed
+      imports: [RouterLink],
+      providers: [provideRouter([])],
+      declarations:
+          [AppComponent, BannerStubComponent, RouterOutletStubComponent, WelcomeStubComponent]
+    })</pre> <p>The <code>AppComponent</code> is the test subject, so of course you declare the real version.</p> <p>The rest are stubs.</p>  <h4 id="no_errors_schema"><code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code></h4> <p>In the second approach, add <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> to the <code>TestBed.schemas</code> metadata.</p> <pre header="app/app.component.spec.ts (NO_ERRORS_SCHEMA)" data-language="typescript">TestBed
     .configureTestingModule({
       declarations: [
         AppComponent,
-        RouterLinkDirectiveStub
       ],
+      providers: [provideRouter([])],
+      imports: [RouterLink],
       schemas: [NO_ERRORS_SCHEMA]
-    })</pre> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> tells the Angular compiler to ignore unrecognized elements and attributes.</p> <p>The compiler recognizes the <code>&lt;app-root&gt;</code> element and the <code><a href="../api/router/routerlink" class="code-anchor">routerLink</a></code> attribute because you declared a corresponding <code>AppComponent</code> and <code>RouterLinkDirectiveStub</code> in the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> configuration.</p> <p>But the compiler won't throw an error when it encounters <code>&lt;app-banner&gt;</code>, <code>&lt;app-welcome&gt;</code>, or <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code>. It simply renders them as empty tags and the browser ignores them.</p> <p>You no longer need the stub components.</p> <h4 id="use-both-techniques-together">Use both techniques together</h4> <p>These are techniques for <em>Shallow Component Testing</em>, so-named because they reduce the visual surface of the component to just those elements in the component's template that matter for tests.</p> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> approach is the easier of the two but don't overuse it.</p> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> also prevents the compiler from telling you about the missing components and attributes that you omitted inadvertently or misspelled. You could waste hours chasing phantom bugs that the compiler would have caught in an instant.</p> <p>The <em>stub component</em> approach has another advantage. While the stubs in <em>this</em> example were empty, you could give them stripped-down templates and classes if your tests need to interact with them in some way.</p> <p>In practice you will combine the two techniques in the same setup, as seen in this example.</p> <pre header="app/app.component.spec.ts (mixed setup)" data-language="typescript">TestBed
+    })</pre> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> tells the Angular compiler to ignore unrecognized elements and attributes.</p> <p>The compiler recognizes the <code>&lt;app-root&gt;</code> element and the <code><a href="../api/router/routerlink" class="code-anchor">routerLink</a></code> attribute because you declared a corresponding <code>AppComponent</code> and <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> in the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> configuration.</p> <p>But the compiler won't throw an error when it encounters <code>&lt;app-banner&gt;</code>, <code>&lt;app-welcome&gt;</code>, or <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code>. It simply renders them as empty tags and the browser ignores them.</p> <p>You no longer need the stub components.</p> <h4 id="use-both-techniques-together">Use both techniques together</h4> <p>These are techniques for <em>Shallow Component Testing</em>, so-named because they reduce the visual surface of the component to just those elements in the component's template that matter for tests.</p> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> approach is the easier of the two but don't overuse it.</p> <p>The <code><a href="../api/core/no_errors_schema" class="code-anchor">NO_ERRORS_SCHEMA</a></code> also prevents the compiler from telling you about the missing components and attributes that you omitted inadvertently or misspelled. You could waste hours chasing phantom bugs that the compiler would have caught in an instant.</p> <p>The <em>stub component</em> approach has another advantage. While the stubs in <em>this</em> example were empty, you could give them stripped-down templates and classes if your tests need to interact with them in some way.</p> <p>In practice you will combine the two techniques in the same setup, as seen in this example.</p> <pre header="app/app.component.spec.ts (mixed setup)" data-language="typescript">TestBed
     .configureTestingModule({
       declarations: [
         AppComponent,
         BannerStubComponent,
-        RouterLinkDirectiveStub
       ],
+      providers: [provideRouter([])],
+      imports: [RouterLink],
       schemas: [NO_ERRORS_SCHEMA]
-    })</pre> <p>The Angular compiler creates the <code>BannerComponentStub</code> for the <code>&lt;app-banner&gt;</code> element and applies the <code>RouterLinkStubDirective</code> to the anchors with the <code><a href="../api/router/routerlink" class="code-anchor">routerLink</a></code> attribute, but it ignores the <code>&lt;app-welcome&gt;</code> and <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> tags.</p>  <h2 id="components-with-routerlink">Components with <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code>
-</h2> <p>The real <code>RouterLinkDirective</code> is quite complicated and entangled with other components and directives of the <code><a href="../api/router/routermodule" class="code-anchor">RouterModule</a></code>. It requires challenging setup to mock and use in tests.</p> <p>The <code>RouterLinkDirectiveStub</code> in this sample code replaces the real directive with an alternative version designed to validate the kind of anchor tag wiring seen in the <code>AppComponent</code> template.</p> <pre header="testing/router-link-directive-stub.ts (RouterLinkDirectiveStub)" data-language="typescript">@Directive({
-  selector: '[routerLink]'
-})
-export class RouterLinkDirectiveStub {
-  @Input('routerLink') linkParams: any;
-  navigatedTo: any = null;
-
-  @HostListener('click')
-  onClick() {
-    this.navigatedTo = this.linkParams;
-  }
-}</pre> <p>The URL bound to the <code>[<a href="../api/router/routerlink" class="code-anchor">routerLink</a>]</code> attribute flows in to the directive's <code>linkParams</code> property.</p> <p>The <code><a href="../api/core/hostlistener" class="code-anchor">HostListener</a></code> wires the click event of the host element (the <code>&lt;a&gt;</code> anchor elements in <code>AppComponent</code>) to the stub directive's <code>onClick</code> method.</p> <p>Clicking the anchor should trigger the <code>onClick()</code> method, which sets the stub's telltale <code>navigatedTo</code> property. Tests inspect <code>navigatedTo</code> to confirm that clicking the anchor sets the expected route definition.</p> <blockquote class="alert is-helpful"> <p>Whether the router is configured properly to navigate with that route definition is a question for a separate set of tests.</p> </blockquote>  <h4 id="bydirective-and-injected-directives">
+    })</pre> <p>The Angular compiler creates the <code>BannerStubComponent</code> for the <code>&lt;app-banner&gt;</code> element and applies the <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> to the anchors with the <code><a href="../api/router/routerlink" class="code-anchor">routerLink</a></code> attribute, but it ignores the <code>&lt;app-welcome&gt;</code> and <code>&lt;<a href="../api/router/routeroutlet" class="code-anchor">router-outlet</a>&gt;</code> tags.</p>  <h4 id="bydirective-and-injected-directives">
 <code>By.directive</code> and injected directives</h4> <p>A little more setup triggers the initial data binding and gets references to the navigation links:</p> <pre header="app/app.component.spec.ts (test setup)" data-language="typescript">beforeEach(() =&gt; {
   fixture.detectChanges();  // trigger initial data binding
 
   // find DebugElements with an attached RouterLinkStubDirective
-  linkDes = fixture.debugElement.queryAll(By.directive(RouterLinkDirectiveStub));
+  linkDes = fixture.debugElement.queryAll(By.directive(RouterLink));
 
   // get attached link directive instances
   // using each DebugElement's injector
-  routerLinks = linkDes.map(de =&gt; de.injector.get(RouterLinkDirectiveStub));
+  routerLinks = linkDes.map(de =&gt; de.injector.get(RouterLink));
 });</pre> <p>Three points of special interest:</p> <ul> <li>Locate the anchor elements with an attached directive using <code>By.directive</code>
 </li> <li>The query returns <code><a href="../api/core/debugelement" class="code-anchor">DebugElement</a></code> wrappers around the matching elements</li> <li>Each <code><a href="../api/core/debugelement" class="code-anchor">DebugElement</a></code> exposes a dependency injector with the specific instance of the directive attached to that element</li> </ul> <p>The <code>AppComponent</code> links to validate are as follows:</p> <pre header="app/app.component.html (navigation links)" data-language="html">&lt;nav&gt;
   &lt;a routerLink="/dashboard"&gt;Dashboard&lt;/a&gt;
   &lt;a routerLink="/heroes"&gt;Heroes&lt;/a&gt;
   &lt;a routerLink="/about"&gt;About&lt;/a&gt;
 &lt;/nav&gt;</pre>  <p>Here are some tests that confirm those links are wired to the <code><a href="../api/router/routerlink" class="code-anchor">routerLink</a></code> directives as expected:</p> <pre header="app/app.component.spec.ts (selected tests)" data-language="typescript">it('can get RouterLinks from template', () =&gt; {
-  expect(routerLinks.length)
-    .withContext('should have 3 routerLinks')
-    .toBe(3);
-  expect(routerLinks[0].linkParams).toBe('/dashboard');
-  expect(routerLinks[1].linkParams).toBe('/heroes');
-  expect(routerLinks[2].linkParams).toBe('/about');
+  expect(routerLinks.length).withContext('should have 3 routerLinks').toBe(3);
+  expect(routerLinks[0].href).toBe('/dashboard');
+  expect(routerLinks[1].href).toBe('/heroes');
+  expect(routerLinks[2].href).toBe('/about');
 });
 
-it('can click Heroes link in template', () =&gt; {
-  const heroesLinkDe = linkDes[1];    // heroes link DebugElement
-  const heroesLink = routerLinks[1];  // heroes link directive
+it('can click Heroes link in template', fakeAsync(() =&gt; {
+     const heroesLinkDe = linkDes[1];  // heroes link DebugElement
 
-  expect(heroesLink.navigatedTo)
-    .withContext('should not have navigated yet')
-    .toBeNull();
+     TestBed.inject(Router).resetConfig([{path: '**', children: []}]);
+     heroesLinkDe.triggerEventHandler('click', {button: 0});
+     tick();
+     fixture.detectChanges();
 
-  heroesLinkDe.triggerEventHandler('click');
-  fixture.detectChanges();
-
-  expect(heroesLink.navigatedTo).toBe('/heroes');
-});</pre> <blockquote class="alert is-helpful"> <p>The "click" test <em>in this example</em> is misleading. It tests the <code>RouterLinkDirectiveStub</code> rather than the <em>component</em>. This is a common failing of directive stubs.</p> <p>It has a legitimate purpose in this guide. It demonstrates how to find a <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> element, click it, and inspect a result, without engaging the full router machinery. This is a skill you might need to test a more sophisticated component, one that changes the display, re-calculates parameters, or re-arranges navigation options when the user clicks the link.</p> </blockquote>  <h4 id="what-good-are-these-tests">What good are these tests?</h4> <p>Stubbed <code><a href="../api/router/routerlink" class="code-anchor">RouterLink</a></code> tests can confirm that a component with links and an outlet is setup properly, that the component has the links it should have, and that they are all pointing in the expected direction. These tests do not concern whether the application will succeed in navigating to the target component when the user clicks a link.</p> <p>Stubbing the RouterLink and RouterOutlet is the best option for such limited testing goals. Relying on the real router would make them brittle. They could fail for reasons unrelated to the component. For example, a navigation guard could prevent an unauthorized user from visiting the <code>HeroListComponent</code>. That's not the fault of the <code>AppComponent</code> and no change to that component could cure the failed test.</p> <p>A <em>different</em> battery of tests can explore whether the application navigates as expected in the presence of conditions that influence guards such as whether the user is authenticated and authorized.</p> <blockquote class="alert is-helpful"> <p>A future guide update explains how to write such tests with the <code><a href="../api/router/testing/routertestingmodule" class="code-anchor">RouterTestingModule</a></code>.</p> </blockquote>  <h2 id="use-a-page-object">Use a <code>page</code> object</h2> <p>The <code>HeroDetailComponent</code> is a simple view with a title, two hero fields, and two buttons.</p> <div class="lightbox"> <img alt="HeroDetailComponent in action" src="data:image/png;base64,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" width="269" height="170"> </div> <p>But there's plenty of template complexity even in this simple form.</p> <pre header="app/hero/hero-detail.component.html" data-language="html">&lt;div *ngIf="hero"&gt;
+     expect(TestBed.inject(Router).url).toBe('/heroes');
+   }));</pre>  <h2 id="use-a-page-object">Use a <code>page</code> object</h2> <p>The <code>HeroDetailComponent</code> is a simple view with a title, two hero fields, and two buttons.</p> <div class="lightbox"> <img alt="HeroDetailComponent in action" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQ0AAACqCAMAAACAourYAAAAwFBMVEX////7+/unp6dra2tgfYv39/f9/f7u7u7U1NRERERLS0tSUlLm5uaurq7c3+Dq6uqvvsW4uLjP0tPHx8eTk5Ps7e5HR0dYWFh5eXmhoaH09PVkZGTAwMDKysqIiIiOjo68vLzExMRtiJWXl5e9yc9OTk56k57h4eGEhITY2drx8fKOoqyWlpaamppeXl7Lzc2Xq7Oenp6AgIArKyujs7vj4+MJCQkAAAC2xMrf5ehycnJlgY8REREeHh6InqiAl6JpNTQiAAAIg0lEQVR42u2caZeiShJAE4TEZJVFkE1Ey1Jsl1Jb29r//7+aSNBaLD1PZ/q8UU/cD4JI0uQlIjKxKQlBEARBEARB/n1GYbjardufq+dSDyuMgp7YQhBFmZBOaF6SDZ2xJ2G7XmPuf3sYke0IkkNdN+z9TbKmNglpMfvCbDDjb9gIeGjMs4Ax8efHk58bL9ZGf/AXbNS2UeAxP/3xce+QIs7F2ejHu1z5GzaIsGA14XptaHV1mytbG3ov9ll/MavO1sz8/oQS6rZUFkxGfCNN+Hq2OmiDmD4rK6PlBUxtzbbxx1iPN1xozJ9OlL1MWUGCqU+2cAk2ZJFp+qeNVGVqDXyU59liNT/WekTIoD7WVDa14OoPq/W+e9CGEJdyZ304DFSROSUWLIOaQYQ2bwjbgtE3G6bG+rUpYwvhEmzINdYSdjbkKQvhTTRkscDPVnUIlYnBtJSS0RMbEjJnAVxx2fuoN99tkAXL4Lgam8MI6gSs85EpCQsKPhoHXNcXGwsWwrhcaMy5BBukUMtAKG0M4irtdb8/4mc73F7vcuDUVbU50liZRLTs9QEbGVvw/rfLmUdaSq1siEGVkXPe8NOGMGWl1klgX4QNOD/N2quiTbU627IDJgui0oCdynnZP8BhgXzYRovrqy60HPir/Soqsva32Gix1smTtn/DhhyzBf2wQUeF0YtZdbY53+J+6axRhQuUydLXTxtD6Oyoz+Jaic8j6cOGoLvisL9nw4Ei1R/ao0uxQeo+5HdlQ/H6fAhQtzZKQTZc7m9XtooeXz9gg9ZYCJ99TE75EbY2Zk9+dejvNog55Nv9dnQhNmC2qCmlDSVgWhZ2dEv9YiM/GBu+qhywofRZShTVt37MN2yf1XriLNrPFJ5Q6SRmuwP//21ArgxLGyGrRVUV/WLD3JWIxdRxd3VjxgLhgA2D1xghYOn2DiWXtzbkgO2q6Dcb8symVQD2Rxdio0xe3vUFm2879cUGDLvlmKJovg5jSrodU9oHxpSBBolSllKhiirexdKG5VeZBeK/2YAotKpYuxwbZLxL8XKGZfiMx/rWBp9vwBgxggGX8gEIdMhj1jf3bQi6qLEaP+Cgz7KonFtMyjzMKIk0NgFDeovxIfjTBmh9gpST26xFL8ZGNC1twLTJj2EqupjyCfbORjkXha3x6HMuquaH7uhZrSoYuQrHgUO2+OE7MGhkfKc+TEXVjD19qxuroPongwG5GBsk9cuur9owUV64NOPRvbNBaA73JtOw3Jd2nuA+xdN/fr/hB+1kV0v4zYdfq24+hEmf1SjtwHg7nVhKH1LjaxW1elPfn84V/PINQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEQRAEOYu7xmO1ImwaJz6FJrvlk21Kmjvyjdm4l+62fexKp/0xZhRmXILTHouZZ91okJxog9a9NrcRZQYlUU+8wUyhRWMWcRtRY/MPf01ltkWb2ygy/rho4gk3lynCL0mS7p/BRlPq/kMpUFYkzT72MSb05mxspO6j8CCdFBvApw2z7ZKbs/EmNQgZPZ9YRT9tmJkh3J6NclwRuufaqN+cjNLEu7Q5Y4Td2qBJ26bkBm38ln5RUkjn2chvrWbsbDS70kOjK500puxsrNphHShub4Qlj+9Sd/N2lo1OuySTCYIgCIIgCIIgCHJRJPVb4n+1Ub+lS4s20AbaQBtoA22gDbSBNtDGDdgIw/J/Ys3FCG0Qwtad8jbuzwBtgI0/y+Yt2aCbRmQ2NjzSBafRuIsIeWwUo03jkSibTflDu/DG4QnhNMwfNmqvNbq1IeTtdg5vxMTNYA/Ty8r9Ci+b0WuxIXSlN0mSnh+JfA9LqftI7qT7Lqw9PMNm6L8DS+kdLD3wJ4D2bAwNnivcxsh/DdR1TInGlppHh2u/v84IX2rrWL4eG/fN6F76TR7f3mT5HXp8J0kOfy7OEd6kB9J8fi6E37ByMDaGNIZc4Ta8pUKIvdaJ9moRMnsxCDFezA6XVbx412NjQ0jZW3hjci0QG5Q0qpc3spF+kb0HGb7aIBbkCreRdwjVM1jRVPhguBQIkUU99nmWPDF6NTYcAt1+IPTunadKaYOUIsqX31JF84gNArnCbUTD5Xq95DZi+CDWqh18/oZMlvK12dhI3c3jww8bECQNTnTMBuSK8WdA41dDF5wPG2q1gxbw12wpXJsN/pgkffthw5HuheMjLP/Jbf0VQkJejmF1vrMR8uIxWtrtJVgUWECuzcZvqduA2vmwZ0N4l94ab/cNenhM4a/GH4gNf5kX2evaqWwoSzV1pkvFWqquE784V2dDhiH110zqCt9tkOihK3UfmuS4DTqFkDDV9UtcLI3KBllNX9YBjEEmLPsXLAPv2tAG2kAbaANtoA20gTbQBtpAG2jjxm3cErf6QwAIgiAIgiAIgiAIgiAIgiCnQSPlJCJ6ZoOfLa9Axum9ouc22Gt5BZxxoaNzG+y1vALO6dTZDb63RBtoA23cng097+T6OTaaTidZHd07Na/Zhj42EqOnn27DCg038Ypje4vONduoz+ElHyiDpFPnSyuxrBxWj9pIwiY0MBTL7biwa9FJm4qedCAknE5qXbkNfSKCAwiRJPcKu6MUoSUabugetSHm1dIw0tC2xqI7d62JnYxXSegaxpXbUKyZPQ71QTqY9RxzYhm5maWpPT9qI0yrZvmqbhiWZyqJ7YSKMjPHSepm+pVnClSAJijoGfbEUcL6RC+8TqeTHLVh2PCySi1xboONsQ42UoPr8Wxod+U2Zj1T0cM0MRTdcxR3zpdwvY2jNgr42DIM07OaOxvmWG+KM8iuomddt41mkmWZ3TR743mYK3oGnXHG47l5fIR1euPMsCwj6xlhZUPJPc+wzPl47Fx73cDZF9pAG2gDv+3BbwLxW2IEQf4d/gPz6AW3yJjk8gAAAABJRU5ErkJggg==" width="269" height="170"> </div> <p>But there's plenty of template complexity even in this simple form.</p> <pre header="app/hero/hero-detail.component.html" data-language="html">&lt;div *ngIf="hero"&gt;
   &lt;h2&gt;&lt;span&gt;{{hero.name | titlecase}}&lt;/span&gt; Details&lt;/h2&gt;
   &lt;div&gt;
     &lt;span&gt;id: &lt;/span&gt;{{hero.id}}&lt;/div&gt;
@@ -840,76 +774,47 @@ it('can click Heroes link in template', () =&gt; {
     return this.query&lt;HTMLInputElement&gt;('input');
   }
 
-  gotoListSpy: jasmine.Spy;
-  navigateSpy: jasmine.Spy;
-
-  constructor(someFixture: ComponentFixture&lt;HeroDetailComponent&gt;) {
-    // get the navigate spy from the injected router spy object
-    const routerSpy = someFixture.debugElement.injector.get(Router) as any;
-    this.navigateSpy = routerSpy.navigate;
-
-    // spy on component's `gotoList()` method
-    const someComponent = someFixture.componentInstance;
-    this.gotoListSpy = spyOn(someComponent, 'gotoList').and.callThrough();
-  }
-
   //// query helpers ////
   private query&lt;T&gt;(selector: string): T {
-    return fixture.nativeElement.querySelector(selector);
+    return harness.routeNativeElement!.querySelector(selector)! as T;
   }
 
   private queryAll&lt;T&gt;(selector: string): T[] {
-    return fixture.nativeElement.querySelectorAll(selector);
+    return harness.routeNativeElement!.querySelectorAll(selector) as any as T[];
   }
-}</pre> <p>Now the important hooks for component manipulation and inspection are neatly organized and accessible from an instance of <code>Page</code>.</p> <p>A <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a></code> method creates a <code>page</code> object and fills in the blanks once the <code>hero</code> arrives.</p> <pre header="app/hero/hero-detail.component.spec.ts (createComponent)" data-language="typescript">/** Create the HeroDetailComponent, initialize it, set test variables  */
-function createComponent() {
-  fixture = TestBed.createComponent(HeroDetailComponent);
-  component = fixture.componentInstance;
-  page = new Page(fixture);
+}</pre> <p>Now the important hooks for component manipulation and inspection are neatly organized and accessible from an instance of <code>Page</code>.</p> <p>A <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a></code> method creates a <code>page</code> object and fills in the blanks once the <code>hero</code> arrives.</p> <pre header="app/hero/hero-detail.component.spec.ts (createComponent)" data-language="typescript">async function createComponent(id: number) {
+  harness = await RouterTestingHarness.create();
+  component = await harness.navigateByUrl(`/heroes/${id}`, HeroDetailComponent);
+  page = new Page();
 
-  // 1st change detection triggers ngOnInit which gets a hero
-  fixture.detectChanges();
-  return fixture.whenStable().then(() =&gt; {
-    // 2nd change detection displays the async-fetched hero
-    fixture.detectChanges();
-  });
-}</pre> <p>The <a href="testing-components-scenarios#tests-w-test-double"><code>HeroDetailComponent</code> tests</a> in an earlier section demonstrate how <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a></code> and <code>page</code> keep the tests short and <em>on message</em>. There are no distractions: no waiting for promises to resolve and no searching the DOM for element values to compare.</p> <p>Here are a few more <code>HeroDetailComponent</code> tests to reinforce the point.</p> <pre header="app/hero/hero-detail.component.spec.ts (selected tests)" data-language="typescript">it("should display that hero's name", () =&gt; {
+  const request = TestBed.inject(HttpTestingController).expectOne(`api/heroes/?id=${id}`);
+  const hero = getTestHeroes().find(h =&gt; h.id === Number(id));
+  request.flush(hero ? [hero] : []);
+  harness.detectChanges();
+}</pre> <p>Here are a few more <code>HeroDetailComponent</code> tests to reinforce the point.</p> <pre header="app/hero/hero-detail.component.spec.ts (selected tests)" data-language="typescript">it('should display that hero\'s name', () =&gt; {
   expect(page.nameDisplay.textContent).toBe(expectedHero.name);
 });
 
 it('should navigate when click cancel', () =&gt; {
   click(page.cancelBtn);
-  expect(page.navigateSpy.calls.any())
-    .withContext('router.navigate called')
-    .toBe(true);
+  expect(TestBed.inject(Router).url).toEqual(`/heroes/${expectedHero.id}`);
 });
 
 it('should save when click save but not navigate immediately', () =&gt; {
-  // Get service injected into component and spy on its`saveHero` method.
-  // It delegates to fake `HeroService.updateHero` which delivers a safe test result.
-  const hds = fixture.debugElement.injector.get(HeroDetailService);
-  const saveSpy = spyOn(hds, 'saveHero').and.callThrough();
-
   click(page.saveBtn);
-  expect(saveSpy.calls.any())
-    .withContext('HeroDetailService.save called')
-    .toBe(true);
-  expect(page.navigateSpy.calls.any())
-    .withContext('router.navigate not called')
-    .toBe(false);
+  expect(TestBed.inject(HttpTestingController).expectOne({method: 'PUT', url: 'api/heroes'}));
+  expect(TestBed.inject(Router).url).toEqual('/heroes/41');
 });
 
 it('should navigate when click save and save resolves', fakeAsync(() =&gt; {
      click(page.saveBtn);
      tick();  // wait for async save to complete
-     expect(page.navigateSpy.calls.any())
-      .withContext('router.navigate called')
-      .toBe(true);
+     expect(TestBed.inject(Router).url).toEqual('/heroes/41');
    }));
 
 it('should convert hero name to Title Case', () =&gt; {
   // get the name's input and display elements from the DOM
-  const hostElement: HTMLElement = fixture.nativeElement;
+  const hostElement: HTMLElement = harness.routeNativeElement!;
   const nameInput: HTMLInputElement = hostElement.querySelector('input')!;
   const nameDisplay: HTMLElement = hostElement.querySelector('span')!;
 
@@ -920,7 +825,7 @@ it('should convert hero name to Title Case', () =&gt; {
   nameInput.dispatchEvent(new Event('input'));
 
   // Tell Angular to update the display binding through the title pipe
-  fixture.detectChanges();
+  harness.detectChanges();
 
   expect(nameDisplay.textContent).toBe('Quick Brown  Fox');
 });</pre>  <h2 id="calling-compilecomponents">Calling <code>compileComponents()</code>
@@ -940,7 +845,7 @@ export class BannerComponent {
     declarations: [ BannerComponent ],
   }); // missing call to compileComponents()
   fixture = TestBed.createComponent(BannerComponent);
-});</pre> <p>Recall that the application hasn't been compiled. So when you call <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a>()</code>, the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> compiles implicitly.</p> <p>That's not a problem when the source code is in memory. But the <code>BannerComponent</code> requires external files that the compiler must read from the file system, an inherently <em>asynchronous</em> operation.</p> <p>If the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> were allowed to continue, the tests would run and fail mysteriously before the compiler could finished.</p> <p>The preemptive error message tells you to compile explicitly with <code>compileComponents()</code>.</p> <h4 id="compilecomponents-is-async">
+});</pre> <p>Recall that the application hasn't been compiled. So when you call <code><a href="../api/core/createcomponent" class="code-anchor">createComponent</a>()</code>, the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> compiles implicitly.</p> <p>That's not a problem when the source code is in memory. But the <code>BannerComponent</code> requires external files that the compiler must read from the file system, an inherently <em>asynchronous</em> operation.</p> <p>If the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> were allowed to continue, the tests would run and fail mysteriously before the compiler could finish.</p> <p>The preemptive error message tells you to compile explicitly with <code>compileComponents()</code>.</p> <h4 id="compilecomponents-is-async">
 <code>compileComponents()</code> is async</h4> <p>You must call <code>compileComponents()</code> within an asynchronous test function.</p> <blockquote class="alert is-critical"> <p>If you neglect to make the test function async (for example, forget to use <code><a href="../api/core/testing/waitforasync" class="code-anchor">waitForAsync</a>()</code> as described), you'll see this error message</p> <pre format="output" data-language="shell">Error: ViewDestroyedError: Attempt to use a destroyed view</pre> </blockquote> <p>A typical approach is to divide the setup logic into two separate <code>beforeEach()</code> functions:</p> <table> <thead> <tr> <th align="left">Functions</th> <th align="left">Details</th> </tr> </thead> <tbody> <tr> <td align="left">Asynchronous <code>beforeEach()</code>
 </td> <td align="left">Compiles the components</td> </tr> <tr> <td align="left">Synchronous <code>beforeEach()</code>
 </td> <td align="left">Performs the remaining setup</td> </tr> </tbody> </table> <h4 id="the-async-beforeeach">The async <code>beforeEach</code>
@@ -963,48 +868,46 @@ export class BannerComponent {
 });</pre> <h4 id="compilecomponents-is-harmless">
 <code>compileComponents()</code> is harmless</h4> <p>There's no harm in calling <code>compileComponents()</code> when it's not required.</p> <p>The component test file generated by the CLI calls <code>compileComponents()</code> even though it is never required when running <code>ng test</code>.</p> <p>The tests in this guide only call <code>compileComponents</code> when necessary.</p>  <h2 id="setup-with-module-imports">Setup with module imports</h2> <p>Earlier component tests configured the testing module with a few <code>declarations</code> like this:</p> <pre header="app/dashboard/dashboard-hero.component.spec.ts (configure TestBed)" data-language="typescript">TestBed
     .configureTestingModule({declarations: [DashboardHeroComponent]})</pre> <p>The <code>DashboardComponent</code> is simple. It needs no help. But more complex components often depend on other components, directives, pipes, and providers and these must be added to the testing module too.</p> <p>Fortunately, the <code>TestBed.configureTestingModule</code> parameter parallels the metadata passed to the <code>@<a href="../api/core/ngmodule" class="code-anchor">NgModule</a></code> decorator which means you can also specify <code>providers</code> and <code>imports</code>.</p> <p>The <code>HeroDetailComponent</code> requires a lot of help despite its small size and simple construction. In addition to the support it receives from the default testing module <code><a href="../api/common/commonmodule" class="code-anchor">CommonModule</a></code>, it needs:</p> <ul> <li>
-<code><a href="../api/forms/ngmodel" class="code-anchor">NgModel</a></code> and friends in the <code><a href="../api/forms/formsmodule" class="code-anchor">FormsModule</a></code> to enable two-way data binding</li> <li>The <code><a href="../api/common/titlecasepipe" class="code-anchor">TitleCasePipe</a></code> from the <code>shared</code> folder</li> <li>The Router services that these tests are stubbing out</li> <li>The Hero data access services that are also stubbed out</li> </ul> <p>One approach is to configure the testing module from the individual pieces as in this example:</p> <pre header="app/hero/hero-detail.component.spec.ts (FormsModule setup)" data-language="typescript">beforeEach(async () =&gt; {
-  const routerSpy = createRouterSpy();
-
+<code><a href="../api/forms/ngmodel" class="code-anchor">NgModel</a></code> and friends in the <code><a href="../api/forms/formsmodule" class="code-anchor">FormsModule</a></code> to enable two-way data binding</li> <li>The <code><a href="../api/common/titlecasepipe" class="code-anchor">TitleCasePipe</a></code> from the <code>shared</code> folder</li> <li>The Router services</li> <li>The Hero data access services</li> </ul> <p>One approach is to configure the testing module from the individual pieces as in this example:</p> <pre header="app/hero/hero-detail.component.spec.ts (FormsModule setup)" data-language="typescript">beforeEach(async () =&gt; {
   await TestBed
       .configureTestingModule({
         imports: [FormsModule],
         declarations: [HeroDetailComponent, TitleCasePipe],
         providers: [
-          {provide: ActivatedRoute, useValue: activatedRoute},
-          {provide: HeroService, useClass: TestHeroService},
-          {provide: Router, useValue: routerSpy},
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideRouter([{path: 'heroes/:id', component: HeroDetailComponent}]),
         ]
       })
       .compileComponents();
 });</pre> <blockquote class="alert is-helpful"> <p>Notice that the <code>beforeEach()</code> is asynchronous and calls <code>TestBed.compileComponents</code> because the <code>HeroDetailComponent</code> has an external template and css file.</p> <p>As explained in <a href="testing-components-scenarios#compile-components">Calling <code>compileComponents()</code></a>, these tests could be run in a non-CLI environment where Angular would have to compile them in the browser.</p> </blockquote> <h4 id="import-a-shared-module">Import a shared module</h4> <p>Because many application components need the <code><a href="../api/forms/formsmodule" class="code-anchor">FormsModule</a></code> and the <code><a href="../api/common/titlecasepipe" class="code-anchor">TitleCasePipe</a></code>, the developer created a <code>SharedModule</code> to combine these and other frequently requested parts.</p> <p>The test configuration can use the <code>SharedModule</code> too as seen in this alternative setup:</p> <pre header="app/hero/hero-detail.component.spec.ts (SharedModule setup)" data-language="typescript">beforeEach(async () =&gt; {
-  const routerSpy = createRouterSpy();
-
   await TestBed
       .configureTestingModule({
         imports: [SharedModule],
         declarations: [HeroDetailComponent],
         providers: [
-          {provide: ActivatedRoute, useValue: activatedRoute},
-          {provide: HeroService, useClass: TestHeroService},
-          {provide: Router, useValue: routerSpy},
+          provideRouter([{path: 'heroes/:id', component: HeroDetailComponent}]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
         ]
       })
       .compileComponents();
 });</pre> <p>It's a bit tighter and smaller, with fewer import statements, which are not shown in this example.</p>  <h4 id="import-a-feature-module">Import a feature module</h4> <p>The <code>HeroDetailComponent</code> is part of the <code>HeroModule</code> <a href="feature-modules">Feature Module</a> that aggregates more of the interdependent pieces including the <code>SharedModule</code>. Try a test configuration that imports the <code>HeroModule</code> like this one:</p> <pre header="app/hero/hero-detail.component.spec.ts (HeroModule setup)" data-language="typescript">beforeEach(async () =&gt; {
-  const routerSpy = createRouterSpy();
-
   await TestBed
       .configureTestingModule({
         imports: [HeroModule],
+        //  declarations: [ HeroDetailComponent ], // NO!  DOUBLE DECLARATION
         providers: [
-          {provide: ActivatedRoute, useValue: activatedRoute},
-          {provide: HeroService, useClass: TestHeroService},
-          {provide: Router, useValue: routerSpy},
+          provideRouter([
+            {path: 'heroes/:id', component: HeroDetailComponent},
+            {path: 'heroes', component: HeroListComponent},
+          ]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
         ]
       })
       .compileComponents();
-});</pre> <p>That's <em>really</em> crisp. Only the <em>test doubles</em> in the <code>providers</code> remain. Even the <code>HeroDetailComponent</code> declaration is gone.</p> <p>In fact, if you try to declare it, Angular will throw an error because <code>HeroDetailComponent</code> is declared in both the <code>HeroModule</code> and the <code>DynamicTestModule</code> created by the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code>.</p> <blockquote class="alert is-helpful"> <p>Importing the component's feature module can be the best way to configure tests when there are many mutual dependencies within the module and the module is small, as feature modules tend to be.</p> </blockquote>  <h2 id="override-component-providers">Override component providers</h2> <p>The <code>HeroDetailComponent</code> provides its own <code>HeroDetailService</code>.</p> <pre header="app/hero/hero-detail.component.ts (prototype)" data-language="typescript">@Component({
+});</pre> <p>Only the <em>test doubles</em> in the <code>providers</code> remain. Even the <code>HeroDetailComponent</code> declaration is gone.</p> <p>In fact, if you try to declare it, Angular will throw an error because <code>HeroDetailComponent</code> is declared in both the <code>HeroModule</code> and the <code>DynamicTestModule</code> created by the <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code>.</p> <blockquote class="alert is-helpful"> <p>Importing the component's feature module can be the best way to configure tests when there are many mutual dependencies within the module and the module is small, as feature modules tend to be.</p> </blockquote>  <h2 id="override-component-providers">Override component providers</h2> <p>The <code>HeroDetailComponent</code> provides its own <code>HeroDetailService</code>.</p> <pre header="app/hero/hero-detail.component.ts (prototype)" data-language="typescript">@Component({
   selector:    'app-hero-detail',
   templateUrl: './hero-detail.component.html',
   styleUrls:  ['./hero-detail.component.css' ],
@@ -1016,27 +919,23 @@ export class HeroDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router) {
   }
-}</pre> <p>It's not possible to stub the component's <code>HeroDetailService</code> in the <code>providers</code> of the <code>TestBed.configureTestingModule</code>. Those are providers for the <em>testing module</em>, not the component. They prepare the dependency injector at the <em>fixture level</em>.</p> <p>Angular creates the component with its <em>own</em> injector, which is a <em>child</em> of the fixture injector. It registers the component's providers (the <code>HeroDetailService</code> in this case) with the child injector.</p> <p>A test cannot get to child injector services from the fixture injector. And <code>TestBed.configureTestingModule</code> can't configure them either.</p> <p>Angular has created new instances of the real <code>HeroDetailService</code> all along!</p> <blockquote class="alert is-helpful"> <p>These tests could fail or timeout if the <code>HeroDetailService</code> made its own XHR calls to a remote server. There might not be a remote server to call.</p> <p>Fortunately, the <code>HeroDetailService</code> delegates responsibility for remote data access to an injected <code>HeroService</code>.</p> <pre header="app/hero/hero-detail.service.ts (prototype)" data-language="typescript">@Injectable()
+}</pre> <p>It's not possible to stub the component's <code>HeroDetailService</code> in the <code>providers</code> of the <code>TestBed.configureTestingModule</code>. Those are providers for the <em>testing module</em>, not the component. They prepare the dependency injector at the <em>fixture level</em>.</p> <p>Angular creates the component with its <em>own</em> injector, which is a <em>child</em> of the fixture injector. It registers the component's providers (the <code>HeroDetailService</code> in this case) with the child injector.</p> <p>A test cannot get to child injector services from the fixture injector. And <code>TestBed.configureTestingModule</code> can't configure them either.</p> <p>Angular has created new instances of the real <code>HeroDetailService</code> all along!</p> <blockquote class="alert is-helpful"> <p>These tests could fail or timeout if the <code>HeroDetailService</code> made its own XHR calls to a remote server. There might not be a remote server to call.</p> <p>Fortunately, the <code>HeroDetailService</code> delegates responsibility for remote data access to an injected <code>HeroService</code>.</p> <pre header="app/hero/hero-detail.service.ts (prototype)" data-language="typescript">@Injectable({providedIn: 'root'})
 export class HeroDetailService {
-  constructor(private heroService: HeroService) {  }
-/* . . . */
+  constructor(private heroService: HeroService) {}
+  /* . . . */
 }</pre> <p>The <a href="testing-components-scenarios#feature-module-import">previous test configuration</a> replaces the real <code>HeroService</code> with a <code>TestHeroService</code> that intercepts server requests and fakes their responses.</p> </blockquote> <p>What if you aren't so lucky. What if faking the <code>HeroService</code> is hard? What if <code>HeroDetailService</code> makes its own server requests?</p> <p>The <code>TestBed.overrideComponent</code> method can replace the component's <code>providers</code> with easy-to-manage <em>test doubles</em> as seen in the following setup variation:</p> <pre header="app/hero/hero-detail.component.spec.ts (Override setup)" data-language="typescript">beforeEach(async () =&gt; {
-  const routerSpy = createRouterSpy();
-
   await TestBed
       .configureTestingModule({
         imports: [HeroModule],
         providers: [
-          {provide: ActivatedRoute, useValue: activatedRoute},
-          {provide: Router, useValue: routerSpy},
+          provideRouter([{path: 'heroes/:id', component: HeroDetailComponent}]),
+          // HeroDetailService at this level is IRRELEVANT!
+          {provide: HeroDetailService, useValue: {}}
         ]
       })
-
-      // Override component's own provider
       .overrideComponent(
           HeroDetailComponent,
           {set: {providers: [{provide: HeroDetailService, useClass: HeroDetailServiceSpy}]}})
-
       .compileComponents();
 });</pre> <p>Notice that <code>TestBed.configureTestingModule</code> no longer provides a fake <code>HeroService</code> because it's <a href="testing-components-scenarios#spy-stub">not needed</a>.</p>  <h4 id="the-overridecomponent-method">The <code>overrideComponent</code> method</h4> <p>Focus on the <code>overrideComponent</code> method.</p> <pre header="app/hero/hero-detail.component.spec.ts (overrideComponent)" data-language="typescript">.overrideComponent(
     HeroDetailComponent,
@@ -1049,7 +948,7 @@ template?: string;
 templateUrl?: string;
 providers?: any[];
 …</pre>  <h4 id="provide-a-spy-stub-herodetailservicespy">Provide a <em>spy stub</em> (<code>HeroDetailServiceSpy</code>)</h4> <p>This example completely replaces the component's <code>providers</code> array with a new array containing a <code>HeroDetailServiceSpy</code>.</p> <p>The <code>HeroDetailServiceSpy</code> is a stubbed version of the real <code>HeroDetailService</code> that fakes all necessary features of that service. It neither injects nor delegates to the lower level <code>HeroService</code> so there's no need to provide a test double for that.</p> <p>The related <code>HeroDetailComponent</code> tests will assert that methods of the <code>HeroDetailService</code> were called by spying on the service methods. Accordingly, the stub implements its methods as spies:</p> <pre header="app/hero/hero-detail.component.spec.ts (HeroDetailServiceSpy)" data-language="typescript">class HeroDetailServiceSpy {
-  testHero: Hero = {id: 42, name: 'Test Hero'};
+  testHero: Hero = {...testHero};
 
   /* emit cloned test hero */
   getHero = jasmine.createSpy('getHero').and.callFake(
@@ -1060,53 +959,228 @@ providers?: any[];
                  .and.callFake((hero: Hero) =&gt; asyncData(Object.assign(this.testHero, hero)));
 }</pre>  <h4 id="the-override-tests">The override tests</h4> <p>Now the tests can control the component's hero directly by manipulating the spy-stub's <code>testHero</code> and confirm that service methods were called.</p> <pre header="app/hero/hero-detail.component.spec.ts (override tests)" data-language="typescript">let hdsSpy: HeroDetailServiceSpy;
 
-beforeEach(async () =&gt; {
-  await createComponent();
-  // get the component's injected HeroDetailServiceSpy
-  hdsSpy = fixture.debugElement.injector.get(HeroDetailService) as any;
-});
+  beforeEach(async () =&gt; {
+    harness = await RouterTestingHarness.create();
+    component = await harness.navigateByUrl(`/heroes/${testHero.id}`, HeroDetailComponent);
+    page = new Page();
+    // get the component's injected HeroDetailServiceSpy
+    hdsSpy = harness.routeDebugElement!.injector.get(HeroDetailService) as any;
 
-it('should have called `getHero`', () =&gt; {
-  expect(hdsSpy.getHero.calls.count())
-    .withContext('getHero called once')
-    .toBe(1, 'getHero called once');
-});
+    harness.detectChanges();
+  });
 
-it("should display stub hero's name", () =&gt; {
-  expect(page.nameDisplay.textContent).toBe(hdsSpy.testHero.name);
-});
+  it('should have called `getHero`', () =&gt; {
+    expect(hdsSpy.getHero.calls.count())
+        .withContext('getHero called once')
+        .toBe(1, 'getHero called once');
+  });
 
-it('should save stub hero change', fakeAsync(() =&gt; {
-     const origName = hdsSpy.testHero.name;
-     const newName = 'New Name';
+  it('should display stub hero\'s name', () =&gt; {
+    expect(page.nameDisplay.textContent).toBe(hdsSpy.testHero.name);
+  });
 
-     page.nameInput.value = newName;
+  it('should save stub hero change', fakeAsync(() =&gt; {
+       const origName = hdsSpy.testHero.name;
+       const newName = 'New Name';
 
-     page.nameInput.dispatchEvent(new Event('input')); // tell Angular
+       page.nameInput.value = newName;
 
-     expect(component.hero.name)
-      .withContext('component hero has new name')
-      .toBe(newName);
-     expect(hdsSpy.testHero.name)
-      .withContext('service hero unchanged before save')
-      .toBe(origName);
+       page.nameInput.dispatchEvent(new Event('input'));  // tell Angular
 
-     click(page.saveBtn);
-     expect(hdsSpy.saveHero.calls.count())
-      .withContext('saveHero called once')
-      .toBe(1);
+       expect(component.hero.name).withContext('component hero has new name').toBe(newName);
+       expect(hdsSpy.testHero.name)
+           .withContext('service hero unchanged before save')
+           .toBe(origName);
 
-     tick();  // wait for async save to complete
-     expect(hdsSpy.testHero.name)
-      .withContext('service hero has new name after save')
-      .toBe(newName);
-     expect(page.navigateSpy.calls.any())
-      .withContext('router.navigate called')
-      .toBe(true);
-   }));</pre>  <h4 id="more-overrides">More overrides</h4> <p>The <code>TestBed.overrideComponent</code> method can be called multiple times for the same or different components. The <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> offers similar <code>overrideDirective</code>, <code>overrideModule</code>, and <code>overridePipe</code> methods for digging into and replacing parts of these other classes.</p> <p>Explore the options and combinations on your own.</p>    <div class="reviewed">Last reviewed on Mon Feb 28 2022</div>
+       click(page.saveBtn);
+       expect(hdsSpy.saveHero.calls.count()).withContext('saveHero called once').toBe(1);
+
+       tick();  // wait for async save to complete
+       expect(hdsSpy.testHero.name)
+           .withContext('service hero has new name after save')
+           .toBe(newName);
+       expect(TestBed.inject(Router).url).toEqual('/heroes');
+     }));
+}
+
+////////////////////
+import {getTestHeroes} from '../model/testing/test-hero.service';
+
+const firstHero = getTestHeroes()[0];
+
+function heroModuleSetup() {
+  beforeEach(async () =&gt; {
+    await TestBed
+        .configureTestingModule({
+          imports: [HeroModule],
+          //  declarations: [ HeroDetailComponent ], // NO!  DOUBLE DECLARATION
+          providers: [
+            provideRouter([
+              {path: 'heroes/:id', component: HeroDetailComponent},
+              {path: 'heroes', component: HeroListComponent},
+            ]),
+            provideHttpClient(),
+            provideHttpClientTesting(),
+          ]
+        })
+        .compileComponents();
+  });
+
+  describe('when navigate to existing hero', () =&gt; {
+    let expectedHero: Hero;
+
+    beforeEach(async () =&gt; {
+      expectedHero = firstHero;
+      await createComponent(expectedHero.id);
+    });
+    it('should display that hero\'s name', () =&gt; {
+      expect(page.nameDisplay.textContent).toBe(expectedHero.name);
+    });
+
+    it('should navigate when click cancel', () =&gt; {
+      click(page.cancelBtn);
+      expect(TestBed.inject(Router).url).toEqual(`/heroes/${expectedHero.id}`);
+    });
+
+    it('should save when click save but not navigate immediately', () =&gt; {
+      click(page.saveBtn);
+      expect(TestBed.inject(HttpTestingController).expectOne({method: 'PUT', url: 'api/heroes'}));
+      expect(TestBed.inject(Router).url).toEqual('/heroes/41');
+    });
+
+    it('should navigate when click save and save resolves', fakeAsync(() =&gt; {
+         click(page.saveBtn);
+         tick();  // wait for async save to complete
+         expect(TestBed.inject(Router).url).toEqual('/heroes/41');
+       }));
+
+    it('should convert hero name to Title Case', () =&gt; {
+      // get the name's input and display elements from the DOM
+      const hostElement: HTMLElement = harness.routeNativeElement!;
+      const nameInput: HTMLInputElement = hostElement.querySelector('input')!;
+      const nameDisplay: HTMLElement = hostElement.querySelector('span')!;
+
+      // simulate user entering a new name into the input box
+      nameInput.value = 'quick BROWN  fOx';
+
+      // Dispatch a DOM event so that Angular learns of input value change.
+      nameInput.dispatchEvent(new Event('input'));
+
+      // Tell Angular to update the display binding through the title pipe
+      harness.detectChanges();
+
+      expect(nameDisplay.textContent).toBe('Quick Brown  Fox');
+    });
+
+  });
+
+  describe('when navigate to non-existent hero id', () =&gt; {
+    beforeEach(async () =&gt; {
+      await createComponent(999);
+    });
+
+    it('should try to navigate back to hero list', () =&gt; {
+      expect(TestBed.inject(Router).url).toEqual('/heroes');
+    });
+  });
+}
+
+/////////////////////
+import {FormsModule} from '@angular/forms';
+import {TitleCasePipe} from '../shared/title-case.pipe';
+
+function formsModuleSetup() {
+  beforeEach(async () =&gt; {
+    await TestBed
+        .configureTestingModule({
+          imports: [FormsModule],
+          declarations: [HeroDetailComponent, TitleCasePipe],
+          providers: [
+            provideHttpClient(),
+            provideHttpClientTesting(),
+            provideRouter([{path: 'heroes/:id', component: HeroDetailComponent}]),
+          ]
+        })
+        .compileComponents();
+  });
+
+  it('should display 1st hero\'s name', async () =&gt; {
+    const expectedHero = firstHero;
+    await createComponent(expectedHero.id).then(() =&gt; {
+      expect(page.nameDisplay.textContent).toBe(expectedHero.name);
+    });
+  });
+}
+
+///////////////////////
+
+function sharedModuleSetup() {
+  beforeEach(async () =&gt; {
+    await TestBed
+        .configureTestingModule({
+          imports: [SharedModule],
+          declarations: [HeroDetailComponent],
+          providers: [
+            provideRouter([{path: 'heroes/:id', component: HeroDetailComponent}]),
+            provideHttpClient(),
+            provideHttpClientTesting(),
+          ]
+        })
+        .compileComponents();
+  });
+
+  it('should display 1st hero\'s name', async () =&gt; {
+    const expectedHero = firstHero;
+    await createComponent(expectedHero.id).then(() =&gt; {
+      expect(page.nameDisplay.textContent).toBe(expectedHero.name);
+    });
+  });
+}
+
+/////////// Helpers /////
+
+/** Create the HeroDetailComponent, initialize it, set test variables  */
+async function createComponent(id: number) {
+  harness = await RouterTestingHarness.create();
+  component = await harness.navigateByUrl(`/heroes/${id}`, HeroDetailComponent);
+  page = new Page();
+
+  const request = TestBed.inject(HttpTestingController).expectOne(`api/heroes/?id=${id}`);
+  const hero = getTestHeroes().find(h =&gt; h.id === Number(id));
+  request.flush(hero ? [hero] : []);
+  harness.detectChanges();
+}
+
+class Page {
+  // getter properties wait to query the DOM until called.
+  get buttons() {
+    return this.queryAll&lt;HTMLButtonElement&gt;('button');
+  }
+  get saveBtn() {
+    return this.buttons[0];
+  }
+  get cancelBtn() {
+    return this.buttons[1];
+  }
+  get nameDisplay() {
+    return this.query&lt;HTMLElement&gt;('span');
+  }
+  get nameInput() {
+    return this.query&lt;HTMLInputElement&gt;('input');
+  }
+
+  //// query helpers ////
+  private query&lt;T&gt;(selector: string): T {
+    return harness.routeNativeElement!.querySelector(selector)! as T;
+  }
+
+  private queryAll&lt;T&gt;(selector: string): T[] {
+    return harness.routeNativeElement!.querySelectorAll(selector) as any as T[];
+  }
+}</pre>  <h4 id="more-overrides">More overrides</h4> <p>The <code>TestBed.overrideComponent</code> method can be called multiple times for the same or different components. The <code><a href="../api/core/testing/testbed" class="code-anchor">TestBed</a></code> offers similar <code>overrideDirective</code>, <code>overrideModule</code>, and <code>overridePipe</code> methods for digging into and replacing parts of these other classes.</p> <p>Explore the options and combinations on your own.</p>    <div class="reviewed">Last reviewed on Mon Feb 28 2022</div>
 <div class="_attribution">
   <p class="_attribution-p">
-    © 2010–2022 Google, Inc.<br>Licensed under the Creative Commons Attribution License 4.0.<br>
+    © 2010–2023 Google, Inc.<br>Licensed under the Creative Commons Attribution License 4.0.<br>
     <a href="https://angular.io/guide/testing-components-scenarios" class="_attribution-link">https://angular.io/guide/testing-components-scenarios</a>
   </p>
 </div>

@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/angular/guide/schematics-for-libraries.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/angular.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -90,23 +90,23 @@
   "schematics": {
     "ng-add": {
       "description": "Add my library to the project.",
-      "factory": "./ng-add/index#ngAdd"
+      "factory": "./ng-add/index#ngAdd",
+      "schema": "./ng-add/schema.json"
     }
   }
 }</pre> <ul> <li>The <code>$schema</code> path is relative to the Angular Devkit collection schema.</li> <li>The <code>schematics</code> object describes the named schematics that are part of this collection.</li> <li>The first entry is for a schematic named <code>ng-add</code>. It contains the description, and points to the factory function that is called when your schematic is executed.</li> </ul> </li> <li> <p>In your library project's <code>package.json</code> file, add a "schematics" entry with the path to your schema file. The Angular CLI uses this entry to find named schematics in your collection when it runs commands.</p> <pre header="projects/my-lib/package.json (Schematics Collection Reference)" data-language="json">{
   "name": "my-lib",
   "version": "0.0.1",
   "schematics": "./schematics/collection.json",
-}</pre> </li> </ol> <p>The initial schema that you have created tells the CLI where to find the schematic that supports the <code>ng add</code> command. Now you are ready to create that schematic.</p> <h2 id="providing-installation-support">Providing installation support</h2> <p>A schematic for the <code>ng add</code> command can enhance the initial installation process for your users. The following steps define this type of schematic.</p> <ol> <li> <p>Go to the <code>&lt;lib-root&gt;/schematics/ng-add</code> folder.</p> </li> <li> <p>Create the main file, <code>index.ts</code>.</p> </li> <li> <p>Open <code>index.ts</code> and add the source code for your schematic factory function.</p> <pre header="projects/my-lib/schematics/ng-add/index.ts (ng-add Rule Factory)" data-language="typescript">import { Rule, SchematicContext, Tree } from '@angular-devkit/schematics';
-import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
+}</pre> </li> </ol> <p>The initial schema that you have created tells the CLI where to find the schematic that supports the <code>ng add</code> command. Now you are ready to create that schematic.</p> <h2 id="providing-installation-support">Providing installation support</h2> <p>A schematic for the <code>ng add</code> command can enhance the initial installation process for your users. The following steps define this type of schematic.</p> <ol> <li> <p>Go to the <code>&lt;lib-root&gt;/schematics/ng-add</code> folder.</p> </li> <li> <p>Create the main file, <code>index.ts</code>.</p> </li> <li> <p>Open <code>index.ts</code> and add the source code for your schematic factory function.</p> <pre header="projects/my-lib/schematics/ng-add/index.ts (ng-add Rule Factory)" data-language="typescript">import { Rule } from '@angular-devkit/schematics';
+import { addRootImport } from '@schematics/angular/utility';
+import { Schema } from './schema';
 
-// Just return the tree
-export function ngAdd(): Rule {
-  return (tree: Tree, context: SchematicContext) =&gt; {
-    context.addTask(new NodePackageInstallTask());
-    return tree;
-  };
-}</pre> </li> </ol> <p>The only step needed to provide initial <code>ng add</code> support is to trigger an installation task using the <code>SchematicContext</code>. The task uses the user's preferred package manager to add the library to the project's <code>package.json</code> configuration file, and install it in the project's <code>node_modules</code> directory.</p> <p>In this example, the function receives the current <code>Tree</code> and returns it without any modifications. If you need to, do additional setup when your package is installed, such as generating files, updating configuration, or any other initial setup your library requires.</p> <h3 id="define-dependency-type">Define dependency type</h3> <p>Use the <code>save</code> option of <code>ng-add</code> to configure if the library should be added to the <code>dependencies</code>, the <code>devDependencies</code>, or not saved at all in the project's <code>package.json</code> configuration file.</p> <pre header="projects/my-lib/package.json (ng-add Reference)" data-language="json">"ng-add": {
+export function ngAdd(options: Schema): Rule {
+  // Add an import `MyLibModule` from `my-lib` to the root of the user's project.
+  return addRootImport(options.project, ({code, external}) =&gt;
+    code`${external('MyLibModule', 'my-lib')}`);
+}</pre> </li> </ol> <p>The Angular CLI will install the latest version of the library automatically, and this example is taking it a step further by adding the <code>MyLibModule</code> to the root of the application. The <code>addRootImport</code> function accepts a callback that needs to return a code block. You can write any code inside of the string tagged with the <code>code</code> function and any external symbol have to be wrapped with the <code>external</code> function to ensure that the appropriate import statements are generated.</p> <h3 id="define-dependency-type">Define dependency type</h3> <p>Use the <code>save</code> option of <code>ng-add</code> to configure if the library should be added to the <code>dependencies</code>, the <code>devDependencies</code>, or not saved at all in the project's <code>package.json</code> configuration file.</p> <pre header="projects/my-lib/package.json (ng-add Reference)" data-language="json">"ng-add": {
   "save": "devDependencies"
 },</pre> <p>Possible values are:</p> <table> <thead> <tr> <th align="left">Values</th> <th align="left">Details</th> </tr> </thead> <tbody> <tr> <td align="left"><code>false</code></td> <td align="left">Don't add the package to <code>package.json</code>
 </td> </tr> <tr> <td align="left"><code>true</code></td> <td align="left">Add the package to the dependencies</td> </tr> <tr> <td align="left"><code>"dependencies"</code></td> <td align="left">Add the package to the dependencies</td> </tr> <tr> <td align="left"><code>"devDependencies"</code></td> <td align="left">Add the package to the devDependencies</td> </tr> </tbody> </table> <h2 id="building-your-schematics">Building your schematics</h2> <p>To bundle your schematics together with your library, you must configure the library to build the schematics separately, then add them to the bundle. You must build your schematics <em>after</em> you build your library, so they are placed in the correct directory.</p> <ul> <li>Your library needs a custom Typescript configuration file with instructions on how to compile your schematics into your distributed library</li> <li>To add the schematics to the library bundle, add scripts to the library's <code>package.json</code> file</li> </ul> <p>Assume you have a library project <code>my-lib</code> in your Angular workspace. To tell the library how to build the schematics, add a <code>tsconfig.schematics.json</code> file next to the generated <code>tsconfig.lib.json</code> file that configures the library build.</p> <ol> <li> <p>Edit the <code>tsconfig.schematics.json</code> file to add the following content.</p> <pre header="projects/my-lib/tsconfig.schematics.json (TypeScript Config)" data-language="json">{
@@ -151,8 +151,8 @@ export function ngAdd(): Rule {
     "postbuild": "copyfiles schematics/*/schema.json schematics/*/files/** schematics/collection.json ../../dist/my-lib/"
   },
   "peerDependencies": {
-    "@angular/common": "^7.2.0",
-    "@angular/core": "^7.2.0"
+    "@angular/common": "^16.1.0",
+    "@angular/core": "^16.1.0"
   },
   "schematics": "./schematics/collection.json",
   "ng-add": {
@@ -167,7 +167,8 @@ export function ngAdd(): Rule {
   "schematics": {
     "ng-add": {
       "description": "Add my library to the project.",
-      "factory": "./ng-add/index#ngAdd"
+      "factory": "./ng-add/index#ngAdd",
+      "schema": "./ng-add/schema.json"
     },
     "my-service": {
       "description": "Generate a service in the project.",
@@ -357,7 +358,7 @@ export function myService(options: MyServiceSchema): Rule {
 npm run build</pre> <h3 id="link-the-library">Link the library</h3> <p>Your library and schematics are packaged and placed in the <code>dist/my-lib</code> folder at the root of your workspace. For running the schematic, you need to link the library into your <code>node_modules</code> folder. From the root of your workspace, run the <code>npm link</code> command with the path to your distributable library.</p> <pre format="shell" data-language="shell">npm link dist/my-lib</pre> <h3 id="run-the-schematic">Run the schematic</h3> <p>Now that your library is installed, run the schematic using the <code>ng generate</code> command.</p> <pre format="shell" data-language="shell">ng generate my-lib:my-service --name my-data</pre> <p>In the console, you see that the schematic was run and the <code>my-data.service.ts</code> file was created in your application folder.</p> <pre data-language="shell">CREATE src/app/my-data.service.ts (208 bytes)</pre>    <div class="reviewed">Last reviewed on Mon Feb 28 2022</div>
 <div class="_attribution">
   <p class="_attribution-p">
-    © 2010–2022 Google, Inc.<br>Licensed under the Creative Commons Attribution License 4.0.<br>
+    © 2010–2023 Google, Inc.<br>Licensed under the Creative Commons Attribution License 4.0.<br>
     <a href="https://angular.io/guide/schematics-for-libraries" class="_attribution-link">https://angular.io/guide/schematics-for-libraries</a>
   </p>
 </div>
