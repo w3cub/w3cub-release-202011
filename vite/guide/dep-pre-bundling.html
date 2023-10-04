@@ -7,17 +7,16 @@
   <meta charset="utf-8">
   <title>Dependency Pre-Bundling - Vite - W3cubDocs</title>
   
-  <meta name="description" content=" When you run vite for the first time, you may notice this message&#58; ">
+  <meta name="description" content="When you run vite for the first time, Vite prebundles your project dependencies before loading your site locally. It is done automatically and &hellip;">
   <meta name="keywords" content="dependency, pre-bundling, vite">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/vite/guide/dep-pre-bundling.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vite.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -87,46 +86,63 @@
 				
 				
 <h1 id="dependency-pre-bundling" tabindex="-1">Dependency Pre-Bundling </h1>
-<p>When you run <code>vite</code> for the first time, you may notice this message:</p>
-<div class="language-"><pre data-language="javascript">Optimizable dependencies detected:
-react, react-dom
-Pre-bundling them to speed up dev server page load...
-(this will be run only when your dependencies have changed)</pre></div>
+<p>When you run <code>vite</code> for the first time, Vite prebundles your project dependencies before loading your site locally. It is done automatically and transparently by default.</p>
 <h2 id="the-why" tabindex="-1">The Why </h2>
 <p>This is Vite performing what we call "dependency pre-bundling". This process serves two purposes:</p>
 <ol>
 <li>
 <p><strong>CommonJS and UMD compatibility:</strong> During development, Vite's dev serves all code as native ESM. Therefore, Vite must convert dependencies that are shipped as CommonJS or UMD into ESM first.</p>
 <p>When converting CommonJS dependencies, Vite performs smart import analysis so that named imports to CommonJS modules will work as expected even if the exports are dynamically assigned (e.g. React):</p>
-<div class="language-js"><pre data-language="javascript">// works as expected
-import React, { useState } from 'react'</pre></div>
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">// works as expected
+import React, { useState } from 'react'</pre>
+</div>
 </li>
 <li>
 <p><strong>Performance:</strong> Vite converts ESM dependencies with many internal modules into a single module to improve subsequent page load performance.</p>
-<p>Some packages ship their ES modules builds as many separate files importing one another. For example, <a href="https://unpkg.com/browse/lodash-es/" target="_blank" rel="noopener noreferrer"><code>lodash-es</code> has over 600 internal modules</a>! When we do <code>import { debounce } from 'lodash-es'</code>, the browser fires off 600+ HTTP requests at the same time! Even though the server has no problem handling them, the large amount of requests create a network congestion on the browser side, causing the page to load noticeably slower.</p>
+<p>Some packages ship their ES modules builds as many separate files importing one another. For example, <a href="https://unpkg.com/browse/lodash-es/" target="_blank" rel="noreferrer"><code>lodash-es</code> has over 600 internal modules</a>! When we do <code>import { debounce } from 'lodash-es'</code>, the browser fires off 600+ HTTP requests at the same time! Even though the server has no problem handling them, the large amount of requests create a network congestion on the browser side, causing the page to load noticeably slower.</p>
 <p>By pre-bundling <code>lodash-es</code> into a single module, we now only need one HTTP request instead!</p>
 </li>
 </ol>
+<div class="tip custom-block">
+<strong class="custom-block-title">NOTE</strong><p>Dependency pre-bundling only applies in development mode, and uses <code>esbuild</code> to convert dependencies to ESM. In production builds, <code>@rollup/plugin-commonjs</code> is used instead.</p>
+</div>
 <h2 id="automatic-dependency-discovery" tabindex="-1">Automatic Dependency Discovery </h2>
 <p>If an existing cache is not found, Vite will crawl your source code and automatically discover dependency imports (i.e. "bare imports" that expect to be resolved from <code>node_modules</code>) and use these found imports as entry points for the pre-bundle. The pre-bundling is performed with <code>esbuild</code> so it's typically very fast.</p>
-<p>After the server has already started, if a new dependency import is encountered that isn't already in the cache, Vite will re-run the dep bundling process and reload the page.</p>
+<p>After the server has already started, if a new dependency import is encountered that isn't already in the cache, Vite will re-run the dep bundling process and reload the page if needed.</p>
 <h2 id="monorepos-and-linked-dependencies" tabindex="-1">Monorepos and Linked Dependencies </h2>
-<p>In a monorepo setup, a dependency may be a linked package from the same repo. Vite automatically detects dependencies that are not resolved from <code>node_modules</code> and treats the linked dep as source code. It will not attempt to bundle the linked dep, and instead will analyze the linked dep's dependency list instead.</p>
+<p>In a monorepo setup, a dependency may be a linked package from the same repo. Vite automatically detects dependencies that are not resolved from <code>node_modules</code> and treats the linked dep as source code. It will not attempt to bundle the linked dep, and will analyze the linked dep's dependency list instead.</p>
+<p>However, this requires the linked dep to be exported as ESM. If not, you can add the dependency to <a href="../config/dep-optimization-options#optimizedeps-include"><code>optimizeDeps.include</code></a> and <a href="../config/build-options#build-commonjsoptions"><code>build.commonjsOptions.include</code></a> in your config.</p>
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">export default defineConfig({
+  optimizeDeps: {
+    include: ['linked-dep'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/linked-dep/, /node_modules/],
+    },
+  },
+})</pre>
+</div>
+<p>When making changes to the linked dep, restart the dev server with the <code>--force</code> command line option for the changes to take effect.</p>
 <div class="warning custom-block">
-<strong class="custom-block-title">Note</strong><p>Linked dependencies might not work properly in the final build due to differences in dependency resolution. Use <code>npm package</code> instead for all local dependencies to avoid issues in the final bundle.</p>
+<strong class="custom-block-title">Deduping</strong><p>Due to differences in linked dependency resolution, transitive dependencies can deduplicate incorrectly, causing issues when used in runtime. If you stumble on this issue, use <code>npm pack</code> on the linked dependency to fix it.</p>
 </div>
 <h2 id="customizing-the-behavior" tabindex="-1">Customizing the Behavior </h2>
-<p>The default dependency discovery heuristics may not always be desirable. In cases where you want to explicitly include/exclude dependencies from the list, use the <a href="../config/index#dep-optimization-options"><code>optimizeDeps</code> config options</a>.</p>
+<p>The default dependency discovery heuristics may not always be desirable. In cases where you want to explicitly include/exclude dependencies from the list, use the <a href="../config/dep-optimization-options"><code>optimizeDeps</code> config options</a>.</p>
 <p>A typical use case for <code>optimizeDeps.include</code> or <code>optimizeDeps.exclude</code> is when you have an import that is not directly discoverable in the source code. For example, maybe the import is created as a result of a plugin transform. This means Vite won't be able to discover the import on the initial scan - it can only discover it after the file is requested by the browser and transformed. This will cause the server to immediately re-bundle after server start.</p>
 <p>Both <code>include</code> and <code>exclude</code> can be used to deal with this. If the dependency is large (with many internal modules) or is CommonJS, then you should include it; If the dependency is small and is already valid ESM, you can exclude it and let the browser load it directly.</p>
+<p>You can further customize esbuild too with the <a href="../config/dep-optimization-options#optimizedeps-esbuildoptions"><code>optimizeDeps.esbuildOptions</code> option</a>. For example, adding an esbuild plugin to handle special files in dependencies.</p>
 <h2 id="caching" tabindex="-1">Caching </h2>
 <h3 id="file-system-cache" tabindex="-1">File System Cache </h3>
 <p>Vite caches the pre-bundled dependencies in <code>node_modules/.vite</code>. It determines whether it needs to re-run the pre-bundling step based on a few sources:</p>
 <ul>
-<li>The <code>dependencies</code> list in your <code>package.json</code>
-</li>
-<li>Package manager lockfiles, e.g. <code>package-lock.json</code>, <code>yarn.lock</code>, or <code>pnpm-lock.yaml</code>.</li>
+<li>Package manager lockfile content, e.g. <code>package-lock.json</code>, <code>yarn.lock</code>, <code>pnpm-lock.yaml</code> or <code>bun.lockb</code>.</li>
+<li>Patches folder modification time.</li>
 <li>Relevant fields in your <code>vite.config.js</code>, if present.</li>
+<li>
+<code>NODE_ENV</code> value.</li>
 </ul>
 <p>The pre-bundling step will only need to be re-run when one of the above has changed.</p>
 <p>If for some reason you want to force Vite to re-bundle deps, you can either start the dev server with the <code>--force</code> command line option, or manually delete the <code>node_modules/.vite</code> cache directory.</p>
@@ -140,7 +156,7 @@ import React, { useState } from 'react'</pre></div>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2019–present, Yuxi (Evan) You and Vite contributors<br>Licensed under the MIT License.<br>
-    <a href="https://vitejs.dev/guide/dep-pre-bundling" class="_attribution-link">https://vitejs.dev/guide/dep-pre-bundling</a>
+    <a href="https://vitejs.dev/guide/dep-pre-bundling.html" class="_attribution-link">https://vitejs.dev/guide/dep-pre-bundling.html</a>
   </p>
 </div>
 

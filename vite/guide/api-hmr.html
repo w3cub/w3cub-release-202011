@@ -10,14 +10,13 @@
   <meta name="description" content=" This is the client HMR API. For handling HMR update in plugins, see handleHotUpdate. ">
   <meta name="keywords" content="hmr, api, vite">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/vite/guide/api-hmr.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vite.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -91,67 +90,99 @@
 <strong class="custom-block-title">Note</strong><p>This is the client HMR API. For handling HMR update in plugins, see <a href="api-plugin#handlehotupdate">handleHotUpdate</a>.</p>
 <p>The manual HMR API is primarily intended for framework and tooling authors. As an end user, HMR is likely already handled for you in the framework specific starter templates.</p>
 </div>
-<p>Vite exposes its manual HMR API via the special <code>import.<wbr>meta.hot</wbr></code> object:</p>
-<div class="language-ts"><pre data-language="javascript">interface ImportMeta {
-  readonly hot?: {
-    readonly data: any
+<p>Vite exposes its manual HMR API via the special <code>i<wbr>mport.meta.hot</wbr></code> object:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">interface ImportMeta {
+  readonly hot?: ViteHotContext
+}
 
-    accept(): void
-    accept(cb: (mod: any) =&gt; void): void
-    accept(dep: string, cb: (mod: any) =&gt; void): void
-    accept(deps: string[], cb: (mods: any[]) =&gt; void): void
+type ModuleNamespace = Record&lt;string, any&gt; &amp; {
+  [Symbol.toStringTag]: 'Module'
+}
 
-    prune(cb: () =&gt; void): void
-    dispose(cb: (data: any) =&gt; void): void
-    decline(): void
-    invalidate(): void
+interface ViteHotContext {
+  readonly data: any
 
-    on(event: string, cb: (...args: any[]) =&gt; void): void
-  }
-}</pre></div>
+  accept(): void
+  accept(cb: (mod: ModuleNamespace | undefined) =&gt; void): void
+  accept(dep: string, cb: (mod: ModuleNamespace | undefined) =&gt; void): void
+  accept(
+    deps: readonly string[],
+    cb: (mods: Array&lt;ModuleNamespace | undefined&gt;) =&gt; void,
+  ): void
+
+  dispose(cb: (data: any) =&gt; void): void
+  prune(cb: (data: any) =&gt; void): void
+  invalidate(message?: string): void
+
+  // `InferCustomEventPayload` provides types for built-in Vite events
+  on&lt;T extends string&gt;(
+    event: T,
+    cb: (payload: InferCustomEventPayload&lt;T&gt;) =&gt; void,
+  ): void
+  send&lt;T extends string&gt;(event: T, data?: InferCustomEventPayload&lt;T&gt;): void
+}</pre>
+</div>
 <h2 id="required-conditional-guard" tabindex="-1">Required Conditional Guard </h2>
 <p>First of all, make sure to guard all HMR API usage with a conditional block so that the code can be tree-shaken in production:</p>
-<div class="language-js"><pre data-language="javascript">if (import.meta.hot) {
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">if (import.meta.hot) {
   // HMR code
-}</pre></div>
+}</pre>
+</div>
+<h2 id="intellisense-for-typescript" tabindex="-1">IntelliSense for TypeScript </h2>
+<p>Vite provides type definitions for <code>i<wbr>mport.meta.hot</wbr></code> in <a href="https://github.com/vitejs/vite/blob/main/packages/vite/client.d.ts" target="_blank" rel="noreferrer"><code>vite/client.d.ts</code></a>. You can create an <code>env.d.ts</code> in the <code>src</code> directory so TypeScript picks up the type definitions:</p>
+<div class="language-ts">
+<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">/// &lt;reference types="vite/client" /&gt;</pre>
+</div>
 <h2 id="hot-accept-cb" tabindex="-1">
 <code>hot.accept(cb)</code> </h2>
-<p>For a module to self-accept, use <code>import.<wbr>meta.hot.accept</wbr></code> with a callback which receives the updated module:</p>
-<div class="language-js"><pre data-language="javascript">export const count = 1
+<p>For a module to self-accept, use <code>i<wbr>mport.meta.hot.accept</wbr></code> with a callback which receives the updated module:</p>
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">export const count = 1
 
 if (import.meta.hot) {
   import.meta.hot.accept((newModule) =&gt; {
-    console.log('updated: count is now ', newModule.count)
+    if (newModule) {
+      // newModule is undefined when SyntaxError happened
+      console.log('updated: count is now ', newModule.count)
+    }
   })
-}</pre></div>
+}</pre>
+</div>
 <p>A module that "accepts" hot updates is considered an <strong>HMR boundary</strong>.</p>
-<p>Note that Vite's HMR does not actually swap the originally imported module: if an HMR boundary module re-exports imports from a dep, then it is responsible for updating those re-exports (and these exports must be using <code>let</code>). In addition, importers up the chain from the boundary module will not be notified of the change.</p>
-<p>This simplified HMR implementation is sufficient for most dev use cases, while allowing us to skip the expensive work of generating proxy modules.</p>
+<p>Vite's HMR does not actually swap the originally imported module: if an HMR boundary module re-exports imports from a dep, then it is responsible for updating those re-exports (and these exports must be using <code>let</code>). In addition, importers up the chain from the boundary module will not be notified of the change. This simplified HMR implementation is sufficient for most dev use cases, while allowing us to skip the expensive work of generating proxy modules.</p>
+<p>Vite requires that the call to this function appears as <code>i<wbr>mport.meta.hot.accept(</wbr></code> (whitespace-sensitive) in the source code in order for the module to accept update. This is a requirement of the static analysis that Vite does to enable HMR support for a module.</p>
 <h2 id="hot-accept-deps-cb" tabindex="-1">
 <code>hot.accept(deps, cb)</code> </h2>
 <p>A module can also accept updates from direct dependencies without reloading itself:</p>
-<div class="language-js"><pre data-language="javascript">import { foo } from './foo.js'
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">import { foo } from './foo.js'
 
 foo()
 
 if (import.meta.hot) {
   import.meta.hot.accept('./foo.js', (newFoo) =&gt; {
     // the callback receives the updated './foo.js' module
-    newFoo.foo()
+    newFoo?.foo()
   })
 
   // Can also accept an array of dep modules:
   import.meta.hot.accept(
     ['./foo.js', './bar.js'],
     ([newFooModule, newBarModule]) =&gt; {
-      // the callback receives the updated modules in an Array
-    }
+      // The callback receives an array where only the updated module is
+      // non null. If the update was not successful (syntax error for ex.),
+      // the array is empty
+    },
   )
-}</pre></div>
+}</pre>
+</div>
 <h2 id="hot-dispose-cb" tabindex="-1">
 <code>hot.dispose(cb)</code> </h2>
 <p>A self-accepting module or a module that expects to be accepted by others can use <code>hot.dispose</code> to clean-up any persistent side effects created by its updated copy:</p>
-<div class="language-js"><pre data-language="javascript">function setupSideEffect() {}
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">function setupSideEffect() {}
 
 setupSideEffect()
 
@@ -159,16 +190,40 @@ if (import.meta.hot) {
   import.meta.hot.dispose((data) =&gt; {
     // cleanup side effect
   })
-}</pre></div>
+}</pre>
+</div>
+<h2 id="hot-prune-cb" tabindex="-1">
+<code>hot.prune(cb)</code> </h2>
+<p>Register a callback that will call when the module is no longer imported on the page. Compared to <code>hot.dispose</code>, this can be used if the source code cleans up side-effects by itself on updates and you only need to clean-up when it's removed from the page. Vite currently uses this for <code>.css</code> imports.</p>
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">function setupOrReuseSideEffect() {}
+
+setupOrReuseSideEffect()
+
+if (import.meta.hot) {
+  import.meta.hot.prune((data) =&gt; {
+    // cleanup side effect
+  })
+}</pre>
+</div>
 <h2 id="hot-data" tabindex="-1">
 <code>hot.data</code> </h2>
-<p>The <code>import.<wbr>meta.hot.data</wbr></code> object is persisted across different instances of the same updated module. It can be used to pass on information from a previous version of the module to the next one.</p>
+<p>The <code>i<wbr>mport.meta.hot.data</wbr></code> object is persisted across different instances of the same updated module. It can be used to pass on information from a previous version of the module to the next one.</p>
 <h2 id="hot-decline" tabindex="-1">
 <code>hot.decline()</code> </h2>
-<p>Calling <code>import.<wbr>meta.hot.decline()</wbr></code> indicates this module is not hot-updatable, and the browser should perform a full reload if this module is encountered while propagating HMR updates.</p>
-<h2 id="hot-invalidate" tabindex="-1">
-<code>hot.invalidate()</code> </h2>
-<p>For now, calling <code>import.<wbr>meta.hot.invalidate()</wbr></code> simply reloads the page.</p>
+<p>This is currently a noop and is there for backward compatibility. This could change in the future if there is a new usage for it. To indicate that the module is not hot-updatable, use <code>hot.invalidate()</code>.</p>
+<h2 id="hot-invalidate-message-string" tabindex="-1">
+<code>hot.invalidate(message?: string)</code> </h2>
+<p>A self-accepting module may realize during runtime that it can't handle a HMR update, and so the update needs to be forcefully propagated to importers. By calling <code>i<wbr>mport.meta.hot.invalidate()</wbr></code>, the HMR server will invalidate the importers of the caller, as if the caller wasn't self-accepting. This will log a message both in the browser console and in the terminal. You can pass a message to give some context on why the invalidation happened.</p>
+<p>Note that you should always call <code>i<wbr>mport.meta.hot.accept</wbr></code> even if you plan to call <code>invalidate</code> immediately afterwards, or else the HMR client won't listen for future changes to the self-accepting module. To communicate your intent clearly, we recommend calling <code>invalidate</code> within the <code>accept</code> callback like so:</p>
+<div class="language-js">
+<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">import.meta.hot.accept((module) =&gt; {
+  // You may use the new module instance to decide whether to invalidate.
+  if (cannotHandleUpdate(module)) {
+    import.meta.hot.invalidate()
+  }
+})</pre>
+</div>
 <h2 id="hot-on-event-cb" tabindex="-1">
 <code>hot.on(event, cb)</code> </h2>
 <p>Listen to an HMR event.</p>
@@ -177,17 +232,31 @@ if (import.meta.hot) {
 <li>
 <code>'vite:beforeUpdate'</code> when an update is about to be applied (e.g. a module will be replaced)</li>
 <li>
+<code>'vite:afterUpdate'</code> when an update has just been applied (e.g. a module has been replaced)</li>
+<li>
 <code>'vite:beforeFullReload'</code> when a full reload is about to occur</li>
 <li>
 <code>'vite:beforePrune'</code> when modules that are no longer needed are about to be pruned</li>
 <li>
+<code>'vite:invalidate'</code> when a module is invalidated with <code>i<wbr>mport.meta.hot.invalidate()</wbr></code>
+</li>
+<li>
 <code>'vite:error'</code> when an error occurs (e.g. syntax error)</li>
+<li>
+<code>'vite:ws:disconnect'</code> when the WebSocket connection is lost</li>
+<li>
+<code>'vite:ws:connect'</code> when the WebSocket connection is (re-)established</li>
 </ul>
 <p>Custom HMR events can also be sent from plugins. See <a href="api-plugin#handlehotupdate">handleHotUpdate</a> for more details.</p>
+<h2 id="hot-send-event-data" tabindex="-1">
+<code>hot.send(event, data)</code> </h2>
+<p>Send custom events back to Vite's dev server.</p>
+<p>If called before connected, the data will be buffered and sent once the connection is established.</p>
+<p>See <a href="api-plugin#client-server-communication">Client-server Communication</a> for more details.</p>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2019–present, Yuxi (Evan) You and Vite contributors<br>Licensed under the MIT License.<br>
-    <a href="https://vitejs.dev/guide/api-hmr" class="_attribution-link">https://vitejs.dev/guide/api-hmr</a>
+    <a href="https://vitejs.dev/guide/api-hmr.html" class="_attribution-link">https://vitejs.dev/guide/api-hmr.html</a>
   </p>
 </div>
 
