@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/typescript/2/template-literal-types.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/typescript.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -98,7 +98,7 @@ type LocaleMessageIDs = `${Lang}_${AllLocaleIDs}`;</pre> <p>We generally recomme
   firstName: "Saoirse",
   lastName: "Ronan",
   age: 26,
-};</pre> <p>The <code>on</code> function that will be added to the base object expects two arguments, an <code>eventName</code> (a <code>string</code>) and a <code>callBack</code> (a <code>function</code>).</p> <p>The <code>eventName</code> should be of the form <code>attributeInThePassedObject + "Changed"</code>; thus, <code>firstNameChanged</code> as derived from the attribute <code>firstName</code> in the base object.</p> <p>The <code>callBack</code> function, when called:</p> <ul> <li>Should be passed a value of the type associated with the name <code>attributeInThePassedObject</code>; thus, since <code>firstName</code> is typed as <code>string</code>, the callback for the <code>firstNameChanged</code> event expects a <code>string</code> to be passed to it at call time. Similarly events associated with <code>age</code> should expect to be called with a <code>number</code> argument</li> <li>Should have <code>void</code> return type (for simplicity of demonstration)</li> </ul> <p>The naive function signature of <code>on()</code> might thus be: <code>on(eventName: string, callBack: (newValue: any) =&gt; void)</code>. However, in the preceding description, we identified important type constraints that we’d like to document in our code. Template Literal types let us bring these constraints into our code.</p> <pre data-language="ts">const person = makeWatchedObject({
+};</pre> <p>The <code>on</code> function that will be added to the base object expects two arguments, an <code>eventName</code> (a <code>string</code>) and a <code>callback</code> (a <code>function</code>).</p> <p>The <code>eventName</code> should be of the form <code>attributeInThePassedObject + "Changed"</code>; thus, <code>firstNameChanged</code> as derived from the attribute <code>firstName</code> in the base object.</p> <p>The <code>callback</code> function, when called:</p> <ul> <li>Should be passed a value of the type associated with the name <code>attributeInThePassedObject</code>; thus, since <code>firstName</code> is typed as <code>string</code>, the callback for the <code>firstNameChanged</code> event expects a <code>string</code> to be passed to it at call time. Similarly events associated with <code>age</code> should expect to be called with a <code>number</code> argument</li> <li>Should have <code>void</code> return type (for simplicity of demonstration)</li> </ul> <p>The naive function signature of <code>on()</code> might thus be: <code>on(eventName: string, callback: (newValue: any) =&gt; void)</code>. However, in the preceding description, we identified important type constraints that we’d like to document in our code. Template Literal types let us bring these constraints into our code.</p> <pre data-language="ts">const person = makeWatchedObject({
   firstName: "Saoirse",
   lastName: "Ronan",
   age: 26,
@@ -112,7 +112,7 @@ person.on("firstNameChanged", (newValue) =&gt; {
     on(eventName: `${string &amp; keyof Type}Changed`, callback: (newValue: any) =&gt; void): void;
 };
  
-/// Create a "watched object" with an 'on' method
+/// Create a "watched object" with an `on` method
 /// so that you can watch for changes to properties.
 declare function makeWatchedObject&lt;Type&gt;(obj: Type): Type &amp; PropEventSource&lt;Type&gt;;</pre> <p>With this, we can build something that errors when given the wrong property:</p> <pre data-language="ts">const person = makeWatchedObject({
   firstName: "Saoirse",
@@ -126,9 +126,9 @@ person.on("firstNameChanged", () =&gt; {});
 person.on("firstName", () =&gt; {});
  
 // It's typo-resistant
-person.on("frstNameChanged", () =&gt; {});</pre> <h3 id="inference-with-template-literals" style="position:relative;">Inference with Template Literals</h3> <p>Notice that we did not benefit from all the information provided in the original passed object. Given change of a <code>firstName</code> (i.e. a <code>firstNameChanged</code> event), we should expect that the callback will receive an argument of type <code>string</code>. Similarly, the callback for a change to <code>age</code> should receive a <code>number</code> argument. We’re naively using <code>any</code> to type the <code>callBack</code>’s argument. Again, template literal types make it possible to ensure an attribute’s data type will be the same type as that attribute’s callback’s first argument.</p> <p>The key insight that makes this possible is this: we can use a function with a generic such that:</p> <ol> <li>The literal used in the first argument is captured as a literal type</li> <li>That literal type can be validated as being in the union of valid attributes in the generic</li> <li>The type of the validated attribute can be looked up in the generic’s structure using Indexed Access</li> <li>This typing information can <em>then</em> be applied to ensure the argument to the callback function is of the same type</li> </ol> <pre data-language="ts">type PropEventSource&lt;Type&gt; = {
+person.on("frstNameChanged", () =&gt; {});</pre> <h3 id="inference-with-template-literals" style="position:relative;">Inference with Template Literals</h3> <p>Notice that we did not benefit from all the information provided in the original passed object. Given change of a <code>firstName</code> (i.e. a <code>firstNameChanged</code> event), we should expect that the callback will receive an argument of type <code>string</code>. Similarly, the callback for a change to <code>age</code> should receive a <code>number</code> argument. We’re naively using <code>any</code> to type the <code>callback</code>’s argument. Again, template literal types make it possible to ensure an attribute’s data type will be the same type as that attribute’s callback’s first argument.</p> <p>The key insight that makes this possible is this: we can use a function with a generic such that:</p> <ol> <li>The literal used in the first argument is captured as a literal type</li> <li>That literal type can be validated as being in the union of valid attributes in the generic</li> <li>The type of the validated attribute can be looked up in the generic’s structure using Indexed Access</li> <li>This typing information can <em>then</em> be applied to ensure the argument to the callback function is of the same type</li> </ol> <pre data-language="ts">type PropEventSource&lt;Type&gt; = {
     on&lt;Key extends string &amp; keyof Type&gt;
-        (eventName: `${Key}Changed`, callback: (newValue: Type[Key]) =&gt; void ): void;
+        (eventName: `${Key}Changed`, callback: (newValue: Type[Key]) =&gt; void): void;
 };
  
 declare function makeWatchedObject&lt;Type&gt;(obj: Type): Type &amp; PropEventSource&lt;Type&gt;;
@@ -147,7 +147,7 @@ person.on("ageChanged", newAge =&gt; {
     if (newAge &lt; 0) {
         console.warn("warning! negative age");
     }
-})</pre> <p>Here we made <code>on</code> into a generic method.</p> <p>When a user calls with the string <code>"firstNameChanged"</code>, TypeScript will try to infer the right type for <code>Key</code>. To do that, it will match <code>Key</code> against the content prior to <code>"Changed"</code> and infer the string <code>"firstName"</code>. Once TypeScript figures that out, the <code>on</code> method can fetch the type of <code>firstName</code> on the original object, which is <code>string</code> in this case. Similarly, when called with <code>"ageChanged"</code>, TypeScript finds the type for the property <code>age</code> which is <code>number</code>.</p> <p>Inference can be combined in different ways, often to deconstruct strings, and reconstruct them in different ways.</p> <h2 id="intrinsic-string-manipulation-types" style="position:relative;">Intrinsic String Manipulation Types</h2> <p>To help with string manipulation, TypeScript includes a set of types which can be used in string manipulation. These types come built-in to the compiler for performance and can’t be found in the <code>.d.ts</code> files included with TypeScript.</p> <h3 id="uppercasestringtype" style="position:relative;"><code>Uppercase&lt;StringType&gt;</code></h3> <p>Converts each character in the string to the uppercase version.</p> <h5 id="example" style="position:relative;">Example</h5> <pre data-language="ts">type Greeting = "Hello, world"
+})</pre> <p>Here we made <code>on</code> into a generic method.</p> <p>When a user calls with the string <code>"firstNameChanged"</code>, TypeScript will try to infer the right type for <code>Key</code>. To do that, it will match <code>Key</code> against the content before <code>"Changed"</code> and infer the string <code>"firstName"</code>. Once TypeScript figures that out, the <code>on</code> method can fetch the type of <code>firstName</code> on the original object, which is <code>string</code> in this case. Similarly, when called with <code>"ageChanged"</code>, TypeScript finds the type for the property <code>age</code> which is <code>number</code>.</p> <p>Inference can be combined in different ways, often to deconstruct strings, and reconstruct them in different ways.</p> <h2 id="intrinsic-string-manipulation-types" style="position:relative;">Intrinsic String Manipulation Types</h2> <p>To help with string manipulation, TypeScript includes a set of types which can be used in string manipulation. These types come built-in to the compiler for performance and can’t be found in the <code>.d.ts</code> files included with TypeScript.</p> <h3 id="uppercasestringtype" style="position:relative;"><code>Uppercase&lt;StringType&gt;</code></h3> <p>Converts each character in the string to the uppercase version.</p> <h5 id="example" style="position:relative;">Example</h5> <pre data-language="ts">type Greeting = "Hello, world"
 type ShoutyGreeting = Uppercase&lt;Greeting&gt;
  
 type ASCIICacheKey&lt;Str extends string&gt; = `ID-${Uppercase&lt;Str&gt;}`
@@ -168,7 +168,7 @@ function applyStringMapping(symbol: Symbol, str: string) {
     return str;
 }</pre></code> </details><div class="_attribution">
   <p class="_attribution-p">
-    © 2012-2022 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
+    © 2012-2023 Microsoft<br>Licensed under the Apache License, Version 2.0.<br>
     <a href="https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html" class="_attribution-link">https://www.typescriptlang.org/docs/handbook/2/template-literal-types.html</a>
   </p>
 </div>
