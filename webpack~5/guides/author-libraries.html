@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/webpack~5/guides/author-libraries.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/webpack~5.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -86,6 +86,7 @@
 				
 				
 <h1>Authoring Libraries</h1>
+<div id="md-content">
 <p>Aside from applications, webpack can also be used to bundle JavaScript libraries. The following guide is meant for library authors looking to streamline their bundling strategy.</p>
 <h2>
 Authoring a Library
@@ -93,17 +94,17 @@ Authoring a Library
 <p>Let's assume that we are writing a small library, <code>webpack-numbers</code>, that allows users to convert the numbers 1 through 5 from their numeric representation to a textual one and vice-versa, e.g. 2 to 'two'.</p>
 <p>The basic project structure would look like this:</p>
 <p><strong>project</strong></p>
-<pre class="hljs language-diff" data-language="js">+  |- webpack.config.js
+<pre data-language="diff">+  |- webpack.config.js
 +  |- package.json
 +  |- /src
 +    |- index.js
 +    |- ref.json</pre>
 <p>Initialize the project with npm, then install <code>webpack</code>, <code>webpack-cli</code> and <code>lodash</code>:</p>
-<pre class="hljs language-bash" data-language="js">npm init -y
+<pre data-language="bash">npm init -y
 npm install --save-dev webpack webpack-cli lodash</pre>
 <p>We install <code>lodash</code> as <code>devDependencies</code> instead of <code>dependencies</code> because we don't want to bundle it into our library, or our library could be easily bloated.</p>
 <p><strong>src/ref.json</strong></p>
-<pre class="hljs language-json" data-language="js">[
+<pre data-language="json">[
   {
     "num": 1,
     "word": "One"
@@ -130,7 +131,7 @@ npm install --save-dev webpack webpack-cli lodash</pre>
   }
 ]</pre>
 <p><strong>src/index.js</strong></p>
-<pre class="hljs language-js" data-language="js">import _ from 'lodash';
+<pre data-language="js">import _ from 'lodash';
 import numRef from './ref.json';
 
 export function numToWord(num) {
@@ -157,7 +158,7 @@ Webpack Configuration
 </h2>
 <p>Let's start with this basic webpack configuration:</p>
 <p><strong>webpack.config.js</strong></p>
-<pre class="hljs language-js" data-language="js">const path = require('path');
+<pre data-language="js">const path = require('path');
 
 module.exports = {
   entry: './src/index.js',
@@ -172,7 +173,7 @@ Expose the Library
 </h2>
 <p>So far everything should be the same as bundling an application, and here comes the different part – we need to expose exports from the entry point through <a href="../configuration/output#outputlibrary"><code>output.library</code></a> option.</p>
 <p><strong>webpack.config.js</strong></p>
-<pre class="hljs language-diff" data-language="js">  const path = require('path');
+<pre data-language="diff">  const path = require('path');
 
   module.exports = {
     entry: './src/index.js',
@@ -183,7 +184,7 @@ Expose the Library
     },
   };</pre>
 <p>We exposed the entry point as <code>webpackNumbers</code> so users can use it through script tag:</p>
-<pre class="hljs language-html" data-language="js">&lt;script src="https://example.org/webpack-numbers.js"&gt;&lt;/script&gt;
+<pre data-language="html">&lt;script src="https://example.org/webpack-numbers.js"&gt;&lt;/script&gt;
 &lt;script&gt;
   window.webpackNumbers.wordToNum('Five');
 &lt;/script&gt;</pre>
@@ -221,7 +222,7 @@ webpackNumbers.wordToNum('Two');</pre>
 </li>
 </ul>
 <p>Let's update the <code>output.library</code> option with its <code>type</code> set to <a href="../configuration/output#type-umd"><code>'umd'</code></a>:</p>
-<pre class="hljs language-diff" data-language="js"> const path = require('path');
+<pre data-language="diff"> const path = require('path');
 
  module.exports = {
    entry: './src/index.js',
@@ -229,6 +230,7 @@ webpackNumbers.wordToNum('Two');</pre>
      path: path.resolve(__dirname, 'dist'),
      filename: 'webpack-numbers.js',
 -    library: 'webpackNumbers',
++    globalObject: 'this',
 +    library: {
 +      name: 'webpackNumbers',
 +      type: 'umd',
@@ -243,7 +245,7 @@ Externalize Lodash
 <p>Now, if you run <code>npx webpack</code>, you will find that a largish bundle is created. If you inspect the file, you'll see that lodash has been bundled along with your code. In this case, we'd prefer to treat <code>lodash</code> as a <em>peer dependency</em>. Meaning that the consumer should already have <code>lodash</code> installed. Hence you would want to give up control of this external library to the consumer of your library.</p>
 <p>This can be done using the <a href="../configuration/externals"><code>externals</code></a> configuration:</p>
 <p><strong>webpack.config.js</strong></p>
-<pre class="hljs language-diff" data-language="js">  const path = require('path');
+<pre data-language="diff">  const path = require('path');
 
   module.exports = {
     entry: './src/index.js',
@@ -269,12 +271,12 @@ Externalize Lodash
 External Limitations
 </h3>
 <p>For libraries that use several files from a dependency:</p>
-<pre class="hljs language-js" data-language="js">import A from 'library/one';
+<pre data-language="js">import A from 'library/one';
 import B from 'library/two';
 
 // ...</pre>
 <p>You won't be able to exclude them from the bundle by specifying <code>library</code> in the externals. You'll either need to exclude them one by one or by using a regular expression.</p>
-<pre class="hljs language-js" data-language="js">module.exports = {
+<pre data-language="js">module.exports = {
   //...
   externals: [
     'library/one',
@@ -288,13 +290,13 @@ Final Steps
 </h2>
 <p>Optimize your output for production by following the steps mentioned in the <a href="production">production guide</a>. Let's also add the path to your generated bundle as the package's <code>main</code> field in with the <code>package.json</code></p>
 <p><strong>package.json</strong></p>
-<pre class="hljs language-json" data-language="js">{
+<pre data-language="json">{
   ...
   "main": "dist/webpack-numbers.js",
   ...
 }</pre>
 <p>Or, to add it as a standard module as per <a href="https://github.com/dherman/defense-of-dot-js/blob/master/proposal.md#typical-usage">this guide</a>:</p>
-<pre class="hljs language-json" data-language="js">{
+<pre data-language="json">{
   ...
   "module": "src/index.js",
   ...
@@ -303,7 +305,9 @@ Final Steps
 <aside class="warning"><h6 class="warning__prefix">warning</h6>
 <p>The <code>module</code> property should point to a script that utilizes ES2015 module syntax but no other syntax features that aren't yet supported by browsers or node. This enables webpack to parse the module syntax itself, allowing for lighter bundles via <a href="tree-shaking">tree shaking</a> if users are only consuming certain parts of the library.</p></aside><p>Now you can <a href="https://docs.npmjs.com/getting-started/publishing-npm-packages">publish it as an npm package</a> and find it at <a href="https://unpkg.com/#/">unpkg.com</a> to distribute it to your users.</p>
 <aside class="tip"><h6 class="tip__prefix">tip</h6>
-<p>To expose stylesheets associated with your library, the <a href="../plugins/mini-css-extract-plugin"><code>MiniCssExtractPlugin</code></a> should be used. Users can then consume and load these as they would any other stylesheet.</p></aside><div class="_attribution">
+<p>To expose stylesheets associated with your library, the <a href="../plugins/mini-css-extract-plugin"><code>MiniCssExtractPlugin</code></a> should be used. Users can then consume and load these as they would any other stylesheet.</p></aside>
+</div>
+<div class="_attribution">
   <p class="_attribution-p">
     © JS Foundation and other contributors<br>Licensed under the Creative Commons Attribution License 4.0.<br>
     <a href="https://webpack.js.org/guides/author-libraries" class="_attribution-link">https://webpack.js.org/guides/author-libraries</a>
