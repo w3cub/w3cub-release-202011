@@ -1,0 +1,150 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Performance - Wagtail - W3cubDocs</title>
+  
+  <meta name="description" content="Wagtail is designed for speed, both in the editor interface and on the front-end, but if you want even better performance or you need to handle very &hellip;">
+  <meta name="keywords" content="performance, wagtail">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/wagtail/advanced_topics/performance.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
+  <script src="/json/wagtail.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/wagtail/" class="_nav-link" title="" style="margin-left:0;">Wagtail</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1>Performance</h1> <p>Wagtail is designed for speed, both in the editor interface and on the front-end, but if you want even better performance or you need to handle very high volumes of traffic, here are some tips on eking out the most from your installation.</p> <section id="editor-interface"> <h2>Editor interface</h2> <p>We have tried to minimise external dependencies for a working installation of Wagtail, in order to make it as simple as possible to get going. However, a number of default settings can be configured for better performance:</p> <section id="cache"> <h3>Cache</h3> <p>We recommend <a class="reference external" href="https://redis.io/">Redis</a> as a fast, persistent cache. Install Redis through your package manager (on Debian or Ubuntu: <code>sudo apt-get install redis-server</code>), add <code>django-redis</code> to your <code>requirements.txt</code>, and enable it as a cache backend:</p> <pre data-language="python">CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/dbname',
+        # for django-redis &lt; 3.8.0, use:
+        # 'LOCATION': '127.0.0.1:6379',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+</pre> </section> <section id="caching-image-renditions"> <h3>Caching image renditions</h3> <p>If you define a cache named ‘renditions’ (typically alongside your ‘default’ cache), Wagtail will cache image rendition lookups, which may improve the performance of pages which include many images.</p> <pre data-language="python">CACHES = {
+    'default': {...},
+    'renditions': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+        'TIMEOUT': 600,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
+}
+</pre> </section> <section id="image-urls"> <h3>Image URLs</h3> <p>If all you need is the URL to an image (such as for use in meta tags or other tag attributes), it is likely more efficient to use the <a class="reference internal" href="images/image_serve_view#using-images-outside-wagtail"><span class="std std-ref">image serve view</span></a> and <code>{% image_url %}</code> tag:</p> <pre data-language="markup">&lt;meta property="og:image" content="{% image_url page.hero_image width-600 %}" /&gt;
+</pre> <p>Rather than finding or creating the rendition in the page request, the image serve view offloads this to a separate view, which only creates the rendition when the user requests the image (or returning an existing rendition if it already exists). This can drastically speed up page loads with many images. This may increase the number of requests handled by Wagtail if you’re using an external storage backend (for example Amazon S3).</p> <p>Another side benefit is it prevents errors during conversation from causing page errors. If an image is too large for Willow to handle (the size of an image can be constrained with <a class="reference internal" href="../reference/settings#wagtailimages-max-image-pixels"><span class="std std-ref"><code>WAGTAILIMAGES_MAX_IMAGE_PIXELS</code></span></a>), Willow may crash. As the resize is done outside the page load, the image will be missing, but the rest of the page content will remain.</p> <p>The same can be achieved in Python using <a class="reference internal" href="images/image_serve_view#dynamic-image-urls"><span class="std std-ref"><code>generate_image_url</code></span></a>.</p> </section> <section id="search"> <h3>Search</h3> <p>Wagtail has strong support for <a class="reference external" href="https://www.elastic.co">Elasticsearch</a> - both in the editor interface and for users of your site - but can fall back to a database search if Elasticsearch isn’t present. Elasticsearch is faster and more powerful than the Django ORM for text search, so we recommend installing it or using a hosted service like <a class="reference external" href="http://www.searchly.com/">Searchly</a>.</p> <p>For details on configuring Wagtail for Elasticsearch, see <a class="reference internal" href="../topics/search/backends#wagtailsearch-backends-elasticsearch"><span class="std std-ref">Elasticsearch Backend</span></a>.</p> </section> <section id="database"> <h3>Database</h3> <p>Wagtail is tested on PostgreSQL, SQLite and MySQL. It may work on some third-party database backends as well, but this is not guaranteed. We recommend PostgreSQL for production use.</p> </section> <section id="templates"> <h3>Templates</h3> <p>The overhead from reading and compiling templates adds up. Django wraps its default loaders with <a class="reference external" href="https://docs.djangoproject.com/en/stable/ref/templates/api/#django.template.loaders.cached.Loader" title="(in Django v4.1)"><span class="xref myst">cached template loader</span></a> which stores the compiled <code>Template</code> in memory and returns it for subsequent requests. The cached loader is automatically enabled when <code>DEBUG</code> is <code>False</code>. If you are using custom loaders, update your settings to use it:</p> <pre data-language="python">TEMPLATES = [{
+    'BACKEND': 'django.template.backends.django.DjangoTemplates',
+    'DIRS': [os.path.join(BASE_DIR, 'templates')],
+    'OPTIONS': {
+        'loaders': [
+            ('django.template.loaders.cached.Loader', [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+                'path.to.custom.Loader',
+            ]),
+        ],
+    },
+}]
+</pre> </section> </section> <section id="public-users"> <h2>Public users</h2> <section id="caching-proxy"> <h3 id="id1">Caching proxy</h3> <p>To support high volumes of traffic with excellent response times, we recommend a caching proxy. Both <a class="reference external" href="https://varnish-cache.org/">Varnish</a> and <a class="reference external" href="http://www.squid-cache.org/">Squid</a> have been tested in production. Hosted proxies like <a class="reference external" href="https://www.cloudflare.com/">Cloudflare</a> should also work well.</p> <p>Wagtail supports automatic cache invalidation for Varnish/Squid. See <a class="reference internal" href="../reference/contrib/frontendcache#frontend-cache-purging"><span class="std std-ref">Frontend cache invalidator</span></a> for more information.</p> </section> <section id="image-attributes"> <h3>Image attributes</h3> <p>For some images, it may be beneficial to lazy load images, so the rest of the page can continue to load. It can be configured site-wide <a class="reference internal" href="../topics/images#adding-default-attributes-to-images"><span class="std std-ref">Adding default attributes to all images</span></a> or per-image <a class="reference internal" href="../topics/images#image-tag-alt"><span class="std std-ref">More control over the img tag</span></a>. For more details you can read about the <a class="reference external" href="https://developer.mozilla.org/en-US/docs/Web/Performance/Lazy_loading#images_and_iframes"><code>loading='lazy'</code> attribute</a> and the <a class="reference external" href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-decoding"><code>'decoding='async'</code> attribute</a> or this <a class="reference external" href="https://web.dev/lazy-loading-images/">web.dev article on lazy loading images</a>.</p> <p>This optimisation is already handled for you for images in the admin site.</p> </section> </section><div class="_attribution">
+  <p class="_attribution-p">
+    © 2014-present Torchbox Ltd and individual contributors.<br>All rights are reserved.<br>Licensed under the BSD License.<br>
+    <a href="https://docs.wagtail.org/en/stable/advanced_topics/performance.html" class="_attribution-link">https://docs.wagtail.org/en/stable/advanced_topics/performance.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

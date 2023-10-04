@@ -1,0 +1,151 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>Custom User Models - Wagtail - W3cubDocs</title>
+  
+  <meta name="description" content="This example shows how to add a text field and foreign key field to a custom user model and configure Wagtail user forms to allow the fields values &hellip;">
+  <meta name="keywords" content="custom, user, models, wagtail">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/wagtail/advanced_topics/customisation/custom_user_models.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
+  <script src="/json/wagtail.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/wagtail/" class="_nav-link" title="" style="margin-left:0;">Wagtail</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1>Custom user models</h1> <section id="custom-user-forms-example"> <h2>Custom user forms example</h2> <p>This example shows how to add a text field and foreign key field to a custom user model and configure Wagtail user forms to allow the fields values to be updated.</p> <p>Create a custom user model. This must at minimum inherit from <code>AbstractBaseUser</code> and <code>PermissionsMixin</code>. In this case we extend the <code>AbstractUser</code> class and add two fields. The foreign key references another model (not shown).</p> <pre data-language="python">from django.contrib.auth.models import AbstractUser
+
+class User(AbstractUser):
+    country = models.CharField(verbose_name='country', max_length=255)
+    status = models.ForeignKey(MembershipStatus, on_delete=models.SET_NULL, null=True, default=1)
+</pre> <p>Add the app containing your user model to <code>INSTALLED_APPS</code> - it must be above the <code>'wagtail.users'</code> line, in order to override Wagtail’s built-in templates - and set <a class="reference external" href="https://docs.djangoproject.com/en/stable/topics/auth/customizing/#substituting-a-custom-user-model">AUTH_USER_MODEL</a> to reference your model. In this example the app is called <code>users</code> and the model is <code>User</code></p> <pre data-language="python">AUTH_USER_MODEL = 'users.User'
+</pre> <p>Create your custom user ‘create’ and ‘edit’ forms in your app:</p> <pre data-language="python">from django import forms
+from django.utils.translation import gettext_lazy as _
+
+from wagtail.users.forms import UserEditForm, UserCreationForm
+
+from users.models import MembershipStatus
+
+
+class CustomUserEditForm(UserEditForm):
+    country = forms.CharField(required=True, label=_("Country"))
+    status = forms.ModelChoiceField(queryset=MembershipStatus.objects, required=True, label=_("Status"))
+
+
+class CustomUserCreationForm(UserCreationForm):
+    country = forms.CharField(required=True, label=_("Country"))
+    status = forms.ModelChoiceField(queryset=MembershipStatus.objects, required=True, label=_("Status"))
+</pre> <p>Extend the Wagtail user ‘create’ and ‘edit’ templates. These extended templates should be placed in a template directory <code>wagtailusers/users</code>.</p> <p>Template create.html:</p> <pre data-language="markup">{% extends "wagtailusers/users/create.html" %}
+
+{% block extra_fields %}
+    &lt;li&gt;{% include "wagtailadmin/shared/field.html" with field=form.country %}&lt;/li&gt;
+    &lt;li&gt;{% include "wagtailadmin/shared/field.html" with field=form.status %}&lt;/li&gt;
+{% endblock extra_fields %}
+</pre> <p>Template edit.html:</p> <pre data-language="markup">{% extends "wagtailusers/users/edit.html" %}
+
+{% block extra_fields %}
+    &lt;li&gt;{% include "wagtailadmin/shared/field.html" with field=form.country %}&lt;/li&gt;
+    &lt;li&gt;{% include "wagtailadmin/shared/field.html" with field=form.status %}&lt;/li&gt;
+{% endblock extra_fields %}
+</pre> <p>The <code>extra_fields</code> block allows fields to be inserted below the <code>last_name</code> field in the default templates. Other block overriding options exist to allow appending fields to the end or beginning of the existing fields, or to allow all the fields to be redefined.</p> <p>Add the wagtail settings to your project to reference the user form additions:</p> <pre data-language="python">WAGTAIL_USER_EDIT_FORM = 'users.forms.CustomUserEditForm'
+WAGTAIL_USER_CREATION_FORM = 'users.forms.CustomUserCreationForm'
+WAGTAIL_USER_CUSTOM_FIELDS = ['country', 'status']
+</pre> </section><div class="_attribution">
+  <p class="_attribution-p">
+    © 2014-present Torchbox Ltd and individual contributors.<br>All rights are reserved.<br>Licensed under the BSD License.<br>
+    <a href="https://docs.wagtail.org/en/stable/advanced_topics/customisation/custom_user_models.html" class="_attribution-link">https://docs.wagtail.org/en/stable/advanced_topics/customisation/custom_user_models.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>

@@ -1,0 +1,165 @@
+
+<!DOCTYPE HTML>
+
+<html lang="en" class="_theme-default">
+
+<head>
+  <meta charset="utf-8">
+  <title>About StreamField BoundBlocks and Values - Wagtail - W3cubDocs</title>
+  
+  <meta name="description" content="All StreamField block types accept a template parameter to determine how they will be rendered on a page. However, for blocks that handle basic &hellip;">
+  <meta name="keywords" content="about, streamfield, boundblocks, and, values, wagtail">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <link rel="canonical" href="https://docs.w3cub.com/wagtail/advanced_topics/boundblocks_and_values.html">
+  <link href="/favicon.png" rel="icon">
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
+  <script src="/json/wagtail.js"></script>
+  
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R3WC07G3GB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R3WC07G3GB');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2572770204602497"
+     crossorigin="anonymous"></script>
+<script async custom-element="amp-auto-ads"
+  src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+</script>
+
+
+</head>
+
+<body class="docs">
+	<amp-auto-ads type="adsense"
+              data-ad-client="ca-pub-2572770204602497">
+	</amp-auto-ads>
+	<div class="_app">
+	<header class="_header">
+
+  <a class="_home-link" href="/" ></a>
+  <a class="_menu-link"></a>
+  <h1 class="_logo">
+    <a href="/" class="_nav-link" title="API Documentation Browser">W3cubDocs</a>
+  </h1>
+  
+  <span class="_logo-sub-nav">/</span><span class="_logo-sub-nav"><a href="/wagtail/" class="_nav-link" title="" style="margin-left:0;">Wagtail</a></span>
+  
+  <nav class="_nav">
+    <a href="https://tools.w3cub.com/?_sp=docs" target="_blank" class="_nav-link ">W3cubTools</a>
+    <a href="/cheatsheets/" class="_nav-link ">Cheatsheets</a>
+    <a href="/about/" class="_nav-link ">About</a>
+  </nav>
+</header>
+	<section class="_sidebar">
+		
+		<form class="_search">
+		  <input type="search" class="_search-input" placeholder="Search&hellip;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="20">
+		  <a class="_search-clear"></a>
+		  <div class="_search-tag"></div>
+		</form>
+		
+		<div class="_list-wrap">
+			<div class="_list">
+			
+			</div>
+		</div>
+	</section>
+	<section class="_container ">
+		<div class="_content">
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="6861657091"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+			<div class="_page _sphinx">
+				
+				
+<h1 id="boundblocks-and-values">About StreamField BoundBlocks and values</h1> <p>All StreamField block types accept a <code>template</code> parameter to determine how they will be rendered on a page. However, for blocks that handle basic Python data types, such as <code>CharBlock</code> and <code>IntegerBlock</code>, there are some limitations on where the template will take effect, since those built-in types (<code>str</code>, <code>int</code> and so on) cannot be ‘taught’ about their template rendering. As an example of this, consider the following block definition:</p> <pre data-language="python">class HeadingBlock(blocks.CharBlock):
+    class Meta:
+        template = 'blocks/heading.html'
+</pre> <p>where <code>blocks/heading.html</code> consists of:</p> <pre data-language="markup">&lt;h1&gt;{{ value }}&lt;/h1&gt;
+</pre> <p>This gives us a block that behaves as an ordinary text field, but wraps its output in <code>&lt;h1&gt;</code> tags whenever it is rendered:</p> <pre data-language="python">class BlogPage(Page):
+    body = StreamField([
+        # ...
+        ('heading', HeadingBlock()),
+        # ...
+    ], use_json_field=True)
+</pre> <pre data-language="markup">{% load wagtailcore_tags %}
+
+{% for block in page.body %}
+    {% if block.block_type == 'heading' %}
+        {% include_block block %}  {# This block will output its own &lt;h1&gt;...&lt;/h1&gt; tags. #}
+    {% endif %}
+{% endfor %}
+</pre> <p>This kind of arrangement - a value that supposedly represents a plain text string, but has its own custom HTML representation when output on a template - would normally be a very messy thing to achieve in Python, but it works here because the items you get when iterating over a StreamField are not actually the ‘native’ values of the blocks. Instead, each item is returned as an instance of <code>BoundBlock</code> - an object that represents the pairing of a value and its block definition. By keeping track of the block definition, a <code>BoundBlock</code> always knows which template to render. To get to the underlying value - in this case, the text content of the heading - you would need to access <code>block.value</code>. Indeed, if you were to output <code>{% include_block block.value %}</code> on the page, you would find that it renders as plain text, without the <code>&lt;h1&gt;</code> tags.</p> <p>(More precisely, the items returned when iterating over a StreamField are instances of a class <code>StreamChild</code>, which provides the <code>block_type</code> property as well as <code>value</code>.)</p> <p>Experienced Django developers may find it helpful to compare this to the <code>BoundField</code> class in Django’s forms framework, which represents the pairing of a form field value with its corresponding form field definition, and therefore knows how to render the value as an HTML form field.</p> <p>Most of the time, you won’t need to worry about these internal details; Wagtail will use the template rendering wherever you would expect it to. However, there are certain cases where the illusion isn’t quite complete - namely, when accessing children of a <code>ListBlock</code> or <code>StructBlock</code>. In these cases, there is no <code>BoundBlock</code> wrapper, and so the item cannot be relied upon to know its own template rendering. For example, consider the following setup, where our <code>HeadingBlock</code> is a child of a StructBlock:</p> <pre data-language="python">class EventBlock(blocks.StructBlock):
+    heading = HeadingBlock()
+    description = blocks.TextBlock()
+    # ...
+
+    class Meta:
+        template = 'blocks/event.html'
+</pre> <p>In <code>blocks/event.html</code>:</p> <pre data-language="markup">{% load wagtailcore_tags %}
+
+&lt;div class="event {% if value.heading == 'Party!' %}lots-of-balloons{% endif %}"&gt;
+    {% include_block value.heading %}
+    - {% include_block value.description %}
+&lt;/div&gt;
+</pre> <p>In this case, <code>value.heading</code> returns the plain string value rather than a <code>BoundBlock</code>; this is necessary because otherwise the comparison in <code>{% if value.heading == 'Party!' %}</code> would never succeed. This in turn means that <code>{% include_block value.heading %}</code> renders as the plain string, without the <code>&lt;h1&gt;</code> tags. To get the HTML rendering, you need to explicitly access the <code>BoundBlock</code> instance through <code>value.bound_blocks.heading</code>:</p> <pre data-language="markup">{% load wagtailcore_tags %}
+
+&lt;div class="event {% if value.heading == 'Party!' %}lots-of-balloons{% endif %}"&gt;
+    {% include_block value.bound_blocks.heading %}
+    - {% include_block value.description %}
+&lt;/div&gt;
+</pre> <p>In practice, it would probably be more natural and readable to make the <code>&lt;h1&gt;</code> tag explicit in the EventBlock’s template:</p> <pre data-language="markup">{% load wagtailcore_tags %}
+
+&lt;div class="event {% if value.heading == 'Party!' %}lots-of-balloons{% endif %}"&gt;
+    &lt;h1&gt;{{ value.heading }}&lt;/h1&gt;
+    - {% include_block value.description %}
+&lt;/div&gt;
+</pre> <p>This limitation does not apply to StructBlock and StreamBlock values as children of a StructBlock, because Wagtail implements these as complex objects that know their own template rendering, even when not wrapped in a <code>BoundBlock</code>. For example, if a StructBlock is nested in another StructBlock, as in:</p> <pre data-language="python">class EventBlock(blocks.StructBlock):
+    heading = HeadingBlock()
+    description = blocks.TextBlock()
+    guest_speaker = blocks.StructBlock([
+        ('first_name', blocks.CharBlock()),
+        ('surname', blocks.CharBlock()),
+        ('photo', ImageChooserBlock()),
+    ], template='blocks/speaker.html')
+</pre> <p>then <code>{% include_block value.guest_speaker %}</code> within the EventBlock’s template will pick up the template rendering from <code>blocks/speaker.html</code> as intended.</p> <p>In summary, interactions between BoundBlocks and plain values work according to the following rules:</p> <ol class="arabic simple"> <li>When iterating over the value of a StreamField or StreamBlock (as in <code>{% for block in page.body %}</code>), you will get back a sequence of BoundBlocks.</li> <li>If you have a BoundBlock instance, you can access the plain value as <code>block.value</code>.</li> <li>Accessing a child of a StructBlock (as in <code>value.heading</code>) will return a plain value; to retrieve the BoundBlock instead, use <code>value.bound_blocks.heading</code>.</li> <li>Likewise, accessing children of a ListBlock (for example <code>for item in value</code>) will return plain values; to retrieve BoundBlocks instead, use <code>value.bound_blocks</code>.</li> <li>StructBlock and StreamBlock values always know how to render their own templates, even if you only have the plain value rather than the BoundBlock.</li> </ol> <div class="versionchanged"> <p><span class="versionmodified changed">Changed in version 2.16: </span>The value of a ListBlock now provides a <code>bound_blocks</code> property; previously it was a plain Python list of child values.</p> </div>
+<div class="_attribution">
+  <p class="_attribution-p">
+    © 2014-present Torchbox Ltd and individual contributors.<br>All rights are reserved.<br>Licensed under the BSD License.<br>
+    <a href="https://docs.wagtail.org/en/stable/advanced_topics/boundblocks_and_values.html" class="_attribution-link">https://docs.wagtail.org/en/stable/advanced_topics/boundblocks_and_values.html</a>
+  </p>
+</div>
+
+				
+			</div>
+			<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-2572770204602497"
+     data-ad-slot="1992473792"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		</div>
+	</section>
+
+	</div>
+	<svg style="display:none">
+		<symbol id="icon-dir"><svg viewBox="0 0 20 20"><path d="M15 10c0 .3-.305.515-.305.515l-8.56 5.303c-.625.41-1.135.106-1.135-.67V4.853c0-.777.51-1.078 1.135-.67l8.56 5.305S15 9.702 15 10z"/></svg></symbol>
+	  </svg>
+</body>
+</html>
