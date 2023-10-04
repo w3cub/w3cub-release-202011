@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/language/bit_field.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,7 +82,7 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">Bit-field</h1>            <p>Declares a class data member with explicit size, in bits. Adjacent bit-field members may (or may not) be packed to share and straddle the individual bytes.</p>
@@ -121,23 +121,44 @@ int main()
 <div class="text source-text"><pre data-language="c">7
 0</pre></div> </div> <p>Multiple adjacent bit-fields are usually packed together (although this behavior is implementation-defined):</p>
 <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;iostream&gt;
+#include &lt;cstdint&gt;
+#include &lt;bit&gt;
  
 struct S
 {
     // will usually occupy 2 bytes:
-    // 3 bits: value of b1
-    // 2 bits: unused
-    // 6 bits: value of b2
-    // 2 bits: value of b3
-    // 3 bits: unused
-    unsigned char b1 : 3, : 2, b2 : 6, b3 : 2;
+    unsigned char b1 : 3;  // 1st 3 bits (in 1st byte) are b1
+    unsigned char    : 2;  // next 2 bits (in 1st byte) are blocked out as unused
+    unsigned char b2 : 6;  // 6 bits for b2 - doesn't fit into the 1st byte =&gt; starts a 2nd
+    unsigned char b3 : 2;  // 2 bits for b3 - next (and final) bits in the 2nd byte
 };
  
 int main()
 {
     std::cout &lt;&lt; sizeof(S) &lt;&lt; '\n'; // usually prints 2
+ 
+    S s;
+    // set distinguishable field values
+    s.b1 = 0b111;
+    s.b2 = 0b101111;
+    s.b3 = 0b11;
+ 
+ 
+    // show layout of fields in S
+    auto i = std::bit_cast&lt;std::uint16_t&gt;(s);
+    // usually prints 1110000011110111
+    // breakdown is:  \_/\/\_/\____/\/
+    //                 b1 u a   b2  b3
+    // where "u" marks the unused :2 specified in the struct, and
+    // "a" marks compiler-added padding to byte-align the next field.
+    // Byte-alignment is happening because b2's type is declared unsigned char;
+    // if b2 were declared uint16_t there would be no "a", b2 would abut "u".
+    for (auto b=i; b; b&gt;&gt;=1)  // print LSB-first
+        std::cout &lt;&lt; (b &amp; 1);
+    std::cout &lt;&lt; '\n';
 }</pre></div> <p>Possible output:</p>
-<div class="text source-text"><pre data-language="c">2</pre></div> </div> <p> The special unnamed bit-field of size zero can be forced to break up padding. It specifies that the next bit-field begins at the beginning of its allocation unit:</p>
+<div class="text source-text"><pre data-language="c">2
+1110000011110111</pre></div> </div> <p> The special unnamed bit-field of size zero can be forced to break up padding. It specifies that the next bit-field begins at the beginning of its allocation unit:</p>
 <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;iostream&gt;
  
 struct S
@@ -158,7 +179,7 @@ int main()
                                     // would usually print 1 if not for
                                     // the padding break in line 11
 }</pre></div> <p>Possible output:</p>
-<div class="text source-text"><pre data-language="c">2</pre></div> </div> <p>If the specified size of the bit-field is greater than the size of its type, the value is limited by the type: a <code><a href="http://en.cppreference.com/w/cpp/types/integer"><span class="kw126">std::<span class="me2">uint8_t</span></span></a> b <span class="sy4">:</span> <span class="nu0">1000</span><span class="sy4">;</span></code> would still hold values between 0 and 255. the extra bits are <a href="object#Object_representation_and_value_representation" title="cpp/language/object">padding bits</a>.</p>
+<div class="text source-text"><pre data-language="c">2</pre></div> </div> <p>If the specified size of the bit-field is greater than the size of its type, the value is limited by the type: a <code><a href="http://en.cppreference.com/w/cpp/types/integer"><span class="kw127">std::<span class="me2">uint8_t</span></span></a> b <span class="sy4">:</span> <span class="nu0">1000</span><span class="sy4">;</span></code> would still hold values between 0 and 255. the extra bits are <a href="object#Object_representation_and_value_representation" title="cpp/language/object">padding bits</a>.</p>
 <p>Because bit-fields do not necessarily begin at the beginning of a byte, address of a bit-field cannot be taken. Pointers and non-const references to bit-fields are not possible. When <a href="reference_initialization" title="cpp/language/reference initialization">initializing a const reference</a> from a bit-field, a temporary is created (its type is the type of the bit-field), copy initialized with the value of the bit-field, and the reference is bound to that temporary.</p>
 <table class="t-rev-begin"> <tr class="t-rev t-until-cxx20">
 <td> <p>There are no <a href="data_members#Member_initialization" title="cpp/language/data members">default member initializers</a> for bit-fields: <code>int b : 1 = 0;</code> and <code>int b : 1 {0}</code> are ill-formed.</p>
@@ -197,6 +218,8 @@ struct S
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2511.html">CWG 2511</a> </td> <td> C++98 </td> <td> cv-qualifications were not allowed in bit-field types </td> <td> bit-fields can have cv-qualified<br>enumeration types </td>
 </tr>
 </table> <h3 id="References"> References</h3>  <ul>
+<li> C++23 standard (ISO/IEC 14882:2023): </li>
+<ul><li> 11.4.10 Bit-fields [class.bit] </li></ul>
 <li> C++20 standard (ISO/IEC 14882:2020): </li>
 <ul><li> 11.4.9 Bit-fields [class.bit] </li></ul>
 <li> C++17 standard (ISO/IEC 14882:2017): </li>
@@ -209,7 +232,7 @@ struct S
 <ul><li> 9.6 Bit-fields [class.bit] </li></ul>
 <li> C++98 standard (ISO/IEC 14882:1998): </li>
 <ul><li> 9.6 Bit-fields [class.bit] </li></ul>
-</ul>                       <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="../utility/bitset" title="cpp/utility/bitset"> <span class="t-lines"><span>bitset</span></span></a></div> </td> <td> implements constant length bit array <br> <span class="t-mark">(class template)</span>  </td>
+</ul>                           <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="../utility/bitset" title="cpp/utility/bitset"> <span class="t-lines"><span>bitset</span></span></a></div> </td> <td> implements constant length bit array <br> <span class="t-mark">(class template)</span>  </td>
 </tr> <tr class="t-dsc"> <td> <div><a href="../container/vector_bool" title="cpp/container/vector bool"> <span class="t-lines"><span>vector<span class="t-dsc-small">&lt;bool&gt;</span></span></span></a></div> </td> <td> space-efficient dynamic bitset <br> <span class="t-mark">(class template specialization)</span>  </td>
 </tr> <tr class="t-dsc"> <td> <a href="../numeric#Bit_manipulation_.28since_C.2B.2B20.29" title="cpp/numeric"><b>Bit manipulation</b></a> <span class="t-mark-rev t-since-cxx20">(C++20)</span> </td> <td> utilities to access, manipulate, and process individual bits and bit sequences </td>
 </tr> <tr class="t-dsc"> <td colspan="2"> <span><a href="https://en.cppreference.com/w/c/language/bit_field" title="c/language/bit field">C documentation</a></span> for <span class=""><span>Bit-fields</span></span> </td>

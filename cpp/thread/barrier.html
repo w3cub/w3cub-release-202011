@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <title>Std&#58;&#58;barrier - C++ - W3cubDocs</title>
   
-  <meta name="description" content="The class template std&#58;&#58;barrier provides a thread-coordination mechanism that allows at most an expected number of threads to block until &hellip;">
+  <meta name="description" content="The class template std&#58;&#58;barrier provides a thread-coordination mechanism that blocks a group of threads of known size until all threads in &hellip;">
   <meta name="keywords" content="std, barrier, c++, cpp">
   <meta name="HandheldFriendly" content="True">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/thread/barrier.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,26 +82,23 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">std::barrier</h1>            <table class="t-dcl-begin"> <tr class="t-dsc-header"> <th> Defined in header <code><a href="../header/barrier" title="cpp/header/barrier">&lt;barrier&gt;</a></code> </th> <th> </th> <th> </th> </tr> <tr class="t-dcl t-since-cxx20"> <td> <pre data-language="cpp">template&lt;class CompletionFunction = /* see below */&gt;
 class barrier;</pre>
-</td> <td class="t-dcl-nopad"> </td> <td> <span class="t-mark-rev t-since-cxx20">(since C++20)</span> </td> </tr>  </table> <p>The class template <code>std::barrier</code> provides a thread-coordination mechanism that allows at most an expected number of threads to block until the expected number of threads arrive at the barrier. Unlike <a href="latch" title="cpp/thread/latch"><code>std::latch</code></a>, barriers are reusable: once the arriving threads are unblocked from a barrier phase's synchronization point, the same barrier can be reused.</p>
-<p>A barrier object's lifetime consists of a sequence of barrier phases. Each phase defines a <i>phase synchronization point</i>. Threads that arrive at the barrier during the phase can block on the phase synchronization point by calling <a href="barrier/wait" title="cpp/thread/barrier/wait"><code>wait</code></a>, and will be unblocked when the phase completion step is run.</p>
-<p>A <i>barrier phase</i> consists following steps:</p>
+</td> <td class="t-dcl-nopad"> </td> <td> <span class="t-mark-rev t-since-cxx20">(since C++20)</span> </td> </tr>  </table> <p>The class template <code>std::barrier</code> provides a thread-coordination mechanism that blocks a group of threads of known size until all threads in that group have reached the barrier. Unlike <code><a href="latch" title="cpp/thread/latch">std::latch</a></code>, barriers are reusable: once a group of arriving threads are unblocked, the barrier can be reused. Unlike <code><a href="latch" title="cpp/thread/latch">std::latch</a></code>, barriers execute a possibly empty callable before unblocking threads.</p>
+<p>A barrier object's lifetime consists of one or more phases. Each phase defines a <i>phase synchronization point</i> where waiting threads block. Threads can arrive at the barrier, but defer waiting on the <i>phase synchronization point</i> by calling <a href="barrier/arrive" title="cpp/thread/barrier/arrive"><code>arrive</code></a>. Such threads can later block on the <i>phase synchronization point</i> by calling <a href="barrier/wait" title="cpp/thread/barrier/wait"><code>wait</code></a>.</p>
+<p>A barrier <i>phase</i> consists of the following steps:</p>
 <ol>
 <li> The <i>expected count</i> is decremented by each call to <a href="barrier/arrive" title="cpp/thread/barrier/arrive"><code>arrive</code></a> or <a href="barrier/arrive_and_drop" title="cpp/thread/barrier/arrive and drop"><code>arrive_and_drop</code></a>. </li>
-<li> When the expected count reaches zero, the <i>phase completion step</i> is run. The completion step invokes the completion function object, and unblocks all threads blocked on the phase synchronization point. The end of the completion step <a href="../atomic/memory_order#Strongly_happens-before" title="cpp/atomic/memory order">strongly happens-before</a> the returns from all calls that were unblocked by the completion step. <ul>
-<li> For the specialization <code>std::barrier&lt;&gt;</code> (using the default template argument), the completion step is run as part of the call to <code>arrive</code> or <code>arrive_and_drop</code> that caused the expected count to reach zero. </li>
-<li> For other specializations, the completion step is run on one of the threads that arrived at the barrier during the phase. And the behavior is undefined if any of the barrier object's member functions other than <code>wait</code> are called during the completion step. </li>
-</ul> </li>
-<li> When the completion step finishes, the expected count is reset to the value specified at construction less the number of calls to <code>arrive_and_drop</code> since, and the next <i>barrier phase</i> begins. </li>
+<li> When the expected count reaches zero, the <i>phase completion step</i> is run, meaning that the <code>CompletionFunction</code> is invoked, and all threads blocked on the phase synchronization point are unblocked. The end of the completion step <a href="../atomic/memory_order#Strongly_happens-before" title="cpp/atomic/memory order">strongly happens-before</a> all calls that were unblocked by the completion step return.<br>Exactly once after the expected count reaches zero, a thread executes the completion step during its call to <a href="barrier/arrive" title="cpp/thread/barrier/arrive"><code>arrive</code></a>, <a href="barrier/arrive_and_drop" title="cpp/thread/barrier/arrive and drop"><code>arrive_and_drop</code></a>, or <a href="barrier/wait" title="cpp/thread/barrier/wait"><code>wait</code></a>, except that it is implementation-defined whether the step executes if no thread calls <a href="barrier/wait" title="cpp/thread/barrier/wait"><code>wait</code></a>. </li>
+<li> When the completion step finishes, the expected count is reset to the value specified at construction less the number of calls to <a href="barrier/arrive_and_drop" title="cpp/thread/barrier/arrive and drop"><code>arrive_and_drop</code></a> since, and the next <i>barrier phase</i> begins. </li>
 </ol> <p>Concurrent invocations of the member functions of <code>barrier</code>, except for the destructor, do not introduce data races.</p>
 <h3 id="Template_parameters"> Template parameters</h3> <table class="t-par-begin"> <tr class="t-par"> <td> CompletionFunction </td> <td> - </td> <td> a function object type </td>
-</tr> <tr class="t-par-req"> <td colspan="3"> -<code>CompletionFunction</code> must meet the requirements of <a href="../named_req/moveconstructible" title="cpp/named req/MoveConstructible">MoveConstructible</a> and <a href="../named_req/destructible" title="cpp/named req/Destructible">Destructible</a>. <code><a href="http://en.cppreference.com/w/cpp/types/is_invocable"><span class="kw3232">std::<span class="me2">is_nothrow_invocable_v</span></span></a><span class="sy1">&lt;</span>CompletionFunction<span class="sy3">&amp;</span><span class="sy1">&gt;</span></code> must be <code>true</code>. </td>
+</tr> <tr class="t-par-req"> <td colspan="3"> -<code>CompletionFunction</code> must meet the requirements of <a href="../named_req/moveconstructible" title="cpp/named req/MoveConstructible">MoveConstructible</a> and <a href="../named_req/destructible" title="cpp/named req/Destructible">Destructible</a>. <code><a href="http://en.cppreference.com/w/cpp/types/is_invocable"><span class="kw3233">std::<span class="me2">is_nothrow_invocable_v</span></span></a><span class="sy1">&lt;</span>CompletionFunction<span class="sy3">&amp;</span><span class="sy1">&gt;</span></code> must be <code>true</code>. </td>
 </tr>
-</table> <p>The default template argument of <code>CompletionFunction</code> is an unspecified function object type that addtionally meets the requirements of <a href="../named_req/defaultconstructible" title="cpp/named req/DefaultConstructible">DefaultConstructible</a>. Calling an lvalue of it with no arguments has no effects.</p>
+</table> <p>The default template argument of <code>CompletionFunction</code> is an unspecified function object type that additionally meets the requirements of <a href="../named_req/defaultconstructible" title="cpp/named req/DefaultConstructible">DefaultConstructible</a>. Calling an lvalue of it with no arguments has no effects.</p>
 <p>Every barrier object behaves as if it holds an exposition-only non-static data member <code>completion_</code> of type <code>CompletionFunction</code> and calls it by <code>completion_()</code> on every phase completion step.</p>
 <h3 id="Member_types"> Member types</h3> <table class="t-dsc-begin"> <tr class="t-dsc-hitem"> <th> Name </th> <th> Definition </th>
 </tr> <tr class="t-dsc"> <td> <code>arrival_token</code> </td> <td> an unspecified object type meeting requirements of <a href="../named_req/moveconstructible" title="cpp/named req/MoveConstructible">MoveConstructible</a>, <a href="../named_req/moveassignable" title="cpp/named req/MoveAssignable">MoveAssignable</a> and <a href="../named_req/destructible" title="cpp/named req/Destructible">Destructible</a> </td>
@@ -116,10 +113,13 @@ class barrier;</pre>
 </tr> <tr> <td colspan="2"> <h5 id="Constants">  Constants </h5> </td>
 </tr> <tr class="t-dsc"> <td> <div><a href="barrier/max" title="cpp/thread/barrier/max"> <span class="t-lines"><span>max</span></span></a></div>
 <div><span class="t-lines"><span><span class="t-cmark">[static]</span></span></span></div> </td> <td> the maximum value of expected count supported by the implementation <br> <span class="t-mark">(public static member function)</span>  </td>
-</tr> </table> <h3 id="Notes"> Notes</h3> <table class="wikitable"> <tr> <th>
-<a href="../utility/feature_test" title="cpp/utility/feature test">Feature-test</a> macro </th>
-</tr> <tr> <td>
-<a href="../feature_test#Library_features" title="cpp/feature test"><code>__cpp_lib_barrier</code></a> </td>
+</tr> </table> <h3 id="Notes"> Notes</h3> <table class="wikitable sortable ftm-begin ftm-has-value"> <tr> <th>
+<a href="../utility/feature_test" title="cpp/utility/feature test">Feature-test</a> macro</th> <th>Value</th> <th><span title="Standard in which the feature is introduced">Std</span></th> <th>Comment </th>
+</tr> <tr> <td rowspan="2"><a href="../feature_test#Library_features" title="cpp/feature test"><code>__cpp_lib_barrier</code></a></td> <td><span class="nu0">201907L</span></td> <td><span class="t-mark">(C++20)</span></td> <td>
+<a href="#top"><code>std::barrier</code></a> </td>
+</tr> <tr> <td><span class="nu0">202302L</span></td> <td>
+<span class="t-mark">(C++20)</span><br><span class="t-mark">(DR)</span>
+</td> <td>Relaxed guarantees for phase completion </td>
 </tr>
 </table> <h3 id="Example"> Example</h3> <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;barrier&gt;
 #include &lt;iostream&gt;
@@ -127,46 +127,51 @@ class barrier;</pre>
 #include &lt;thread&gt;
 #include &lt;vector&gt;
  
-int main() {
-  const auto workers = { "anil", "busara", "carl" };
+int main()
+{
+    const auto workers = { "Anil", "Busara", "Carl" };
  
-  auto on_completion = []() noexcept { 
-    // locking not needed here
-    static auto phase = "... done\n" "Cleaning up...\n";
-    std::cout &lt;&lt; phase;
-    phase = "... done\n";
-  };
-  std::barrier sync_point(std::ssize(workers), on_completion);
+    auto on_completion = []() noexcept
+    {
+        // locking not needed here
+        static auto phase = "... done\n" "Cleaning up...\n";
+        std::cout &lt;&lt; phase;
+        phase = "... done\n";
+    };
  
-  auto work = [&amp;](std::string name) {
-    std::string product = "  " + name + " worked\n";
-    std::cout &lt;&lt; product;  // ok, op&lt;&lt; call is atomic
-    sync_point.arrive_and_wait();
+    std::barrier sync_point(std::ssize(workers), on_completion);
  
-    product = "  " + name + " cleaned\n";
-    std::cout &lt;&lt; product;
-    sync_point.arrive_and_wait();
-  };
+    auto work = [&amp;](std::string name)
+    {
+        std::string product = "  " + name + " worked\n";
+        std::cout &lt;&lt; product;  // ok, op&lt;&lt; call is atomic
+        sync_point.arrive_and_wait();
  
-  std::cout &lt;&lt; "Starting...\n";
-  std::vector&lt;std::thread&gt; threads;
-  for (auto const&amp; worker : workers) {
-    threads.emplace_back(work, worker);
-  }
-  for (auto&amp; thread : threads) {
-    thread.join();
-  }
+        product = "  " + name + " cleaned\n";
+        std::cout &lt;&lt; product;
+        sync_point.arrive_and_wait();
+    };
+ 
+    std::cout &lt;&lt; "Starting...\n";
+    std::vector&lt;std::jthread&gt; threads;
+    threads.reserve(std::size(workers));
+    for (auto const&amp; worker : workers)
+        threads.emplace_back(work, worker);
 }</pre></div> <p>Possible output:</p>
 <div class="text source-text"><pre data-language="c">Starting...
-  anil worked
-  carl worked
-  busara worked
+  Anil worked
+  Carl worked
+  Busara worked
 ... done
 Cleaning up...
-  busara cleaned
-  carl cleaned
-  anil cleaned
-... done</pre></div> </div> <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="latch" title="cpp/thread/latch"> <span class="t-lines"><span>latch</span></span></a></div>
+  Busara cleaned
+  Carl cleaned
+  Anil cleaned
+... done</pre></div> </div> <h3 id="Defect_reports"> Defect reports</h3> <p>The following behavior-changing defect reports were applied retroactively to previously published C++ standards.</p>
+<table class="dsctable"> <tr> <th> DR </th> <th> Applied to </th> <th> Behavior as published </th> <th> Correct behavior </th>
+</tr> <tr> <td> <a rel="nofollow" class="external text" href="https://wg21.link/P2588R3">P2588R3</a> </td> <td> C++20 </td> <td> old phase completion guarantees might prevent hardware acceleration </td> <td> relaxed </td>
+</tr>
+</table> <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="latch" title="cpp/thread/latch"> <span class="t-lines"><span>latch</span></span></a></div>
 <div><span class="t-lines"><span><span class="t-mark-rev t-since-cxx20">(C++20)</span></span></span></div> </td> <td> single-use thread barrier <br> <span class="t-mark">(class)</span>  </td>
 </tr> </table>           <div class="_attribution">
   <p class="_attribution-p">

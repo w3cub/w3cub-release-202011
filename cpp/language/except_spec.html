@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/language/except_spec.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,15 +82,15 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">Dynamic exception specification <span class="t-mark-rev t-until-cxx17">(until C++17)</span>
 </h1>            <p>Lists the exceptions that a function might directly or indirectly throw.</p>
-<h3 id="Syntax"> Syntax</h3> <table class="t-sdsc-begin">  <tr class="t-sdsc"> <td> <code>throw(</code><span class="t-spar">type-id-list</span><span class="t-mark">(optional)</span><code>)</code> </td> <td> (1) </td> <td> <span class="t-mark-rev t-deprecated-cxx11">(deprecated in C++11)</span><br><span class="t-mark-rev t-until-cxx17">(removed in C++17)</span> </td>
+<h3 id="Syntax"> Syntax</h3> <table class="t-sdsc-begin">  <tr class="t-sdsc"> <td> <code>throw(</code><span class="t-spar">type-id-list</span> ﻿<span class="t-mark">(optional)</span><code>)</code> </td> <td> (1) </td> <td> <span class="t-mark-rev t-deprecated-cxx11">(deprecated in C++11)</span><br><span class="t-mark-rev t-until-cxx17">(removed in C++17)</span> </td>
 </tr> 
 </table> <div class="t-li1">
-<span class="t-li">1)</span> Explicit dynamic exception specification</div> <table class="t-par-begin"> <tr class="t-par"> <td> <span class="t-spar">type-id-list</span> </td> <td> - </td> <td> comma-separated list of <a href="type#Type_naming" title="cpp/language/type">type-ids</a><span class="t-rev-inl t-since-cxx11"><span>, a type-id representing a <a href="parameter_pack#Pack_expansion" title="cpp/language/parameter pack">pack expansion</a> is followed by an ellipsis (...)</span> <span><span class="t-mark-rev t-since-cxx11">(since C++11)</span></span></span> </td>
+<span class="t-li">1)</span> Explicit dynamic exception specification.</div> <table class="t-par-begin"> <tr class="t-par"> <td> <span class="t-spar">type-id-list</span> </td> <td> - </td> <td> comma-separated list of <a href="type#Type_naming" title="cpp/language/type">type-ids</a><span class="t-rev-inl t-since-cxx11"><span>, a type-id representing a <a href="parameter_pack#Pack_expansion" title="cpp/language/parameter pack">pack expansion</a> is followed by an ellipsis (...)</span> <span><span class="t-mark-rev t-since-cxx11">(since C++11)</span></span></span> </td>
 </tr>
 </table> <p>An explicit dynamic exception specification shall appear only on a function declarator for a function type, pointer to function type, reference to function type, or pointer to member function type that is the top-level type of a declaration or definition, or on such a type appearing as a parameter or return type in a function declarator.</p>
 <div class="cpp source-cpp"><pre data-language="cpp">void f() throw(int);            // OK: function declaration
@@ -147,18 +147,20 @@ struct B
 int n = 7;
 struct D : public A, public B
 {
-    int * p = new (std::nothrow) int[n];
-    // D has the following implicitly-declared members:
+    // May throw an exception of a type that would match a handler of type
+    // std​::​bad_array_new_length, but does not throw a bad allocation exception
+    (void*) new (std::nothrow) int[n];
+ 
+    // D may have the following implicitly-declared members:
     // D::D() throw(X, std::bad_array_new_length);
     // D::D(const D&amp;) noexcept(true);
     // D::D(D&amp;&amp;) throw(Y);
     // D::~D() throw(X, Y);
-};</pre></div> <h3 id="Example"> Example</h3> <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;iostream&gt;
+};</pre></div> <h3 id="Example"> Example</h3> <div class="t-example">
+<p>Note: best be compiled in C++98 mode to avoid warnings. Incompatible with C++17 and newer revisions.</p>
+<div class="cpp source-cpp"><pre data-language="cpp">#include &lt;cstdlib&gt;
 #include &lt;exception&gt;
-#include &lt;cstdlib&gt;
- 
-static_assert(__cplusplus &lt; 201700, 
-    "ISO C++17 does not allow dynamic exception specifications.");
+#include &lt;iostream&gt;
  
 class X {};
 class Y {};
@@ -167,19 +169,25 @@ class W {};
  
 void f() throw(X, Y) 
 {
-    int n = 0;
-    if (n) throw X(); // OK
-    if (n) throw Z(); // also OK
+    bool n = false;
+ 
+    if (n)
+        throw X(); // OK, would call std::terminate()
+    if (n)
+        throw Z(); // also OK
+ 
     throw W(); // will call std::unexpected()
+}
+ 
+void handler()
+{
+    std::cerr &lt;&lt; "That was unexpected!\n"; // flush needed
+    std::abort();
 }
  
 int main()
 {
-    std::set_unexpected([]
-    {
-        std::cout &lt;&lt; "That was unexpected!" &lt;&lt; std::endl; // flush needed
-        std::abort();
-    });
+    std::set_unexpected(handler);
     f();
 }</pre></div> <p>Output:</p>
 <div class="text source-text"><pre data-language="c">That was unexpected!</pre></div> </div> <h3 id="Defect_reports"> Defect reports</h3> <p>The following behavior-changing defect reports were applied retroactively to previously published C++ standards.</p>

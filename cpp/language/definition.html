@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/language/definition.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,7 +82,7 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">Definitions and ODR (One Definition Rule)</h1>            <p><i>Definitions</i> are <a href="declarations" title="cpp/language/declarations">declarations</a> that fully define the entity introduced by the declaration. Every declaration is a definition, except for the following:</p>
@@ -144,14 +144,20 @@ struct A&lt;int&gt;; // declares, but doesn't define A&lt;int&gt;</pre></div> <p
 <td> <ul><li> lambda-expressions that are not in a default argument<span class="t-rev-inl t-since-cxx20"><span> or a default template argument</span> <span><span class="t-mark-rev t-since-cxx20">(since C++20)</span></span></span> are uniquely identified by the sequence of tokens used to define them </li></ul> </td> <td><span class="t-mark-rev t-since-cxx11">(since C++11)</span></td>
 </tr> </table> <ul>
 <li> overloaded operators, including conversion, allocation, and deallocation functions refer to the same function from each definition (unless referring to one defined within the definition) </li>
-<li> the language linkage is the same (e.g. the include file isn't inside an extern "C" block) </li>
-<li> the three rules above apply to every default argument used in each definition </li>
+<li> corresponding entities have the same language linkage in each definition (e.g. the include file isn't inside an extern "C" block) </li>
+<li> if a <code>const</code> object is <a href="constant_initialization" title="cpp/language/constant initialization">constant-initialized</a> in any of the definitions, it is constant-initialized in each definition </li>
+<li> the rules above apply to every default argument used in each definition </li>
 <li> if the definition is for a class with an implicitly-declared constructor, every translation unit where it is odr-used must call the same constructor for the base and members </li>
 </ul> <table class="t-rev-begin"> <tr class="t-rev t-since-cxx20">
 <td> <ul><li> if the definition is for a class with a defaulted <a href="default_comparisons" title="cpp/language/default comparisons">three-way comparison</a>, every translation unit where it is odr-used must call the same comparison operator for the base and members </li></ul> </td> <td><span class="t-mark-rev t-since-cxx20">(since C++20)</span></td>
 </tr> </table> <ul><li> if the definition is for a template, then all these requirements apply to both names at the point of definition and dependent names at the point of instantiation </li></ul> <p>If all these requirements are satisfied, the program behaves as if there is only one definition in the entire program. Otherwise, the program is ill-formed, no diagnostic required.</p>
 <p>Note: in C, there is no program-wide ODR for types, and even extern declarations of the same variable in different translation units may have different types <a href="https://en.cppreference.com/w/c/language/type#Compatible_types" title="c/language/type">as long as they are compatible</a>. In C++, the source-code tokens used in declarations of the same type must be the same as described above: if one .cpp file defines <code>struct S { int x; };</code> and the other .cpp file defines <code>struct S { int y; };</code>, the behavior of the program that links them together is undefined. This is usually resolved with <a href="namespace" title="cpp/language/namespace">unnamed namespaces</a>.</p>
-<h4 id="ODR-use"> ODR-use</h4> <p>Informally, an object is odr-used if its value is read (unless it is a compile time constant) or written, its address is taken, or a reference is bound to it; a reference is odr-used if it is used and its referent is not known at compile time; and a function is odr-used if a function call to it is made or its address is taken. If an object, a reference or a function is odr-used, its definition must exist somewhere in the program; a violation of that is usually a link-time error.</p>
+<h4 id="ODR-use"> ODR-use</h4> <p>Informally,</p>
+<ul>
+<li> an object is odr-used if its value is read (unless it is a compile time constant) or written, its address is taken, or a reference is bound to it, </li>
+<li> a reference is odr-used if it is used and its referent is not known at compile time, </li>
+<li> a function is odr-used if a function call to it is made or its address is taken. </li>
+</ul> <p>If an object, a reference or a function is odr-used, its definition must exist somewhere in the program; a violation of that is usually a link-time error.</p>
 <div class="cpp source-cpp"><pre data-language="cpp">struct S
 {
     static const int x = 0; // static data member
@@ -162,8 +168,7 @@ const int&amp; f(const int&amp; r);
  
 int n = b ? (1, S::x) // S::x is not odr-used here
           : f(S::x);  // S::x is odr-used here: a definition is required</pre></div> <p>Formally,</p>
-<div class="t-li1">
-<span class="t-li">1)</span> a variable <code>x</code> in a <i>potentially-evaluated</i> expression <code>ex</code> is odr-used unless both of the following are true: <ul>
+<span class="t-li">1)</span> a variable <code>x</code> in a <a href="expressions#Potentially-evaluated_expressions" title="cpp/language/expressions">potentially-evaluated expression</a> <code>ex</code> is odr-used unless both of the following are true: <ul>
 <li> applying lvalue-to-rvalue conversion to <code>x</code> yields a constant expression that doesn't invoke non-trivial functions </li>
 <li> either <code>x</code> is not an object (that is, <code>x</code> is a reference) or, if <code>x</code> is an object, it is one of the <i>potential results</i> of a larger expression <code>e</code>, where that larger expression is either a <a href="expressions#Discarded-value_expressions" title="cpp/language/expressions">discarded-value expression</a> or has the lvalue-to-rvalue conversion applied to it </li>
 </ul> <div class="cpp source-cpp"><pre data-language="cpp">struct S { static const int x = 1; }; // applying lvalue-to-rvalue conversion
@@ -175,11 +180,10 @@ int f()
  
     return S::x; // expression where lvalue-to-rvalue conversion
                  // applies does not odr-use S::x
-}</pre></div>
-</div> <div class="t-li1">
-<span class="t-li">2)</span> <a href="this" title="cpp/language/this"><code>*this</code></a> is odr-used if <code>this</code> appears as a <i>potentially-evaluated</i> expression (including the implicit <code>this</code> in a non-static member function call expression)</div> <table class="t-rev-begin"> <tr class="t-rev t-since-cxx17">
-<td> <span class="t-li">3)</span> A <a href="structured_binding" title="cpp/language/structured binding">structured binding</a> is odr-used if it appears as a <i>potentially-evaluated</i> expression. </td> <td><span class="t-mark-rev t-since-cxx17">(since C++17)</span></td>
-</tr> </table> <p>In the definitions above, <i>potentially-evaluated</i> means the expression is not an <a href="expressions#Unevaluated_expressions" title="cpp/language/expressions">unevaluated operand</a> (or its subexpression), such as the operand of <a href="sizeof" title="cpp/language/sizeof"><code>sizeof</code></a> and <i>a set of potential results</i> of an expression <code>E</code> is a (possibly empty) set of id-expressions that appear within <code>E</code>, combined as follows:</p>
+}</pre></div> <div class="t-li1">
+<span class="t-li">2)</span> <code>*this</code> is odr-used if <code>this</code> appears as a potentially-evaluated expression (including the implicit <code>this</code> in a non-static member function call expression)</div> <table class="t-rev-begin"> <tr class="t-rev t-since-cxx17">
+<td> <span class="t-li">3)</span> A <a href="structured_binding" title="cpp/language/structured binding">structured binding</a> is odr-used if it appears as a potentially-evaluated expression. </td> <td><span class="t-mark-rev t-since-cxx17">(since C++17)</span></td>
+</tr> </table> <p>A set of <i>potential results</i> of an expression <code>E</code> is a (possibly empty) set of id-expressions that appear within <code>E</code>, combined as follows:</p>
 <ul>
 <li> If <code>E</code> is an <a href="expressions#Primary_expressions" title="cpp/language/expressions">id-expression</a>, the expression <code>E</code> is its only potential result. </li>
 <li> If <code>E</code> is a subscript expression (<code>E1[E2]</code>) where one of the operands is an array, the potential results of that operand is included in the set. </li>
@@ -216,10 +220,10 @@ int f(bool x)
 <li> A destructor for a class is odr-used if it is potentially invoked.</li>
 </ul>  <h4 id="Naming_a_function"> Naming a function</h4> <p>A function is named by an expression or conversion in following cases:</p>
 <ul>
-<li> A function whose name appears as an expression or conversion (including named function, overloaded operator, <a href="cast_operator" title="cpp/language/cast operator">user-defined conversion</a>, user-defined placement forms of operator new, non-default initialization) is named by that expression if it is selected by overload resolution, except when it is an unqualified pure virtual member function or a pointer-to-member to a pure virtual function. </li>
+<li> A function whose name appears as an expression or conversion (including named function, overloaded operator, <a href="cast_operator" title="cpp/language/cast operator">user-defined conversion</a>, user-defined placement forms of <a href="../memory/new/operator_new" title="cpp/memory/new/operator new"><code>operator new</code></a>, non-default initialization) is named by that expression if it is selected by overload resolution, except when it is an unqualified pure virtual member function or a pointer-to-member to a pure virtual function. </li>
 <li> An <a href="../memory/new/operator_new" title="cpp/memory/new/operator new">allocation</a> or <a href="../memory/new/operator_delete" title="cpp/memory/new/operator delete">deallocation</a> function for a class is named by a <a href="new" title="cpp/language/new">new expression</a> appearing in an expression. </li>
 <li> A deallocation function for a class is named by a <a href="delete" title="cpp/language/delete">delete expression</a> appearing in an expression. </li>
-<li> A constructor selected to copy or move an object is considered to be named by the expression or conversion even if <a href="copy_elision" title="cpp/language/copy elision">copy elision</a> takes place. <span class="t-rev-inl t-since-cxx17"><span>Using a prvalue in some contexts does not copy or move an object, see <a href="copy_elision#Mandatory_elision_of_copy.2Fmove_operations" title="cpp/language/copy elision">Mandatory elision</a>.</span> <span><span class="t-mark-rev t-since-cxx17">(since C++17)</span></span></span> </li>
+<li> A constructor selected to copy or move an object is considered to be named by the expression or conversion even if <a href="copy_elision" title="cpp/language/copy elision">copy elision</a> takes place. <span class="t-rev-inl t-since-cxx17"><span>Using a prvalue in some contexts does not copy or move an object, see <a href="copy_elision#Mandatory_elision_of_copy.2Fmove_operations" title="cpp/language/copy elision">mandatory elision</a>.</span> <span><span class="t-mark-rev t-since-cxx17">(since C++17)</span></span></span> </li>
 </ul> <p>A potentially evaluated expression or conversion odr-uses a function if it names it.</p>
 <table class="t-rev-begin"> <tr class="t-rev t-since-cxx11">
 <td> <p>A potentially constant evaluated expression or conversion that names a constexpr function makes it <a href="constant_expression#Functions_and_variables_needed_for_constant_evaluation" title="cpp/language/constant expression">needed for constant evaluation</a>, which triggers definition of a defaulted function or instantiation of a function template specialization, even if the expression is unevaluated.</p>
@@ -232,11 +236,14 @@ int f(bool x)
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/1614.html">CWG 1614</a> </td> <td> C++98 </td> <td> taking address of a pure virtual function odr-used it </td> <td> the function is not odr-used </td>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/1741.html">CWG 1741</a> </td> <td> C++98 </td> <td> constant objects that are immediately lvalue-to-rvalue<br>converted in potentially-evaluated expressions were odr-used </td> <td> they are not odr-used </td>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/1926.html">CWG 1926</a> </td> <td> C++98 </td> <td> array subscript expressions didn't propagate potential results </td> <td> they propagate </td>
+</tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2242.html">CWG 2242</a> </td> <td> C++98 </td> <td> it was unclear whether a <code>const</code> object that is only<br>constant-initialized in part of its definitions violates ODR </td> <td> ODR is not violated; the object is<br>constant-initialized in this case </td>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2300.html">CWG 2300</a> </td> <td> C++11 </td> <td> lambda expressions in different translation<br>units could never have the same closure type </td> <td> the closure type can be the<br>same under one definition rule </td>
-</tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2353.html">CWG 2353</a> </td> <td> C++98 </td> <td> a static data member was not a potential result<br>of a member access expression accesing it </td> <td> it is </td>
+</tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2353.html">CWG 2353</a> </td> <td> C++98 </td> <td> a static data member was not a potential result<br>of a member access expression accessing it </td> <td> it is </td>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2433.html">CWG 2433</a> </td> <td> C++14 </td> <td> a variable template could not have multiple definitions in a program </td> <td> it can </td>
 </tr>
 </table> <h3 id="References"> References</h3>  <ul>
+<li> C++23 standard (ISO/IEC 14882:2023): </li>
+<ul><li> 6.3 One definition rule [basic.def.odr] </li></ul>
 <li> C++20 standard (ISO/IEC 14882:2020): </li>
 <ul><li> 6.3 One definition rule [basic.def.odr] </li></ul>
 <li> C++17 standard (ISO/IEC 14882:2017): </li>
@@ -249,7 +256,7 @@ int f(bool x)
 <ul><li> 3.2 One definition rule [basic.def.odr] </li></ul>
 <li> C++98 standard (ISO/IEC 14882:1998): </li>
 <ul><li> 3.2 One definition rule [basic.def.odr] </li></ul>
-</ul>                                 <div class="_attribution">
+</ul>                                     <div class="_attribution">
   <p class="_attribution-p">
     © cppreference.com<br>Licensed under the Creative Commons Attribution-ShareAlike Unported License v3.0.<br>
     <a href="https://en.cppreference.com/w/cpp/language/definition" class="_attribution-link">https://en.cppreference.com/w/cpp/language/definition</a>

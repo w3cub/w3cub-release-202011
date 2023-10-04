@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/atomic/atomic/wait.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,7 +82,7 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">std::atomic&lt;T&gt;::wait</h1>             <table class="t-dcl-begin">  <tr class="t-dcl-rev-aux"> <td></td> <td></td> <td rowspan="3"> <span class="t-mark-rev t-since-cxx20">(since C++20)</span> </td> </tr> <tr class="t-dcl"> <td class="t-dcl-nopad"> <pre data-language="cpp">void wait( T old,
@@ -99,9 +99,50 @@
 </tr>
 </table> <h3 id="Return_value"> Return value</h3> <p>(none).</p>
 <h3 id="Notes"> Notes</h3> <p>This form of change-detection is often more efficient than simple polling or pure spinlocks.</p>
-<p>Due to the <a rel="nofollow" class="external text" href="https://en.wikipedia.org/wiki/ABA_problem">ABA problem</a>, transient changes from <code>old</code> to another value and back to <code>old</code> might be missed, and not unblock.</p>
+<p>Due to the <a href="https://en.wikipedia.org/wiki/ABA_problem" class="extiw" title="enwiki:ABA problem">ABA problem</a>, transient changes from <code>old</code> to another value and back to <code>old</code> might be missed, and not unblock.</p>
 <p>The comparison is bitwise (similar to <code><a href="../../string/byte/memcmp" title="cpp/string/byte/memcmp">std::memcmp</a></code>); no comparison operator is used. Padding bits that never participate in an object's value representation are ignored.</p>
-<h3 id="Example"> Example</h3>  <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="notify_one" title="cpp/atomic/atomic/notify one"> <span class="t-lines"><span>notify_one</span></span></a></div>
+<h3 id="Example"> Example</h3> <div class="t-example"> <div class="cpp source-cpp"><pre data-language="cpp">#include &lt;atomic&gt;
+#include &lt;chrono&gt;
+#include &lt;future&gt;
+#include &lt;iostream&gt;
+#include &lt;thread&gt;
+ 
+using namespace std::literals;
+ 
+int main()
+{
+    std::atomic&lt;bool&gt; all_tasks_completed{false};
+    std::atomic&lt;unsigned&gt; completion_count{};
+    std::future&lt;void&gt; task_futures[16];
+    std::atomic&lt;unsigned&gt; outstanding_task_count{16};
+ 
+    // Spawn several tasks which take different amounts of
+    // time, then decrement the outstanding task count.
+    for (std::future&lt;void&gt;&amp; task_future : task_futures)
+    {
+        task_future = std::async([&amp;]
+        {
+            // This sleep represents doing real work...
+            std::this_thread::sleep_for(50ms);
+ 
+            ++completion_count;
+            --outstanding_task_count;
+ 
+            // When the task count falls to zero, notify
+            // the waiter (main thread in this case).
+            if (outstanding_task_count.load() == 0)
+            {
+                all_tasks_completed = true;
+                all_tasks_completed.notify_one();
+            }
+        });
+    }
+ 
+    all_tasks_completed.wait(false);
+ 
+    std::cout &lt;&lt; "Tasks completed = " &lt;&lt; completion_count.load() &lt;&lt; '\n';
+}</pre></div> <p>Output:</p>
+<div class="text source-text"><pre data-language="c">Tasks completed = 16</pre></div> </div> <h3 id="See_also"> See also</h3> <table class="t-dsc-begin"> <tr class="t-dsc"> <td> <div><a href="notify_one" title="cpp/atomic/atomic/notify one"> <span class="t-lines"><span>notify_one</span></span></a></div>
 <div><span class="t-lines"><span><span class="t-mark-rev t-since-cxx20">(C++20)</span></span></span></div> </td> <td> notifies at least one thread waiting on the atomic object <br> <span class="t-mark">(public member function)</span>  </td>
 </tr> <tr class="t-dsc"> <td> <div><a href="notify_all" title="cpp/atomic/atomic/notify all"> <span class="t-lines"><span>notify_all</span></span></a></div>
 <div><span class="t-lines"><span><span class="t-mark-rev t-since-cxx20">(C++20)</span></span></span></div> </td> <td> notifies all threads blocked waiting on the atomic object <br> <span class="t-mark">(public member function)</span>  </td>

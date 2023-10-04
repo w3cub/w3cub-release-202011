@@ -15,8 +15,8 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/cpp/language/class_template_argument_deduction.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-1810d67ab7e57be09d8247710d2feb6954566959eb82322d1fee3a0c9156f56974b78ebaa9928774f00767342bbe58b0799d91fcc336b92b319170b196f9b64b.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/cpp.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -82,12 +82,12 @@
 <script>
      (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
-			<div class="_page _c">
+			<div class="_page _cppref">
 				
 				
 <h1 id="firstHeading" class="firstHeading">Class template argument deduction (CTAD) <span class="t-mark-rev t-since-cxx17">(since C++17)</span>
 </h1>            <p>In order to instantiate a <a href="class_template" title="cpp/language/class template">class template</a>, every template argument must be known, but not every template argument has to be specified. In the following contexts the compiler will deduce the template arguments from the type of the initializer:</p>
-<ul><li> any <a href="declarations" title="cpp/language/declarations">declaration</a> that specifies initialization of a variable and variable template, whose declared type is the class template (possibly cv-qualified): </li></ul> <div class="cpp source-cpp"><pre data-language="cpp">std::pair p(2, 4.5);     // deduces to std::pair&lt;int, double&gt; p(2, 4.5);
+<ul><li> any <a href="declarations" title="cpp/language/declarations">declaration</a> that specifies initialization of a variable and variable template, whose declared type is the class template (possibly <a href="cv" title="cpp/language/cv">cv-qualified</a>): </li></ul> <div class="cpp source-cpp"><pre data-language="cpp">std::pair p(2, 4.5);     // deduces to std::pair&lt;int, double&gt; p(2, 4.5);
 std::tuple t(4, 3, 2.5); // same as auto t = std::make_tuple(4, 3, 2.5);
 std::less l;             // same as std::less&lt;void&gt; l;</pre></div> <ul><li> <a href="new" title="cpp/language/new">new-expressions</a>: </li></ul> <div class="cpp source-cpp"><pre data-language="cpp">template&lt;class T&gt;
 struct A
@@ -106,8 +106,6 @@ std::for_each(vi.begin(), vi.end(),
 struct X
 {
     constexpr X(T) {}
- 
-    auto operator&lt;=&gt;(const X&amp;) const = default;
 };
  
 template&lt;X x&gt;
@@ -133,22 +131,28 @@ Y&lt;0&gt; y; // OK, Y&lt;X&lt;int&gt;(0)&gt;</pre></div> </td> <td><span class=
 <li> the variable is initialized from a non-empty list of initializers <span class="t-spar">arg1, arg2, ..., argn</span> (which may use <a href="aggregate_initialization#Designated_initializer" title="cpp/language/aggregate initialization">designated initializer</a>), </li>
 </ul> </dd>
 <dd> an aggregate deduction candidate may be added. The parameter list of the aggregate deduction candidate is produced from the aggregate element types, as follows: <ul>
-<li> Let <code>e<sub>i</sub></code> be the (possibly recursive) aggregate element (public base/class member/array element) that would be initialized from <code>arg<sub>i</sub></code>, where </li>
-<li> brace elision is only considered for members with non-dependent type or with array type of non-dependent bound, </li>
+<li> Let <code>e<sub>i</sub></code> be the (possibly recursive) <a href="aggregate_initialization" title="cpp/language/aggregate initialization">aggregate element</a> that would be initialized from <code>arg<sub>i</sub></code>, where </li>
+<li> <a href="aggregate_initialization#Brace_elision" title="cpp/language/aggregate initialization">brace elision</a> is not considered for any aggregate element that has </li>
+<ul>
+<li> a <a href="dependent_name#Dependent_types" title="cpp/language/dependent name">dependent</a> non-array type, </li>
+<li> an array type with a <a href="dependent_name#Value-dependent_expressions" title="cpp/language/dependent name">value-dependent</a> bound, or </li>
+<li> an array type with a dependent array element type and <code>arg<sub>i</sub></code> is a <a href="string_literal" title="cpp/language/string literal">string literal</a> </li>
+</ul>
 <li> if <code>C</code> (or its element that is itself an aggregate) has a base that is a <a href="parameter_pack" title="cpp/language/parameter pack">pack expansion</a>: </li>
 <ul>
 <li> if the pack expansion is a trailing aggregate element, it is considered to match all remaining elements of the initializer list; </li>
 <li> otherwise, the pack is considered to be empty. </li>
 </ul>
-<li> If there's no such <code>e<sub>i</sub></code>, the aggregate deduction candidate is not added. </li>
+<li> If there is no such <code>e<sub>i</sub></code>, the aggregate deduction candidate is not added. </li>
 <li> Otherwise, determine the parameter list <code>T<sub>1</sub>, T<sub>2</sub>, ..., T<sub>n</sub></code> of the aggregate deduction candidate as follows: </li>
 <ul>
-<li> If <code>e<sub>i</sub></code> is an array and <code>arg<sub>i</sub></code> is either a braced-init-list or a string literal, <code>T<sub>i</sub></code> is rvalue reference to the type of <code>e<sub>i</sub></code>. </li>
-<li> Otherwise, <code>T<sub>i</sub></code> is the type of <code>e<sub>i</sub></code>. </li>
+<li> If <code>e<sub>i</sub></code> is an array and <code>arg<sub>i</sub></code> is a <span class="t-spar">braced-init-list</span> ﻿, <code>T<sub>i</sub></code> is an rvalue reference to the declared type of <code>e<sub>i</sub></code>. </li>
+<li> If <code>e<sub>i</sub></code> is an array and <code>arg<sub>i</sub></code> is a <a href="string_literal" title="cpp/language/string literal">string literal</a>, <code>T<sub>i</sub></code> is an lvalue reference to the const-qualified declared type of <code>e<sub>i</sub></code>. </li>
+<li> Otherwise, <code>T<sub>i</sub></code> is the declared type of <code>e<sub>i</sub></code>. </li>
 <li> If a pack was skipped because it is a non-trailing aggregate element, an additional parameter pack of the form <code>P<sub>j</sub> ...</code> is inserted in its original aggregate element position. (This will generally cause deduction to fail.) </li>
 <li> If a pack is a trailing aggregate element, the trailing sequence of parameters corresponding to it is replaced by a single parameter of the form <code>T<sub>n</sub> ...</code>. </li>
 </ul>
-</ul>      </dd>
+</ul>        </dd>
 <dd> The aggregate deduction candidate is a fictional function template derived as above from a hypothetical constructor <code>C(T<sub>1</sub>, T<sub>2</sub>, ..., T<sub>n</sub>)</code>. </dd>
 </dl>  During template argument deduction for the aggregate deduction candidate, the number of elements in a trailing parameter pack is only deduced from the number of remaining function arguments if it is not otherwise deduced.  <div class="cpp source-cpp"><pre data-language="cpp">template&lt;class T&gt;
 struct A
@@ -318,7 +322,7 @@ struct B
 B b{(int*)0, (char*)0}; // OK, deduces B&lt;char*&gt;</pre></div> <table class="t-rev-begin"> <tr class="t-rev t-since-cxx20">
 <td> <h3 id="Deduction_for_alias_templates"> Deduction for alias templates</h3> <p>When a function-style cast or declaration of a variable uses the name of an alias template <code>A</code> without an argument list as the type specifier, where <code>A</code> is defined as an alias of <code>B&lt;ArgList&gt;</code>, the scope of <code>B</code> is non-dependent, and <code>B</code> is either a class template or a similarly-defined alias template, deduction will proceed in the same way as for class templates, except that the guides are instead generated from the guides of <code>B</code>, as follows:</p>
 <ul>
-<li> For each guide <code>f</code> of <code>B</code>, deduce the template arguments of the return type of <code>f</code> from <code>B&lt;ArgList&gt;</code> using <a href="template_argument_deduction" title="cpp/language/template argument deduction">template argument deduction</a>, except that deduction does not fail if some arguments are not deduced. </li>
+<li> For each guide <code>f</code> of <code>B</code>, deduce the template arguments of the return type of <code>f</code> from <code>B&lt;ArgList&gt;</code> using <a href="template_argument_deduction" title="cpp/language/template argument deduction">template argument deduction</a>, except that deduction does not fail if some arguments are not deduced. If deduction fails for another reason, proceed with an empty set of deduced template arguments. </li>
 <li> Substitute the result of above deduction into <code>f</code>, if substitution fails, no guide is produced; otherwise, let <code>g</code> denote the result of substitution, a guide <code>f'</code> is formed, such that </li>
 <ul>
 <li> The parameter types and the return type of <code>f'</code> are the same as <code>g</code> </li>
@@ -539,7 +543,11 @@ std::vector v3{v1, v2}; // std::vector&lt;std::vector&lt;int&gt;&gt;</pre></div>
 std::vector v2(v1.begin(), v1.end()); // std::vector&lt;int&gt;
 std::vector v3{v1.begin(), v1.end()}; // std::vector&lt;std::vector&lt;int&gt;::iterator&gt;</pre></div> <p>Before class template argument deduction was introduced, a common approach to avoiding explicitly specifying arguments is to use a function template:</p>
 <div class="cpp source-cpp"><pre data-language="cpp">std::tuple p1{1, 1.0};             //std::tuple&lt;int, double&gt;, using deduction
-auto p2 = std::make_tuple(1, 1.0); //std::tuple&lt;int, double&gt;, pre-C++17</pre></div> <h3 id="Defect_reports"> Defect reports</h3> <p>The following behavior-changing defect reports were applied retroactively to previously published C++ standards.</p>
+auto p2 = std::make_tuple(1, 1.0); //std::tuple&lt;int, double&gt;, pre-C++17</pre></div> <table class="wikitable ftm-begin ftm-has-value"> <tr> <th>Feature-test macro</th> <th>Value</th> <th><span title="Standard in which the feature is introduced">Std</span></th> <th>Comment </th>
+</tr> <tr> <td rowspan="2"><a href="../feature_test#Language_features" title="cpp/feature test"><code>__cpp_deduction_guides</code></a></td> <td><span class="nu0">201703L</span></td> <td><span class="t-mark">(C++17)</span></td> <td>Template argument deduction for class templates </td>
+</tr> <tr> <td><span class="nu0">201907L</span></td> <td><span class="t-mark">(C++20)</span></td> <td>CTAD for aggregates and aliases </td>
+</tr>
+</table> <h3 id="Defect_reports"> Defect reports</h3> <p>The following behavior-changing defect reports were applied retroactively to previously published C++ standards.</p>
 <table class="dsctable"> <tr> <th> DR </th> <th> Applied to </th> <th> Behavior as published </th> <th> Correct behavior </th>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://cplusplus.github.io/CWG/issues/2376.html">CWG 2376</a> </td> <td> C++17 </td> <td> CTAD would be performed even if the type of the variable declared is<br>different from the class template whose arguments will be deduced </td> <td> do not perform<br>CTAD in this case </td>
 </tr> <tr> <td> <a rel="nofollow" class="external text" href="https://wg21.link/P0702R1">P0702R1</a> </td> <td> C++17 </td> <td> an initializer-list constructor can pre-empt the<br>copy deduction candidate, resulting in wrapping </td> <td> initializer-list phase<br>skipped when copying </td>
