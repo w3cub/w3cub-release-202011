@@ -7,17 +7,16 @@
   <meta charset="utf-8">
   <title>Modules&#58; ECMAScript Modules - Node.js - W3cubDocs</title>
   
-  <meta name="description" content="Consolidate loader hooks, removed getFormat, getSource, transformSource, and getGlobalPreloadCode hooks added load and globalPreload hooks allowed &hellip;">
+  <meta name="description" content=" Add support for chaining loaders. ">
   <meta name="keywords" content="modules, ecmascript, node, js">
   <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="mobile-web-app-capable" content="yes">
   
   <link rel="canonical" href="https://docs.w3cub.com/node/esm.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-e498cd0ebe8746846fec95b1a53ab3bb0fb7f47f794f0a38f44c98a1f0d03b21d777ae2c583732e44a5a890f6eacb79a5333545db9d5f3616091ba21ca17d916.css">
-  <script src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/node.js"></script>
   
 <!-- Google tag (gtag.js) -->
@@ -92,7 +91,11 @@
 <th>Version</th>
 <th>Changes</th>
 </tr> <tr>
-<td>v17.0.0</td> <td><p>Consolidate loader hooks, removed <code>getFormat</code>, <code>getSource</code>, <code>transformSource</code>, and <code>getGlobalPreloadCode</code> hooks added <code>load</code> and <code>globalPreload</code> hooks allowed returning <code>format</code> from either <code>resolve</code> or <code>load</code> hooks.</p></td>
+<td>v18.6.0, v16.17.0</td> <td><p>Add support for chaining loaders.</p></td>
+</tr> <tr>
+<td>v17.1.0, v16.14.0</td> <td><p>Add support for import assertions.</p></td>
+</tr> <tr>
+<td>v17.0.0, v16.12.0</td> <td><p>Consolidate loader hooks, removed <code>getFormat</code>, <code>getSource</code>, <code>transformSource</code>, and <code>getGlobalPreloadCode</code> hooks added <code>load</code> and <code>globalPreload</code> hooks allowed returning <code>format</code> from either <code>resolve</code> or <code>load</code> hooks.</p></td>
 </tr> <tr>
 <td>v14.8.0</td> <td><p>Unflag Top-Level Await.</p></td>
 </tr> <tr>
@@ -122,23 +125,23 @@ import { addTwo } from './addTwo.mjs';
 
 // Prints: 6
 console.log(addTwo(4));</pre> <p>Node.js fully supports ECMAScript modules as they are currently specified and provides interoperability between them and its original module format, <a href="modules">CommonJS</a>.</p>   </section><section><h3 id="enabling">Enabling
-</h3> <p>Node.js treats JavaScript code as CommonJS modules by default. Authors can tell Node.js to treat JavaScript code as ECMAScript modules via the <code>.mjs</code> file extension, the <code>package.json</code> <a href="packages#type"><code>"type"</code></a> field, or the <code>--input-type</code> flag. See <a href="packages#determining-module-system">Modules: Packages</a> for more details.</p>   </section><section><h3 id="packages">Packages
-</h3> <p>This section was moved to <a href="packages">Modules: Packages</a>.</p> </section><section><h3 id="import">
+</h3> <p>Node.js has two module systems: <a href="modules">CommonJS</a> modules and ECMAScript modules.</p> <p>Authors can tell Node.js to use the ECMAScript modules loader via the <code>.mjs</code> file extension, the <code>package.json</code> <a href="packages#type"><code>"type"</code></a> field, or the <a href="cli#--input-typetype"><code>--input-type</code></a> flag. Outside of those cases, Node.js will use the CommonJS module loader. See <a href="packages#determining-module-system">Determining module system</a> for more details.</p>   </section><section><h3 id="packages">Packages
+</h3> <p>This section was moved to <a href="packages">Modules: Packages</a>.</p> </section><section><h3 id="import-specifiers">
 <code>import</code> Specifiers
 </h3> <h4 id="terminology">Terminology
-</h4> <p>The <em>specifier</em> of an <code>import</code> statement is the string after the <code>from</code> keyword, e.g. <code>'path'</code> in <code>import { sep } from 'path'</code>. Specifiers are also used in <code>export from</code> statements, and as the argument to an <code>import()</code> expression.</p> <p>There are three types of specifiers:</p> <ul> <li> <p><em>Relative specifiers</em> like <code>'./startup.js'</code> or <code>'../config.mjs'</code>. They refer to a path relative to the location of the importing file. <em>The file extension is always necessary for these.</em></p> </li> <li> <p><em>Bare specifiers</em> like <code>'some-package'</code> or <code>'some-package/shuffle'</code>. They can refer to the main entry point of a package by the package name, or a specific feature module within a package prefixed by the package name as per the examples respectively. <em>Including the file extension is only necessary for packages without an <a href="packages#exports"><code>"exports"</code></a> field.</em></p> </li> <li> <p><em>Absolute specifiers</em> like <code>'file:///opt/nodejs/config.js'</code>. They refer directly and explicitly to a full path.</p> </li> </ul> <p>Bare specifier resolutions are handled by the <a href="#resolver-algorithm-specification">Node.js module resolution algorithm</a>. All other specifier resolutions are always only resolved with the standard relative <a href="https://url.spec.whatwg.org/">URL</a> resolution semantics.</p> <p>Like in CommonJS, module files within packages can be accessed by appending a path to the package name unless the package’s <a href="packages#nodejs-packagejson-field-definitions"><code>package.json</code></a> contains an <a href="packages#exports"><code>"exports"</code></a> field, in which case files within packages can only be accessed via the paths defined in <a href="packages#exports"><code>"exports"</code></a>.</p> <p>For details on these package resolution rules that apply to bare specifiers in the Node.js module resolution, see the <a href="packages">packages documentation</a>.</p> <h4 id="mandatory-file-extensions">Mandatory file extensions
+</h4> <p>The <em>specifier</em> of an <code>import</code> statement is the string after the <code>from</code> keyword, e.g. <code>'node:path'</code> in <code>import { sep } from 'node:path'</code>. Specifiers are also used in <code>export from</code> statements, and as the argument to an <code>import()</code> expression.</p> <p>There are three types of specifiers:</p> <ul> <li> <p><em>Relative specifiers</em> like <code>'./startup.js'</code> or <code>'../config.mjs'</code>. They refer to a path relative to the location of the importing file. <em>The file extension is always necessary for these.</em></p> </li> <li> <p><em>Bare specifiers</em> like <code>'some-package'</code> or <code>'some-package/shuffle'</code>. They can refer to the main entry point of a package by the package name, or a specific feature module within a package prefixed by the package name as per the examples respectively. <em>Including the file extension is only necessary for packages without an <a href="packages#exports"><code>"exports"</code></a> field.</em></p> </li> <li> <p><em>Absolute specifiers</em> like <code>'file:///opt/nodejs/config.js'</code>. They refer directly and explicitly to a full path.</p> </li> </ul> <p>Bare specifier resolutions are handled by the <a href="#resolver-algorithm-specification">Node.js module resolution algorithm</a>. All other specifier resolutions are always only resolved with the standard relative <a href="https://url.spec.whatwg.org/">URL</a> resolution semantics.</p> <p>Like in CommonJS, module files within packages can be accessed by appending a path to the package name unless the package's <a href="packages#nodejs-packagejson-field-definitions"><code>package.json</code></a> contains an <a href="packages#exports"><code>"exports"</code></a> field, in which case files within packages can only be accessed via the paths defined in <a href="packages#exports"><code>"exports"</code></a>.</p> <p>For details on these package resolution rules that apply to bare specifiers in the Node.js module resolution, see the <a href="packages">packages documentation</a>.</p> <h4 id="mandatory-file-extensions">Mandatory file extensions
 </h4> <p>A file extension must be provided when using the <code>import</code> keyword to resolve relative or absolute specifiers. Directory indexes (e.g. <code>'./startup/index.js'</code>) must also be fully specified.</p> <p>This behavior matches how <code>import</code> behaves in browser environments, assuming a typically configured server.</p> <h4 id="urls">URLs
-</h4> <p>ES modules are resolved and cached as URLs. This means that files containing special characters such as <code>#</code> and <code>?</code> need to be escaped.</p> <p><code>file:</code>, <code>node:</code>, and <code>data:</code> URL schemes are supported. A specifier like <code>'https://example.com/app.js'</code> is not supported natively in Node.js unless using a <a href="#https-loader">custom HTTPS loader</a>.</p> <h5 id="file:">
+</h4> <p>ES modules are resolved and cached as URLs. This means that special characters must be <a href="url#percent-encoding-in-urls">percent-encoded</a>, such as <code>#</code> with <code>%23</code> and <code>?</code> with <code>%3F</code>.</p> <p><code>file:</code>, <code>node:</code>, and <code>data:</code> URL schemes are supported. A specifier like <code>'https://example.com/app.js'</code> is not supported natively in Node.js unless using a <a href="#https-loader">custom HTTPS loader</a>.</p> <h5 id="file-urls">
 <code>file:</code> URLs
 </h5> <p>Modules are loaded multiple times if the <code>import</code> specifier used to resolve them has a different query or fragment.</p> <pre data-language="js">import './foo.mjs?query=1'; // loads ./foo.mjs with query of "?query=1"
-import './foo.mjs?query=2'; // loads ./foo.mjs with query of "?query=2"</pre> <p>The volume root may be referenced via <code>/</code>, <code>//</code> or <code>file:///</code>. Given the differences between <a href="https://url.spec.whatwg.org/">URL</a> and path resolution (such as percent encoding details), it is recommended to use <a href="url#urlpathtofileurlpath">url.pathToFileURL</a> when importing a path.</p> <h5 id="data:">
-<code>data:</code> Imports
+import './foo.mjs?query=2'; // loads ./foo.mjs with query of "?query=2"</pre> <p>The volume root may be referenced via <code>/</code>, <code>//</code>, or <code>file:///</code>. Given the differences between <a href="https://url.spec.whatwg.org/">URL</a> and path resolution (such as percent encoding details), it is recommended to use <a href="url#urlpathtofileurlpath">url.pathToFileURL</a> when importing a path.</p> <h5 id="data-imports">
+<code>data:</code> imports
 </h5> <div class="api_metadata"> <span>Added in: v12.10.0</span> </div> <p><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs"><code>data:</code> URLs</a> are supported for importing with the following MIME types:</p> <ul> <li>
-<code>text/javascript</code> for ES Modules</li> <li>
+<code>text/javascript</code> for ES modules</li> <li>
 <code>application/json</code> for JSON</li> <li>
-<code>application/wasm</code> for Wasm</li> </ul> <p><code>data:</code> URLs only resolve <a href="#terminology"><em>Bare specifiers</em></a> for builtin modules and <a href="#terminology"><em>Absolute specifiers</em></a>. Resolving <a href="#terminology"><em>Relative specifiers</em></a> does not work because <code>data:</code> is not a <a href="https://url.spec.whatwg.org/#special-scheme">special scheme</a>. For example, attempting to load <code>./foo</code> from <code>data:text/javascript,import "./foo";</code> fails to resolve because there is no concept of relative resolution for <code>data:</code> URLs. An example of a <code>data:</code> URLs being used is:</p> <pre data-language="js">import 'data:text/javascript,console.log("hello!");';
-import _ from 'data:application/json,"world!"';</pre> <h5 id="node:">
-<code>node:</code> Imports
+<code>application/wasm</code> for Wasm</li> </ul> <pre data-language="js">import 'data:text/javascript,console.log("hello!");';
+import _ from 'data:application/json,"world!"' assert { type: 'json' };</pre> <p><code>data:</code> URLs only resolve <a href="#terminology">bare specifiers</a> for builtin modules and <a href="#terminology">absolute specifiers</a>. Resolving <a href="#terminology">relative specifiers</a> does not work because <code>data:</code> is not a <a href="https://url.spec.whatwg.org/#special-scheme">special scheme</a>. For example, attempting to load <code>./foo</code> from <code>data:text/javascript,import "./foo";</code> fails to resolve because there is no concept of relative resolution for <code>data:</code> URLs.</p> <h5 id="node-imports">
+<code>node:</code> imports
 </h5> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
 <tr>
 <th>Version</th>
@@ -148,31 +151,48 @@ import _ from 'data:application/json,"world!"';</pre> <h5 id="node:">
 </tr> <tr>
 <td>v14.13.1, v12.20.0</td> <td><p><span>Added in: v14.13.1, v12.20.0</span></p></td>
 </tr> </tbody>
-</table> </details> </div> <p><code>node:</code> URLs are supported as an alternative means to load Node.js builtin modules. This URL scheme allows for builtin modules to be referenced by valid absolute URL strings.</p> <pre data-language="js">import fs from 'node:fs/promises';</pre> </section><section><h3 id="builtin-modules">Builtin modules
-</h3> <p><a href="modules#core-modules">Core modules</a> provide named exports of their public API. A default export is also provided which is the value of the CommonJS exports. The default export can be used for, among other things, modifying the named exports. Named exports of builtin modules are updated only by calling <a href="module#modulesyncbuiltinesmexports"><code>module.syncBuiltinESMExports()</code></a>.</p> <pre data-language="js">import EventEmitter from 'events';
-const e = new EventEmitter();</pre> <pre data-language="js">import { readFile } from 'fs';
+</table> </details> </div> <p><code>node:</code> URLs are supported as an alternative means to load Node.js builtin modules. This URL scheme allows for builtin modules to be referenced by valid absolute URL strings.</p> <pre data-language="js">import fs from 'node:fs/promises';</pre> </section><section><h3 id="import-assertions">Import assertions
+</h3> <div class="api_metadata"> <span>Added in: v17.1.0, v16.14.0</span> </div> 
+<div class="api_stability api_stability_1">
+<a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
+ <p>The <a href="https://github.com/tc39/proposal-import-assertions">Import Assertions proposal</a> adds an inline syntax for module import statements to pass on more information alongside the module specifier.</p> <pre data-language="js">import fooData from './foo.json' assert { type: 'json' };
+
+const { default: barData } =
+  await import('./bar.json', { assert: { type: 'json' } });</pre> <p>Node.js supports the following <code>type</code> values, for which the assertion is mandatory:</p> <table>
+<thead><tr>
+<th>Assertion <code>type</code>
+</th>
+<th>Needed for</th>
+</tr></thead>
+<tbody><tr>
+<td><code>'json'</code></td>
+<td><a href="#json-modules">JSON modules</a></td>
+</tr></tbody>
+</table> </section><section><h3 id="builtin-modules">Builtin modules
+</h3> <p><a href="modules#core-modules">Core modules</a> provide named exports of their public API. A default export is also provided which is the value of the CommonJS exports. The default export can be used for, among other things, modifying the named exports. Named exports of builtin modules are updated only by calling <a href="module#modulesyncbuiltinesmexports"><code>module.syncBuiltinESMExports()</code></a>.</p> <pre data-language="js">import EventEmitter from 'node:events';
+const e = new EventEmitter();</pre> <pre data-language="js">import { readFile } from 'node:fs';
 readFile('./foo.txt', (err, source) =&gt; {
   if (err) {
     console.error(err);
   } else {
     console.log(source);
   }
-});</pre> <pre data-language="js">import fs, { readFileSync } from 'fs';
-import { syncBuiltinESMExports } from 'module';
-import { Buffer } from 'buffer';
+});</pre> <pre data-language="js">import fs, { readFileSync } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { Buffer } from 'node:buffer';
 
 fs.readFileSync = () =&gt; Buffer.from('Hello, ESM');
 syncBuiltinESMExports();
 
-fs.readFileSync === readFileSync;</pre> </section><section><h3 id="import()">
+fs.readFileSync === readFileSync;</pre> </section><section><h3 id="import-expressions">
 <code>import()</code> expressions
-</h3> <p><a href="https://wiki.developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import#Dynamic_Imports">Dynamic <code>import()</code></a> is supported in both CommonJS and ES modules. In CommonJS modules it can be used to load ES modules.</p> </section><section><h3 id="import.meta">
+</h3> <p><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import">Dynamic <code>import()</code></a> is supported in both CommonJS and ES modules. In CommonJS modules it can be used to load ES modules.</p> </section><section><h3 id="importmeta">
 <code>import.meta</code>
-</h3> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a></li> </ul> <p>The <code>import.meta</code> meta property is an <code>Object</code> that contains the following properties.</p> <h4 id="import.meta.url">
+</h3> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a></li> </ul> <p>The <code>import.meta</code> meta property is an <code>Object</code> that contains the following properties.</p> <h4 id="importmetaurl">
 <code>import.meta.url</code>
 </h4> <ul> <li>
-<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The absolute <code>file:</code> URL of the module.</li> </ul> <p>This is defined exactly the same as it is in browsers providing the URL of the current module file.</p> <p>This enables useful patterns such as relative file loading:</p> <pre data-language="js">import { readFileSync } from 'fs';
-const buffer = readFileSync(new URL('./data.proto', import.meta.url));</pre> <h4 id="import.meta.resolve()">
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The absolute <code>file:</code> URL of the module.</li> </ul> <p>This is defined exactly the same as it is in browsers providing the URL of the current module file.</p> <p>This enables useful patterns such as relative file loading:</p> <pre data-language="js">import { readFileSync } from 'node:fs';
+const buffer = readFileSync(new URL('./data.proto', import.meta.url));</pre> <h4 id="importmetaresolvespecifier-parent">
 <code>import.meta.resolve(specifier[, parent])</code>
 </h4>  
 <div class="api_stability api_stability_1">
@@ -181,7 +201,7 @@ const buffer = readFileSync(new URL('./data.proto', import.meta.url));</pre> <h4
 <code>specifier</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The module specifier to resolve relative to <code>parent</code>.</li> <li>
 <code>parent</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="url#the-whatwg-url-api" class="type">&lt;URL&gt;</a> The absolute parent module URL to resolve from. If none is specified, the value of <code>import.meta.url</code> is used as the default.</li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" class="type">&lt;Promise&gt;</a>
 </li> </ul> <p>Provides a module-relative resolution function scoped to each module, returning the URL string.</p>  <pre data-language="js">const dependencyAsset = await import.meta.resolve('component-lib/asset.css');</pre> <p><code>import.meta.resolve</code> also accepts a second argument which is the parent module from which to resolve from:</p>  <pre data-language="js">await import.meta.resolve('./dep', import.meta.url);</pre> <p>This function is asynchronous because the ES module resolver in Node.js is allowed to be asynchronous.</p> </section><section><h3 id="interoperability-with-commonjs">Interoperability with CommonJS
-</h3> <h4 id="import">
+</h3> <h4 id="import-statements">
 <code>import</code> statements
 </h4> <p>An <code>import</code> statement can reference an ES module or a CommonJS module. <code>import</code> statements are permitted only in ES modules, but dynamic <a href="#import-expressions"><code>import()</code></a> expressions are supported in CommonJS for loading ES modules.</p> <p>When importing <a href="#commonjs-namespaces">CommonJS modules</a>, the <code>module.exports</code> object is provided as the default export. Named exports may be available, provided by static analysis as a convenience for better ecosystem compatibility.</p> <h4 id="require">
 <code>require</code>
@@ -212,93 +232,157 @@ console.log(cjs);
 
 import * as m from './cjs.cjs';
 console.log(m);
-// Prints: [Module] { default: { name: 'exported' }, name: 'exported' }</pre> <p>As can be seen from the last example of the Module Namespace Exotic Object being logged, the <code>name</code> export is copied off of the <code>module.exports</code> object and set directly on the ES module namespace when the module is imported.</p> <p>Live binding updates or new exports added to <code>module.exports</code> are not detected for these named exports.</p> <p>The detection of named exports is based on common syntax patterns but does not always correctly detect named exports. In these cases, using the default import form described above can be a better option.</p> <p>Named exports detection covers many common export patterns, reexport patterns and build tool and transpiler outputs. See <a href="https://github.com/guybedford/cjs-module-lexer/tree/1.2.2">cjs-module-lexer</a> for the exact semantics implemented.</p> <h4 id="differences-between-es-modules-and-commonjs">Differences between ES modules and CommonJS
-</h4> <h5 id="module.exports">No <code>require</code>, <code>exports</code> or <code>module.exports</code>
-</h5> <p>In most cases, the ES module <code>import</code> can be used to load CommonJS modules.</p> <p>If needed, a <code>require</code> function can be constructed within an ES module using <a href="module#modulecreaterequirefilename"><code>module.createRequire()</code></a>.</p> <h5 id="__dirname">No <code>__filename</code> or <code>__dirname</code>
-</h5> <p>These CommonJS variables are not available in ES modules.</p> <p><code>__filename</code> and <code>__dirname</code> use cases can be replicated via <a href="#importmetaurl"><code>import.meta.url</code></a>.</p> <h5 id="no-json-module-loading">No JSON Module Loading
-</h5> <p>JSON imports are still experimental and only supported via the <code>--experimental-json-modules</code> flag.</p> <p>Local JSON files can be loaded relative to <code>import.meta.url</code> with <code>fs</code> directly:</p>  <pre data-language="js">import { readFile } from 'fs/promises';
-const json = JSON.parse(await readFile(new URL('./dat.json', import.meta.url)));</pre> <p>Alternatively <code>module.createRequire()</code> can be used.</p> <h5 id="no-native-module-loading">No Native Module Loading
-</h5> <p>Native modules are not currently supported with ES module imports.</p> <p>They can instead be loaded with <a href="module#modulecreaterequirefilename"><code>module.createRequire()</code></a> or <a href="process#processdlopenmodule-filename-flags"><code>process.dlopen</code></a>.</p> <h5 id="require.resolve">No <code>require.resolve</code>
-</h5> <p>Relative resolution can be handled via <code>new URL('./local', import.meta.url)</code>.</p> <p>For a complete <code>require.resolve</code> replacement, there is a flagged experimental <a href="#importmetaresolvespecifier-parent"><code>import.meta.resolve</code></a> API.</p> <p>Alternatively <code>module.createRequire()</code> can be used.</p> <h5 id="NODE_PATH">No <code>NODE_PATH</code>
-</h5> <p><code>NODE_PATH</code> is not part of resolving <code>import</code> specifiers. Please use symlinks if this behavior is desired.</p> <h5 id="require.extensions">No <code>require.extensions</code>
-</h5> <p><code>require.extensions</code> is not used by <code>import</code>. The expectation is that loader hooks can provide this workflow in the future.</p> <h5 id="require.cache">No <code>require.cache</code>
+// Prints: [Module] { default: { name: 'exported' }, name: 'exported' }</pre> <p>As can be seen from the last example of the Module Namespace Exotic Object being logged, the <code>name</code> export is copied off of the <code>module.exports</code> object and set directly on the ES module namespace when the module is imported.</p> <p>Live binding updates or new exports added to <code>module.exports</code> are not detected for these named exports.</p> <p>The detection of named exports is based on common syntax patterns but does not always correctly detect named exports. In these cases, using the default import form described above can be a better option.</p> <p>Named exports detection covers many common export patterns, reexport patterns and build tool and transpiler outputs. See <a href="https://github.com/nodejs/cjs-module-lexer/tree/1.2.2">cjs-module-lexer</a> for the exact semantics implemented.</p> <h4 id="differences-between-es-modules-and-commonjs">Differences between ES modules and CommonJS
+</h4> <h5 id="no-require-exports-or-moduleexports">No <code>require</code>, <code>exports</code>, or <code>module.exports</code>
+</h5> <p>In most cases, the ES module <code>import</code> can be used to load CommonJS modules.</p> <p>If needed, a <code>require</code> function can be constructed within an ES module using <a href="module#modulecreaterequirefilename"><code>module.createRequire()</code></a>.</p> <h5 id="no-__filename-or-__dirname">No <code>__filename</code> or <code>__dirname</code>
+</h5> <p>These CommonJS variables are not available in ES modules.</p> <p><code>__filename</code> and <code>__dirname</code> use cases can be replicated via <a href="#importmetaurl"><code>import.meta.url</code></a>.</p> <h5 id="no-native-module-loading">No Native Module Loading
+</h5> <p>Native modules are not currently supported with ES module imports.</p> <p>They can instead be loaded with <a href="module#modulecreaterequirefilename"><code>module.createRequire()</code></a> or <a href="process#processdlopenmodule-filename-flags"><code>process.dlopen</code></a>.</p> <h5 id="no-requireresolve">No <code>require.resolve</code>
+</h5> <p>Relative resolution can be handled via <code>new URL('./local', import.meta.url)</code>.</p> <p>For a complete <code>require.resolve</code> replacement, there is a flagged experimental <a href="#importmetaresolvespecifier-parent"><code>import.meta.resolve</code></a> API.</p> <p>Alternatively <code>module.createRequire()</code> can be used.</p> <h5 id="no-node_path">No <code>NODE_PATH</code>
+</h5> <p><code>NODE_PATH</code> is not part of resolving <code>import</code> specifiers. Please use symlinks if this behavior is desired.</p> <h5 id="no-requireextensions">No <code>require.extensions</code>
+</h5> <p><code>require.extensions</code> is not used by <code>import</code>. The expectation is that loader hooks can provide this workflow in the future.</p> <h5 id="no-requirecache">No <code>require.cache</code>
 </h5> <p><code>require.cache</code> is not used by <code>import</code> as the ES module loader has its own separate cache.</p>  </section><section><h3 id="json-modules">JSON modules
 </h3> 
 <div class="api_stability api_stability_1">
 <a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
- <p>Currently importing JSON modules are only supported in the <code>commonjs</code> mode and are loaded using the CJS loader. <a href="https://html.spec.whatwg.org/#creating-a-json-module-script">WHATWG JSON modules specification</a> are still being standardized, and are experimentally supported by including the additional flag <code>--experimental-json-modules</code> when running Node.js.</p> <p>When the <code>--experimental-json-modules</code> flag is included, both the <code>commonjs</code> and <code>module</code> mode use the new experimental JSON loader. The imported JSON only exposes a <code>default</code>. There is no support for named exports. A cache entry is created in the CommonJS cache to avoid duplication. The same object is returned in CommonJS if the JSON module has already been imported from the same path.</p> <p>Assuming an <code>index.mjs</code> with</p>  <pre data-language="js">import packageConfig from './package.json';</pre> <p>The <code>--experimental-json-modules</code> flag is needed for the module to work.</p> <pre data-language="js">node index.mjs # fails
-node --experimental-json-modules index.mjs # works</pre>  </section><section><h3 id="wasm-modules">Wasm modules
+ <p>JSON files can be referenced by <code>import</code>:</p> <pre data-language="js">import packageConfig from './package.json' assert { type: 'json' };</pre> <p>The <code>assert { type: 'json' }</code> syntax is mandatory; see <a href="#import-assertions">Import Assertions</a>.</p> <p>The imported JSON only exposes a <code>default</code> export. There is no support for named exports. A cache entry is created in the CommonJS cache to avoid duplication. The same object is returned in CommonJS if the JSON module has already been imported from the same path.</p>  </section><section><h3 id="wasm-modules">Wasm modules
 </h3> 
 <div class="api_stability api_stability_1">
 <a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
- <p>Importing Web Assembly modules is supported under the <code>--experimental-wasm-modules</code> flag, allowing any <code>.wasm</code> files to be imported as normal modules while also supporting their module imports.</p> <p>This integration is in line with the <a href="https://github.com/webassembly/esm-integration">ES Module Integration Proposal for Web Assembly</a>.</p> <p>For example, an <code>index.mjs</code> containing:</p> <pre data-language="js">import * as M from './module.wasm';
-console.log(M);</pre> <p>executed under:</p> <pre data-language="js">node --experimental-wasm-modules index.mjs</pre> <p>would provide the exports interface for the instantiation of <code>module.wasm</code>.</p>  </section><section><h3 id="await">Top-level <code>await</code>
-</h3> 
-<div class="api_stability api_stability_1">
-<a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
- <p>The <code>await</code> keyword may be used in the top level (outside of async functions) within modules as per the <a href="https://github.com/tc39/proposal-top-level-await/">ECMAScript Top-Level <code>await</code> proposal</a>.</p> <p>Assuming an <code>a.mjs</code> with</p>  <pre data-language="js">export const five = await Promise.resolve(5);</pre> <p>And a <code>b.mjs</code> with</p> <pre data-language="js">import { five } from './a.mjs';
+ <p>Importing WebAssembly modules is supported under the <code>--experimental-wasm-modules</code> flag, allowing any <code>.wasm</code> files to be imported as normal modules while also supporting their module imports.</p> <p>This integration is in line with the <a href="https://github.com/webassembly/esm-integration">ES Module Integration Proposal for WebAssembly</a>.</p> <p>For example, an <code>index.mjs</code> containing:</p> <pre data-language="js">import * as M from './module.wasm';
+console.log(M);</pre> <p>executed under:</p> <pre data-language="js">node --experimental-wasm-modules index.mjs</pre> <p>would provide the exports interface for the instantiation of <code>module.wasm</code>.</p>  </section><section><h3 id="top-level-await">Top-level <code>await</code>
+</h3> <div class="api_metadata"> <span>Added in: v14.8.0</span> </div> <p>The <code>await</code> keyword may be used in the top level body of an ECMAScript module.</p> <p>Assuming an <code>a.mjs</code> with</p> <pre data-language="js">export const five = await Promise.resolve(5);</pre> <p>And a <code>b.mjs</code> with</p> <pre data-language="js">import { five } from './a.mjs';
 
-console.log(five); // Logs `5`</pre> <pre data-language="js">node b.mjs # works</pre>  </section><section><h3 id="loaders">Loaders
+console.log(five); // Logs `5`</pre> <pre data-language="js">node b.mjs # works</pre> <p>If a top level <code>await</code> expression never resolves, the <code>node</code> process will exit with a <code>13</code> <a href="process#exit-codes">status code</a>.</p> <pre data-language="js">import { spawn } from 'node:child_process';
+import { execPath } from 'node:process';
+
+spawn(execPath, [
+  '--input-type=module',
+  '--eval',
+  // Never-resolving Promise:
+  'await new Promise(() =&gt; {})',
+]).once('exit', (code) =&gt; {
+  console.log(code); // Logs `13`
+});</pre> </section><section><h3 id="https-and-http-imports">HTTPS and HTTP imports
 </h3> 
 <div class="api_stability api_stability_1">
 <a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
- <p><strong>Note: This API is currently being redesigned and will still change.</strong></p> <p>To customize the default module resolution, loader hooks can optionally be provided via a <code>--experimental-loader ./loader-name.mjs</code> argument to Node.js.</p> <p>When hooks are used they only apply to ES module loading and not to any CommonJS modules loaded.</p> <h4 id="hooks">Hooks
-</h4> <h5 id="resolve()">
-<code>resolve(specifier, context, defaultResolve)</code>
-</h5> <blockquote> <p>Note: The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <ul> <li>
+ <p>Importing network based modules using <code>https:</code> and <code>http:</code> is supported under the <code>--experimental-network-imports</code> flag. This allows web browser-like imports to work in Node.js with a few differences due to application stability and security concerns that are different when running in a privileged environment instead of a browser sandbox.</p> <h4 id="imports-are-limited-to-http1">Imports are limited to HTTP/1
+</h4> <p>Automatic protocol negotiation for HTTP/2 and HTTP/3 is not yet supported.</p> <h4 id="http-is-limited-to-loopback-addresses">HTTP is limited to loopback addresses
+</h4> <p><code>http:</code> is vulnerable to man-in-the-middle attacks and is not allowed to be used for addresses outside of the IPv4 address <code>127.0.0.0/8</code> (<code>127.0.0.1</code> to <code>127.255.255.255</code>) and the IPv6 address <code>::1</code>. Support for <code>http:</code> is intended to be used for local development.</p> <h4 id="authentication-is-never-sent-to-the-destination-server">Authentication is never sent to the destination server.
+</h4> <p><code>Authorization</code>, <code>Cookie</code>, and <code>Proxy-Authorization</code> headers are not sent to the server. Avoid including user info in parts of imported URLs. A security model for safely using these on the server is being worked on.</p> <h4 id="cors-is-never-checked-on-the-destination-server">CORS is never checked on the destination server
+</h4> <p>CORS is designed to allow a server to limit the consumers of an API to a specific set of hosts. This is not supported as it does not make sense for a server-based implementation.</p> <h4 id="cannot-load-non-network-dependencies">Cannot load non-network dependencies
+</h4> <p>These modules cannot access other modules that are not over <code>http:</code> or <code>https:</code>. To still access local modules while avoiding the security concern, pass in references to the local dependencies:</p> <pre data-language="js">// file.mjs
+import worker_threads from 'node:worker_threads';
+import { configure, resize } from 'https://example.com/imagelib.mjs';
+configure({ worker_threads });</pre> <pre data-language="js">// https://example.com/imagelib.mjs
+let worker_threads;
+export function configure(opts) {
+  worker_threads = opts.worker_threads;
+}
+export function resize(img, size) {
+  // Perform resizing in worker_thread to avoid main thread blocking
+}</pre> <h4 id="network-based-loading-is-not-enabled-by-default">Network-based loading is not enabled by default
+</h4> <p>For now, the <code>--experimental-network-imports</code> flag is required to enable loading resources over <code>http:</code> or <code>https:</code>. In the future, a different mechanism will be used to enforce this. Opt-in is required to prevent transitive dependencies inadvertently using potentially mutable state that could affect reliability of Node.js applications.</p>  </section><section><h3 id="loaders">Loaders
+</h3> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v18.6.0, v16.17.0</td> <td><p>Add support for chaining loaders.</p></td>
+</tr> <tr>
+<td>v16.12.0</td> <td><p>Removed <code>getFormat</code>, <code>getSource</code>, <code>transformSource</code>, and <code>globalPreload</code>; added <code>load</code> hook and <code>getGlobalPreload</code> hook.</p></td>
+</tr> <tr>
+<td>v8.8.0</td> <td><p><span>Added in: v8.8.0</span></p></td>
+</tr> </tbody>
+</table> </details> </div> 
+<div class="api_stability api_stability_1">
+<a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
+ <blockquote> <p>This API is currently being redesigned and will still change.</p> </blockquote> <p>To customize the default module resolution, loader hooks can optionally be provided via a <code>--experimental-loader ./loader-name.mjs</code> argument to Node.js.</p> <p>When hooks are used they apply to the entry point and all <code>import</code> calls. They won't apply to <code>require</code> calls; those still follow <a href="modules">CommonJS</a> rules.</p> <p>Loaders follow the pattern of <code>--require</code>:</p> <pre data-language="js">node \
+  --experimental-loader unpkg \
+  --experimental-loader http-to-https \
+  --experimental-loader cache-buster</pre> <p>These are called in the following sequence: <code>cache-buster</code> calls <code>http-to-https</code> which calls <code>unpkg</code>.</p> <h4 id="hooks">Hooks
+</h4> <p>Hooks are part of a chain, even if that chain consists of only one custom (user-provided) hook and the default hook, which is always present. Hook functions nest: each one must always return a plain object, and chaining happens as a result of each function calling <code>next&lt;hookName&gt;()</code>, which is a reference to the subsequent loader's hook.</p> <p>A hook that returns a value lacking a required property triggers an exception. A hook that returns without calling <code>next&lt;hookName&gt;()</code> <em>and</em> without returning <code>shortCircuit: true</code> also triggers an exception. These errors are to help prevent unintentional breaks in the chain.</p> <h5 id="resolvespecifier-context-nextresolve">
+<code>resolve(specifier, context, nextResolve)</code>
+</h5> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v18.6.0, v16.17.0</td> <td><p>Add support for chaining resolve hooks. Each hook must either call <code>nextResolve()</code> or include a <code>shortCircuit</code> property set to <code>true</code> in its return.</p></td>
+</tr> <tr>
+<td>v17.1.0, v16.14.0</td> <td><p>Add support for import assertions.</p></td>
+</tr> </tbody>
+</table> </details> </div> <blockquote> <p>The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <ul> <li>
 <code>specifier</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
 </li> <li>
 <code>context</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
-<code>conditions</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string[]&gt;</a>
+<code>conditions</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string[]&gt;</a> Export conditions of the relevant <code>package.json</code>
 </li> <li>
-<code>parentURL</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a>
-</li> </ul> </li> <li>
-<code>defaultResolve</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a> The Node.js default resolver.</li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
-<code>format</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> <code>'builtin' | 'commonjs' | 'json' | 'module' | 'wasm'</code>
+<code>importAssertions</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a>
 </li> <li>
-<code>url</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The absolute url to the import target (such as <code>file://…</code>)</li> </ul> </li> </ul> <p>The <code>resolve</code> hook returns the resolved file URL for a given module specifier and parent URL, and optionally its format (such as <code>'module'</code>) as a hint to the <code>load</code> hook. If a format is specified, the <code>load</code> hook is ultimately responsible for providing the final <code>format</code> value (and it is free to ignore the hint provided by <code>resolve</code>); if <code>resolve</code> provides a <code>format</code>, a custom <code>load</code> hook is required even if only to pass the value to the Node.js default <code>load</code> hook.</p> <p>The module specifier is the string in an <code>import</code> statement or <code>import()</code> expression, and the parent URL is the URL of the module that imported this one, or <code>undefined</code> if this is the main entry point for the application.</p> <p>The <code>conditions</code> property in <code>context</code> is an array of conditions for <a href="packages#conditional-exports">package exports conditions</a> that apply to this resolution request. They can be used for looking up conditional mappings elsewhere or to modify the list when calling the default resolution logic.</p> <p>The current <a href="packages#conditional-exports">package exports conditions</a> are always in the <code>context.conditions</code> array passed into the hook. To guarantee <em>default Node.js module specifier resolution behavior</em> when calling <code>defaultResolve</code>, the <code>context.conditions</code> array passed to it <em>must</em> include <em>all</em> elements of the <code>context.conditions</code> array originally passed into the <code>resolve</code> hook.</p> <pre data-language="js">/**
- * @param {string} specifier
- * @param {{
- *   conditions: !Array&lt;string&gt;,
- *   parentURL: !(string | undefined),
- * }} context
- * @param {Function} defaultResolve
- * @returns {Promise&lt;{ url: string }&gt;}
- */
-export async function resolve(specifier, context, defaultResolve) {
+<code>parentURL</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> The module importing this one, or undefined if this is the Node.js entry point</li> </ul> </li> <li>
+<code>nextResolve</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a> The subsequent <code>resolve</code> hook in the chain, or the Node.js default <code>resolve</code> hook after the last user-supplied <code>resolve</code> hook <ul> <li>
+<code>specifier</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
+</li> <li>
+<code>context</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a>
+</li> </ul> </li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
+<code>format</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> A hint to the load hook (it might be ignored) <code>'builtin' | 'commonjs' | 'json' | 'module' | 'wasm'</code>
+</li> <li>
+<code>shortCircuit</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> A signal that this hook intends to terminate the chain of <code>resolve</code> hooks. <strong>Default:</strong> <code>false</code>
+</li> <li>
+<code>url</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The absolute URL to which this input resolves</li> </ul> </li> </ul> <p>The <code>resolve</code> hook chain is responsible for resolving file URL for a given module specifier and parent URL, and optionally its format (such as <code>'module'</code>) as a hint to the <code>load</code> hook. If a format is specified, the <code>load</code> hook is ultimately responsible for providing the final <code>format</code> value (and it is free to ignore the hint provided by <code>resolve</code>); if <code>resolve</code> provides a <code>format</code>, a custom <code>load</code> hook is required even if only to pass the value to the Node.js default <code>load</code> hook.</p> <p>The module specifier is the string in an <code>import</code> statement or <code>import()</code> expression.</p> <p>The parent URL is the URL of the module that imported this one, or <code>undefined</code> if this is the main entry point for the application.</p> <p>The <code>conditions</code> property in <code>context</code> is an array of conditions for <a href="packages#conditional-exports">package exports conditions</a> that apply to this resolution request. They can be used for looking up conditional mappings elsewhere or to modify the list when calling the default resolution logic.</p> <p>The current <a href="packages#conditional-exports">package exports conditions</a> are always in the <code>context.conditions</code> array passed into the hook. To guarantee <em>default Node.js module specifier resolution behavior</em> when calling <code>defaultResolve</code>, the <code>context.conditions</code> array passed to it <em>must</em> include <em>all</em> elements of the <code>context.conditions</code> array originally passed into the <code>resolve</code> hook.</p> <pre data-language="js">export async function resolve(specifier, context, nextResolve) {
   const { parentURL = null } = context;
+
   if (Math.random() &gt; 0.5) { // Some condition.
     // For some or all specifiers, do some custom logic for resolving.
     // Always return an object of the form {url: &lt;string&gt;}.
     return {
+      shortCircuit: true,
       url: parentURL ?
         new URL(specifier, parentURL).href :
         new URL(specifier).href,
     };
   }
+
   if (Math.random() &lt; 0.5) { // Another condition.
     // When calling `defaultResolve`, the arguments can be modified. In this
     // case it's adding another value for matching conditional exports.
-    return defaultResolve(specifier, {
+    return nextResolve(specifier, {
       ...context,
       conditions: [...context.conditions, 'another-condition'],
     });
   }
-  // Defer to Node.js for all other specifiers.
-  return defaultResolve(specifier, context, defaultResolve);
-}</pre> <h5 id="load()">
-<code>load(url, context, defaultLoad)</code>
-</h5> <blockquote> <p>Note: The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <blockquote> <p>Note: In a previous version of this API, this was split across 3 separate, now deprecated, hooks (<code>getFormat</code>, <code>getSource</code>, and <code>transformSource</code>).</p> </blockquote> <ul> <li>
-<code>url</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
-</li> <li>
+
+  // Defer to the next hook in the chain, which would be the
+  // Node.js default resolve if this is the last user-specified loader.
+  return nextResolve(specifier);
+}</pre> <h5 id="loadurl-context-nextload">
+<code>load(url, context, nextLoad)</code>
+</h5> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v18.6.0, v16.17.0</td> <td><p>Add support for chaining load hooks. Each hook must either call <code>nextLoad()</code> or include a <code>shortCircuit</code> property set to <code>true</code> in its return.</p></td>
+</tr> </tbody>
+</table> </details> </div> <blockquote> <p>The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <blockquote> <p>In a previous version of this API, this was split across 3 separate, now deprecated, hooks (<code>getFormat</code>, <code>getSource</code>, and <code>transformSource</code>).</p> </blockquote> <ul> <li>
+<code>url</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> The URL returned by the <code>resolve</code> chain</li> <li>
 <code>context</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
-<code>format</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> The format optionally supplied by the <code>resolve</code> hook.</li> </ul> </li> <li>
-<code>defaultLoad</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a>
-</li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
+<code>conditions</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string[]&gt;</a> Export conditions of the relevant <code>package.json</code>
+</li> <li>
+<code>format</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Null_type" class="type">&lt;null&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> The format optionally supplied by the <code>resolve</code> hook chain</li> <li>
+<code>importAssertions</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a>
+</li> </ul> </li> <li>
+<code>nextLoad</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a> The subsequent <code>load</code> hook in the chain, or the Node.js default <code>load</code> hook after the last user-supplied <code>load</code> hook <ul> <li>
+<code>specifier</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
+</li> <li>
+<code>context</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a>
+</li> </ul> </li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> <ul> <li>
 <code>format</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
 </li> <li>
-<code>source</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer" class="type">&lt;ArrayBuffer&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray" class="type">&lt;TypedArray&gt;</a>
-</li> </ul> </li> </ul> <p>The <code>load</code> hook provides a way to define a custom method of determining how a URL should be interpreted, retrieved, and parsed.</p> <p>The final value of <code>format</code> must be one of the following:</p> <table>
+<code>shortCircuit</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Undefined_type" class="type">&lt;undefined&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Boolean_type" class="type">&lt;boolean&gt;</a> A signal that this hook intends to terminate the chain of <code>resolve</code> hooks. <strong>Default:</strong> <code>false</code>
+</li> <li>
+<code>source</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer" class="type">&lt;ArrayBuffer&gt;</a> | <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray" class="type">&lt;TypedArray&gt;</a> The source for Node.js to evaluate</li> </ul> </li> </ul> <p>The <code>load</code> hook provides a way to define a custom method of determining how a URL should be interpreted, retrieved, and parsed. It is also in charge of validating the import assertion.</p> <p>The final value of <code>format</code> must be one of the following:</p> <table>
 <thead><tr>
 <th><code>format</code></th>
 <th>Description</th>
@@ -332,20 +416,10 @@ export async function resolve(specifier, context, defaultResolve) {
 <td>{ <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer"><code>ArrayBuffer</code></a>, <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"><code>TypedArray</code></a> }</td>
 </tr>
 </tbody>
-</table> <p>The value of <code>source</code> is ignored for type <code>'builtin'</code> because currently it is not possible to replace the value of a Node.js builtin (core) module. The value of <code>source</code> is ignored for type <code>'commonjs'</code> because the CommonJS module loader does not provide a mechanism for the ES module loader to override the <a href="#commonjs-namespaces">CommonJS module return value</a>. This limitation might be overcome in the future.</p> <blockquote> <p><strong>Caveat</strong>: The ESM <code>load</code> hook and namespaced exports from CommonJS modules are incompatible. Attempting to use them together will result in an empty object from the import. This may be addressed in the future.</p> </blockquote> <blockquote> <p>Note: These types all correspond to classes defined in ECMAScript.</p> </blockquote> <ul> <li>The specific <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer"><code>ArrayBuffer</code></a> object is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer"><code>SharedArrayBuffer</code></a>.</li> <li>The specific <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"><code>TypedArray</code></a> object is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array"><code>Uint8Array</code></a>.</li> </ul> <p>If the source value of a text-based format (i.e., <code>'json'</code>, <code>'module'</code>) is not a string, it is converted to a string using <a href="util#class-utiltextdecoder"><code>util.TextDecoder</code></a>.</p> <p>The <code>load</code> hook provides a way to define a custom method for retrieving the source code of an ES module specifier. This would allow a loader to potentially avoid reading files from disk. It could also be used to map an unrecognized format to a supported one, for example <code>yaml</code> to <code>module</code>.</p> <pre data-language="js">/**
- * @param {string} url
- * @param {{
-    format: string,
-  }} context If resolve settled with a `format`, that value is included here.
- * @param {Function} defaultLoad
- * @returns {Promise&lt;{
-    format: !string,
-    source: !(string | ArrayBuffer | SharedArrayBuffer | Uint8Array),
-  }&gt;}
- */
-export async function load(url, context, defaultLoad) {
+</table> <p>The value of <code>source</code> is ignored for type <code>'builtin'</code> because currently it is not possible to replace the value of a Node.js builtin (core) module. The value of <code>source</code> is ignored for type <code>'commonjs'</code> because the CommonJS module loader does not provide a mechanism for the ES module loader to override the <a href="#commonjs-namespaces">CommonJS module return value</a>. This limitation might be overcome in the future.</p> <blockquote> <p><strong>Caveat</strong>: The ESM <code>load</code> hook and namespaced exports from CommonJS modules are incompatible. Attempting to use them together will result in an empty object from the import. This may be addressed in the future.</p> </blockquote> <blockquote> <p>These types all correspond to classes defined in ECMAScript.</p> </blockquote> <ul> <li>The specific <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer"><code>ArrayBuffer</code></a> object is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer"><code>SharedArrayBuffer</code></a>.</li> <li>The specific <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"><code>TypedArray</code></a> object is a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array"><code>Uint8Array</code></a>.</li> </ul> <p>If the source value of a text-based format (i.e., <code>'json'</code>, <code>'module'</code>) is not a string, it is converted to a string using <a href="util#class-utiltextdecoder"><code>util.TextDecoder</code></a>.</p> <p>The <code>load</code> hook provides a way to define a custom method for retrieving the source code of an ES module specifier. This would allow a loader to potentially avoid reading files from disk. It could also be used to map an unrecognized format to a supported one, for example <code>yaml</code> to <code>module</code>.</p> <pre data-language="js">export async function load(url, context, nextLoad) {
   const { format } = context;
-  if (Math.random() &gt; 0.5) { // Some condition.
+
+  if (Math.random() &gt; 0.5) { // Some condition
     /*
       For some or all URLs, do some custom logic for retrieving the source.
       Always return an object of the form {
@@ -355,18 +429,26 @@ export async function load(url, context, defaultLoad) {
     */
     return {
       format,
+      shortCircuit: true,
       source: '...',
     };
   }
-  // Defer to Node.js for all other URLs.
-  return defaultLoad(url, context, defaultLoad);
-}</pre> <p>In a more advanced scenario, this can also be used to transform an unsupported source to a supported one (see <a href="#examples">Examples</a> below).</p> <h5 id="globalPreload()">
+
+  // Defer to the next hook in the chain.
+  return nextLoad(url);
+}</pre> <p>In a more advanced scenario, this can also be used to transform an unsupported source to a supported one (see <a href="#examples">Examples</a> below).</p> <h5 id="globalpreload">
 <code>globalPreload()</code>
-</h5> <blockquote> <p>Note: The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <blockquote> <p>Note: In a previous version of this API, this hook was named <code>getGlobalPreloadCode</code>.</p> </blockquote> <ul> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a>
-</li> </ul> <p>Sometimes it might be necessary to run some code inside of the same global scope that the application runs in. This hook allows the return of a string that is run as a sloppy-mode script on startup.</p> <p>Similar to how CommonJS wrappers work, the code runs in an implicit function scope. The only argument is a <code>require</code>-like function that can be used to load builtins like "fs": <code>getBuiltin(request: string)</code>.</p> <p>If the code needs more advanced <code>require</code> features, it has to construct its own <code>require</code> using <code>module.createRequire()</code>.</p> <pre data-language="js">/**
- * @returns {string} Code to run before application startup
- */
-export function globalPreload() {
+</h5> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v18.6.0, v16.17.0</td> <td><p>Add support for chaining globalPreload hooks.</p></td>
+</tr> </tbody>
+</table> </details> </div> <blockquote> <p>The loaders API is being redesigned. This hook may disappear or its signature may change. Do not rely on the API described below.</p> </blockquote> <blockquote> <p>In a previous version of this API, this hook was named <code>getGlobalPreloadCode</code>.</p> </blockquote> <ul> <li>
+<code>context</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object" class="type">&lt;Object&gt;</a> Information to assist the preload code <ul> <li>
+<code>port</code> <a href="worker_threads#class-messageport" class="type">&lt;MessagePort&gt;</a>
+</li> </ul> </li> <li>Returns: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> Code to run before application startup</li> </ul> <p>Sometimes it might be necessary to run some code inside of the same global scope that the application runs in. This hook allows the return of a string that is run as a sloppy-mode script on startup.</p> <p>Similar to how CommonJS wrappers work, the code runs in an implicit function scope. The only argument is a <code>require</code>-like function that can be used to load builtins like "fs": <code>getBuiltin(request: string)</code>.</p> <p>If the code needs more advanced <code>require</code> features, it has to construct its own <code>require</code> using <code>module.createRequire()</code>.</p> <pre data-language="js">export function globalPreload(context) {
   return `\
 globalThis.someInjectedProperty = 42;
 console.log('I just set some globals!');
@@ -377,12 +459,26 @@ const { cwd } = getBuiltin('process');
 const require = createRequire(cwd() + '/&lt;preload&gt;');
 // [...]
 `;
+}</pre> <p>In order to allow communication between the application and the loader, another argument is provided to the preload code: <code>port</code>. This is available as a parameter to the loader hook and inside of the source text returned by the hook. Some care must be taken in order to properly call <a href="https://nodejs.org/dist/latest-v17.x/docs/api/worker_threads.html#portref"><code>port.ref()</code></a> and <a href="https://nodejs.org/dist/latest-v17.x/docs/api/worker_threads.html#portunref"><code>port.unref()</code></a> to prevent a process from being in a state where it won't close normally.</p> <pre data-language="js">/**
+ * This example has the application context send a message to the loader
+ * and sends the message back to the application context
+ */
+export function globalPreload({ port }) {
+  port.onmessage = (evt) =&gt; {
+    port.postMessage(evt.data);
+  };
+  return `\
+    port.postMessage('console.log("I went to the Loader and back");');
+    port.onmessage = (evt) =&gt; {
+      eval(evt.data);
+    };
+  `;
 }</pre> <h4 id="examples">Examples
-</h4> <p>The various loader hooks can be used together to accomplish wide-ranging customizations of Node.js’ code loading and evaluation behaviors.</p> <h5 id="https-loader">HTTPS loader
-</h5> <p>In current Node.js, specifiers starting with <code>https://</code> are unsupported. The loader below registers hooks to enable rudimentary support for such specifiers. While this may seem like a significant improvement to Node.js core functionality, there are substantial downsides to actually using this loader: performance is much slower than loading files from disk, there is no caching, and there is no security.</p> <pre data-language="js">// https-loader.mjs
-import { get } from 'https';
+</h4> <p>The various loader hooks can be used together to accomplish wide-ranging customizations of the Node.js code loading and evaluation behaviors.</p> <h5 id="https-loader">HTTPS loader
+</h5> <p>In current Node.js, specifiers starting with <code>https://</code> are experimental (see <a href="#https-and-http-imports">HTTPS and HTTP imports</a>).</p> <p>The loader below registers hooks to enable rudimentary support for such specifiers. While this may seem like a significant improvement to Node.js core functionality, there are substantial downsides to actually using this loader: performance is much slower than loading files from disk, there is no caching, and there is no security.</p> <pre data-language="js">// https-loader.mjs
+import { get } from 'node:https';
 
-export function resolve(specifier, context, defaultResolve) {
+export function resolve(specifier, context, nextResolve) {
   const { parentURL = null } = context;
 
   // Normally Node.js would error on specifiers starting with 'https://', so
@@ -390,19 +486,21 @@ export function resolve(specifier, context, defaultResolve) {
   // passed along to the later hooks below.
   if (specifier.startsWith('https://')) {
     return {
+      shortCircuit: true,
       url: specifier
     };
   } else if (parentURL &amp;&amp; parentURL.startsWith('https://')) {
     return {
-      url: new URL(specifier, parentURL).href
+      shortCircuit: true,
+      url: new URL(specifier, parentURL).href,
     };
   }
 
   // Let Node.js handle all other specifiers.
-  return defaultResolve(specifier, context, defaultResolve);
+  return nextResolve(specifier);
 }
 
-export function load(url, context, defaultLoad) {
+export function load(url, context, nextLoad) {
   // For JavaScript to be loaded over the network, we need to fetch and
   // return it.
   if (url.startsWith('https://')) {
@@ -414,6 +512,7 @@ export function load(url, context, defaultLoad) {
           // This example assumes all network-provided JavaScript is ES module
           // code.
           format: 'module',
+          shortCircuit: true,
           source: data,
         }));
       }).on('error', (err) =&gt; reject(err));
@@ -421,47 +520,46 @@ export function load(url, context, defaultLoad) {
   }
 
   // Let Node.js handle all other URLs.
-  return defaultLoad(url, context, defaultLoad);
+  return nextLoad(url);
 }</pre> <pre data-language="js">// main.mjs
 import { VERSION } from 'https://coffeescript.org/browser-compiler-modern/coffeescript.js';
 
 console.log(VERSION);</pre> <p>With the preceding loader, running <code>node --experimental-loader ./https-loader.mjs ./main.mjs</code> prints the current version of CoffeeScript per the module at the URL in <code>main.mjs</code>.</p> <h5 id="transpiler-loader">Transpiler loader
-</h5> <p>Sources that are in formats Node.js doesn’t understand can be converted into JavaScript using the <a href="#loadurl-context-defaultload"><code>load</code> hook</a>. Before that hook gets called, however, a <a href="#resolvespecifier-context-defaultresolve"><code>resolve</code> hook</a> hook needs to tell Node.js not to throw an error on unknown file types.</p> <p>This is less performant than transpiling source files before running Node.js; a transpiler loader should only be used for development and testing purposes.</p> <pre data-language="js">// coffeescript-loader.mjs
-import { readFile } from 'fs/promises';
-import { readFileSync } from 'fs';
-import { createRequire } from 'module';
-import { dirname, extname, resolve as resolvePath } from 'path';
-import { cwd } from 'process';
-import { fileURLToPath, pathToFileURL } from 'url';
-
+</h5> <p>Sources that are in formats Node.js doesn't understand can be converted into JavaScript using the <a href="#loadurl-context-nextload"><code>load</code> hook</a>. Before that hook gets called, however, a <a href="#resolvespecifier-context-nextresolve"><code>resolve</code> hook</a> needs to tell Node.js not to throw an error on unknown file types.</p> <p>This is less performant than transpiling source files before running Node.js; a transpiler loader should only be used for development and testing purposes.</p> <pre data-language="js">// coffeescript-loader.mjs
+import { readFile } from 'node:fs/promises';
+import { dirname, extname, resolve as resolvePath } from 'node:path';
+import { cwd } from 'node:process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import CoffeeScript from 'coffeescript';
 
-const baseURL = pathToFileURL(`${cwd}/`).href;
+const baseURL = pathToFileURL(`${cwd()}/`).href;
 
-// CoffeeScript files end in .coffee, .litcoffee or .coffee.md.
+// CoffeeScript files end in .coffee, .litcoffee, or .coffee.md.
 const extensionsRegex = /\.coffee$|\.litcoffee$|\.coffee\.md$/;
 
-export async function resolve(specifier, context, defaultResolve) {
-  const { parentURL = baseURL } = context;
-
-  // Node.js normally errors on unknown file extensions, so return a URL for
-  // specifiers ending in the CoffeeScript file extensions.
+export async function resolve(specifier, context, nextResolve) {
   if (extensionsRegex.test(specifier)) {
+    const { parentURL = baseURL } = context;
+
+    // Node.js normally errors on unknown file extensions, so return a URL for
+    // specifiers ending in the CoffeeScript file extensions.
     return {
+      shortCircuit: true,
       url: new URL(specifier, parentURL).href
     };
   }
 
   // Let Node.js handle all other specifiers.
-  return defaultResolve(specifier, context, defaultResolve);
+  return nextResolve(specifier);
 }
 
-export async function load(url, context, defaultLoad) {
-  // Now that we patched resolve to let CoffeeScript URLs through, we need to
-  // tell Node.js what format such URLs should be interpreted as. Because
-  // CoffeeScript transpiles into JavaScript, it should be one of the two
-  // JavaScript formats: 'commonjs' or 'module'.
+export async function load(url, context, nextLoad) {
   if (extensionsRegex.test(url)) {
+    // Now that we patched resolve to let CoffeeScript URLs through, we need to
+    // tell Node.js what format such URLs should be interpreted as. Because
+    // CoffeeScript transpiles into JavaScript, it should be one of the two
+    // JavaScript formats: 'commonjs' or 'module'.
+
     // CoffeeScript files can be either CommonJS or ES modules, so we want any
     // CoffeeScript file to be treated by Node.js the same as a .js file at the
     // same location. To determine how Node.js would interpret an arbitrary .js
@@ -474,25 +572,26 @@ export async function load(url, context, defaultLoad) {
     // loader. Avoiding the need for a separate CommonJS handler is a future
     // enhancement planned for ES module loaders.
     if (format === 'commonjs') {
-      return { format };
+      return {
+        format,
+        shortCircuit: true,
+      };
     }
 
-    const { source: rawSource } = await defaultLoad(url, { format });
+    const { source: rawSource } = await nextLoad(url, { ...context, format });
     // This hook converts CoffeeScript source code into JavaScript source code
     // for all imported CoffeeScript files.
-    const transformedSource = CoffeeScript.compile(rawSource.toString(), {
-      bare: true,
-      filename: url,
-    });
+    const transformedSource = coffeeCompile(rawSource.toString(), url);
 
     return {
       format,
+      shortCircuit: true,
       source: transformedSource,
     };
   }
 
   // Let Node.js handle all other URLs.
-  return defaultLoad(url, context, defaultLoad);
+  return nextLoad(url);
 }
 
 async function getPackageType(url) {
@@ -502,7 +601,7 @@ async function getPackageType(url) {
   // required by the spec
   // this simple truthy check for whether `url` contains a file extension will
   // work for most projects but does not cover some edge-cases (such as
-  // extension-less files or a url ending in a trailing space)
+  // extensionless files or a url ending in a trailing space)
   const isFilePath = !!extname(url);
   // If it is a file path, get the directory it's in
   const dir = isFilePath ?
@@ -526,7 +625,7 @@ async function getPackageType(url) {
 import { scream } from './scream.coffee'
 console.log scream 'hello, world'
 
-import { version } from 'process'
+import { version } from 'node:process'
 console.log "Brought to you by Node.js version #{version}"</pre> <pre data-language="js"># scream.coffee
 export scream = (str) -&gt; str.toUpperCase()</pre> <p>With the preceding loader, running <code>node --experimental-loader ./coffeescript-loader.mjs main.coffee</code> causes <code>main.coffee</code> to be turned into JavaScript after its source code is loaded from disk but before Node.js executes it; and so on for any <code>.coffee</code>, <code>.litcoffee</code> or <code>.coffee.md</code> files referenced via <code>import</code> statements of any loaded file.</p> </section><section><h3 id="resolution-algorithm">Resolution algorithm
 </h3> <h4 id="features">Features
@@ -539,16 +638,8 @@ export scream = (str) -&gt; str.toUpperCase()</pre> <p>With the preceding loader
 <em>Package Import Not Defined</em>: Package imports do not define the specifier.</li> <li>
 <em>Module Not Found</em>: The package or module requested does not exist.</li> <li>
 <em>Unsupported Directory Import</em>: The resolved path corresponds to a directory, which is not a supported target for module imports.</li> </ul> <h4 id="resolver-algorithm-specification">Resolver Algorithm Specification
-</h4> <p><strong>ESM_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>resolved</em> be <strong>undefined</strong>.</li> <li>If <em>specifier</em> is a valid URL, then <ol> <li>Set <em>resolved</em> to the result of parsing and reserializing <em>specifier</em> as a URL.</li> </ol> </li> <li>Otherwise, if <em>specifier</em> starts with <em>"/"</em>, <em>"./"</em> or <em>"../"</em>, then <ol> <li>Set <em>resolved</em> to the URL resolution of <em>specifier</em> relative to <em>parentURL</em>.</li> </ol> </li> <li>Otherwise, if <em>specifier</em> starts with <em>"#"</em>, then <ol> <li>Set <em>resolved</em> to the result of <strong>PACKAGE_IMPORTS_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, <ol> <li>Note: <em>specifier</em> is now a bare specifier.</li> <li>Set <em>resolved</em> the result of <strong>PACKAGE_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>).</li> </ol> </li> <li>If <em>resolved</em> contains any percent encodings of <em>"/"</em> or <em>"\"</em> (<em>"%2f"</em> and <em>"%5C"</em> respectively), then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>If the file at <em>resolved</em> is a directory, then <ol> <li>Throw an <em>Unsupported Directory Import</em> error.</li> </ol> </li> <li>If the file at <em>resolved</em> does not exist, then <ol> <li>Throw a <em>Module Not Found</em> error.</li> </ol> </li> <li>Set <em>resolved</em> to the real path of <em>resolved</em>.</li> <li>Let <em>format</em> be the result of <strong>ESM_FORMAT</strong>(<em>resolved</em>).</li> <li>Load <em>resolved</em> as module format, <em>format</em>.</li> <li>Return <em>resolved</em>.</li> </ol> </blockquote> <p><strong>PACKAGE_RESOLVE</strong>(<em>packageSpecifier</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>packageName</em> be <strong>undefined</strong>.</li> <li>If <em>packageSpecifier</em> is an empty string, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>If <em>packageSpecifier</em> does not start with <em>"@"</em>, then <ol> <li>Set <em>packageName</em> to the substring of <em>packageSpecifier</em> until the first <em>"/"</em> separator or the end of the string.</li> </ol> </li> <li>Otherwise, <ol> <li>If <em>packageSpecifier</em> does not contain a <em>"/"</em> separator, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Set <em>packageName</em> to the substring of <em>packageSpecifier</em> until the second <em>"/"</em> separator or the end of the string.</li> </ol> </li> <li>If <em>packageName</em> starts with <em>"."</em> or contains <em>"\"</em> or <em>"%"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>packageSubpath</em> be <em>"."</em> concatenated with the substring of <em>packageSpecifier</em> from the position at the length of <em>packageName</em>.</li> <li>If <em>packageSubpath</em> ends in <em>"/"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>selfUrl</em> be the result of <strong>PACKAGE_SELF_RESOLVE</strong>(<em>packageName</em>, <em>packageSubpath</em>, <em>parentURL</em>).</li> <li>If <em>selfUrl</em> is not <strong>undefined</strong>, return <em>selfUrl</em>.</li> <li>If <em>packageSubpath</em> is <em>"."</em> and <em>packageName</em> is a Node.js builtin module, then <ol> <li>Return the string <em>"node:"</em> concatenated with <em>packageSpecifier</em>.</li> </ol> </li> <li>While <em>parentURL</em> is not the file system root, <ol> <li>Let <em>packageURL</em> be the URL resolution of <em>"node_modules/"</em> concatenated with <em>packageSpecifier</em>, relative to <em>parentURL</em>.</li> <li>Set <em>parentURL</em> to the parent folder URL of <em>parentURL</em>.</li> <li>If the folder at <em>packageURL</em> does not exist, then <ol> <li>Continue the next loop iteration.</li> </ol> </li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson</em> is not <strong>null</strong> and <em>pjson</em>.<em>exports</em> is not <strong>null</strong> or <strong>undefined</strong>, then <ol> <li>Return the result of <strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>packageSubpath</em>, <em>pjson.exports</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, if <em>packageSubpath</em> is equal to <em>"."</em>, then <ol> <li>If <em>pjson.main</em> is a string, then <ol> <li>Return the URL resolution of <em>main</em> in <em>packageURL</em>.</li> </ol> </li> </ol> </li> <li>Otherwise, <ol> <li>Return the URL resolution of <em>packageSubpath</em> in <em>packageURL</em>.</li> </ol> </li> </ol> </li> <li>Throw a <em>Module Not Found</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_SELF_RESOLVE</strong>(<em>packageName</em>, <em>packageSubpath</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>packageURL</em> be the result of <strong>READ_PACKAGE_SCOPE</strong>(<em>parentURL</em>).</li> <li>If <em>packageURL</em> is <strong>null</strong>, then <ol> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson</em> is <strong>null</strong> or if <em>pjson</em>.<em>exports</em> is <strong>null</strong> or <strong>undefined</strong>, then <ol> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>If <em>pjson.name</em> is equal to <em>packageName</em>, then <ol> <li>Return the result of <strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>packageSubpath</em>, <em>pjson.exports</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, return <strong>undefined</strong>.</li> </ol> </blockquote> <p><strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>subpath</em>, <em>exports</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>exports</em> is an Object with both a key starting with <em>"."</em> and a key not starting with <em>"."</em>, throw an <em>Invalid Package Configuration</em> error.</li> <li>If <em>subpath</em> is equal to <em>"."</em>, then <ol> <li>Let <em>mainExport</em> be <strong>undefined</strong>.</li> <li>If <em>exports</em> is a String or Array, or an Object containing no keys starting with <em>"."</em>, then <ol> <li>Set <em>mainExport</em> to <em>exports</em>.</li> </ol> </li> <li>Otherwise if <em>exports</em> is an Object containing a <em>"."</em> property, then <ol> <li>Set <em>mainExport</em> to <em>exports</em>[<em>"."</em>].</li> </ol> </li> <li>If <em>mainExport</em> is not <strong>undefined</strong>, then <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>mainExport</em>, <em>""</em>, <strong>false</strong>, <strong>false</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Otherwise, if <em>exports</em> is an Object and all keys of <em>exports</em> start with <em>"."</em>, then <ol> <li>Let <em>matchKey</em> be the string <em>"./"</em> concatenated with <em>subpath</em>.</li> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>( <em>matchKey</em>, <em>exports</em>, <em>packageURL</em>, <strong>false</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> <li>Throw a <em>Package Path Not Exported</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_IMPORTS_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>Assert: <em>specifier</em> begins with <em>"#"</em>.</li> <li>If <em>specifier</em> is exactly equal to <em>"#"</em> or starts with <em>"#/"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>packageURL</em> be the result of <strong>READ_PACKAGE_SCOPE</strong>(<em>parentURL</em>).</li> <li>If <em>packageURL</em> is not <strong>null</strong>, then <ol> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson.imports</em> is a non-null Object, then <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>( <em>specifier</em>, <em>pjson.imports</em>, <em>packageURL</em>, <strong>true</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Throw a <em>Package Import Not Defined</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>(<em>matchKey</em>, <em>matchObj</em>, <em>packageURL</em>, <em>isImports</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>matchKey</em> is a key of <em>matchObj</em> and does not contain <em>"*"</em>, then <ol> <li>Let <em>target</em> be the value of <em>matchObj</em>[<em>matchKey</em>].</li> <li>Return the result of <strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <em>""</em>, <strong>false</strong>, <em>isImports</em>, <em>conditions</em>).</li> </ol> </li> <li>Let <em>expansionKeys</em> be the list of keys of <em>matchObj</em> containing only a single <em>"*"</em>, sorted by the sorting function <strong>PATTERN_KEY_COMPARE</strong> which orders in descending order of specificity.</li> <li>For each key <em>expansionKey</em> in <em>expansionKeys</em>, do <ol> <li>Let <em>patternBase</em> be the substring of <em>expansionKey</em> up to but excluding the first <em>"*"</em> character.</li> <li>If <em>matchKey</em> starts with but is not equal to <em>patternBase</em>, then <ol> <li>Let <em>patternTrailer</em> be the substring of <em>expansionKey</em> from the index after the first <em>"*"</em> character.</li> <li>If <em>patternTrailer</em> has zero length, or if <em>matchKey</em> ends with <em>patternTrailer</em> and the length of <em>matchKey</em> is greater than or equal to the length of <em>expansionKey</em>, then <ol> <li>Let <em>target</em> be the value of <em>matchObj</em>[<em>expansionKey</em>].</li> <li>Let <em>subpath</em> be the substring of <em>matchKey</em> starting at the index of the length of <em>patternBase</em> up to the length of <em>matchKey</em> minus the length of <em>patternTrailer</em>.</li> <li>Return the result of <strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <em>subpath</em>, <strong>true</strong>, <em>isImports</em>, <em>conditions</em>).</li> </ol> </li> </ol> </li> </ol> </li> <li>Return <strong>null</strong>.</li> </ol> </blockquote> <p><strong>PATTERN_KEY_COMPARE</strong>(<em>keyA</em>, <em>keyB</em>)</p> <blockquote> <ol> <li>Assert: <em>keyA</em> ends with <em>"/"</em> or contains only a single <em>"*"</em>.</li> <li>Assert: <em>keyB</em> ends with <em>"/"</em> or contains only a single <em>"*"</em>.</li> <li>Let <em>baseLengthA</em> be the index of <em>"*"</em> in <em>keyA</em> plus one, if <em>keyA</em> contains <em>"*"</em>, or the length of <em>keyA</em> otherwise.</li> <li>Let <em>baseLengthB</em> be the index of <em>"*"</em> in <em>keyB</em> plus one, if <em>keyB</em> contains <em>"*"</em>, or the length of <em>keyB</em> otherwise.</li> <li>If <em>baseLengthA</em> is greater than <em>baseLengthB</em>, return -1.</li> <li>If <em>baseLengthB</em> is greater than <em>baseLengthA</em>, return 1.</li> <li>If <em>keyA</em> does not contain <em>"*"</em>, return 1.</li> <li>If <em>keyB</em> does not contain <em>"*"</em>, return -1.</li> <li>If the length of <em>keyA</em> is greater than the length of <em>keyB</em>, return -1.</li> <li>If the length of <em>keyB</em> is greater than the length of <em>keyA</em>, return 1.</li> <li>Return 0.</li> </ol> </blockquote> <p><strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <em>subpath</em>, <em>pattern</em>, <em>internal</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>target</em> is a String, then <ol> <li>If <em>pattern</em> is <strong>false</strong>, <em>subpath</em> has non-zero length and <em>target</em> does not end with <em>"/"</em>, throw an <em>Invalid Module Specifier</em> error.</li> <li>If <em>target</em> does not start with <em>"./"</em>, then <ol> <li>If <em>internal</em> is <strong>true</strong> and <em>target</em> does not start with <em>"../"</em> or <em>"/"</em> and is not a valid URL, then <ol> <li>If <em>pattern</em> is <strong>true</strong>, then <ol> <li>Return <strong>PACKAGE_RESOLVE</strong>(<em>target</em> with every instance of <em>"*"</em> replaced by <em>subpath</em>, <em>packageURL</em> + <em>"/"</em>)_.</li> </ol> </li> <li>Return <strong>PACKAGE_RESOLVE</strong>(<em>target</em> + <em>subpath</em>, <em>packageURL</em> + <em>"/"</em>)_.</li> </ol> </li> <li>Otherwise, throw an <em>Invalid Package Target</em> error.</li> </ol> </li> <li>If <em>target</em> split on <em>"/"</em> or <em>"\"</em> contains any <em>"."</em>, <em>".."</em> or <em>"node_modules"</em> segments after the first segment, throw an <em>Invalid Package Target</em> error.</li> <li>Let <em>resolvedTarget</em> be the URL resolution of the concatenation of <em>packageURL</em> and <em>target</em>.</li> <li>Assert: <em>resolvedTarget</em> is contained in <em>packageURL</em>.</li> <li>If <em>subpath</em> split on <em>"/"</em> or <em>"\"</em> contains any <em>"."</em>, <em>".."</em> or <em>"node_modules"</em> segments, throw an <em>Invalid Module Specifier</em> error.</li> <li>If <em>pattern</em> is <strong>true</strong>, then <ol> <li>Return the URL resolution of <em>resolvedTarget</em> with every instance of <em>"*"</em> replaced with <em>subpath</em>.</li> </ol> </li> <li>Otherwise, <ol> <li>Return the URL resolution of the concatenation of <em>subpath</em> and <em>resolvedTarget</em>.</li> </ol> </li> </ol> </li> <li>Otherwise, if <em>target</em> is a non-null Object, then <ol> <li>If <em>exports</em> contains any index property keys, as defined in ECMA-262 <a href="https://tc39.es/ecma262/#integer-index">6.1.7 Array Index</a>, throw an <em>Invalid Package Configuration</em> error.</li> <li>For each property <em>p</em> of <em>target</em>, in object insertion order as, <ol> <li>If <em>p</em> equals <em>"default"</em> or <em>conditions</em> contains an entry for <em>p</em>, then <ol> <li>Let <em>targetValue</em> be the value of the <em>p</em> property in <em>target</em>.</li> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>targetValue</em>, <em>subpath</em>, <em>pattern</em>, <em>internal</em>, <em>conditions</em>).</li> <li>If <em>resolved</em> is equal to <strong>undefined</strong>, continue the loop.</li> <li>Return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>Otherwise, if <em>target</em> is an Array, then <ol> <li>If _target.length is zero, return <strong>null</strong>.</li> <li>For each item <em>targetValue</em> in <em>target</em>, do <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>targetValue</em>, <em>subpath</em>, <em>pattern</em>, <em>internal</em>, <em>conditions</em>), continuing the loop on any <em>Invalid Package Target</em> error.</li> <li>If <em>resolved</em> is <strong>undefined</strong>, continue the loop.</li> <li>Return <em>resolved</em>.</li> </ol> </li> <li>Return or throw the last fallback resolution <strong>null</strong> return or error.</li> </ol> </li> <li>Otherwise, if <em>target</em> is <em>null</em>, return <strong>null</strong>.</li> <li>Otherwise throw an <em>Invalid Package Target</em> error.</li> </ol> </blockquote> <p><strong>ESM_FORMAT</strong>(<em>url</em>)</p> <blockquote> <ol> <li>Assert: <em>url</em> corresponds to an existing file.</li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_SCOPE</strong>(<em>url</em>).</li> <li>If <em>url</em> ends in <em>".mjs"</em>, then <ol> <li>Return <em>"module"</em>.</li> </ol> </li> <li>If <em>url</em> ends in <em>".cjs"</em>, then <ol> <li>Return <em>"commonjs"</em>.</li> </ol> </li> <li>If <em>pjson?.type</em> exists and is <em>"module"</em>, then <ol> <li>If <em>url</em> ends in <em>".js"</em>, then <ol> <li>Return <em>"module"</em>.</li> </ol> </li> <li>Throw an <em>Unsupported File Extension</em> error.</li> </ol> </li> <li>Otherwise, <ol> <li>Throw an <em>Unsupported File Extension</em> error.</li> </ol> </li> </ol> </blockquote> <p><strong>READ_PACKAGE_SCOPE</strong>(<em>url</em>)</p> <blockquote> <ol> <li>Let <em>scopeURL</em> be <em>url</em>.</li> <li>While <em>scopeURL</em> is not the file system root, <ol> <li>Set <em>scopeURL</em> to the parent URL of <em>scopeURL</em>.</li> <li>If <em>scopeURL</em> ends in a <em>"node_modules"</em> path segment, return <strong>null</strong>.</li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>scopeURL</em>).</li> <li>If <em>pjson</em> is not <strong>null</strong>, then <ol> <li>Return <em>pjson</em>.</li> </ol> </li> </ol> </li> <li>Return <strong>null</strong>.</li> </ol> </blockquote> <p><strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>)</p> <blockquote> <ol> <li>Let <em>pjsonURL</em> be the resolution of <em>"package.json"</em> within <em>packageURL</em>.</li> <li>If the file at <em>pjsonURL</em> does not exist, then <ol> <li>Return <strong>null</strong>.</li> </ol> </li> <li>If the file at <em>packageURL</em> does not parse as valid JSON, then <ol> <li>Throw an <em>Invalid Package Configuration</em> error.</li> </ol> </li> <li>Return the parsed JSON source of the file at <em>pjsonURL</em>.</li> </ol> </blockquote> <h4 id="customizing-esm-specifier-resolution-algorithm">Customizing ESM specifier resolution algorithm
-</h4> 
-<div class="api_stability api_stability_1">
-<a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 1</a> - Experimental</div>
- <p>The current specifier resolution does not support all default behavior of the CommonJS loader. One of the behavior differences is automatic resolution of file extensions and the ability to import directories that have an index file.</p> <p>The <code>--experimental-specifier-resolution=[mode]</code> flag can be used to customize the extension resolution algorithm. The default mode is <code>explicit</code>, which requires the full path to a module be provided to the loader. To enable the automatic extension resolution and importing from directories that include an index file use the <code>node</code> mode.</p> <pre data-language="js">$ node index.mjs
-success!
-$ node index # Failure!
-Error: Cannot find module
-$ node --experimental-specifier-resolution=node index
-success!</pre> </section><div class="_attribution">
+</h4> <p><strong>ESM_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>resolved</em> be <strong>undefined</strong>.</li> <li>If <em>specifier</em> is a valid URL, then <ol> <li>Set <em>resolved</em> to the result of parsing and reserializing <em>specifier</em> as a URL.</li> </ol> </li> <li>Otherwise, if <em>specifier</em> starts with <em>"/"</em>, <em>"./"</em>, or <em>"../"</em>, then <ol> <li>Set <em>resolved</em> to the URL resolution of <em>specifier</em> relative to <em>parentURL</em>.</li> </ol> </li> <li>Otherwise, if <em>specifier</em> starts with <em>"#"</em>, then <ol> <li>Set <em>resolved</em> to the result of <strong>PACKAGE_IMPORTS_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, <ol> <li>Note: <em>specifier</em> is now a bare specifier.</li> <li>Set <em>resolved</em> the result of <strong>PACKAGE_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>).</li> </ol> </li> <li>Let <em>format</em> be <strong>undefined</strong>.</li> <li>If <em>resolved</em> is a <em>"file:"</em> URL, then <ol> <li>If <em>resolved</em> contains any percent encodings of <em>"/"</em> or <em>"\"</em> (<em>"%2F"</em> and <em>"%5C"</em> respectively), then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>If the file at <em>resolved</em> is a directory, then <ol> <li>Throw an <em>Unsupported Directory Import</em> error.</li> </ol> </li> <li>If the file at <em>resolved</em> does not exist, then <ol> <li>Throw a <em>Module Not Found</em> error.</li> </ol> </li> <li>Set <em>resolved</em> to the real path of <em>resolved</em>, maintaining the same URL querystring and fragment components.</li> <li>Set <em>format</em> to the result of <strong>ESM_FILE_FORMAT</strong>(<em>resolved</em>).</li> </ol> </li> <li>Otherwise, <ol> <li>Set <em>format</em> the module format of the content type associated with the URL <em>resolved</em>.</li> </ol> </li> <li>Load <em>resolved</em> as module format, <em>format</em>.</li> </ol> </blockquote> <p><strong>PACKAGE_RESOLVE</strong>(<em>packageSpecifier</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>packageName</em> be <strong>undefined</strong>.</li> <li>If <em>packageSpecifier</em> is an empty string, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>If <em>packageSpecifier</em> is a Node.js builtin module name, then <ol> <li>Return the string <em>"node:"</em> concatenated with <em>packageSpecifier</em>.</li> </ol> </li> <li>If <em>packageSpecifier</em> does not start with <em>"@"</em>, then <ol> <li>Set <em>packageName</em> to the substring of <em>packageSpecifier</em> until the first <em>"/"</em> separator or the end of the string.</li> </ol> </li> <li>Otherwise, <ol> <li>If <em>packageSpecifier</em> does not contain a <em>"/"</em> separator, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Set <em>packageName</em> to the substring of <em>packageSpecifier</em> until the second <em>"/"</em> separator or the end of the string.</li> </ol> </li> <li>If <em>packageName</em> starts with <em>"."</em> or contains <em>"\"</em> or <em>"%"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>packageSubpath</em> be <em>"."</em> concatenated with the substring of <em>packageSpecifier</em> from the position at the length of <em>packageName</em>.</li> <li>If <em>packageSubpath</em> ends in <em>"/"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>selfUrl</em> be the result of <strong>PACKAGE_SELF_RESOLVE</strong>(<em>packageName</em>, <em>packageSubpath</em>, <em>parentURL</em>).</li> <li>If <em>selfUrl</em> is not <strong>undefined</strong>, return <em>selfUrl</em>.</li> <li>While <em>parentURL</em> is not the file system root, <ol> <li>Let <em>packageURL</em> be the URL resolution of <em>"node_modules/"</em> concatenated with <em>packageSpecifier</em>, relative to <em>parentURL</em>.</li> <li>Set <em>parentURL</em> to the parent folder URL of <em>parentURL</em>.</li> <li>If the folder at <em>packageURL</em> does not exist, then <ol> <li>Continue the next loop iteration.</li> </ol> </li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson</em> is not <strong>null</strong> and <em>pjson</em>.<em>exports</em> is not <strong>null</strong> or <strong>undefined</strong>, then <ol> <li>Return the result of <strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>packageSubpath</em>, <em>pjson.exports</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, if <em>packageSubpath</em> is equal to <em>"."</em>, then <ol> <li>If <em>pjson.main</em> is a string, then <ol> <li>Return the URL resolution of <em>main</em> in <em>packageURL</em>.</li> </ol> </li> </ol> </li> <li>Otherwise, <ol> <li>Return the URL resolution of <em>packageSubpath</em> in <em>packageURL</em>.</li> </ol> </li> </ol> </li> <li>Throw a <em>Module Not Found</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_SELF_RESOLVE</strong>(<em>packageName</em>, <em>packageSubpath</em>, <em>parentURL</em>)</p> <blockquote> <ol> <li>Let <em>packageURL</em> be the result of <strong>LOOKUP_PACKAGE_SCOPE</strong>(<em>parentURL</em>).</li> <li>If <em>packageURL</em> is <strong>null</strong>, then <ol> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson</em> is <strong>null</strong> or if <em>pjson</em>.<em>exports</em> is <strong>null</strong> or <strong>undefined</strong>, then <ol> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>If <em>pjson.name</em> is equal to <em>packageName</em>, then <ol> <li>Return the result of <strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>packageSubpath</em>, <em>pjson.exports</em>, <em>defaultConditions</em>).</li> </ol> </li> <li>Otherwise, return <strong>undefined</strong>.</li> </ol> </blockquote> <p><strong>PACKAGE_EXPORTS_RESOLVE</strong>(<em>packageURL</em>, <em>subpath</em>, <em>exports</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>exports</em> is an Object with both a key starting with <em>"."</em> and a key not starting with <em>"."</em>, throw an <em>Invalid Package Configuration</em> error.</li> <li>If <em>subpath</em> is equal to <em>"."</em>, then <ol> <li>Let <em>mainExport</em> be <strong>undefined</strong>.</li> <li>If <em>exports</em> is a String or Array, or an Object containing no keys starting with <em>"."</em>, then <ol> <li>Set <em>mainExport</em> to <em>exports</em>.</li> </ol> </li> <li>Otherwise if <em>exports</em> is an Object containing a <em>"."</em> property, then <ol> <li>Set <em>mainExport</em> to <em>exports</em>[<em>"."</em>].</li> </ol> </li> <li>If <em>mainExport</em> is not <strong>undefined</strong>, then <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>mainExport</em>, <strong>null</strong>, <strong>false</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Otherwise, if <em>exports</em> is an Object and all keys of <em>exports</em> start with <em>"."</em>, then <ol> <li>Let <em>matchKey</em> be the string <em>"./"</em> concatenated with <em>subpath</em>.</li> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>( <em>matchKey</em>, <em>exports</em>, <em>packageURL</em>, <strong>false</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> <li>Throw a <em>Package Path Not Exported</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_IMPORTS_RESOLVE</strong>(<em>specifier</em>, <em>parentURL</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>Assert: <em>specifier</em> begins with <em>"#"</em>.</li> <li>If <em>specifier</em> is exactly equal to <em>"#"</em> or starts with <em>"#/"</em>, then <ol> <li>Throw an <em>Invalid Module Specifier</em> error.</li> </ol> </li> <li>Let <em>packageURL</em> be the result of <strong>LOOKUP_PACKAGE_SCOPE</strong>(<em>parentURL</em>).</li> <li>If <em>packageURL</em> is not <strong>null</strong>, then <ol> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson.imports</em> is a non-null Object, then <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>( <em>specifier</em>, <em>pjson.imports</em>, <em>packageURL</em>, <strong>true</strong>, <em>conditions</em>).</li> <li>If <em>resolved</em> is not <strong>null</strong> or <strong>undefined</strong>, return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Throw a <em>Package Import Not Defined</em> error.</li> </ol> </blockquote> <p><strong>PACKAGE_IMPORTS_EXPORTS_RESOLVE</strong>(<em>matchKey</em>, <em>matchObj</em>, <em>packageURL</em>, <em>isImports</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>matchKey</em> is a key of <em>matchObj</em> and does not contain <em>"*"</em>, then <ol> <li>Let <em>target</em> be the value of <em>matchObj</em>[<em>matchKey</em>].</li> <li>Return the result of <strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <strong>null</strong>, <em>isImports</em>, <em>conditions</em>).</li> </ol> </li> <li>Let <em>expansionKeys</em> be the list of keys of <em>matchObj</em> containing only a single <em>"*"</em>, sorted by the sorting function <strong>PATTERN_KEY_COMPARE</strong> which orders in descending order of specificity.</li> <li>For each key <em>expansionKey</em> in <em>expansionKeys</em>, do <ol> <li>Let <em>patternBase</em> be the substring of <em>expansionKey</em> up to but excluding the first <em>"*"</em> character.</li> <li>If <em>matchKey</em> starts with but is not equal to <em>patternBase</em>, then <ol> <li>Let <em>patternTrailer</em> be the substring of <em>expansionKey</em> from the index after the first <em>"*"</em> character.</li> <li>If <em>patternTrailer</em> has zero length, or if <em>matchKey</em> ends with <em>patternTrailer</em> and the length of <em>matchKey</em> is greater than or equal to the length of <em>expansionKey</em>, then <ol> <li>Let <em>target</em> be the value of <em>matchObj</em>[<em>expansionKey</em>].</li> <li>Let <em>patternMatch</em> be the substring of <em>matchKey</em> starting at the index of the length of <em>patternBase</em> up to the length of <em>matchKey</em> minus the length of <em>patternTrailer</em>.</li> <li>Return the result of <strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <em>patternMatch</em>, <em>isImports</em>, <em>conditions</em>).</li> </ol> </li> </ol> </li> </ol> </li> <li>Return <strong>null</strong>.</li> </ol> </blockquote> <p><strong>PATTERN_KEY_COMPARE</strong>(<em>keyA</em>, <em>keyB</em>)</p> <blockquote> <ol> <li>Assert: <em>keyA</em> ends with <em>"/"</em> or contains only a single <em>"*"</em>.</li> <li>Assert: <em>keyB</em> ends with <em>"/"</em> or contains only a single <em>"*"</em>.</li> <li>Let <em>baseLengthA</em> be the index of <em>"*"</em> in <em>keyA</em> plus one, if <em>keyA</em> contains <em>"*"</em>, or the length of <em>keyA</em> otherwise.</li> <li>Let <em>baseLengthB</em> be the index of <em>"*"</em> in <em>keyB</em> plus one, if <em>keyB</em> contains <em>"*"</em>, or the length of <em>keyB</em> otherwise.</li> <li>If <em>baseLengthA</em> is greater than <em>baseLengthB</em>, return -1.</li> <li>If <em>baseLengthB</em> is greater than <em>baseLengthA</em>, return 1.</li> <li>If <em>keyA</em> does not contain <em>"*"</em>, return 1.</li> <li>If <em>keyB</em> does not contain <em>"*"</em>, return -1.</li> <li>If the length of <em>keyA</em> is greater than the length of <em>keyB</em>, return -1.</li> <li>If the length of <em>keyB</em> is greater than the length of <em>keyA</em>, return 1.</li> <li>Return 0.</li> </ol> </blockquote> <p><strong>PACKAGE_TARGET_RESOLVE</strong>(<em>packageURL</em>, <em>target</em>, <em>patternMatch</em>, <em>isImports</em>, <em>conditions</em>)</p> <blockquote> <ol> <li>If <em>target</em> is a String, then <ol> <li>If <em>target</em> does not start with <em>"./"</em>, then <ol> <li>If <em>isImports</em> is <strong>false</strong>, or if <em>target</em> starts with <em>"../"</em> or <em>"/"</em>, or if <em>target</em> is a valid URL, then <ol> <li>Throw an <em>Invalid Package Target</em> error.</li> </ol> </li> <li>If <em>patternMatch</em> is a String, then <ol> <li>Return <strong>PACKAGE_RESOLVE</strong>(<em>target</em> with every instance of <em>"*"</em> replaced by <em>patternMatch</em>, <em>packageURL</em> + <em>"/"</em>).</li> </ol> </li> <li>Return <strong>PACKAGE_RESOLVE</strong>(<em>target</em>, <em>packageURL</em> + <em>"/"</em>).</li> </ol> </li> <li>If <em>target</em> split on <em>"/"</em> or <em>"\"</em> contains any <em>""</em>, <em>"."</em>, <em>".."</em>, or <em>"node_modules"</em> segments after the first <em>"."</em> segment, case insensitive and including percent encoded variants, throw an <em>Invalid Package Target</em> error.</li> <li>Let <em>resolvedTarget</em> be the URL resolution of the concatenation of <em>packageURL</em> and <em>target</em>.</li> <li>Assert: <em>resolvedTarget</em> is contained in <em>packageURL</em>.</li> <li>If <em>patternMatch</em> is <strong>null</strong>, then <ol> <li>Return <em>resolvedTarget</em>.</li> </ol> </li> <li>If <em>patternMatch</em> split on <em>"/"</em> or <em>"\"</em> contains any <em>""</em>, <em>"."</em>, <em>".."</em>, or <em>"node_modules"</em> segments, case insensitive and including percent encoded variants, throw an <em>Invalid Module Specifier</em> error.</li> <li>Return the URL resolution of <em>resolvedTarget</em> with every instance of <em>"*"</em> replaced with <em>patternMatch</em>.</li> </ol> </li> <li>Otherwise, if <em>target</em> is a non-null Object, then <ol> <li>If <em>exports</em> contains any index property keys, as defined in ECMA-262 <a href="https://tc39.es/ecma262/#integer-index">6.1.7 Array Index</a>, throw an <em>Invalid Package Configuration</em> error.</li> <li>For each property <em>p</em> of <em>target</em>, in object insertion order as, <ol> <li>If <em>p</em> equals <em>"default"</em> or <em>conditions</em> contains an entry for <em>p</em>, then <ol> <li>Let <em>targetValue</em> be the value of the <em>p</em> property in <em>target</em>.</li> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>targetValue</em>, <em>patternMatch</em>, <em>isImports</em>, <em>conditions</em>).</li> <li>If <em>resolved</em> is equal to <strong>undefined</strong>, continue the loop.</li> <li>Return <em>resolved</em>.</li> </ol> </li> </ol> </li> <li>Return <strong>undefined</strong>.</li> </ol> </li> <li>Otherwise, if <em>target</em> is an Array, then <ol> <li>If _target.length is zero, return <strong>null</strong>.</li> <li>For each item <em>targetValue</em> in <em>target</em>, do <ol> <li>Let <em>resolved</em> be the result of <strong>PACKAGE_TARGET_RESOLVE</strong>( <em>packageURL</em>, <em>targetValue</em>, <em>patternMatch</em>, <em>isImports</em>, <em>conditions</em>), continuing the loop on any <em>Invalid Package Target</em> error.</li> <li>If <em>resolved</em> is <strong>undefined</strong>, continue the loop.</li> <li>Return <em>resolved</em>.</li> </ol> </li> <li>Return or throw the last fallback resolution <strong>null</strong> return or error.</li> </ol> </li> <li>Otherwise, if <em>target</em> is <em>null</em>, return <strong>null</strong>.</li> <li>Otherwise throw an <em>Invalid Package Target</em> error.</li> </ol> </blockquote> <p><strong>ESM_FILE_FORMAT</strong>(<em>url</em>)</p> <blockquote> <ol> <li>Assert: <em>url</em> corresponds to an existing file.</li> <li>If <em>url</em> ends in <em>".mjs"</em>, then <ol> <li>Return <em>"module"</em>.</li> </ol> </li> <li>If <em>url</em> ends in <em>".cjs"</em>, then <ol> <li>Return <em>"commonjs"</em>.</li> </ol> </li> <li>If <em>url</em> ends in <em>".json"</em>, then <ol> <li>Return <em>"json"</em>.</li> </ol> </li> <li>Let <em>packageURL</em> be the result of <strong>LOOKUP_PACKAGE_SCOPE</strong>(<em>url</em>).</li> <li>Let <em>pjson</em> be the result of <strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>).</li> <li>If <em>pjson?.type</em> exists and is <em>"module"</em>, then <ol> <li>If <em>url</em> ends in <em>".js"</em>, then <ol> <li>Return <em>"module"</em>.</li> </ol> </li> <li>Throw an <em>Unsupported File Extension</em> error.</li> </ol> </li> <li>Otherwise, <ol> <li>Throw an <em>Unsupported File Extension</em> error.</li> </ol> </li> </ol> </blockquote> <p><strong>LOOKUP_PACKAGE_SCOPE</strong>(<em>url</em>)</p> <blockquote> <ol> <li>Let <em>scopeURL</em> be <em>url</em>.</li> <li>While <em>scopeURL</em> is not the file system root, <ol> <li>Set <em>scopeURL</em> to the parent URL of <em>scopeURL</em>.</li> <li>If <em>scopeURL</em> ends in a <em>"node_modules"</em> path segment, return <strong>null</strong>.</li> <li>Let <em>pjsonURL</em> be the resolution of <em>"package.json"</em> within <em>scopeURL</em>.</li> <li>if the file at <em>pjsonURL</em> exists, then <ol> <li>Return <em>scopeURL</em>.</li> </ol> </li> </ol> </li> <li>Return <strong>null</strong>.</li> </ol> </blockquote> <p><strong>READ_PACKAGE_JSON</strong>(<em>packageURL</em>)</p> <blockquote> <ol> <li>Let <em>pjsonURL</em> be the resolution of <em>"package.json"</em> within <em>packageURL</em>.</li> <li>If the file at <em>pjsonURL</em> does not exist, then <ol> <li>Return <strong>null</strong>.</li> </ol> </li> <li>If the file at <em>packageURL</em> does not parse as valid JSON, then <ol> <li>Throw an <em>Invalid Package Configuration</em> error.</li> </ol> </li> <li>Return the parsed JSON source of the file at <em>pjsonURL</em>.</li> </ol> </blockquote> <h4 id="customizing-esm-specifier-resolution-algorithm">Customizing ESM specifier resolution algorithm
+</h4> <p>The <a href="#loaders">Loaders API</a> provides a mechanism for customizing the ESM specifier resolution algorithm. An example loader that provides CommonJS-style resolution for ESM specifiers is <a href="https://github.com/nodejs/loaders-test/tree/main/commonjs-extension-resolution-loader">commonjs-extension-resolution-loader</a>.</p> </section><div class="_attribution">
   <p class="_attribution-p">
     © Joyent, Inc. and other Node contributors<br>Licensed under the MIT License.<br>Node.js is a trademark of Joyent, Inc. and is used with its permission.<br>We are not endorsed by or affiliated with Joyent.<br>
     <a href="https://nodejs.org/api/esm.html" class="_attribution-link">https://nodejs.org/api/esm.html</a>
