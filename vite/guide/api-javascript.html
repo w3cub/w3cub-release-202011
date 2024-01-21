@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vite/guide/api-javascript.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vite.js"></script>
   
@@ -90,12 +90,12 @@
 <h2 id="createserver" tabindex="-1">
 <code>createServer</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function createServer(inlineConfig?: InlineConfig): Promise&lt;ViteDevServer&gt;</pre>
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function createServer(inlineConfig?: InlineConfig): Promise&lt;ViteDevServer&gt;</pre>
 </div>
 <p><strong>Example Usage:</strong></p>
-<div class="language-js">
-<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">import { fileURLToPath } from 'url'
+<div class="language-js vp-adaptive-theme">
+<span class="lang">js</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">import { fileURLToPath } from 'url'
 import { createServer } from 'vite'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -112,10 +112,41 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
   await server.listen()
 
   server.printUrls()
+  server.bindCLIShortcuts({ print: true })
 })()</pre>
 </div>
 <div class="tip custom-block">
-<strong class="custom-block-title">NOTE</strong><p>When using <code>createServer</code> and <code>build</code> in the same Node.js process, both functions rely on <code>p<wbr>rocess.env.NODE_ENV</wbr></code> to work properly, which also depends on the <code>mode</code> config option. To prevent conflicting behavior, set <code>p<wbr>rocess.env.NODE_ENV</wbr></code> or the <code>mode</code> of the two APIs to <code>development</code>. Otherwise, you can spawn a child process to run the APIs separately.</p>
+<strong class="custom-block-title">NOTE</strong><p>When using <code>createServer</code> and <code>build</code> in the same Node.js process, both functions rely on <code>process.env.NODE_ENV</code> to work properly, which also depends on the <code>mode</code> config option. To prevent conflicting behavior, set <code>process.env.NODE_ENV</code> or the <code>mode</code> of the two APIs to <code>development</code>. Otherwise, you can spawn a child process to run the APIs separately.</p>
+</div>
+<div class="tip custom-block">
+<strong class="custom-block-title">NOTE</strong><p>When using <a href="../config/server-options#server-middlewaremode">middleware mode</a> combined with <a href="../config/server-options#server-proxy">proxy config for WebSocket</a>, the parent http server should be provided in <code>middlewareMode</code> to bind the proxy correctly.</p>
+<div>
+<summary>Example</summary><div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">import http from 'http'
+import { createServer } from 'vite'
+
+const parentServer = http.createServer() // or express, koa, etc.
+
+const vite = await createServer({
+  server: {
+    // Enable middleware mode
+    middlewareMode: {
+      // Provide the parent http server for proxy WebSocket
+      server: parentServer,
+    },
+  },
+  proxy: {
+    '/ws': {
+      target: 'ws://localhost:3000',
+      // Proxying WebSocket
+      ws: true,
+    },
+  },
+})
+
+parentServer.use(vite.middlewares)</pre>
+</div>
+</div>
 </div>
 <h2 id="inlineconfig" tabindex="-1">
 <code>InlineConfig</code> </h2>
@@ -137,8 +168,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 </ul>
 <h2 id="vitedevserver" tabindex="-1">
 <code>ViteDevServer</code> </h2>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">interface ViteDevServer {
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">interface ViteDevServer {
   /**
    * The resolved Vite config object.
    */
@@ -158,7 +189,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
    */
   httpServer: http.Server | null
   /**
-   * Chokidar watcher instance.
+   * Chokidar watcher instance. If `config.server.watch` is set to `null`,
+   * returns a noop event emitter.
    * https://github.com/paulmillr/chokidar#api
    */
   watcher: FSWatcher
@@ -222,19 +254,23 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
    * Stop the server.
    */
   close(): Promise&lt;void&gt;
+  /**
+   * Bind CLI shortcuts
+   */
+  bindCLIShortcuts(options?: BindCLIShortcutsOptions&lt;ViteDevServer&gt;): void
 }</pre>
 </div>
 <h2 id="build" tabindex="-1">
 <code>build</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function build(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function build(
   inlineConfig?: InlineConfig,
 ): Promise&lt;RollupOutput | RollupOutput[]&gt;</pre>
 </div>
 <p><strong>Example Usage:</strong></p>
-<div class="language-js">
-<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">import path from 'path'
+<div class="language-js vp-adaptive-theme">
+<span class="lang">js</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">import path from 'path'
 import { fileURLToPath } from 'url'
 import { build } from 'vite'
 
@@ -255,12 +291,12 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <h2 id="preview" tabindex="-1">
 <code>preview</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function preview(inlineConfig?: InlineConfig): Promise&lt;PreviewServer&gt;</pre>
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function preview(inlineConfig?: InlineConfig): Promise&lt;PreviewServer&gt;</pre>
 </div>
 <p><strong>Example Usage:</strong></p>
-<div class="language-js">
-<span class="lang">js</span><pre class="shiki material-theme-palenight" data-language="javascript">import { preview } from 'vite'
+<div class="language-js vp-adaptive-theme">
+<span class="lang">js</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">import { preview } from 'vite'
 ;(async () =&gt; {
   const previewServer = await preview({
     // any valid user config options, plus `mode` and `configFile`
@@ -271,19 +307,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
   })
 
   previewServer.printUrls()
+  previewServer.bindCLIShortcuts({ print: true })
 })()</pre>
 </div>
 <h2 id="previewserver" tabindex="-1">
 <code>PreviewServer</code> </h2>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">interface PreviewServer extends PreviewServerForHook {
-  resolvedUrls: ResolvedServerUrls
-}</pre>
-</div>
-<h2 id="previewserverforhook" tabindex="-1">
-<code>PreviewServerForHook</code> </h2>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">interface PreviewServerForHook {
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">interface PreviewServer {
   /**
    * The resolved vite config object
    */
@@ -302,31 +332,38 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
    */
   httpServer: http.Server
   /**
-   * The resolved urls Vite prints on the CLI
+   * The resolved urls Vite prints on the CLI.
+   * null before server is listening.
    */
   resolvedUrls: ResolvedServerUrls | null
   /**
    * Print server urls
    */
   printUrls(): void
+  /**
+   * Bind CLI shortcuts
+   */
+  bindCLIShortcuts(options?: BindCLIShortcutsOptions&lt;PreviewServer&gt;): void
 }</pre>
 </div>
 <h2 id="resolveconfig" tabindex="-1">
 <code>resolveConfig</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function resolveConfig(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function resolveConfig(
   inlineConfig: InlineConfig,
   command: 'build' | 'serve',
   defaultMode = 'development',
+  defaultNodeEnv = 'development',
+  isPreview = false,
 ): Promise&lt;ResolvedConfig&gt;</pre>
 </div>
-<p>The <code>command</code> value is <code>serve</code> in dev (in the cli <code>vite</code>, <code>vite dev</code>, and <code>vite serve</code> are aliases).</p>
+<p>The <code>command</code> value is <code>serve</code> in dev and preview, and <code>build</code> in build.</p>
 <h2 id="mergeconfig" tabindex="-1">
 <code>mergeConfig</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">function mergeConfig(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">function mergeConfig(
   defaults: Record&lt;string, any&gt;,
   overrides: Record&lt;string, any&gt;,
   isRoot = true,
@@ -335,12 +372,18 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <p>Deeply merge two Vite configs. <code>isRoot</code> represents the level within the Vite config which is being merged. For example, set <code>false</code> if you're merging two <code>build</code> options.</p>
 <div class="tip custom-block">
 <strong class="custom-block-title">NOTE</strong><p><code>mergeConfig</code> accepts only config in object form. If you have a config in callback form, you should call it before passing into <code>mergeConfig</code>.</p>
+<p>You can use the <code>defineConfig</code> helper to merge a config in callback form with another config:</p>
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">export default defineConfig((configEnv) =&gt;
+  mergeConfig(configAsCallback(configEnv), configAsObject),
+)</pre>
+</div>
 </div>
 <h2 id="searchforworkspaceroot" tabindex="-1">
 <code>searchForWorkspaceRoot</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">function searchForWorkspaceRoot(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">function searchForWorkspaceRoot(
   current: string,
   root = searchForPackageRoot(current),
 ): string</pre>
@@ -359,8 +402,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <h2 id="loadenv" tabindex="-1">
 <code>loadEnv</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">function loadEnv(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">function loadEnv(
   mode: string,
   envDir: string,
   prefixes: string | string[] = 'VITE_',
@@ -371,16 +414,16 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <h2 id="normalizepath" tabindex="-1">
 <code>normalizePath</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">function normalizePath(id: string): string</pre>
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">function normalizePath(id: string): string</pre>
 </div>
 <p><strong>Related:</strong> <a href="api-plugin#path-normalization">Path Normalization</a></p>
 <p>Normalizes a path to interoperate between Vite plugins.</p>
 <h2 id="transformwithesbuild" tabindex="-1">
 <code>transformWithEsbuild</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function transformWithEsbuild(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function transformWithEsbuild(
   code: string,
   filename: string,
   options?: EsbuildTransformOptions,
@@ -391,8 +434,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <h2 id="loadconfigfromfile" tabindex="-1">
 <code>loadConfigFromFile</code> </h2>
 <p><strong>Type Signature:</strong></p>
-<div class="language-ts">
-<span class="lang">ts</span><pre class="shiki material-theme-palenight" data-language="javascript">async function loadConfigFromFile(
+<div class="language-ts vp-adaptive-theme">
+<span class="lang">ts</span><pre class="shiki shiki-themes github-light github-dark vp-code" data-language="javascript">async function loadConfigFromFile(
   configEnv: ConfigEnv,
   configFile?: string,
   configRoot: string = process.cwd(),
@@ -407,7 +450,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 <div class="_attribution">
   <p class="_attribution-p">
     © 2019–present, Yuxi (Evan) You and Vite contributors<br>Licensed under the MIT License.<br>
-    <a href="https://vitejs.dev/guide/api-javascript.html" class="_attribution-link">https://vitejs.dev/guide/api-javascript.html</a>
+    <a href="https://vitejs.dev/guide/api-javascript" class="_attribution-link">https://vitejs.dev/guide/api-javascript</a>
   </p>
 </div>
 
