@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/guide/extras/render-function.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
@@ -250,10 +250,17 @@ export default {
 </ul>
 <p>Vue's type definition also provides type inference for TSX usage. When using TSX, make sure to specify <code>"jsx": "preserve"</code> in <code>tsconfig.json</code> so that TypeScript leaves the JSX syntax intact for Vue JSX transform to process.</p>
 <h3 id="jsx-type-inference" tabindex="-1">JSX Type Inference </h3>
-<p>Similar to the transform, Vue's JSX also needs different type definitions. Currently, Vue's types automatically registers Vue's JSX types globally. This means TSX will work out of the box when Vue's type is available.</p>
-<p>The global JSX types may cause conflict with used together with other libraries that also needs JSX type inference, in particular React. Starting in 3.3, Vue supports specifying JSX namespace via TypeScript's <a href="https://www.typescriptlang.org/tsconfig#jsxImportSource" target="_blank" rel="noreferrer">jsxImportSource</a> option. We plan to remove the default global JSX namespace registration in 3.4.</p>
-<p>For TSX users, it is suggested to set <a href="https://www.typescriptlang.org/tsconfig#jsxImportSource" target="_blank" rel="noreferrer">jsxImportSource</a> to <code>'vue'</code> in <code>tsconfig.json</code> after upgrading to 3.3, or opt-in per file with <code>/* @jsxImportSource vue */</code>. This will allow you to opt-in to the new behavior now and upgrade seamlessly when 3.4 releases.</p>
-<p>If there is code that depends on the presence of the global <code>JSX</code> namespace, you can retain the exact pre-3.4 global behavior by explicitly referencing <code>vue/jsx</code>, which registers the global <code>JSX</code> namespace.</p>
+<p>Similar to the transform, Vue's JSX also needs different type definitions.</p>
+<p>Starting in Vue 3.4, Vue no longer implicitly registers the global <code>JSX</code> namespace. To instruct TypeScript to use Vue's JSX type definitions, make sure to include the following in your <code>tsconfig.json</code>:</p>
+<pre data-language="json">{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "vue"
+    // ...
+  }
+}</pre>
+<p>You can also opt-in per file by adding a <code>/* @jsxImportSource vue */</code> comment at the top of the file.</p>
+<p>If there is code that depends on the presence of the global <code>JSX</code> namespace, you can retain the exact pre-3.4 global behavior by explicitly importing or referencing <code>vue/jsx</code> in your project, which registers the global <code>JSX</code> namespace.</p>
 <h2 id="render-function-recipes" tabindex="-1">Render Function Recipes </h2>
 <p>Below we will provide some common recipes for implementing template features as their equivalent render functions / JSX.</p>
 <h3 id="v-if" tabindex="-1">
@@ -561,10 +568,75 @@ MyComponent.emits = ['click']</pre>
 <p>For functional components with explicit <code>props</code>, <a href="../components/attrs">attribute fallthrough</a> works much the same as with normal components. However, for functional components that don't explicitly specify their <code>props</code>, only the <code>class</code>, <code>style</code>, and <code>onXxx</code> event listeners will be inherited from the <code>attrs</code> by default. In either case, <code>inheritAttrs</code> can be set to <code>false</code> to disable attribute inheritance:</p>
 <pre data-language="js">MyComponent.inheritAttrs = false</pre>
 <p>Functional components can be registered and consumed just like normal components. If you pass a function as the first argument to <code>h()</code>, it will be treated as a functional component.</p>
+<h3 id="typing-functional-components" tabindex="-1">Typing Functional Components </h3>
+<p>Functional Components can be typed based on whether they are named or anonymous. Volar also supports type checking properly typed functional components when consuming them in SFC templates.</p>
+<p><strong>Named Functional Component</strong></p>
+<pre data-language="tsx">import type { SetupContext } from 'vue'
+type FComponentProps = {
+  message: string
+}
+
+type Events = {
+  sendMessage(message: string): void
+}
+
+function FComponent(
+  props: FComponentProps,
+  context: SetupContext&lt;Events&gt;
+) {
+  return (
+    &lt;button onClick={() =&gt; context.emit('sendMessage', props.message)}&gt;
+        {props.message} {' '}
+    &lt;/button&gt;
+  )
+}
+
+FComponent.props = {
+  message: {
+    type: String,
+    required: true
+  }
+}
+
+FComponent.emits = {
+  sendMessage: (value: unknown) =&gt; typeof value === 'string'
+}</pre>
+<p><strong>Anonymous Functional Component</strong></p>
+<pre data-language="tsx">import type { FunctionalComponent } from 'vue'
+
+type FComponentProps = {
+  message: string
+}
+
+type Events = {
+  sendMessage(message: string): void
+}
+
+const FComponent: FunctionalComponent&lt;FComponentProps, Events&gt; = (
+  props,
+  context
+) =&gt; {
+  return (
+    &lt;button onClick={() =&gt; context.emit('sendMessage', props.message)}&gt;
+        {props.message} {' '}
+    &lt;/button&gt;
+  )
+}
+
+FComponent.props = {
+  message: {
+    type: String,
+    required: true
+  }
+}
+
+FComponent.emits = {
+  sendMessage: (value) =&gt; typeof value === 'string'
+}</pre>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
-    <a href="https://vuejs.org/guide/extras/render-function.html" class="_attribution-link">https://vuejs.org/guide/extras/render-function.html</a>
+    <a href="https://vuejs.org/guide/extras/render-function" class="_attribution-link">https://vuejs.org/guide/extras/render-function</a>
   </p>
 </div>
 

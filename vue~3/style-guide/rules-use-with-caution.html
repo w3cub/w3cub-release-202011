@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/style-guide/rules-use-with-caution.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
@@ -122,6 +122,7 @@ button {
 <p><strong>Props and events should be preferred for parent-child component communication, instead of <code>this.$parent</code> or mutating props.</strong></p>
 <p>An ideal Vue application is props down, events up. Sticking to this convention makes your components much easier to understand. However, there are edge cases where prop mutation or <code>this.$parent</code> can simplify two components that are already deeply coupled.</p>
 <p>The problem is, there are also many <em>simple</em> cases where these patterns may offer convenience. Beware: do not be seduced into trading simplicity (being able to understand the flow of your state) for short-term convenience (writing less code).</p>
+<div class="options-api">
 <div class="style-example style-example-bad">
 <h3>Bad</h3>
 <pre data-language="js">app.component('TodoItem', {
@@ -199,10 +200,90 @@ button {
   `
 })</pre>
 </div>
+</div>
+<div class="composition-api">
+<div class="style-example style-example-bad">
+<h3>Bad</h3>
+<pre data-language="javascript">&lt;script setup&gt;
+defineProps({
+  todo: {
+    type: Object,
+    required: true
+  }
+})
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;input v-model="todo.text" /&gt;
+&lt;/template&gt;</pre>
+<pre data-language="javascript">&lt;script setup&gt;
+import { getCurrentInstance } from 'vue'
+
+const props = defineProps({
+  todo: {
+    type: Object,
+    required: true
+  }
+})
+
+const instance = getCurrentInstance()
+
+function removeTodo() {
+  const parent = instance.parent
+  if (!parent) return
+
+  parent.props.todos = parent.props.todos.filter((todo) =&gt; {
+    return todo.id !== props.todo.id
+  })
+}
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;span&gt;
+    {{ todo.text }}
+    &lt;button @click="removeTodo"&gt;×&lt;/button&gt;
+  &lt;/span&gt;
+&lt;/template&gt;</pre>
+</div>
+<div class="style-example style-example-good">
+<h3>Good</h3>
+<pre data-language="javascript">&lt;script setup&gt;
+defineProps({
+  todo: {
+    type: Object,
+    required: true
+  }
+})
+
+const emit = defineEmits(['input'])
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;input :value="todo.text" @input="emit('input', $event.target.value)" /&gt;
+&lt;/template&gt;</pre>
+<pre data-language="javascript">&lt;script setup&gt;
+defineProps({
+  todo: {
+    type: Object,
+    required: true
+  }
+})
+
+const emit = defineEmits(['delete'])
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;span&gt;
+    {{ todo.text }}
+    &lt;button @click="emit('delete')"&gt;×&lt;/button&gt;
+  &lt;/span&gt;
+&lt;/template&gt;</pre>
+</div>
+</div>
 <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
-    <a href="https://vuejs.org/style-guide/rules-use-with-caution.html" class="_attribution-link">https://vuejs.org/style-guide/rules-use-with-caution.html</a>
+    <a href="https://vuejs.org/style-guide/rules-use-with-caution" class="_attribution-link">https://vuejs.org/style-guide/rules-use-with-caution</a>
   </p>
 </div>
 

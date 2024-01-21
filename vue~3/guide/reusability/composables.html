@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/vue~3/guide/reusability/composables.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/vue~3.js"></script>
   
@@ -148,13 +148,13 @@ const { x, y } = useMouse()
 <p>The cooler part about composables though, is that you can also nest them: one composable function can call one or more other composable functions. This enables us to compose complex logic using small, isolated units, similar to how we compose an entire application using components. In fact, this is why we decided to call the collection of APIs that make this pattern possible Composition API.</p>
 <p>For example, we can extract the logic of adding and removing a DOM event listener into its own composable:</p>
 <pre data-language="js">// event.js
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 
 export function useEventListener(target, event, callback) {
   // if you want, you can also make this
   // support selector strings as target
   onMounted(() =&gt; target.addEventListener(event, callback))
-  onBeforeUnmount(() =&gt; target.removeEventListener(event, callback))
+  onUnmounted(() =&gt; target.removeEventListener(event, callback))
 }</pre>
 <p>And now our <code>useMouse()</code> composable can be simplified to:</p>
 <pre data-language="js">// mouse.js
@@ -238,15 +238,19 @@ export function useFetch(url) {
   const data = ref(null)
   const error = ref(null)
 
-  watchEffect(() =&gt; {
+  const fetchData = () =&gt; {
     // reset state before fetching..
     data.value = null
     error.value = null
-    // toValue() unwraps potential refs or getters
+
     fetch(toValue(url))
       .then((res) =&gt; res.json())
       .then((json) =&gt; (data.value = json))
       .catch((err) =&gt; (error.value = err))
+  }
+
+  watchEffect(() =&gt; {
+    fetchData()
   })
 
   return { data, error }
@@ -254,7 +258,7 @@ export function useFetch(url) {
 <p><code>toValue()</code> is an API added in 3.3. It is designed to normalize refs or getters into values. If the argument is a ref, it returns the ref's value; if the argument is a function, it will call the function and return its return value. Otherwise, it returns the argument as-is. It works similarly to <a href="../../api/reactivity-utilities#unref"><code>unref()</code></a>, but with special treatment for functions.</p>
 <p>Notice that <code>toValue(url)</code> is called <strong>inside</strong> the <code>watchEffect</code> callback. This ensures that any reactive dependencies accessed during the <code>toValue()</code> normalization are tracked by the watcher.</p>
 <p>This version of <code>useFetch()</code> now accepts static URL strings, refs, and getters, making it much more flexible. The watch effect will run immediately, and will track any dependencies accessed during <code>toValue(url)</code>. If no dependencies are tracked (e.g. url is already a string), the effect runs only once; otherwise, it will re-run whenever a tracked dependency changes.</p>
-<p>Here's <a href="https://play.vuejs.org/#eNptVMFu2zAM/RXOFztYZncodgmSYAPWnTZsKLadfFFsulHrSIZEJwuC/PtIyXaTtkALxxT5yPf45FPypevyfY/JIln6yumOwCP13bo0etdZR3ACh80cKrvresIaztA4u4OUi9KLpN7jN6RqO53nxRjKHz1nlqayxhNslMc/roUVpFuizi+K4tFb07Wqwq1ta3Q5HTtd2RpzblqQra0vGCCW65oreaIs/ZjOxmAf8MYRs2wGq/XU6D3X5HvV9sj5Y8UJakVqDuicdXMGJHfk0VcTj4wxOX9ZRFVYD34h3PGchPwG8N2qGjobZlpIYLnpiayB/YfGulWZaNAGPpUJfK5aXT1JRIbXZbI+nUDD+bwsYklAL2lZ6z1X64ZTw2CcKcAM3a1/2s6/gzsJAzKL3hA6rBfAWCE536H36gEDriwwFA4zTSMEpox7L8+L/pxacPv4K86Brcc4jGjFNV/5AS3TlrbLzqHwkLPYkt/fxFiLUto85Hk+ni+LScpknlwYhX147buD4oO7psGK5kD2r+zxhQdLg/9CSdObijSzvVoinGSeuPYwbPSP6VtZ8HgSJHx5JP8XA2TKH00F0V4BFaAouISvDHhiNrBB3j1CI90D5ZglfaMHuYXAx3Dc2+v4JbRt9wi0xWDymCpTbJ01tvftEbwFTakHcqp64guqPKgJoMYOTc1+OcLmeMUlEBzZM3ZUdjVqPPj/eRq5IAPngKwc6UZXWrXcpFVH4GmVqXkt0boiHwGog9IEpHdo+6GphBmgN6L1DA66beUC9s4EnhwdeOomMlMSkwsytLac5g7aR11ibkDZSLUABRk+aD8QoMiS1WSCcaKwISEZ2MqXIaBfLSpmchUb05pRsTNUIiNkOFjr9SZxyJTHOXx1YGR49eGRDP4rzRt6lmay86Re7DcgGTzAL74GrEOWDUaRL9kjb/fSoWzO3wPAlXNB9M1+KNrmcXF8uoab/PaCljQLwCN5oS93+jpFWmYyT/g8Zel9NEJ4S2fPpYMsc7i9uQlREeecnP8DWEwr0Q==" target="_blank" rel="noreferrer">the updated version of <code>useFetch()</code></a>, with an artificial delay and randomized error for demo purposes.</p>
+<p>Here's <a href="https://play.vuejs.org/#eNp9Vdtu40YM/RVWL1ZQr5RF0JfAMXpLgRZtd5Fu90kvY4mKJ5FnhLnYMQz/+5IcSZF3g30IbPNyyHPIYU7ZL31f7CNmt9nK1073ATyG2K8ro3e9dQFO4LBdQm13fQzYwBlaZ3ewoKTFLCh6/ANDvZ38RTmaiidPkZWprfEBNsrj/66DO1hsQ+j9bVk+eWv6TtW4tV2DrgjHXte2wYKKlsE21pcEkNJ1Q5nUUb54v7gajVHwxhbz/Aru1lOhHymn2KsuIsWPGSdoVFBLQOeso57vJgI5gc0CHQZ3JHfCPFUGJjimQH1dGt6T5VyZVZnUJB3pR8Ad8QtIvwD+tqqB3gqXWzasNjEEa2D/rrXurso0aAM/VRn8XHe6fmYLk9ZVtj6dQMP5vCpTiqBXYdXoPWXrlkKFEEUyMEH36w+29z/AvfBEIhVNQIfNLRCWBBc79F49ouDy4CVx6GlqQXQg3Af+nNWn0JLKp2+pD+w8pmZYY8r5nT6gI9pcdtU7ZB7sSyXp95sYa1ZKm8eiKEb/qpykzJbZbMFofy/39aDIcd+2WIclBPtZ5nO5u5XBF0lpo6mDJrYXO5CGnbZAmk17Z2LH+zF60gJ95eK/WQO58kdTz1cIoCwphZ4a+EBsYIM0e4SWqwvlFMV1p91i+GROc/vWPoe23R4hbFEeRwrlLrbOGht9dwRvQYeFh+BU/UwPW3lQE0CDPZqG9uUIm+MFFyE4sifspOzdqPHwfF674eczcBZk5YJuda1VR0U6dQTqVpmGxpJWl+ULAOqgdICgd2jjUJTNBBANa30FB911/DyjM8KTrANP3SZmim38QIbSlsLcQfukS4oVlA1nM5DI8E77gUAYb4AngqkjmRCTFLZ8KAT9YlApkrJoMa0ZFTtDzTJCjsNqfTtJHCL54yxHCEaGXx0sOTKVeUPPykzrPKmX6g1IBg/wkZ4B6ZDnw6IsyflE051vKC3npwHgYnPp3rWQ/6PCtkiDI+8aroubGS0uJsAjeabPb/oyhEvm3I+cp3zxkBZBfi2uXlMHWZZwc30tVhbnTBcgeJpQqx9FaLoBgl5l/J9Ad+g+9KyDrzK6dsNIM9V19vCX2IKLuBzt9Rbr5zfsT/6FbVX2kd+r22OVTb6g3COG5L7/7198oe+Tc2eb2FH0d5wPLFLkHlPYr9E01PYsTrr9Uy4bnYVP/v4loPEjKW5U5JD4KqO79tt3qL+2e1PcSB6reP4CbzCltA==" target="_blank" rel="noreferrer">the updated version of <code>useFetch()</code></a>, with an artificial delay and randomized error for demo purposes.</p>
 <h2 id="conventions-and-best-practices" tabindex="-1">Conventions and Best Practices </h2>
 <h3 id="naming" tabindex="-1">Naming </h3>
 <p>It is a convention to name composable functions with camelCase names that start with "use".</p>
@@ -287,8 +291,8 @@ console.log(mouse.x)</pre>
 <li><p>Remember to clean up side effects in <code>onUnmounted()</code>. For example, if a composable sets up a DOM event listener, it should remove that listener in <code>onUnmounted()</code> as we have seen in the <code>useMouse()</code> example. It can be a good idea to use a composable that automatically does this for you, like the <code>useEventListener()</code> example.</p></li>
 </ul>
 <h3 id="usage-restrictions" tabindex="-1">Usage Restrictions </h3>
-<p>Composables should only be called <strong>synchronously</strong> in <code>&lt;script setup&gt;</code> or the <code>setup()</code> hook. In some cases, you can also call them in lifecycle hooks like <code>onMounted()</code>.</p>
-<p>These are the contexts where Vue is able to determine the current active component instance. Access to an active component instance is necessary so that:</p>
+<p>Composables should only be called in <code>&lt;script setup&gt;</code> or the <code>setup()</code> hook. They should also be called <strong>synchronously</strong> in these contexts. In some cases, you can also call them in lifecycle hooks like <code>onMounted()</code>.</p>
+<p>These restrictions are important because these are the contexts where Vue is able to determine the current active component instance. Access to an active component instance is necessary so that:</p>
 <ol>
 <li><p>Lifecycle hooks can be registered to it.</p></li>
 <li><p>Computed properties and watchers can be linked to it, so that they can be disposed when the instance is unmounted to prevent memory leaks.</p></li>
@@ -354,7 +358,7 @@ export default {
 <div class="_attribution">
   <p class="_attribution-p">
     © 2013–present Yuxi Evan You<br>Licensed under the MIT License.<br>
-    <a href="https://vuejs.org/guide/reusability/composables.html" class="_attribution-link">https://vuejs.org/guide/reusability/composables.html</a>
+    <a href="https://vuejs.org/guide/reusability/composables" class="_attribution-link">https://vuejs.org/guide/reusability/composables</a>
   </p>
 </div>
 
