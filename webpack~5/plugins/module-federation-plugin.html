@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/webpack~5/plugins/module-federation-plugin.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/webpack~5.js"></script>
   
@@ -116,12 +116,41 @@ module.exports = {
   ],
 };</pre>
 <h3>
-Specify package versions
+Sharing libraries
 </h3>
-<p>There are three ways to specify the versions of shared libraries.</p>
+<p>With the <code>shared</code> key in the configuration you can define libraries that are shared between your federated modules. The package name is the same as the one found in the <code>dependencies</code> section of your package.json. However, by default webpack will only share the root level of a library.</p>
+<pre data-language="js">const { ModuleFederationPlugin } = require('webpack').container;
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      // adds date-fns as shared module
+      shared: ['date-fns'],
+    }),
+  ],
+};</pre>
+<p>So in your application you could do something like</p>
+<pre data-language="js">import { format } from 'date-fns';
+
+format(new Date(2014, 1, 11), 'MM/dd/yyyy');</pre>
+<p>and webpack will automatically share <code>date-fns</code> between all your federated modules that define <code>date-fns</code> as a shared library. However, if you want to access something that is not located at the root level of the package, for example <code>date-fns/locale/en-GB/index.js</code>, you need need to append <code>/</code> to the package name in your <code>shared</code> configuration:</p>
+<pre data-language="js">const { ModuleFederationPlugin } = require('webpack').container;
+module.exports = {
+  plugins: [
+    new ModuleFederationPlugin({
+      // adds date-fns as shared module
+      // all files of the package will be shared
+      shared: ['date-fns/'],
+    }),
+  ],
+};</pre>
+<p>The <code>/</code> syntax allows you to access all files of a package. However, it should be used only where necessary, because it has an impact on performance especially in <code>development</code> mode.</p>
 <h4>
-Array syntax
+Specify package versions
 </h4>
+<p>There are three ways to specify the versions of shared libraries.</p>
+<h5>
+Array syntax
+</h5>
 <p>This syntax allows you to share libraries with package name only. This approach is good for prototyping, but it will not allow you to scale to large production environment given that libraries like <code>react</code> and <code>react-dom</code> will require additional requirements.</p>
 <pre data-language="js">const { ModuleFederationPlugin } = require('webpack').container;
 module.exports = {
@@ -135,9 +164,9 @@ module.exports = {
     }),
   ],
 };</pre>
-<h4>
+<h5>
 Object syntax
-</h4>
+</h5>
 <p>This syntax provides you more control over each shared library in which you can define package name as the key and version (<a href="https://semver.org/">semver</a>) as the value.</p>
 <pre data-language="js">module.exports = {
   plugins: [
@@ -151,9 +180,9 @@ Object syntax
     }),
   ],
 };</pre>
-<h4>
+<h5>
 Object syntax with sharing hints
-</h4>
+</h5>
 <p>This syntax allows you to provide additional <a href="#sharing-hints">hints</a> to each shared package where you define the package name as the key, and the value as an object containing hints to modify sharing behavior.</p>
 <pre data-language="js">const deps = require('./package.json').dependencies;
 
@@ -170,54 +199,56 @@ module.exports = {
     }),
   ],
 };</pre>
-<h3>
-Sharing hints
-</h3>
 <h4>
-<strong><code>eager</code></strong>
+Sharing hints
 </h4>
+<h5>
+<strong><code>eager</code></strong>
+</h5>
 <p><code>boolean</code></p>
 <p>This hint will allow webpack to include the provided and fallback module directly instead of fetching the library via an asynchronous request. In other words, this allows to use this shared module in the initial chunk. Also, be careful that all provided and fallback modules will always be downloaded when this hint is enabled.</p>
-<h4>
+<h5>
 <strong><code>import</code></strong>
-</h4>
+</h5>
 <p><code>false | string</code></p>
 <p>The provided module that should be placed in the shared scope. This provided module also acts as fallback module if no shared module is found in the shared scope or version isn't valid. (The value for this hint defaults to the property name.)</p>
-<h4>
+<h5>
 <strong><code>packageName</code></strong>
-</h4>
+</h5>
 <p><code>string</code></p>
 <p>The package name that is used to determine required version from description file. This is only needed when the package name can't be automatically determined from request.</p>
-<h4>
+<h5>
 <strong><code>requiredVersion</code></strong>
-</h4>
+</h5>
 <p><code>false | string</code></p>
-<p>The required version of the package.</p>
-<h4>
+<p>The required version of the package. It accepts semantic versioning. For example, "^1.2.3".</p>
+<h5>
 <strong><code>shareKey</code></strong>
-</h4>
+</h5>
 <p><code>string</code></p>
 <p>The requested shared module is looked up under this key from the shared scope.</p>
-<h4>
+<h5>
 <strong><code>shareScope</code></strong>
-</h4>
+</h5>
 <p><code>string</code></p>
 <p>The name of the shared scope.</p>
-<h4>
+<h5>
 <strong><code>singleton</code></strong>
-</h4>
+</h5>
 <p><code>boolean</code></p>
 <p>This hint only allows a single version of the shared module in the shared scope (disabled by default). Some libraries use a global internal state (e.g. react, react-dom). Thus, it is critical to have only one instance of the library running at a time.</p>
-<h4>
+<p>In cases where there are multiple versions of the same dependency in the shared scope, the highest semantic version is used.</p>
+<h5>
 <strong><code>strictVersion</code></strong>
-</h4>
+</h5>
 <p><code>boolean</code></p>
-<p>This hint allows webpack to reject the shared module if version is not valid (defaults to <code>true</code> when local fallback module is available and shared module is not a singleton, otherwise <code>false</code>, it has no effect if there is no required version specified).</p>
-<h4>
+<p>This hint allows webpack to reject the shared module if version is not valid (defaults to <code>true</code> when local fallback module is available and shared module is not a singleton, otherwise <code>false</code>, it has no effect if there is no required version specified). Throws a runtime error if the required version is not found.</p>
+<h5>
 <strong><code>version</code></strong>
-</h4>
+</h5>
 <p><code>false | string</code></p>
 <p>The version of the provided module. It allows webpack to replace lower matching versions, but not higher.</p>
+<p>By default, webpack uses the version from the <code>package.json</code> file of the dependency.</p>
 <h4>
 <strong>Additional examples</strong>
 </h4>

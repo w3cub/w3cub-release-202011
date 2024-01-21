@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/webpack~5/configuration/module.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/webpack~5.js"></script>
   
@@ -88,6 +88,29 @@
 <h1>Module</h1>
 <div id="md-content">
 <p>These options determine how the <a href="../concepts/modules">different types of modules</a> within a project will be treated.</p>
+<h2>
+module.defaultRules
+</h2>
+<p>An array of rules applied by default for modules.</p>
+<p>See <a href="https://github.com/webpack/webpack/blob/dc4d97429b2013f7770ba785721b65cf82c2ef04/lib/config/defaults.js#L608">source code</a> for details.</p>
+<pre data-language="js">module.exports = {
+  module: {
+    defaultRules: [
+      '...', // you can use "..." to reference those rules applied by webpack by default
+    ],
+  },
+};</pre>
+<p>Starting with webpack 5.87.0, falsy values including <code>0</code>, <code>""</code>, <code>false</code>, <code>null</code> and <code>undefined</code> are allowed to pass to <code>module.defaultRules</code> to conditionally disable specific rules.</p>
+<pre data-language="js">module.exports = {
+  module: {
+    defaultRules: [
+      false &amp;&amp;
+        {
+          // this rule will be disabled
+        },
+    ],
+  },
+};</pre>
 <h2>
 module.generator
 </h2>
@@ -208,6 +231,26 @@ module.parser.javascript.commonjsMagicComments
 </ul>
 <p>Note that only <code>webpackIgnore</code> comment is supported at the moment:</p>
 <pre data-language="js">const x = require(/* webpackIgnore: true */ 'x');</pre>
+<h4>
+module.parser.javascript.dynamicImportFetchPriority
+</h4>
+<p>Specify the global <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority">fetchPriority</a> for dynamic import.</p>
+<ul>
+<li><p>Type: <code>'low' | 'high' | 'auto' | false</code></p></li>
+<li><p>Available: 5.87.0+</p></li>
+<li>
+<p>Example:</p>
+<pre data-language="js">module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportFetchPriority: 'high',
+      },
+    },
+  },
+};</pre>
+</li>
+</ul>
 <h4>
 module.parser.javascript.dynamicImportMode
 </h4>
@@ -436,8 +479,9 @@ module.unsafeCache
 <h2>
 module.rules
 </h2>
-<p><code>[Rule]</code></p>
+<p><code>(Rule | undefined | null | false | "" | 0 | "...")[]</code></p>
 <p>An array of <a href="#rule">Rules</a> which are matched to requests when modules are created. These rules can modify how the module is created. They can apply loaders to the module, or modify the parser.</p>
+<p>As of webpack 5.87.0, falsy values such as <code>false</code>, <code>undefined</code>, <code>null</code> and <code>0</code> can be used to conditionally disable a rule.</p>
 <h2>
 Rule
 </h2>
@@ -592,11 +636,11 @@ Rule.oneOf
         oneOf: [
           {
             resourceQuery: /inline/, // foo.css?inline
-            use: 'url-loader',
+            type: 'asset/inline',
           },
           {
             resourceQuery: /external/, // foo.css?external
-            use: 'file-loader',
+            type: 'asset/resource',
           },
         ],
       },
@@ -858,7 +902,7 @@ Rule.resourceQuery
       {
         test: /\.css$/,
         resourceQuery: /inline/,
-        use: 'url-loader',
+        type: 'asset/inline',
       },
     ],
   },
@@ -919,12 +963,12 @@ Rule.sideEffects
 <h2>
 Rule.test
 </h2>
-<p>Include all modules that pass test assertion. If you supply a <code>Rule.test</code> option, you cannot also supply a <code>Rule.resource</code>. See <a href="#ruleresource"><code>Rule.resource</code></a> and <a href="#condition"><code>Condition.test</code></a> for details.</p>
+<p>Include all modules that pass test assertion. If you supply a <code>Rule.test</code> option, you cannot also supply a <code>Rule.resource</code>. See <a href="#ruleresource"><code>Rule.resource</code></a> and <a href="#condition"><code>Condition</code></a> for details.</p>
 <h2>
 Rule.type
 </h2>
 <p><code>string</code></p>
-<p>Possible values: <code>'javascript/auto' | 'javascript/dynamic' | 'javascript/esm' | 'json' | 'webassembly/sync' | 'webassembly/async' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'</code></p>
+<p>Possible values: <code>'javascript/auto' | 'javascript/dynamic' | 'javascript/esm' | 'json' | 'webassembly/sync' | 'webassembly/async' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'css/auto'</code></p>
 <p><code>Rule.type</code> sets the type for a matching module. This prevents defaultRules and their default importing behaviors from occurring. For example, if you want to load a <code>.json</code> file through a custom loader, you'd need to set the <code>type</code> to <code>javascript/auto</code> to bypass webpack's built-in json importing. (See <a href="https://github.com/webpack/webpack/releases/tag/v4.0.0">v4.0 changelog</a> for more details)</p>
 <p><strong>webpack.config.js</strong></p>
 <pre data-language="javascript">module.exports = {
@@ -941,10 +985,31 @@ Rule.type
   },
 };</pre>
 <blockquote><p>See <a href="../guides/asset-modules">Asset Modules guide</a> for more about <code>asset*</code> type.</p></blockquote>
+<h3>
+css/auto
+</h3>
+<span class="badge">5.87.0+</span><p>See use case of <code>css/auto</code> module type <a href="https://github.com/webpack/webpack/issues/16572">here</a>. Make sure to enable <a href="experiments#experimentscss"><code>experiments.css</code></a> to use <code>css/auto</code>.</p>
+<pre data-language="js">module.exports = {
+  target: 'web',
+  mode: 'development',
+  experiments: {
+    css: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: 'less-loader',
+        type: 'css/auto',
+      },
+    ],
+  },
+};</pre>
 <h2>
 Rule.use
 </h2>
 <p><code>[UseEntry]</code> <code>function(info)</code></p>
+<p>Starting with webpack 5.87.0 falsy values such as <code>undefined</code> <code>null</code> can be used to conditionally disable specific use entry.</p>
 <p><strong><code>[UseEntry]</code></strong></p>
 <p><code>Rule.use</code> can be an array of <a href="#useentry">UseEntry</a> which are applied to modules. Each entry specifies a loader to be used.</p>
 <p>Passing a string (i.e. <code>use: [ 'style-loader' ]</code>) is a shortcut to the loader property (i.e. <code>use: [ { loader: 'style-loader '} ]</code>).</p>
@@ -1156,21 +1221,19 @@ UseEntry
   module: {
     rules: [
       {
-        loader: 'file-loader',
-        options: {
-          outputPath: 'svgs',
-        },
+        test: /\.svg$/,
+        type: 'asset',
+        use: (info) =&gt; ({
+          loader: 'svgo-loader',
+          options: {
+            plugins: [
+              {
+                cleanupIDs: { prefix: basename(info.resource) },
+              },
+            ],
+          },
+        }),
       },
-      (info) =&gt; ({
-        loader: 'svgo-loader',
-        options: {
-          plugins: [
-            {
-              cleanupIDs: { prefix: basename(info.resource) },
-            },
-          ],
-        },
-      }),
     ],
   },
 };</pre>
@@ -1181,7 +1244,7 @@ Module Contexts
 <p>Example for an <code>unknown</code> dynamic dependency: <code>require</code>.</p>
 <p>Example for an <code>expr</code> dynamic dependency: <code>require(expr)</code>.</p>
 <p>Example for an <code>wrapped</code> dynamic dependency: <code>require('./templates/' + expr)</code>.</p>
-<p>Here are the available options with their <a href="https://github.com/webpack/webpack/blob/master/lib/config/defaults.js">defaults</a>:</p>
+<p>Here are the available options with their <a href="https://github.com/webpack/webpack/blob/main/lib/config/defaults.js">defaults</a>:</p>
 <p><strong>webpack.config.js</strong></p>
 <pre data-language="javascript">module.exports = {
   //...
