@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/dom/webxr_device_api/performance.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/dom.js"></script>
   
@@ -85,8 +85,7 @@
 			<div class="_page _mdn">
 				
 				
-<h1>WebXR performance guide</h1>
-<div class="section-content"><p>WebXR applications involve multiple technologies which can be highly sensitive to performance constraints. As such, you may find yourself needing to make adjustments or compromises to optimize the performance of your WebXR application to be as usable as possible on the broadest assortment of target devices. In this guide, we'll examine a variety of suggestions and recommendations that will help you make your WebXR app as performant as possible.</p></div>
+<header><h1>WebXR performance guide</h1></header><div class="section-content"><p>WebXR applications involve multiple technologies which can be highly sensitive to performance constraints. As such, you may find yourself needing to make adjustments or compromises to optimize the performance of your WebXR application to be as usable as possible on the broadest assortment of target devices. In this guide, we'll examine a variety of suggestions and recommendations that will help you make your WebXR app as performant as possible.</p></div>
 <h2 id="rendering_tips">Rendering tips</h2>
 <div class="section-content">
 <p>Talk about general stuff like limiting how many different loops there are during rendering, avoiding unnecessary drawing, etc.</p> <p>Can probably also include stuff from this <a href="https://github.com/immersive-web/webxr/blob/master/explainer.md#changing-the-field-of-view-for-inline-sessions" target="_blank">explainer in the spec repo</a></p>
@@ -99,7 +98,9 @@
 <div class="section-content"><p>This section will combine information from this <a href="https://github.com/immersive-web/webxr/blob/master/explainer.md#controlling-depth-precision" target="_blank">explainer</a> and this <a href="https://github.com/immersive-web/webxr/blob/master/explainer.md#preventing-the-compositor-from-using-the-depth-buffer" target="_blank">one</a>, in the spec repository.</p></div>
 <h2 id="optimizing_memory_use">Optimizing memory use</h2>
 <div class="section-content">
-<p>When using libraries that perform things such as matrix mathematics, you typically have a number of working variables through which various vectors, matrices, and quaternions pass over time. It makes sense, then, to have a limited set of these objects, replacing their contents with the new information each time you need to use them. They can be thought of as being similar to the registers in a microprocessor: a limited set of memory storage slots for specific kinds of data or use cases.</p> <p>While an individual vector or matrix doesn't occupy an inordinate amount of memory, the sheer number of vectors and matrices and other structures that are used to build each frame of a 3D scene means the memory management becomes a problem eventually if you keep allocating and de-allocating memory objects.</p> <p>Consider the following</p> <div class="code-example"><pre data-language="js"><span class="token keyword">function</span> <span class="token function">drawScene</span><span class="token punctuation">(</span><span class="token parameter">gl<span class="token punctuation">,</span> view<span class="token punctuation">,</span> programInfo<span class="token punctuation">,</span> buffers<span class="token punctuation">,</span> texture<span class="token punctuation">,</span> deltaTime</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+<p>When using libraries that perform things such as matrix mathematics, you typically have a number of working variables through which various vectors, matrices, and quaternions pass over time. It makes sense, then, to have a limited set of these objects, replacing their contents with the new information each time you need to use them. They can be thought of as being similar to the registers in a microprocessor: a limited set of memory storage slots for specific kinds of data or use cases.</p> <p>While an individual vector or matrix doesn't occupy an inordinate amount of memory, the sheer number of vectors and matrices and other structures that are used to build each frame of a 3D scene means the memory management becomes a problem eventually if you keep allocating and de-allocating memory objects.</p> <p>Consider the following</p> <div class="code-example">
+<p class="example-header"><span class="language-name">js</span></p>
+<pre data-signature="tT34lg31jDRx5xkH4ySzAqbUfpWFAZm44bUHCJlicDU=" data-language="js"><span class="token keyword">function</span> <span class="token function">drawScene</span><span class="token punctuation">(</span><span class="token parameter">gl<span class="token punctuation">,</span> view<span class="token punctuation">,</span> programInfo<span class="token punctuation">,</span> buffers<span class="token punctuation">,</span> texture<span class="token punctuation">,</span> deltaTime</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
   <span class="token comment">// …</span>
   <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">const</span> object <span class="token keyword">in</span> scene<span class="token punctuation">)</span> <span class="token punctuation">{</span>
     <span class="token keyword">const</span> vertexList <span class="token operator">=</span> <span class="token punctuation">[</span>
@@ -114,7 +115,10 @@
     mat4<span class="token punctuation">.</span><span class="token function">rotate</span><span class="token punctuation">(</span><span class="token comment">/* … */</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
-</pre></div> <p>This renders a scene. But it's inefficient, because it allocates as local variables a number of things, including at least two matrices, an array of vertices, and more. That means that for every frame, the JavaScript runtime has to allocate memory for those and set them up—possibly triggering garbage collection—and then when each interaction of the loop is completed, the memory is released.</p> <p>A simple change can optimize this significantly:</p> <div class="code-example"><pre data-language="js"><span class="token keyword">const</span> vertexList <span class="token operator">=</span> <span class="token punctuation">[</span>
+</pre>
+</div> <p>This renders a scene. But it's inefficient, because it allocates as local variables a number of things, including at least two matrices, an array of vertices, and more. That means that for every frame, the JavaScript runtime has to allocate memory for those and set them up—possibly triggering garbage collection—and then when each interaction of the loop is completed, the memory is released.</p> <p>A simple change can optimize this significantly:</p> <div class="code-example">
+<p class="example-header"><span class="language-name">js</span></p>
+<pre data-signature="FtZsFPdxj7HLbKEbTJaBHRgKneW7vHNTllCrQ7bNvZE=" data-language="js"><span class="token keyword">const</span> vertexList <span class="token operator">=</span> <span class="token punctuation">[</span>
   <span class="token comment">/* … */</span>
 <span class="token punctuation">]</span><span class="token punctuation">;</span>
 <span class="token keyword">const</span> normalMatrix <span class="token operator">=</span> mat4<span class="token punctuation">.</span><span class="token function">create</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -126,7 +130,8 @@
     <span class="token comment">// …</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
-</pre></div> <p>Now, instead of allocating variables every loop iteration, we're using global constants(or class member constants). This has multiple benefits:</p> <ul> <li>The memory allocated for each value or structure will not need to be reallocated every frame. This reduces the potential for triggering garbage collection, and optimizes memory use.</li> <li>You can't accidentally delete the objects that contain your vectors and matrices, since they're constants.</li> <li>You can, however, still replace the <em>contents</em> of each of these objects, so they're reusable.</li> </ul> <p>You're now protected from several possible coding mistakes, and your entire animation will be smoother and more performant as well.</p>
+</pre>
+</div> <p>Now, instead of allocating variables every loop iteration, we're using global constants(or class member constants). This has multiple benefits:</p> <ul> <li>The memory allocated for each value or structure will not need to be reallocated every frame. This reduces the potential for triggering garbage collection, and optimizes memory use.</li> <li>You can't accidentally delete the objects that contain your vectors and matrices, since they're constants.</li> <li>You can, however, still replace the <em>contents</em> of each of these objects, so they're reusable.</li> </ul> <p>You're now protected from several possible coding mistakes, and your entire animation will be smoother and more performant as well.</p>
 </div>
 <div class="_attribution">
   <p class="_attribution-p">
