@@ -15,7 +15,7 @@
   
   <link rel="canonical" href="https://docs.w3cub.com/node/errors.html">
   <link href="/favicon.png" rel="icon">
-  <link rel="stylesheet" type="text/css" href="/assets/application-9c7b0d969c0ce639a6c01c2badcdd81667c7c66206aa3d0fccc5cb0585fb1b912dab72ea882101d18010680927514b4b77b107282db8f756fbf63301fe9c88b0.css">
+  <link rel="stylesheet" type="text/css" href="/assets/application-c8f743fc70bb84079c3cf4b71f5f99835529659c30689b2fd6193651a680f383ef1d96896f8966c7ca8a0160ffd557685bb8ad12820ec6002d60143812238086.css">
   <script type="text/javascript" src="/assets/application-79c555f6b25481fffac2cac30a7f3e54e608ca09e9e8e42bb1790095ba6d0fcace47d6bc624ddce952c70370892f2d46864f89e6943d4f7f7ff16c8a3231a91a.js"></script>
   <script src="/json/node.js"></script>
   
@@ -94,14 +94,25 @@ try {
   const n = m + z;
 } catch (err) {
   // Handle the error here.
-}</pre> <p>Any use of the JavaScript <code>throw</code> mechanism will raise an exception that <em>must</em> be handled using <code>try…catch</code> or the Node.js process will exit immediately.</p> <p>With few exceptions, <em>Synchronous</em> APIs (any blocking method that does not accept a <code>callback</code> function, such as <a href="fs#fsreadfilesyncpath-options"><code>fs.readFileSync</code></a>), will use <code>throw</code> to report errors.</p> <p>Errors that occur within <em>Asynchronous APIs</em> may be reported in multiple ways:</p> <ul> <li> <p>Most asynchronous methods that accept a <code>callback</code> function will accept an <code>Error</code> object passed as the first argument to that function. If that first argument is not <code>null</code> and is an instance of <code>Error</code>, then an error occurred that should be handled.</p>  <pre data-language="js">const fs = require('node:fs');
+} copy</pre> <p>Any use of the JavaScript <code>throw</code> mechanism will raise an exception that <em>must</em> be handled or the Node.js process will exit immediately.</p> <p>With few exceptions, <em>Synchronous</em> APIs (any blocking method that does not return a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" class="type">&lt;Promise&gt;</a> nor accept a <code>callback</code> function, such as <a href="fs#fsreadfilesyncpath-options"><code>fs.readFileSync</code></a>), will use <code>throw</code> to report errors.</p> <p>Errors that occur within <em>Asynchronous APIs</em> may be reported in multiple ways:</p> <ul> <li> <p>Some asynchronous methods returns a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" class="type">&lt;Promise&gt;</a>, you should always take into account that it might be rejected. See <a href="cli#--unhandled-rejectionsmode"><code>--unhandled-rejections</code></a> flag for how the process will react to an unhandled promise rejection.</p>  <pre data-language="js">const fs = require('fs/promises');
+
+(async () =&gt; {
+  let data;
+  try {
+    data = await fs.readFile('a file that does not exist');
+  } catch (err) {
+    console.error('There was an error reading the file!', err);
+    return;
+  }
+  // Otherwise handle the data
+})(); copy</pre> </li> <li> <p>Most asynchronous methods that accept a <code>callback</code> function will accept an <code>Error</code> object passed as the first argument to that function. If that first argument is not <code>null</code> and is an instance of <code>Error</code>, then an error occurred that should be handled.</p>  <pre data-language="js">const fs = require('node:fs');
 fs.readFile('a file that does not exist', (err, data) =&gt; {
   if (err) {
     console.error('There was an error reading the file!', err);
     return;
   }
   // Otherwise handle the data
-});</pre> </li> <li> <p>When an asynchronous method is called on an object that is an <a href="events#class-eventemitter"><code>EventEmitter</code></a>, errors can be routed to that object's <code>'error'</code> event.</p> <pre data-language="js">const net = require('node:net');
+}); copy</pre> </li> <li> <p>When an asynchronous method is called on an object that is an <a href="events#class-eventemitter"><code>EventEmitter</code></a>, errors can be routed to that object's <code>'error'</code> event.</p> <pre data-language="js">const net = require('node:net');
 const connection = net.connect('localhost');
 
 // Adding an 'error' event handler to a stream:
@@ -112,39 +123,14 @@ connection.on('error', (err) =&gt; {
   console.error(err);
 });
 
-connection.pipe(process.stdout);</pre> </li> <li> <p>A handful of typically asynchronous methods in the Node.js API may still use the <code>throw</code> mechanism to raise exceptions that must be handled using <code>try…catch</code>. There is no comprehensive list of such methods; please refer to the documentation of each method to determine the appropriate error handling mechanism required.</p> </li> </ul> <p>The use of the <code>'error'</code> event mechanism is most common for <a href="stream">stream-based</a> and <a href="events#class-eventemitter">event emitter-based</a> APIs, which themselves represent a series of asynchronous operations over time (as opposed to a single operation that may pass or fail).</p> <p>For <em>all</em> <a href="events#class-eventemitter"><code>EventEmitter</code></a> objects, if an <code>'error'</code> event handler is not provided, the error will be thrown, causing the Node.js process to report an uncaught exception and crash unless either: The <a href="domain"><code>domain</code></a> module is used appropriately or a handler has been registered for the <a href="process#event-uncaughtexception"><code>'uncaughtException'</code></a> event.</p> <pre data-language="js">const EventEmitter = require('node:events');
+connection.pipe(process.stdout); copy</pre> </li> <li> <p>A handful of typically asynchronous methods in the Node.js API may still use the <code>throw</code> mechanism to raise exceptions that must be handled using <code>try…catch</code>. There is no comprehensive list of such methods; please refer to the documentation of each method to determine the appropriate error handling mechanism required.</p> </li> </ul> <p>The use of the <code>'error'</code> event mechanism is most common for <a href="stream">stream-based</a> and <a href="events#class-eventemitter">event emitter-based</a> APIs, which themselves represent a series of asynchronous operations over time (as opposed to a single operation that may pass or fail).</p> <p>For <em>all</em> <a href="events#class-eventemitter"><code>EventEmitter</code></a> objects, if an <code>'error'</code> event handler is not provided, the error will be thrown, causing the Node.js process to report an uncaught exception and crash unless either: a handler has been registered for the <a href="process#event-uncaughtexception"><code>'uncaughtException'</code></a> event, or the deprecated <a href="domain"><code>node:domain</code></a> module is used.</p> <pre data-language="js">const EventEmitter = require('node:events');
 const ee = new EventEmitter();
 
 setImmediate(() =&gt; {
   // This will crash the process because no 'error' event
   // handler has been added.
   ee.emit('error', new Error('This will crash'));
-});</pre> <p>Errors generated in this way <em>cannot</em> be intercepted using <code>try…catch</code> as they are thrown <em>after</em> the calling code has already exited.</p> <p>Developers must refer to the documentation for each method to determine exactly how errors raised by those methods are propagated.</p> <h4 id="error-first-callbacks">Error-first callbacks
-</h4> <p>Most asynchronous methods exposed by the Node.js core API follow an idiomatic pattern referred to as an <em>error-first callback</em>. With this pattern, a callback function is passed to the method as an argument. When the operation either completes or an error is raised, the callback function is called with the <code>Error</code> object (if any) passed as the first argument. If no error was raised, the first argument will be passed as <code>null</code>.</p> <pre data-language="js">const fs = require('node:fs');
-
-function errorFirstCallback(err, data) {
-  if (err) {
-    console.error('There was an error', err);
-    return;
-  }
-  console.log(data);
-}
-
-fs.readFile('/some/file/that/does-not-exist', errorFirstCallback);
-fs.readFile('/some/file/that/does-exist', errorFirstCallback);</pre> <p>The JavaScript <code>try…catch</code> mechanism <strong>cannot</strong> be used to intercept errors generated by asynchronous APIs. A common mistake for beginners is to try to use <code>throw</code> inside an error-first callback:</p> <pre data-language="js">// THIS WILL NOT WORK:
-const fs = require('node:fs');
-
-try {
-  fs.readFile('/some/file/that/does-not-exist', (err, data) =&gt; {
-    // Mistaken assumption: throwing here...
-    if (err) {
-      throw err;
-    }
-  });
-} catch (err) {
-  // This will not catch the throw!
-  console.error(err);
-}</pre> <p>This will not work because the callback function passed to <code>fs.readFile()</code> is called asynchronously. By the time the callback has been called, the surrounding code, including the <code>try…catch</code> block, will have already exited. Throwing an error inside the callback <strong>can crash the Node.js process</strong> in most cases. If <a href="domain">domains</a> are enabled, or a handler has been registered with <code>process.on('uncaughtException')</code>, such errors can be intercepted.</p> </section><section><h3 id="class-error">Class: <code>Error</code>
+}); copy</pre> <p>Errors generated in this way <em>cannot</em> be intercepted using <code>try…catch</code> as they are thrown <em>after</em> the calling code has already exited.</p> <p>Developers must refer to the documentation for each method to determine exactly how errors raised by those methods are propagated.</p> </section><section><h3 id="class-error">Class: <code>Error</code>
 </h3> <p>A generic JavaScript <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error" class="type">&lt;Error&gt;</a> object that does not denote any specific circumstance of why the error occurred. <code>Error</code> objects capture a "stack trace" detailing the point in the code at which the <code>Error</code> was instantiated, and may provide a text description of the error.</p> <p>All errors generated by Node.js, including all system and JavaScript errors, will either be instances of, or inherit from, the <code>Error</code> class.</p> <h4 id="new-errormessage-options">
 <code>new Error(message[, options])</code>
 </h4> <ul> <li>
@@ -159,14 +145,27 @@ try {
 <code>constructorOpt</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function" class="type">&lt;Function&gt;</a>
 </li> </ul> <p>Creates a <code>.stack</code> property on <code>targetObject</code>, which when accessed returns a string representing the location in the code at which <code>Error.captureStackTrace()</code> was called.</p> <pre data-language="js">const myObject = {};
 Error.captureStackTrace(myObject);
-myObject.stack;  // Similar to `new Error().stack`</pre> <p>The first line of the trace will be prefixed with <code>${myObject.name}: ${myObject.message}</code>.</p> <p>The optional <code>constructorOpt</code> argument accepts a function. If given, all frames above <code>constructorOpt</code>, including <code>constructorOpt</code>, will be omitted from the generated stack trace.</p> <p>The <code>constructorOpt</code> argument is useful for hiding implementation details of error generation from the user. For instance:</p> <pre data-language="js">function MyError() {
-  Error.captureStackTrace(this, MyError);
+myObject.stack;  // Similar to `new Error().stack` copy</pre> <p>The first line of the trace will be prefixed with <code>${myObject.name}: ${myObject.message}</code>.</p> <p>The optional <code>constructorOpt</code> argument accepts a function. If given, all frames above <code>constructorOpt</code>, including <code>constructorOpt</code>, will be omitted from the generated stack trace.</p> <p>The <code>constructorOpt</code> argument is useful for hiding implementation details of error generation from the user. For instance:</p> <pre data-language="js">function a() {
+  b();
 }
 
-// Without passing MyError to captureStackTrace, the MyError
-// frame would show up in the .stack property. By passing
-// the constructor, we omit that frame, and retain all frames below it.
-new MyError().stack;</pre> <h4 id="errorstacktracelimit">
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a(); copy</pre> <h4 id="errorstacktracelimit">
 <code>Error.stackTraceLimit</code>
 </h4> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#Number_type" class="type">&lt;number&gt;</a></li> </ul> <p>The <code>Error.stackTraceLimit</code> property specifies the number of stack frames collected by a stack trace (whether generated by <code>new Error().stack</code> or <code>Error.captureStackTrace(obj)</code>).</p> <p>The default value is <code>10</code> but may be set to any valid JavaScript number. Changes will affect any stack trace captured <em>after</em> the value has been changed.</p> <p>If set to a non-number value, or set to a negative number, stack traces will not capture any frames.</p> <h4 id="errorcause">
 <code>error.cause</code>
@@ -190,19 +189,19 @@ console.log(symptom);
 //         at REPLServer.emit (node:events:549:35)
 //         at REPLServer.emit (node:domain:482:12)
 //         at [_onLine] [as _onLine] (node:internal/readline/interface:425:12)
-//         at [_line] [as _line] (node:internal/readline/interface:886:18)</pre> <h4 id="errorcode">
+//         at [_line] [as _line] (node:internal/readline/interface:886:18) copy</pre> <h4 id="errorcode">
 <code>error.code</code>
 </h4> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a></li> </ul> <p>The <code>error.code</code> property is a string label that identifies the kind of error. <code>error.code</code> is the most stable way to identify an error. It will only change between major versions of Node.js. In contrast, <code>error.message</code> strings may change between any versions of Node.js. See <a href="#nodejs-error-codes">Node.js error codes</a> for details about specific codes.</p> <h4 id="errormessage">
 <code>error.message</code>
 </h4> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a></li> </ul> <p>The <code>error.message</code> property is the string description of the error as set by calling <code>new Error(message)</code>. The <code>message</code> passed to the constructor will also appear in the first line of the stack trace of the <code>Error</code>, however changing this property after the <code>Error</code> object is created <em>may not</em> change the first line of the stack trace (for example, when <code>error.stack</code> is read before this property is changed).</p> <pre data-language="js">const err = new Error('The message');
 console.error(err.message);
-// Prints: The message</pre> <h4 id="errorstack">
+// Prints: The message copy</pre> <h4 id="errorstack">
 <code>error.stack</code>
 </h4> <ul> <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a></li> </ul> <p>The <code>error.stack</code> property is a string describing the point in the code at which the <code>Error</code> was instantiated.</p> <pre data-language="js">Error: Things keep happening!
    at /home/gbusey/file.js:525:2
    at Frobnicator.refrobulate (/home/gbusey/business-logic.js:424:21)
    at Actor.&lt;anonymous&gt; (/home/gbusey/actors.js:400:8)
-   at increaseSynergy (/home/gbusey/actors.js:701:6)</pre> <p>The first line is formatted as <code>&lt;error class name&gt;: &lt;error message&gt;</code>, and is followed by a series of stack frames (each line beginning with "at "). Each frame describes a call site within the code that lead to the error being generated. V8 attempts to display a name for each function (by variable name, function name, or object method name), but occasionally it will not be able to find a suitable name. If V8 cannot determine a name for the function, only location information will be displayed for that frame. Otherwise, the determined function name will be displayed with location information appended in parentheses.</p> <p>Frames are only generated for JavaScript functions. If, for example, execution synchronously passes through a C++ addon function called <code>cheetahify</code> which itself calls a JavaScript function, the frame representing the <code>cheetahify</code> call will not be present in the stack traces:</p> <pre data-language="js">const cheetahify = require('./native-binding.node');
+   at increaseSynergy (/home/gbusey/actors.js:701:6) copy</pre> <p>The first line is formatted as <code>&lt;error class name&gt;: &lt;error message&gt;</code>, and is followed by a series of stack frames (each line beginning with "at "). Each frame describes a call site within the code that lead to the error being generated. V8 attempts to display a name for each function (by variable name, function name, or object method name), but occasionally it will not be able to find a suitable name. If V8 cannot determine a name for the function, only location information will be displayed for that frame. Otherwise, the determined function name will be displayed with location information appended in parentheses.</p> <p>Frames are only generated for JavaScript functions. If, for example, execution synchronously passes through a C++ addon function called <code>cheetahify</code> which itself calls a JavaScript function, the frame representing the <code>cheetahify</code> call will not be present in the stack traces:</p> <pre data-language="js">const cheetahify = require('./native-binding.node');
 
 function makeFaster() {
   // `cheetahify()` *synchronously* calls speedy.
@@ -226,7 +225,7 @@ makeFaster();
 //       at Function.Module._load (module.js:312:12)
 //       at Function.Module.runMain (module.js:497:10)
 //       at startup (node.js:119:16)
-//       at node.js:906:3</pre> <p>The location information will be one of:</p> <ul> <li>
+//       at node.js:906:3 copy</pre> <p>The location information will be one of:</p> <ul> <li>
 <code>native</code>, if the frame represents a call internal to V8 (as in <code>[].forEach</code>).</li> <li>
 <code>plain-filename.js:line:column</code>, if the frame represents a call internal to Node.js.</li> <li>
 <code>/absolute/path/to/file.js:line:column</code>, if the frame represents a call in a user program (using CommonJS module system), or its dependencies.</li> <li>
@@ -235,16 +234,16 @@ makeFaster();
 </li> </ul> <p>Indicates the failure of an assertion. For details, see <a href="assert#class-assertassertionerror"><code>Class: assert.AssertionError</code></a>.</p> </section><section><h3 id="class-rangeerror">Class: <code>RangeError</code>
 </h3> <ul> <li>Extends: <a href="errors#class-error" class="type">&lt;errors.Error&gt;</a>
 </li> </ul> <p>Indicates that a provided argument was not within the set or range of acceptable values for a function; whether that is a numeric range, or outside the set of options for a given function parameter.</p> <pre data-language="js">require('node:net').connect(-1);
-// Throws "RangeError: "port" option should be &gt;= 0 and &lt; 65536: -1"</pre> <p>Node.js will generate and throw <code>RangeError</code> instances <em>immediately</em> as a form of argument validation.</p> </section><section><h3 id="class-referenceerror">Class: <code>ReferenceError</code>
+// Throws "RangeError: "port" option should be &gt;= 0 and &lt; 65536: -1" copy</pre> <p>Node.js will generate and throw <code>RangeError</code> instances <em>immediately</em> as a form of argument validation.</p> </section><section><h3 id="class-referenceerror">Class: <code>ReferenceError</code>
 </h3> <ul> <li>Extends: <a href="errors#class-error" class="type">&lt;errors.Error&gt;</a>
 </li> </ul> <p>Indicates that an attempt is being made to access a variable that is not defined. Such errors commonly indicate typos in code, or an otherwise broken program.</p> <p>While client code may generate and propagate these errors, in practice, only V8 will do so.</p> <pre data-language="js">doesNotExist;
-// Throws ReferenceError, doesNotExist is not a variable in this program.</pre> <p>Unless an application is dynamically generating and running code, <code>ReferenceError</code> instances indicate a bug in the code or its dependencies.</p> </section><section><h3 id="class-syntaxerror">Class: <code>SyntaxError</code>
+// Throws ReferenceError, doesNotExist is not a variable in this program. copy</pre> <p>Unless an application is dynamically generating and running code, <code>ReferenceError</code> instances indicate a bug in the code or its dependencies.</p> </section><section><h3 id="class-syntaxerror">Class: <code>SyntaxError</code>
 </h3> <ul> <li>Extends: <a href="errors#class-error" class="type">&lt;errors.Error&gt;</a>
 </li> </ul> <p>Indicates that a program is not valid JavaScript. These errors may only be generated and propagated as a result of code evaluation. Code evaluation may happen as a result of <code>eval</code>, <code>Function</code>, <code>require</code>, or <a href="vm">vm</a>. These errors are almost always indicative of a broken program.</p> <pre data-language="js">try {
   require('node:vm').runInThisContext('binary ! isNotOk');
 } catch (err) {
   // 'err' will be a SyntaxError.
-}</pre> <p><code>SyntaxError</code> instances are unrecoverable in the context that created them – they may only be caught by other contexts.</p> </section><section><h3 id="class-systemerror">Class: <code>SystemError</code>
+} copy</pre> <p><code>SyntaxError</code> instances are unrecoverable in the context that created them – they may only be caught by other contexts.</p> </section><section><h3 id="class-systemerror">Class: <code>SystemError</code>
 </h3> <ul> <li>Extends: <a href="errors#class-error" class="type">&lt;errors.Error&gt;</a>
 </li> </ul> <p>Node.js generates system errors when exceptions occur within its runtime environment. These usually occur when an application violates an operating system constraint. For example, a system error will occur if an application attempts to read a file that does not exist.</p> <ul> <li>
 <code>address</code> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#String_type" class="type">&lt;string&gt;</a> If present, the address to which a network connection failed</li> <li>
@@ -277,7 +276,7 @@ makeFaster();
 </h4> <p>This is a list of system errors commonly-encountered when writing a Node.js program. For a comprehensive list, see the <a href="https://man7.org/linux/man-pages/man3/errno.3.html"><code>errno</code>(3) man page</a>.</p> <ul> <li> <p><code>EACCES</code> (Permission denied): An attempt was made to access a file in a way forbidden by its file access permissions.</p> </li> <li> <p><code>EADDRINUSE</code> (Address already in use): An attempt to bind a server (<a href="net"><code>net</code></a>, <a href="http"><code>http</code></a>, or <a href="https"><code>https</code></a>) to a local address failed due to another server on the local system already occupying that address.</p> </li> <li> <p><code>ECONNREFUSED</code> (Connection refused): No connection could be made because the target machine actively refused it. This usually results from trying to connect to a service that is inactive on the foreign host.</p> </li> <li> <p><code>ECONNRESET</code> (Connection reset by peer): A connection was forcibly closed by a peer. This normally results from a loss of the connection on the remote socket due to a timeout or reboot. Commonly encountered via the <a href="http"><code>http</code></a> and <a href="net"><code>net</code></a> modules.</p> </li> <li> <p><code>EEXIST</code> (File exists): An existing file was the target of an operation that required that the target not exist.</p> </li> <li> <p><code>EISDIR</code> (Is a directory): An operation expected a file, but the given pathname was a directory.</p> </li> <li> <p><code>EMFILE</code> (Too many open files in system): Maximum number of <a href="https://en.wikipedia.org/wiki/File_descriptor">file descriptors</a> allowable on the system has been reached, and requests for another descriptor cannot be fulfilled until at least one has been closed. This is encountered when opening many files at once in parallel, especially on systems (in particular, macOS) where there is a low file descriptor limit for processes. To remedy a low limit, run <code>ulimit -n 2048</code> in the same shell that will run the Node.js process.</p> </li> <li> <p><code>ENOENT</code> (No such file or directory): Commonly raised by <a href="fs"><code>fs</code></a> operations to indicate that a component of the specified pathname does not exist. No entity (file or directory) could be found by the given path.</p> </li> <li> <p><code>ENOTDIR</code> (Not a directory): A component of the given pathname existed, but was not a directory as expected. Commonly raised by <a href="fs#fsreaddirpath-options-callback"><code>fs.readdir</code></a>.</p> </li> <li> <p><code>ENOTEMPTY</code> (Directory not empty): A directory with entries was the target of an operation that requires an empty directory, usually <a href="fs#fsunlinkpath-callback"><code>fs.unlink</code></a>.</p> </li> <li> <p><code>ENOTFOUND</code> (DNS lookup failed): Indicates a DNS failure of either <code>EAI_NODATA</code> or <code>EAI_NONAME</code>. This is not a standard POSIX error.</p> </li> <li> <p><code>EPERM</code> (Operation not permitted): An attempt was made to perform an operation that requires elevated privileges.</p> </li> <li> <p><code>EPIPE</code> (Broken pipe): A write on a pipe, socket, or FIFO for which there is no process to read the data. Commonly encountered at the <a href="net"><code>net</code></a> and <a href="http"><code>http</code></a> layers, indicative that the remote side of the stream being written to has been closed.</p> </li> <li> <p><code>ETIMEDOUT</code> (Operation timed out): A connect or send request failed because the connected party did not properly respond after a period of time. Usually encountered by <a href="http"><code>http</code></a> or <a href="net"><code>net</code></a>. Often a sign that a <code>socket.end()</code> was not properly called.</p> </li> </ul> </section><section><h3 id="class-typeerror">Class: <code>TypeError</code>
 </h3> <ul> <li>Extends <a href="errors#class-error" class="type">&lt;errors.Error&gt;</a>
 </li> </ul> <p>Indicates that a provided argument is not an allowable type. For example, passing a function to a parameter which expects a string would be a <code>TypeError</code>.</p> <pre data-language="js">require('node:url').parse(() =&gt; { });
-// Throws TypeError, since it expected a string.</pre> <p>Node.js will generate and throw <code>TypeError</code> instances <em>immediately</em> as a form of argument validation.</p> </section><section><h3 id="exceptions-vs-errors">Exceptions vs. errors
+// Throws TypeError, since it expected a string. copy</pre> <p>Node.js will generate and throw <code>TypeError</code> instances <em>immediately</em> as a form of argument validation.</p> </section><section><h3 id="exceptions-vs-errors">Exceptions vs. errors
 </h3> <p>A JavaScript exception is a value that is thrown as a result of an invalid operation or as the target of a <code>throw</code> statement. While it is not required that these values are instances of <code>Error</code> or classes which inherit from <code>Error</code>, all exceptions thrown by Node.js or the JavaScript runtime <em>will</em> be instances of <code>Error</code>.</p> <p>Some exceptions are <em>unrecoverable</em> at the JavaScript layer. Such exceptions will <em>always</em> cause the Node.js process to crash. Examples include <code>assert()</code> checks or <code>abort()</code> calls in the C++ layer.</p> </section><section><h3 id="openssl-errors">OpenSSL errors
 </h3> <p>Errors originating in <code>crypto</code> or <code>tls</code> are of class <code>Error</code>, and in addition to the standard <code>.code</code> and <code>.message</code> properties, may have some additional OpenSSL-specific properties.</p> <h4 id="erroropensslerrorstack">
 <code>error.opensslErrorStack</code>
@@ -290,15 +289,15 @@ makeFaster();
 </h4> <p>A human-readable string describing the reason for the error.</p>  </section><section><h3 id="nodejs-error-codes">Node.js error codes
 </h3>  <h4 id="abort_err">
 <code>ABORT_ERR</code>
-</h4> <div class="api_metadata"> <span>Added in: v15.0.0</span> </div> <p>Used when an operation has been aborted (typically using an <code>AbortController</code>).</p> <p>APIs <em>not</em> using <code>AbortSignal</code>s typically do not raise an error with this code.</p> <p>This code does not use the regular <code>ERR_*</code> convention Node.js errors use in order to be compatible with the web platform's <code>AbortError</code>.</p>  <h4 id="err_ambiguous_argument">
+</h4> <div class="api_metadata"> <span>Added in: v15.0.0</span> </div> <p>Used when an operation has been aborted (typically using an <code>AbortController</code>).</p> <p>APIs <em>not</em> using <code>AbortSignal</code>s typically do not raise an error with this code.</p> <p>This code does not use the regular <code>ERR_*</code> convention Node.js errors use in order to be compatible with the web platform's <code>AbortError</code>.</p>  <h4 id="err_access_denied">
+<code>ERR_ACCESS_DENIED</code>
+</h4> <p>A special type of error that is triggered whenever Node.js tries to get access to a resource restricted by the <a href="permissions#permission-model">Permission Model</a>.</p>  <h4 id="err_ambiguous_argument">
 <code>ERR_AMBIGUOUS_ARGUMENT</code>
 </h4> <p>A function argument is being used in a way that suggests that the function signature may be misunderstood. This is thrown by the <code>node:assert</code> module when the <code>message</code> parameter in <code>assert.throws(block, message)</code> matches the error message thrown by <code>block</code> because that usage suggests that the user believes <code>message</code> is the expected message rather than the message the <code>AssertionError</code> will display if <code>block</code> does not throw.</p>  <h4 id="err_arg_not_iterable">
 <code>ERR_ARG_NOT_ITERABLE</code>
 </h4> <p>An iterable argument (i.e. a value that works with <code>for...of</code> loops) was required, but not provided to a Node.js API.</p>  <h4 id="err_assertion">
 <code>ERR_ASSERTION</code>
-</h4> <p>A special type of error that can be triggered whenever Node.js detects an exceptional logic violation that should never occur. These are raised typically by the <code>node:assert</code> module.</p>  <h4 id="err_assert_snapshot_not_supported">
-<code>ERR_ASSERT_SNAPSHOT_NOT_SUPPORTED</code>
-</h4> <p>An attempt was made to use <code>assert.snapshot()</code> in an environment that does not support snapshots, such as the REPL, or when using <code>node --eval</code>.</p>  <h4 id="err_async_callback">
+</h4> <p>A special type of error that can be triggered whenever Node.js detects an exceptional logic violation that should never occur. These are raised typically by the <code>node:assert</code> module.</p>  <h4 id="err_async_callback">
 <code>ERR_ASYNC_CALLBACK</code>
 </h4> <p>An attempt was made to register something that is not a function as an <code>AsyncHooks</code> callback.</p>  <h4 id="err_async_type">
 <code>ERR_ASYNC_TYPE</code>
@@ -322,17 +321,28 @@ makeFaster();
 <code>ERR_CHILD_PROCESS_STDIO_MAXBUFFER</code>
 </h4> <p>Used when the main process is trying to read data from the child process's STDERR/STDOUT, and the data's length is longer than the <code>maxBuffer</code> option.</p>  <h4 id="err_closed_message_port">
 <code>ERR_CLOSED_MESSAGE_PORT</code>
-</h4>  <p>There was an attempt to use a <code>MessagePort</code> instance in a closed state, usually after <code>.close()</code> has been called.</p>  <h4 id="err_console_writable_stream">
+</h4> <div class="api_metadata"> <details class="changelog"><summary>History</summary> <table> <tbody>
+<tr>
+<th>Version</th>
+<th>Changes</th>
+</tr> <tr>
+<td>v16.2.0, v14.17.1</td> <td><p>The error message was reintroduced.</p></td>
+</tr> <tr>
+<td>v11.12.0</td> <td><p>The error message was removed.</p></td>
+</tr> <tr>
+<td>v10.5.0</td> <td><p><span>Added in: v10.5.0</span></p></td>
+</tr> </tbody>
+</table> </details> </div> <p>There was an attempt to use a <code>MessagePort</code> instance in a closed state, usually after <code>.close()</code> has been called.</p>  <h4 id="err_console_writable_stream">
 <code>ERR_CONSOLE_WRITABLE_STREAM</code>
 </h4> <p><code>Console</code> was instantiated without <code>stdout</code> stream, or <code>Console</code> has a non-writable <code>stdout</code> or <code>stderr</code> stream.</p>  <h4 id="err_construct_call_invalid">
 <code>ERR_CONSTRUCT_CALL_INVALID</code>
-</h4>  <p>A class constructor was called that is not callable.</p>  <h4 id="err_construct_call_required">
+</h4> <div class="api_metadata"> <span>Added in: v12.5.0</span> </div> <p>A class constructor was called that is not callable.</p>  <h4 id="err_construct_call_required">
 <code>ERR_CONSTRUCT_CALL_REQUIRED</code>
 </h4> <p>A constructor for a class was called without <code>new</code>.</p>  <h4 id="err_context_not_initialized">
 <code>ERR_CONTEXT_NOT_INITIALIZED</code>
 </h4> <p>The vm context passed into the API is not yet initialized. This could happen when an error occurs (and is caught) during the creation of the context, for example, when the allocation fails or the maximum call stack size is reached when the context is created.</p>  <h4 id="err_crypto_custom_engine_not_supported">
 <code>ERR_CRYPTO_CUSTOM_ENGINE_NOT_SUPPORTED</code>
-</h4> <p>A client certificate engine was requested that is not supported by the version of OpenSSL being used.</p>  <h4 id="err_crypto_ecdh_invalid_format">
+</h4> <p>An OpenSSL engine was requested (for example, through the <code>clientCertEngine</code> or <code>privateKeyEngine</code> TLS options) that is not supported by the version of OpenSSL being used, likely due to the compile-time flag <code>OPENSSL_NO_ENGINE</code>.</p>  <h4 id="err_crypto_ecdh_invalid_format">
 <code>ERR_CRYPTO_ECDH_INVALID_FORMAT</code>
 </h4> <p>An invalid value for the <code>format</code> argument was passed to the <code>crypto.ECDH()</code> class <code>getPublicKey()</code> method.</p>  <h4 id="err_crypto_ecdh_invalid_public_key">
 <code>ERR_CRYPTO_ECDH_INVALID_PUBLIC_KEY</code>
@@ -440,23 +450,25 @@ makeFaster();
 <code>ERR_FEATURE_UNAVAILABLE_ON_PLATFORM</code>
 </h4> <div class="api_metadata"> <span>Added in: v14.0.0</span> </div> <p>Used when a feature that is not available to the current platform which is running Node.js is used.</p>  <h4 id="err_fs_cp_dir_to_non_dir">
 <code>ERR_FS_CP_DIR_TO_NON_DIR</code>
-</h4>  <p>An attempt was made to copy a directory to a non-directory (file, symlink, etc.) using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_eexist">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy a directory to a non-directory (file, symlink, etc.) using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_eexist">
 <code>ERR_FS_CP_EEXIST</code>
-</h4>  <p>An attempt was made to copy over a file that already existed with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, with the <code>force</code> and <code>errorOnExist</code> set to <code>true</code>.</p>  <h4 id="err_fs_cp_einval">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy over a file that already existed with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, with the <code>force</code> and <code>errorOnExist</code> set to <code>true</code>.</p>  <h4 id="err_fs_cp_einval">
 <code>ERR_FS_CP_EINVAL</code>
-</h4>  <p>When using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, <code>src</code> or <code>dest</code> pointed to an invalid path.</p>  <h4 id="err_http_content_length_mismatch">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>When using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, <code>src</code> or <code>dest</code> pointed to an invalid path.</p>  <h4 id="err_http_body_not_allowed">
+<code>ERR_HTTP_BODY_NOT_ALLOWED</code>
+</h4> <p>An error is thrown when writing to an HTTP response which does not allow contents. </p> <h4 id="err_http_content_length_mismatch">
 <code>ERR_HTTP_CONTENT_LENGTH_MISMATCH</code>
 </h4> <p>Response body size doesn't match with the specified content-length header value.</p>  <h4 id="err_fs_cp_fifo_pipe">
 <code>ERR_FS_CP_FIFO_PIPE</code>
-</h4>  <p>An attempt was made to copy a named pipe with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_non_dir_to_dir">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy a named pipe with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_non_dir_to_dir">
 <code>ERR_FS_CP_NON_DIR_TO_DIR</code>
-</h4>  <p>An attempt was made to copy a non-directory (file, symlink, etc.) to a directory using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_socket">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy a non-directory (file, symlink, etc.) to a directory using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_socket">
 <code>ERR_FS_CP_SOCKET</code>
-</h4>  <p>An attempt was made to copy to a socket with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_symlink_to_subdirectory">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy to a socket with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_cp_symlink_to_subdirectory">
 <code>ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY</code>
-</h4>  <p>When using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, a symlink in <code>dest</code> pointed to a subdirectory of <code>src</code>.</p>  <h4 id="err_fs_cp_unknown">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>When using <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>, a symlink in <code>dest</code> pointed to a subdirectory of <code>src</code>.</p>  <h4 id="err_fs_cp_unknown">
 <code>ERR_FS_CP_UNKNOWN</code>
-</h4>  <p>An attempt was made to copy to an unknown file type with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_eisdir">
+</h4> <div class="api_metadata"> <span>Added in: v16.7.0</span> </div> <p>An attempt was made to copy to an unknown file type with <a href="fs#fscpsrc-dest-options-callback"><code>fs.cp()</code></a>.</p>  <h4 id="err_fs_eisdir">
 <code>ERR_FS_EISDIR</code>
 </h4> <p>Path is a directory.</p>  <h4 id="err_fs_file_too_large">
 <code>ERR_FS_FILE_TOO_LARGE</code>
@@ -470,7 +482,9 @@ makeFaster();
 <code>ERR_HTTP_INVALID_STATUS_CODE</code>
 </h4> <p>Status code was outside the regular status code range (100-999).</p>  <h4 id="err_http_request_timeout">
 <code>ERR_HTTP_REQUEST_TIMEOUT</code>
-</h4> <p>The client has not sent the entire request within the allowed time.</p>  <h4 id="err_http_socket_encoding">
+</h4> <p>The client has not sent the entire request within the allowed time.</p>  <h4 id="err_http_socket_assigned">
+<code>ERR_HTTP_SOCKET_ASSIGNED</code>
+</h4> <p>The given <a href="http#class-httpserverresponse"><code>ServerResponse</code></a> was already assigned a socket.</p>  <h4 id="err_http_socket_encoding">
 <code>ERR_HTTP_SOCKET_ENCODING</code>
 </h4> <p>Changing the socket encoding is not allowed per <a href="https://tools.ietf.org/html/rfc7230#section-3">RFC 7230 Section 3</a>.</p>  <h4 id="err_http_trailer_invalid">
 <code>ERR_HTTP_TRAILER_INVALID</code>
@@ -560,7 +574,7 @@ makeFaster();
 <code>ERR_HTTP2_STREAM_SELF_DEPENDENCY</code>
 </h4> <p>When setting the priority for an HTTP/2 stream, the stream may be marked as a dependency for a parent stream. This error code is used when an attempt is made to mark a stream and dependent of itself.</p>  <h4 id="err_http2_too_many_invalid_frames">
 <code>ERR_HTTP2_TOO_MANY_INVALID_FRAMES</code>
-</h4>  <p>The limit of acceptable invalid HTTP/2 protocol frames sent by the peer, as specified through the <code>maxSessionInvalidFrames</code> option, has been exceeded.</p>  <h4 id="err_http2_trailers_already_sent">
+</h4> <div class="api_metadata"> <span>Added in: v15.14.0</span> </div> <p>The limit of acceptable invalid HTTP/2 protocol frames sent by the peer, as specified through the <code>maxSessionInvalidFrames</code> option, has been exceeded.</p>  <h4 id="err_http2_trailers_already_sent">
 <code>ERR_HTTP2_TRAILERS_ALREADY_SENT</code>
 </h4> <p>Trailing headers have already been sent on the <code>Http2Stream</code>.</p>  <h4 id="err_http2_trailers_not_ready">
 <code>ERR_HTTP2_TRAILERS_NOT_READY</code>
@@ -627,7 +641,9 @@ makeFaster();
 <code>ERR_INVALID_HTTP_TOKEN</code>
 </h4> <p>An invalid HTTP token was supplied.</p>  <h4 id="err_invalid_ip_address">
 <code>ERR_INVALID_IP_ADDRESS</code>
-</h4> <p>An IP address is not valid.</p>  <h4 id="err_invalid_module">
+</h4> <p>An IP address is not valid.</p>  <h4 id="err_invalid_mime_syntax">
+<code>ERR_INVALID_MIME_SYNTAX</code>
+</h4> <p>The syntax of a MIME is not valid.</p>  <h4 id="err_invalid_module">
 <code>ERR_INVALID_MODULE</code>
 </h4> <div class="api_metadata"> <span>Added in: v15.0.0, v14.18.0</span> </div> <p>An attempt was made to load a module that does not exist or was otherwise not valid.</p>  <h4 id="err_invalid_module_specifier">
 <code>ERR_INVALID_MODULE_SPECIFIER</code>
@@ -661,7 +677,7 @@ makeFaster();
 
 const buf = Buffer.alloc(1);
 urlSearchParams.has.call(buf, 'foo');
-// Throws a TypeError with code 'ERR_INVALID_THIS'</pre>  <h4 id="err_invalid_transfer_object">
+// Throws a TypeError with code 'ERR_INVALID_THIS' copy</pre>  <h4 id="err_invalid_transfer_object">
 <code>ERR_INVALID_TRANSFER_OBJECT</code>
 </h4> <p>An invalid transfer object was passed to <code>postMessage()</code>.</p>  <h4 id="err_invalid_tuple">
 <code>ERR_INVALID_TUPLE</code>
@@ -735,7 +751,9 @@ urlSearchParams.has.call(buf, 'foo');
 <code>ERR_NAPI_TSFN_STOP_IDLE_LOOP</code>
 </h4> <p>Once no more items are left in the queue, the idle loop must be suspended. This error indicates that the idle loop has failed to stop.</p>  <h4 id="err_not_building_snapshot">
 <code>ERR_NOT_BUILDING_SNAPSHOT</code>
-</h4> <p>An attempt was made to use operations that can only be used when building V8 startup snapshot even though Node.js isn't building one.</p>  <h4 id="err_no_crypto">
+</h4> <p>An attempt was made to use operations that can only be used when building V8 startup snapshot even though Node.js isn't building one.</p>  <h4 id="err_not_supported_in_snapshot">
+<code>ERR_NOT_SUPPORTED_IN_SNAPSHOT</code>
+</h4> <p>An attempt was made to perform operations that are not supported when building a startup snapshot.</p>  <h4 id="err_no_crypto">
 <code>ERR_NO_CRYPTO</code>
 </h4> <p>An attempt was made to use crypto features while Node.js was not compiled with OpenSSL crypto support.</p>  <h4 id="err_no_icu">
 <code>ERR_NO_ICU</code>
@@ -784,7 +802,11 @@ urlSearchParams.has.call(buf, 'foo');
 <code>ERR_SOCKET_BUFFER_SIZE</code>
 </h4> <p>While using <a href="dgram#dgramcreatesocketoptions-callback"><code>dgram.createSocket()</code></a>, the size of the receive or send <code>Buffer</code> could not be determined.</p>  <h4 id="err_socket_closed">
 <code>ERR_SOCKET_CLOSED</code>
-</h4> <p>An attempt was made to operate on an already closed socket.</p>  <h4 id="err_socket_dgram_is_connected">
+</h4> <p>An attempt was made to operate on an already closed socket.</p>  <h4 id="err_socket_closed_before_connection">
+<code>ERR_SOCKET_CLOSED_BEFORE_CONNECTION</code>
+</h4> <p>When calling <a href="net#socketwritedata-encoding-callback"><code>net.Socket.write()</code></a> on a connecting socket and the socket was closed before the connection was established.</p>  <h4 id="err_socket_connection_timeout">
+<code>ERR_SOCKET_CONNECTION_TIMEOUT</code>
+</h4> <p>The socket was unable to connect to any address returned by the DNS within the allowed timeout when using the family autoselection algorithm.</p>  <h4 id="err_socket_dgram_is_connected">
 <code>ERR_SOCKET_DGRAM_IS_CONNECTED</code>
 </h4> <p>A <a href="dgram#socketconnectport-address-callback"><code>dgram.connect()</code></a> call was made on an already connected socket.</p>  <h4 id="err_socket_dgram_not_connected">
 <code>ERR_SOCKET_DGRAM_NOT_CONNECTED</code>
@@ -811,7 +833,7 @@ urlSearchParams.has.call(buf, 'foo');
 </h4> <p>Prevents an abort if a string decoder was set on the Socket or if the decoder is in <code>objectMode</code>.</p> <pre data-language="js">const Socket = require('node:net').Socket;
 const instance = new Socket();
 
-instance.setEncoding('utf8');</pre>  <h4 id="err_stream_write_after_end">
+instance.setEncoding('utf8'); copy</pre>  <h4 id="err_stream_write_after_end">
 <code>ERR_STREAM_WRITE_AFTER_END</code>
 </h4> <p>An attempt was made to call <a href="stream#writablewritechunk-encoding-callback"><code>stream.write()</code></a> after <code>stream.end()</code> has been called.</p>  <h4 id="err_string_too_long">
 <code>ERR_STRING_TOO_LONG</code>
@@ -819,9 +841,19 @@ instance.setEncoding('utf8');</pre>  <h4 id="err_stream_write_after_end">
 <code>ERR_SYNTHETIC</code>
 </h4> <p>An artificial error object used to capture the call stack for diagnostic reports.</p>  <h4 id="err_system_error">
 <code>ERR_SYSTEM_ERROR</code>
-</h4> <p>An unspecified or non-specific system error has occurred within the Node.js process. The error object will have an <code>err.info</code> object property with additional details.</p>  <h4 id="err_test_failure">
+</h4> <p>An unspecified or non-specific system error has occurred within the Node.js process. The error object will have an <code>err.info</code> object property with additional details.</p>  <h4 id="err_tap_lexer_error">
+<code>ERR_TAP_LEXER_ERROR</code>
+</h4> <p>An error representing a failing lexer state.</p>  <h4 id="err_tap_parser_error">
+<code>ERR_TAP_PARSER_ERROR</code>
+</h4> <p>An error representing a failing parser state. Additional information about the token causing the error is available via the <code>cause</code> property.</p>  <h4 id="err_tap_validation_error">
+<code>ERR_TAP_VALIDATION_ERROR</code>
+</h4> <p>This error represents a failed TAP validation.</p>  <h4 id="err_test_failure">
 <code>ERR_TEST_FAILURE</code>
-</h4> <p>This error represents a failed test. Additional information about the failure is available via the <code>cause</code> property. The <code>failureType</code> property specifies what the test was doing when the failure occurred.</p>  <h4 id="err_tls_cert_altname_format">
+</h4> <p>This error represents a failed test. Additional information about the failure is available via the <code>cause</code> property. The <code>failureType</code> property specifies what the test was doing when the failure occurred.</p>  <h4 id="err_tls_alpn_callback_invalid_result">
+<code>ERR_TLS_ALPN_CALLBACK_INVALID_RESULT</code>
+</h4> <p>This error is thrown when an <code>ALPNCallback</code> returns a value that is not in the list of ALPN protocols offered by the client.</p>  <h4 id="err_tls_alpn_callback_with_protocols">
+<code>ERR_TLS_ALPN_CALLBACK_WITH_PROTOCOLS</code>
+</h4> <p>This error is thrown when creating a <code>TLSServer</code> if the TLS options include both <code>ALPNProtocols</code> and <code>ALPNCallback</code>. These options are mutually exclusive.</p>  <h4 id="err_tls_cert_altname_format">
 <code>ERR_TLS_CERT_ALTNAME_FORMAT</code>
 </h4> <p>This error is thrown by <code>checkServerIdentity</code> if a user-supplied <code>subjectaltname</code> property violates encoding rules. Certificate objects produced by Node.js itself always comply with encoding rules and will never cause this error.</p>  <h4 id="err_tls_cert_altname_invalid">
 <code>ERR_TLS_CERT_ALTNAME_INVALID</code>
@@ -843,7 +875,7 @@ instance.setEncoding('utf8');</pre>  <h4 id="err_stream_write_after_end">
 <code>ERR_TLS_PSK_SET_IDENTIY_HINT_FAILED</code>
 </h4> <p>Failed to set PSK identity hint. Hint may be too long.</p>  <h4 id="err_tls_renegotiation_disabled">
 <code>ERR_TLS_RENEGOTIATION_DISABLED</code>
-</h4> <p>An attempt was made to renegotiate TLS on a socket instance with TLS disabled.</p>  <h4 id="err_tls_required_server_name">
+</h4> <p>An attempt was made to renegotiate TLS on a socket instance with renegotiation disabled.</p>  <h4 id="err_tls_required_server_name">
 <code>ERR_TLS_REQUIRED_SERVER_NAME</code>
 </h4> <p>While using TLS, the <code>server.addContext()</code> method was called without providing a host name in the first parameter.</p>  <h4 id="err_tls_session_attack">
 <code>ERR_TLS_SESSION_ATTACK</code>
@@ -889,7 +921,7 @@ instance.setEncoding('utf8');</pre>  <h4 id="err_stream_write_after_end">
 <code>ERR_UNSUPPORTED_DIR_IMPORT</code>
 </h4> <p><code>import</code> a directory URL is unsupported. Instead, <a href="packages#self-referencing-a-package-using-its-name">self-reference a package using its name</a> and <a href="packages#subpath-exports">define a custom subpath</a> in the <a href="packages#exports"><code>"exports"</code></a> field of the <a href="packages#nodejs-packagejson-field-definitions"><code>package.json</code></a> file.</p>  <pre data-language="js">import './'; // unsupported
 import './index.js'; // supported
-import 'package-name'; // supported</pre>  <h4 id="err_unsupported_esm_url_scheme">
+import 'package-name'; // supported copy</pre>  <h4 id="err_unsupported_esm_url_scheme">
 <code>ERR_UNSUPPORTED_ESM_URL_SCHEME</code>
 </h4> <p><code>import</code> with URL schemes other than <code>file</code> and <code>data</code> is unsupported.</p>  <h4 id="err_use_after_close">
 <code>ERR_USE_AFTER_CLOSE</code>
@@ -962,7 +994,7 @@ import 'package-name'; // supported</pre>  <h4 id="err_unsupported_esm_url_schem
 <a href="https://nodejs.org/api/documentation.html#stability-index">Stability: 0</a> - Deprecated. These error codes are either inconsistent, or have been removed.</div>
   <h4 id="err_cannot_transfer_object">
 <code>ERR_CANNOT_TRANSFER_OBJECT</code>
-</h4>  <p>The value passed to <code>postMessage()</code> contained an object that is not supported for transferring.</p>  <h4 id="err_crypto_hash_digest_no_utf16">
+</h4> <div class="api_metadata"> <span>Added in: v10.5.0</span><span>Removed in: v12.5.0</span> </div> <p>The value passed to <code>postMessage()</code> contained an object that is not supported for transferring.</p>  <h4 id="err_crypto_hash_digest_no_utf16">
 <code>ERR_CRYPTO_HASH_DIGEST_NO_UTF16</code>
 </h4> <div class="api_metadata"> <span>Added in: v9.0.0</span><span>Removed in: v12.12.0</span> </div> <p>The UTF-16 encoding was used with <a href="crypto#hashdigestencoding"><code>hash.digest()</code></a>. While the <code>hash.digest()</code> method does allow an <code>encoding</code> argument to be passed in, causing the method to return a string rather than a <code>Buffer</code>, the UTF-16 encoding (e.g. <code>ucs</code> or <code>utf16le</code>) is not supported.</p>  <h4 id="err_http2_frame_error">
 <code>ERR_HTTP2_FRAME_ERROR</code>
